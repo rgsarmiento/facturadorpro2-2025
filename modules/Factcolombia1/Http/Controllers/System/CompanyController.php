@@ -285,65 +285,52 @@ class CompanyController extends Controller
         return new CompanyCollection($records);
     }
 */
-public function records()
-{
-//    \Log::debug("A");
-    // Obtener el ID del usuario autenticado
-    $userId = auth()->id();
 
-    if (in_array($userId, [1, 2, 3, 4, 5, 6, 7, 8, 9])) {
-        // Para los usuarios con ID 1 y 2, obtener todas las empresas
-        $records = Company::latest()->get();
-    } else {
-        // Obtener los identification_number asociados con el usuario autenticado
-        $identificationNumbers = ServiceCompany::where('user_id', $userId)
-                                                ->pluck('identification_number');
-        // Filtrar las Company por los identification_number obtenidos
-        $records = Company::whereIn('identification_number', $identificationNumbers)
-                          ->latest()
-                          ->get();
-    }
-
-    // Procesar cada registro de Company obtenido
-    foreach ($records as &$row) {
-        $tenancy = app(Environment::class);
-        $tenancy->tenant($row->hostname->website);
-        // $row->count_doc = DB::connection('tenant')->table('documents')->count();
-        $row->count_doc = DB::connection('tenant')->table('configurations')->first()->quantity_documents;
-        //$row->count_user = DB::connection('tenant')->table('users')->count();
-
-        if($row->start_billing_cycle)
-        {
-            $day_start_billing = date_format($row->start_billing_cycle, 'j');
-            $day_now = (int)date('j');
-
-
-            if( $day_now <= $day_start_billing  )
-            {
-                $init = Carbon::parse( date('Y').'-'.((int)date('n') -1).'-'.$day_start_billing );
-                $end = Carbon::parse(date('Y-m-d'));
-
-                $row->count_doc_month = DB::connection('tenant')->table('documents')->whereBetween('date_of_issue', [ $init, $end  ])->count();
-            }
-            else{
-
-                $init = Carbon::parse( date('Y').'-'.((int)date('n') ).'-'.$day_start_billing );
-                $end = Carbon::parse(date('Y-m-d'));
-                $row->count_doc_month = DB::connection('tenant')->table('documents')->whereBetween('date_of_issue', [ $init, $end  ])->count();
-
-            }
-
+    public function records(){
+        //    \Log::debug("A");
+        // Obtener el ID del usuario autenticado
+        $userId = auth()->id();
+        if (in_array($userId, [1, 2, 3, 4, 5, 6, 7, 8, 9])) {
+            // Para los usuarios con ID 1 y 2, obtener todas las empresas
+            $records = Company::latest()->get();
         }
+        else {
+            // Obtener los identification_number asociados con el usuario autenticado
+            $identificationNumbers = ServiceCompany::where('user_id', $userId)
+                                                ->pluck('identification_number');
+            // Filtrar las Company por los identification_number obtenidos
+            $records = Company::whereIn('identification_number', $identificationNumbers)
+                              ->latest()
+                              ->get();
+        }
+        // Procesar cada registro de Company obtenido
+        foreach ($records as &$row) {
+            $tenancy = app(Environment::class);
+            $tenancy->tenant($row->hostname->website);
+            // $row->count_doc = DB::connection('tenant')->table('documents')->count();
+            $row->count_doc = DB::connection('tenant')->table('configurations')->first()->quantity_documents;
+            //$row->count_user = DB::connection('tenant')->table('users')->count();
+            if($row->start_billing_cycle){
+                $day_start_billing = date_format($row->start_billing_cycle, 'j');
+                $day_now = (int)date('j');
+                if( $day_now <= $day_start_billing  )
+                {
+                    $init = Carbon::parse( date('Y').'-'.((int)date('n') -1).'-'.$day_start_billing );
+                    $end = Carbon::parse(date('Y-m-d'));
+                    $row->count_doc_month = DB::connection('tenant')->table('documents')->whereBetween('date_of_issue', [ $init, $end  ])->count();
+                }
+                else{
+                    $init = Carbon::parse( date('Y').'-'.((int)date('n') ).'-'.$day_start_billing );
+                    $end = Carbon::parse(date('Y-m-d'));
+                    $row->count_doc_month = DB::connection('tenant')->table('documents')->whereBetween('date_of_issue', [ $init, $end  ])->count();
+                }
+            }
+        }
+        // Devolver la colección de Company procesadas
+        return new CompanyCollection($records);
     }
 
-    // Devolver la colección de Company procesadas
-    return new CompanyCollection($records);
-}
-
-
-
-    public function record($id)
-    {
+    public function record($id){
         $company = Company::findOrFail($id);
         $tenancy = app(Environment::class);
         $tenancy->tenant($company->hostname->website);
@@ -653,22 +640,51 @@ public function records()
 
     }
 
-
     public function lockedTenant(Request $request){
-
         $company = Company::findOrFail($request->id);
         $company->locked_tenant = $request->locked_tenant;
         $company->save();
-
         $tenancy = app(Environment::class);
         $tenancy->tenant($company->hostname->website);
         DB::connection('tenant')->table('configurations')->where('id', 1)->update(['locked_tenant' => $company->locked_tenant]);
-
         return [
             'success' => true,
             'message' => ($company->locked_tenant) ? 'Cuenta bloqueada' : 'Cuenta desbloqueada'
         ];
+    }
 
+    public function changeAllowSellerLogin(Request $request){
+        $company = Company::findOrFail($request->id);
+        $service_company = ServiceCompany::where('identification_number', $company->identification_number)->first();
+        $company->allow_seller_login = $request->allow_seller_login;
+        $company->save();
+        if(!$company->allow_seller_login) {
+            $tenancy = app(Environment::class);
+            $tenancy->tenant($company->hostname->website);
+            DB::connection('tenant')->table('co_advanced_configuration')->where('id', 1)->update(['allow_seller_login' => false]);
+            $base_url = env("SERVICE_FACT", "");
+            $ch5 = curl_init("{$base_url}ubl2.1/change-allow-seller-login");
+            $data = [
+                "state"=> false,
+            ];
+            $data_allow_seller_login = json_encode($data);
+            curl_setopt($ch5, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch5, CURLOPT_CUSTOMREQUEST, "POST");
+            curl_setopt($ch5, CURLOPT_POSTFIELDS,($data_allow_seller_login));
+            curl_setopt($ch5, CURLOPT_SSL_VERIFYHOST, 0);
+            curl_setopt($ch5, CURLOPT_SSL_VERIFYPEER, 0);
+            curl_setopt($ch5, CURLOPT_HTTPHEADER, array(
+                'Content-Type: application/json',
+                'Accept: application/json',
+                "Authorization: Bearer {$service_company->api_token}"
+            ));
+            $response = curl_exec($ch5);
+            \Log::debug($response);
+        }
+        return [
+            'success' => true,
+            'message' => ($company->allow_seller_login) ? 'Allow Seller Login activado' : 'Allow Seller Login desactivado'
+        ];
     }
 
     public function startBillingCycle(Request $request)

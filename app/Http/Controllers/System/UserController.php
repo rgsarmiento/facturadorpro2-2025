@@ -15,7 +15,6 @@ class UserController extends Controller
         return view('system.users.form', compact('currentUserId'));
     }
 
-
     public function record()
     {
         // Obtener el usuario autenticado actualmente

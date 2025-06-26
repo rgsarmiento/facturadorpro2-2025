@@ -34,11 +34,13 @@ class Company extends Model
         'locked_tenant',
         'locked_users',
         'limit_users',
-        'start_billing_cycle'
+        'start_billing_cycle',
+        'allow_seller_login',
     ];
 
     protected $casts = [
         'start_billing_cycle' => 'date',
+        'allow_seller_login' => 'boolean',
     ];
     /**
      * The attributes that should be mutated to dates.

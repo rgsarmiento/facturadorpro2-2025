@@ -33,6 +33,7 @@ class AdvancedConfiguration extends Model
         'private_certificate_qztray',
         'enable_qz_tray',
         'blind_cash',
+        'allow_seller_login',
     ];
 
     protected $casts = [
@@ -40,6 +41,7 @@ class AdvancedConfiguration extends Model
         'item_tax_included' => 'bool',
         'enable_qz_tray' => 'bool',
         'blind_cash' => 'bool',
+        'allow_seller_login' => 'bool',
     ];
 
     /**
@@ -60,6 +62,7 @@ class AdvancedConfiguration extends Model
             'uvt' => $this->uvt,
             'item_tax_included' => $this->item_tax_included,
             'blind_cash' => $this->blind_cash,
+            'allow_seller_login' => $this->allow_seller_login,
         ];
     }
 

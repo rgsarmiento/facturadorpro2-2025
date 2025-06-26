@@ -161,6 +161,7 @@ if($current_hostname) {
                 Route::delete('{company}', 'System\CompanyController@destroy');
                 // Route::post('locked_emission', 'System\CompanyController@lockedEmission');
                 Route::post('locked_tenant', 'System\CompanyController@lockedTenant');
+                Route::post('change_allow_seller_login', 'System\CompanyController@changeAllowSellerLogin');
                 Route::post('locked_user', 'System\CompanyController@lockedUser');
                 Route::post('locked_emission', 'System\CompanyController@lockedEmission');
                 Route::post('set_billing_cycle', 'System\CompanyController@startBillingCycle');

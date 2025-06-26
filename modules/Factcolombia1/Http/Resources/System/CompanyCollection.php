@@ -41,7 +41,7 @@ class CompanyCollection extends ResourceCollection
                 'count_doc_month' => $row->count_doc_month,
                 'count_doc' => $row->count_doc,
                 'start_billing_cycle' => ( $row->start_billing_cycle ) ? $row->start_billing_cycle->format('Y-m-d') : '',
-
+                'allow_seller_login' => $row->allow_seller_login,
             ];
         });
     }

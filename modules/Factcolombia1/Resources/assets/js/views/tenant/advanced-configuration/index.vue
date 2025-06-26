@@ -12,12 +12,10 @@
                 <template>
                     <form autocomplete="off">
                         <el-tabs v-model="activeName">
-
                             <el-tab-pane class="mb-3"
                                          name="general">
                                 <span slot="label">General</span>
                                 <div class="row">
-
                                     <div class="col-md-4 mt-4" :class="{'has-danger': errors.uvt}">
                                         <div class="form-group">
                                             <label class="control-label">Valor UVT
@@ -30,6 +28,21 @@
 
                                             <small class="form-control-feedback" v-if="errors.uvt" v-text="errors.uvt[0]"></small>
                                         </div>
+                                    </div>
+                                    <div v-if="form.canChangeAllowSellerLogin" class="col-md-4 mt-4" :class="{'has-danger': errors.allow_seller_login}">
+                                        <label class="control-label">
+                                            API Seller Login
+                                            <el-tooltip class="item" effect="dark" content="Si activado, se activa el seller login de la API, " placement="top-start">
+                                                <i class="fa fa-info-circle"></i>
+                                            </el-tooltip>
+                                        </label>
+                                        <div class="form-group" :class="{'has-danger': errors.allow_seller_login}">
+                                            <el-switch v-model="form.allow_seller_login" active-text="Si" inactive-text="No" @change="submit"></el-switch>
+                                            <small class="form-control-feedback" v-if="errors.allow_seller_login" v-text="errors.allow_seller_login[0]"></small>
+                                        </div>
+                                        <a class="control-label" :href="envServiceFact + 'sellerlogin/' + IdentificationNumber" target="_blank" style="color: #007bff;">
+                                            {{envServiceFact}}sellerlogin/{{IdentificationNumber}}
+                                        </a>
                                     </div>
                                 </div>
                             </el-tab-pane>
@@ -213,6 +226,17 @@ import CertificatesQztray from './certificates_qztray.vue'
 
 export default {
     components: {CertificatesQztray},
+    props: {
+        envServiceFact: {
+            type: String,
+            required: true
+        },
+        IdentificationNumber: {
+            type: String,
+            required: true
+        }
+    },
+
     data() {
         return {
             loading_submit: false,
@@ -227,6 +251,7 @@ export default {
             loading_delete: false,
         }
     },
+
     created() {
         this.getRecord()
     },
@@ -251,6 +276,8 @@ export default {
                 uvt: 0,
                 item_tax_included: false,
                 blind_cash: false,
+                allow_seller_login: false,
+                canChangeAllowSellerLogin: false,
             }
         },
 
@@ -288,6 +315,7 @@ export default {
             this.getResolutions();
             this.openDialogDataDelete = true;
         },
+
         getResolutions() {
             this.$http.get(`/client/configuration/co_type_documents`).then(response => {
                 if (response.data.data.length) {
@@ -300,6 +328,7 @@ export default {
                 console.log(error)
             })
         },
+
         clickDataDelete() {
             this.loading_delete = true;
             let formDelete = {

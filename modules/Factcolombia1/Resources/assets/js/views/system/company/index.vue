@@ -94,6 +94,7 @@
                                 <th class="text-center">Limite de documentos</th>
                                 <th class="text-center">Limite usuarios</th>
                                 <th class="text-center"># Comprobantes</th>
+                                <th class="text-center" v-if="currentUserId === 1 || currentUserId === 2">Permite Seller Login</th>
                                 <th class="text-center" v-if="currentUserId === 1 || currentUserId === 2">Bloquear cuenta</th>
                                 <th class="text-right" v-if="currentUserId === 1 || currentUserId === 2">Limitar Doc.</th>
                                 <th class="text-center" v-if="currentUserId === 1 || currentUserId === 2">Limitar Usuarios</th>
@@ -184,6 +185,16 @@
                                     </template>
                                 </td> -->
                                 <!-- <td class="text-center">{{ row.created_at }}</td> -->
+
+                                <td class="text-center" v-if="currentUserId === 1 || currentUserId === 2">
+                                    <template v-if="!row.locked">
+                                      <el-switch
+                                        style="display: block"
+                                        v-model="row.allow_seller_login"
+                                        @change="changeAllowSellerLoginTenant(row)"
+                                      ></el-switch>
+                                    </template>
+                                </td>
 
                                 <td class="text-center" v-if="currentUserId === 1 || currentUserId === 2">
                                     <template v-if="!row.locked">
@@ -430,6 +441,27 @@ export default {
             window.open(`/switch-tenant/${companyId}`, '_blank');
         },
 
+        changeAllowSellerLoginTenant(row) {
+            this.$http
+                .post(`${this.resource}/change_allow_seller_login`, row)
+                .then(response => {
+                    if (response.data.success) {
+                        this.$message.success(response.data.message);
+                        this.$eventHub.$emit("reloadData");
+                    } else {
+                        this.$message.error(response.data.message);
+                    }
+                })
+                .catch(error => {
+                    if (error.response.status === 500) {
+                        this.$message.error(error.response.data.message);
+                    } else {
+                        console.log(error.response);
+                    }
+                })
+                .then(() => {});
+        },
+
         changeLockedTenant(row) {
             this.$http
                 .post(`${this.resource}/locked_tenant`, row)
@@ -555,7 +587,6 @@ export default {
                 console.warn('⚠️ No se ha cargado servicecompany aún. Aborting getData().');
                 return;
             }
-
 //            console.log(`/${this.resource}/records`)
             this.$http.get(`/${this.resource}/records`).then(response => {
                     // Convertimos servicecompany en un diccionario para acceso rápido
@@ -564,11 +595,9 @@ export default {
                         map[String(sc.identification_number)] = sc;
                         return map;
                     }, {});
-
                     // Construimos el array de records usando el mapa
                     this.records = response.data.data.map(company => {
                     const serviceCompany = serviceMap[String(company.identification_number)];
-
                     return {
                         ...company,
                         user_id: serviceCompany ? serviceCompany.user_id : null
