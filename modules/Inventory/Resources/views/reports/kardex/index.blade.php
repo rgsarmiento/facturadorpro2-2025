@@ -3,8 +3,6 @@
 @section('content')
    <!-- <tenant-report-kardex-index></tenant-report-kardex-index> -->
     <tenant-report-kardex-master></tenant-report-kardex-master>
-
-
 @endsection
 
 @push('scripts')

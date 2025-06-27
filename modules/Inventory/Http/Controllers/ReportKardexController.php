@@ -44,14 +44,12 @@ class ReportKardexController extends Controller
     ];
 
     public function index() {
-
-
         return view('inventory::reports.kardex.index');
     }
 
-
-    public function filter() {
-
+/*    public function filter() {
+        ini_set('memory_limit', '2048');
+        ini_set('max_execution_time', 900);
         $items = Item::query()->whereNotIsSet()
             ->where([['item_type_id', '01'], ['unit_type_id', '!=','ZZ']])
             ->latest()
@@ -66,8 +64,23 @@ class ReportKardexController extends Controller
             });
 
         return compact('items');
-    }
+    }   */
 
+    public function filter(Request $request){
+        $perPage = $request->input('per_page', 50); // Puedes ajustar el valor por defecto
+        $items = Item::query()->whereNotIsSet()->where([['item_type_id', '01'], ['unit_type_id', '!=','ZZ']])->latest()->paginate($perPage);
+        // Si necesitas transformar cada item:
+        $items->getCollection()->transform(function($row) {
+            $full_description = $this->getFullDescription($row);
+            return [
+                'id' => $row->id,
+                'full_description' => $full_description,
+                'internal_id' => $row->internal_id,
+                'description' => $row->description,
+            ];
+        });
+        return response()->json($items);
+    }
 
     public function records(Request $request)
     {
