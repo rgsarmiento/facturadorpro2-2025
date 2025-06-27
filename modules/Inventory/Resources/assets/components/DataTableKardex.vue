@@ -5,7 +5,7 @@
                 <div class="row mt-2">
                         <div class="col-md-6">
                             <label class="control-label">Producto</label>
-                            <el-select v-model="form.item_id" filterable clearable @scroll.native="loadMoreItems">
+                            <el-select v-model="form.item_id" filterable clearable @visible-change="handleDropdownVisible">
                                 <el-option v-for="option in items" :key="option.id" :value="option.id" :label="option.full_description"></el-option>
                             </el-select>
                         </div>
@@ -143,7 +143,26 @@
                 }
             },
 
-            loadMoreItems(e) {
+            handleDropdownVisible(visible) {
+                if (visible) {
+                    this.$nextTick(() => {
+                        // Encuentra el dropdown de Element UI
+                        const dropdown = document.querySelector('.el-select-dropdown .el-select-dropdown__wrap');
+                        if (dropdown) {
+                            dropdown.addEventListener('scroll', this.handleDropdownScroll);
+                        }
+                    });
+                }
+                else {
+                    // Limpia el listener al cerrar
+                    const dropdown = document.querySelector('.el-select-dropdown .el-select-dropdown__wrap');
+                    if (dropdown) {
+                        dropdown.removeEventListener('scroll', this.handleDropdownScroll);
+                    }
+                }
+            },
+
+            handleDropdownScroll(e) {
                 const select = e.target;
                 if (select.scrollTop + select.clientHeight >= select.scrollHeight - 10) {
                     if (this.itemsPagination.current_page < this.itemsPagination.last_page) {
