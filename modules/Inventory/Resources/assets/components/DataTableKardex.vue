@@ -111,11 +111,6 @@
 
         async mounted () {
             this.loadItems();
-/*            await this.$http.get(`/${this.resource}/filter`)
-                .then(response => {
-                    this.items = response.data.items;
-                });
-            // await this.getRecords()  */
         },
 
         methods: {
@@ -125,6 +120,7 @@
                 }
                 this.loadingItems = true;
                 try {
+                    console.log('Solicitando página de items:', page);
                     const response = await this.$http.get(`/${this.resource}/filter?per_page=${this.itemsPagination.per_page}&page=${page}`);
                     const data = response.data;
                     if (page === 1) {
@@ -138,51 +134,51 @@
                         per_page: data.per_page,
                         total: data.total,
                   };
+                  console.log('Items paginados:', this.itemsPagination);
                 } finally {
                     this.loadingItems = false;
                 }
             },
 
             handleDropdownVisible(visible) {
+                console.log('handleDropdownVisible llamado, visible:', visible);
                 if (visible) {
                     this.$nextTick(() => {
-                        // Encuentra el dropdown correcto usando el aria-controls del select
-                        const selectRef = this.$refs.itemSelect;
-                        if (!selectRef) return;
-                        // El popupId es el id del dropdown
-                        const popupId = selectRef.$el.getAttribute('aria-controls');
-                        if (!popupId) {
-                            return;
-                        }
-                        const dropdown = document.getElementById(popupId)?.querySelector('.el-select-dropdown__wrap');
-                        if (dropdown) {
-                            dropdown.addEventListener('scroll', this.handleDropdownScroll);
-                        }
+                        let attempts = 0;
+                        const maxAttempts = 10;
+                        const tryAttachScroll = () => {
+                            // Selector ajustado según la estructura real del DOM
+                            const dropdown = document.querySelector('.el-select-dropdown.el-popper .el-select-dropdown__wrap.el-scrollbar__wrap');
+                            if (dropdown) {
+                                dropdown.addEventListener('scroll', this.handleDropdownScroll);
+                                console.log('Listener de scroll agregado al dropdown', dropdown);
+                            } else if (attempts < maxAttempts) {
+                                attempts++;
+                                setTimeout(tryAttachScroll, 100);
+                            } else {
+                                console.log('No se encontró el dropdown visible para el select después de varios intentos');
+                            }
+                        };
+                        tryAttachScroll();
                     });
-                }
-                else {
-                    // Limpia el listener al cerrar
-                    const selectRef = this.$refs.itemSelect;
-                    if (!selectRef) {
-                        return;
-                    }
-                    const popupId = selectRef.$el.getAttribute('aria-controls');
-                    if (!popupId) {
-                        return;
-                    }
-                    const dropdown = document.getElementById(popupId)?.querySelector('.el-select-dropdown__wrap');
+                } else {
+                    const dropdown = document.querySelector('.el-select-dropdown.el-popper .el-select-dropdown__wrap.el-scrollbar__wrap');
                     if (dropdown) {
                         dropdown.removeEventListener('scroll', this.handleDropdownScroll);
+                        console.log('Listener de scroll removido del dropdown');
                     }
                 }
             },
 
             handleDropdownScroll(e) {
                 const dropdown = e.target;
+                console.log('Scroll detectado en dropdown', dropdown.scrollTop, dropdown.scrollHeight, dropdown.clientHeight);
                 if (
                     dropdown.scrollTop + dropdown.clientHeight >= dropdown.scrollHeight - 10 &&
-                    !this.loadingItems && this.itemsPagination.current_page < this.itemsPagination.last_page
+                    !this.loadingItems &&
+                    this.itemsPagination.current_page < this.itemsPagination.last_page
                 ) {
+                    console.log('Cargando más items...');
                     this.loadItems(this.itemsPagination.current_page + 1);
                 }
             },
