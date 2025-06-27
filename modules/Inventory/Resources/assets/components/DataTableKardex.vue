@@ -5,7 +5,7 @@
                 <div class="row mt-2">
                         <div class="col-md-6">
                             <label class="control-label">Producto</label>
-                            <el-select v-model="form.item_id" filterable clearable @visible-change="handleDropdownVisible">
+                            <el-select ref="itemSelect" v-model="form.item_id" filterable clearable @visible-change="handleDropdownVisible">
                                 <el-option v-for="option in items" :key="option.id" :value="option.id" :label="option.full_description"></el-option>
                             </el-select>
                         </div>
@@ -146,8 +146,15 @@
             handleDropdownVisible(visible) {
                 if (visible) {
                     this.$nextTick(() => {
-                        // Encuentra el dropdown de Element UI
-                        const dropdown = document.querySelector('.el-select-dropdown .el-select-dropdown__wrap');
+                        // Encuentra el dropdown correcto usando el aria-controls del select
+                        const selectRef = this.$refs.itemSelect;
+                        if (!selectRef) return;
+                        // El popupId es el id del dropdown
+                        const popupId = selectRef.$el.getAttribute('aria-controls');
+                        if (!popupId) {
+                            return;
+                        }
+                        const dropdown = document.getElementById(popupId)?.querySelector('.el-select-dropdown__wrap');
                         if (dropdown) {
                             dropdown.addEventListener('scroll', this.handleDropdownScroll);
                         }
@@ -155,7 +162,15 @@
                 }
                 else {
                     // Limpia el listener al cerrar
-                    const dropdown = document.querySelector('.el-select-dropdown .el-select-dropdown__wrap');
+                    const selectRef = this.$refs.itemSelect;
+                    if (!selectRef) {
+                        return;
+                    }
+                    const popupId = selectRef.$el.getAttribute('aria-controls');
+                    if (!popupId) {
+                        return;
+                    }
+                    const dropdown = document.getElementById(popupId)?.querySelector('.el-select-dropdown__wrap');
                     if (dropdown) {
                         dropdown.removeEventListener('scroll', this.handleDropdownScroll);
                     }
@@ -163,11 +178,12 @@
             },
 
             handleDropdownScroll(e) {
-                const select = e.target;
-                if (select.scrollTop + select.clientHeight >= select.scrollHeight - 10) {
-                    if (this.itemsPagination.current_page < this.itemsPagination.last_page) {
-                        this.loadItems(this.itemsPagination.current_page + 1);
-                    }
+                const dropdown = e.target;
+                if (
+                    dropdown.scrollTop + dropdown.clientHeight >= dropdown.scrollHeight - 10 &&
+                    !this.loadingItems && this.itemsPagination.current_page < this.itemsPagination.last_page
+                ) {
+                    this.loadItems(this.itemsPagination.current_page + 1);
                 }
             },
 
