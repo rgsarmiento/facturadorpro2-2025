@@ -67,7 +67,7 @@ class ReportKardexController extends Controller
     }   */
 
     public function filter(Request $request){
-        $perPage = $request->input('per_page', 50); // Puedes ajustar el valor por defecto
+        $perPage = $request->input('per_page', 30); // Puedes ajustar el valor por defecto
         $items = Item::query()->whereNotIsSet()->where([['item_type_id', '01'], ['unit_type_id', '!=','ZZ']])->latest()->paginate($perPage);
         // Si necesitas transformar cada item:
         $items->getCollection()->transform(function($row) {

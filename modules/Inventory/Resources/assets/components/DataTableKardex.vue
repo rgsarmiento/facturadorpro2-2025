@@ -87,7 +87,7 @@
                 totals: {},
                 establishment: null,
                 items: [],
-                itemsPagination: { current_page: 1, last_page: 1, per_page: 50, total: 0 },
+                itemsPagination: { current_page: 1, last_page: 1, per_page: 30, total: 0 },
                 loadingItems: false,
                 form: {},
                 pickerOptionsDates: {
@@ -120,7 +120,7 @@
                 }
                 this.loadingItems = true;
                 try {
-                    console.log('Solicitando página de items:', page);
+//                    console.log('Solicitando página de items:', page);
                     const response = await this.$http.get(`/${this.resource}/filter?per_page=${this.itemsPagination.per_page}&page=${page}`);
                     const data = response.data;
                     if (page === 1) {
@@ -134,51 +134,53 @@
                         per_page: data.per_page,
                         total: data.total,
                   };
-                  console.log('Items paginados:', this.itemsPagination);
+//                  console.log('Items paginados:', this.itemsPagination);
                 } finally {
                     this.loadingItems = false;
                 }
             },
 
             handleDropdownVisible(visible) {
-                console.log('handleDropdownVisible llamado, visible:', visible);
+//                console.log('handleDropdownVisible llamado, visible:', visible);
                 if (visible) {
                     this.$nextTick(() => {
                         let attempts = 0;
                         const maxAttempts = 10;
                         const tryAttachScroll = () => {
-                            // Selector ajustado según la estructura real del DOM
-                            const dropdown = document.querySelector('.el-select-dropdown.el-popper .el-select-dropdown__wrap.el-scrollbar__wrap');
-                            if (dropdown) {
-                                dropdown.addEventListener('scroll', this.handleDropdownScroll);
-                                console.log('Listener de scroll agregado al dropdown', dropdown);
+                            // Busca todos los posibles contenedores de scroll dentro del dropdown
+                            const dropdowns = document.querySelectorAll('.el-select-dropdown.el-popper .el-scrollbar__wrap');
+                            if (dropdowns.length > 0) {
+                                dropdowns.forEach(dropdown => {
+                                    dropdown.addEventListener('scroll', this.handleDropdownScroll);
+//                                    console.log('Listener de scroll agregado al posible contenedor:', dropdown);
+                                });
                             } else if (attempts < maxAttempts) {
                                 attempts++;
                                 setTimeout(tryAttachScroll, 100);
                             } else {
-                                console.log('No se encontró el dropdown visible para el select después de varios intentos');
+//                                console.log('No se encontró ningún contenedor de scroll después de varios intentos');
                             }
                         };
                         tryAttachScroll();
                     });
                 } else {
-                    const dropdown = document.querySelector('.el-select-dropdown.el-popper .el-select-dropdown__wrap.el-scrollbar__wrap');
-                    if (dropdown) {
+                    const dropdowns = document.querySelectorAll('.el-select-dropdown.el-popper .el-scrollbar__wrap');
+                    dropdowns.forEach(dropdown => {
                         dropdown.removeEventListener('scroll', this.handleDropdownScroll);
-                        console.log('Listener de scroll removido del dropdown');
-                    }
+//                        console.log('Listener de scroll removido del posible contenedor:', dropdown);
+                    });
                 }
             },
 
             handleDropdownScroll(e) {
                 const dropdown = e.target;
-                console.log('Scroll detectado en dropdown', dropdown.scrollTop, dropdown.scrollHeight, dropdown.clientHeight);
+//                console.log('Scroll detectado en:', dropdown, 'scrollTop:', dropdown.scrollTop, 'scrollHeight:', dropdown.scrollHeight, 'clientHeight:', dropdown.clientHeight);
                 if (
                     dropdown.scrollTop + dropdown.clientHeight >= dropdown.scrollHeight - 10 &&
                     !this.loadingItems &&
                     this.itemsPagination.current_page < this.itemsPagination.last_page
                 ) {
-                    console.log('Cargando más items...');
+//                    console.log('Cargando más items...');
                     this.loadItems(this.itemsPagination.current_page + 1);
                 }
             },
