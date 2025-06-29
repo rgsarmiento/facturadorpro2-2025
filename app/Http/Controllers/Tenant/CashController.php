@@ -11,6 +11,7 @@ use App\Models\Tenant\User;
 use App\Models\Tenant\Company;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Tenant\CashRequest;
+use App\Models\Tenant\DocumentPos;
 use App\Http\Resources\Tenant\CashCollection;
 use App\Http\Resources\Tenant\CashResource;
 use Modules\Item\Models\Category; //se agrega un nuevo Modelo
@@ -72,16 +73,24 @@ class CashController extends Controller
         // Obtiene todas las resoluciones, pero asegura que la actualmente en uso por el registro editado esté incluida
         $resolutionsInUse = Cash::where('state', true)->pluck('resolution_id')->unique();
 
-        $resolutions = ConfigurationPos::select('id', 'prefix', 'resolution_number')
+        $resolutions = ConfigurationPos::select('id', 'prefix', 'resolution_number', 'date_from','date_end', 'from', 'to')
             ->where(function ($query) use ($currentResolutionId, $resolutionsInUse) {
-                $query->whereNotIn('id', $resolutionsInUse->reject(function ($id) use ($currentResolutionId) {
-                    return $id == $currentResolutionId;  // Rechaza el ID de la resolución en uso solo si es el mismo que el actualmente editado
-                }));
+            $query->whereNotIn(
+                'id',
+                $resolutionsInUse->reject(function ($id) use ($currentResolutionId) {
+                    return $id == $currentResolutionId;
+                })
+            );
             })
-            ->orWhere('id', $currentResolutionId)  // Asegura incluir la resolución actual si está siendo editada
+        ->orWhere('id', $currentResolutionId)
+        ->get();
+
+        $maxNumbersByPrefix = DocumentPos::selectRaw('prefix, MAX(number) as max_number')
+            ->groupBy('prefix')
             ->get();
+
         $blindCash = AdvancedConfiguration::first()->blind_cash ?? false;
-        return compact('users', 'user', 'resolutions', 'blindCash');
+        return compact('users', 'user', 'resolutions', 'blindCash', 'maxNumbersByPrefix' );
     }
 
 

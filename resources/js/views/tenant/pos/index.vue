@@ -35,9 +35,10 @@
 
             </div>
             <div class="col-md-4">
-                <h2> <button type="button" @click="place = 'cat'" class="btn btn-custom btn-sm  mt-2 mr-2"><i class="fa fa-border-all"></i></button> </h2>
-                <h2> <button type="button" :disabled="place == 'cat2'" @click="setView" class="btn btn-custom btn-sm  mt-2 mr-2"><i class="fa fa-bars"></i></button> </h2>
-                <h2> <button type="button" :disabled="place== 'cat'" @click="back()" class="btn btn-custom btn-sm  mt-2 mr-2"><i class="fa fa-undo"></i></button> </h2>
+                <button v-if="tables_quantity > 0" ref="mesas" title="Cuentas" type="button" :data-quantity="tables_quantity" class="btn btn-custom btn-sm mt-2 mr-2" @click="cambiarContenido"><i class="fa fa-receipt"></i></button>
+                <button type="button" @click="place = 'cat'" class="btn btn-custom btn-sm  mt-2 mr-2"><i class="fa fa-border-all"></i></button>
+                <button type="button" :disabled="place == 'cat2'" @click="setView" class="btn btn-custom btn-sm  mt-2 mr-2"><i class="fa fa-bars"></i></button>
+                <button type="button" :disabled="place== 'cat'" @click="back()" class="btn btn-custom btn-sm  mt-2 mr-2"><i class="fa fa-undo"></i></button>
             </div>
             <div class="col-md-2">
                 <div class="right-wrapper">
@@ -50,7 +51,7 @@
 
     <div v-if="plate_number_valid">
         <div v-if="!is_payment" class="row col-lg-12 m-0 p-0" v-loading="loading">
-            <div class="col-lg-8 col-md-6 px-4 pt-3 hyo">
+            <div v-if="botones.length === 0" class="col-lg-8 col-md-6 px-4 pt-3 hyo">
 
                 <template v-if="!search_item_by_barcode">
                     <el-input v-show="place  == 'prod' || place == 'cat2'" placeholder="Buscar productos" size="medium" v-model="input_item" @input="searchItems" autofocus class="m-bottom">
@@ -222,6 +223,16 @@
                     </div>
                 </div>
             </div>
+            <div v-else class="col-lg-8 col-md-6 px-4 hyo d-flex flex-wrap justify-content-center" style="margin-top: 4%;">
+                <button
+                    v-for="(boton, index) in botones"
+                    :key="boton.id"
+                    @click="abrirModal(boton.db_id, boton.id)"
+                    :class="['mesa-btn', { 'mesa-activa': boton.state === 1 }]">
+                    <i class="fa fa-receipt"></i>
+                    <span class="texto-boton">{{ boton.id }}</span>
+                </button>
+            </div>
             <div class="col-lg-4 col-md-6 bg-white m-0 p-0" style="height: calc(100vh - 110px)">
                 <div class="h-75 bg-light" style="overflow-y: auto">
                     <div class="row py-3 border-bottom m-0 p-0">
@@ -390,11 +401,297 @@
             <i class="fas fa-chevron-circle-left fa fw h5"></i>
         </div>
     </div>
+    <div class="modal fade" id="modal_order" tabindex="-1" role="dialog"
+        data-keyboard="false">
+        <div class="modal-dialog modal-dialog-centered modal-sm" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title">Información Cuenta {{ selected_table }}</h4>
+                    <button type="button" class="btn btn-danger" data-dismiss="modal" aria-label="Cerrar">X</button>
+                </div>
+                <div class="modal-body d-flex flex-column align-items-center">
+                    <div class="d-flex flex-column" style="width: 220px;">
+                        <button class="btn btn-custom btn-lg mb-3" type="button" @click="abrirModalCategorias(selected_table, dbId)">
+                            <i class="fa fa-plus"></i> Agregar
+                        </button>
+
+                        <button class="btn btn-custom btn-lg mb-3" type="button" @click="abrirModalCuenta(selected_table, dbId)">
+                            <i class="fa fa-list"></i> Ver
+                        </button>
+
+                        <button class="btn btn-custom btn-lg mb-3" type="button" @click="abrirModalTraslado(selected_table, dbId)">
+                            <i class="fa fa-expand-arrows-alt"></i> Trasladar
+                        </button>
+
+                        <button class="btn btn-custom btn-lg mb-3" type="button" @click="abrirModalFactura(selected_table, dbId)">
+                            <i class="fa fa-receipt"></i> Detalle
+                        </button>
+                        <button class="btn btn-custom btn-lg mb-3" type="button" @click="eliminarCuenta(dbId)">
+                            <i class="fa fa-trash"></i> Eliminar
+                        </button>
+                    </div>
+                </div>
+                <button id="closeModalBtn" type="button" data-dismiss="modal" style="display: none;"></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de CATEGORÍAS -->
+    <div class="modal fade" id="modal_cuenta_categorias" tabindex="-1" role="dialog" data-backdrop="static"
+        data-keyboard="false">
+        <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title">Categorías</h4>
+                    <button type="button" class="btn btn-danger" data-dismiss="modal" aria-label="Cerrar">X</button>
+                </div>
+                <div class="modal-body modal-body-scrollable">
+                    <div v-if="categories.length === 0" class="text-center">
+                        <p>No hay categorías disponibles</p>
+                    </div>
+                    <div v-else class="row p-2">
+                        <div v-for="(item, index) in categories" class="col-6 col-md-4 col-lg-3 mb-2" :key="index">
+                            <button
+                                class="btn btn-custom btn-lg w-100"
+                                type="button"
+                                :style="{ backgroundColor: item.color, color: 'white', fontWeight: 'bold', fontSize: '16px' }"
+                                @click="abrirModalProductos(item.id, selected_table)">
+                                {{ item.name }}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Productos -->
+    <div class="modal fade" id="modal_cuenta_productos" tabindex="-1" role="dialog" data-backdrop="static" data-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title">
+                    Productos
+                    <button title="Carrito" type="button" class="btn btn-custom btn-sm" @click="verCarrito(selected_table)">
+                        <i class="fa fa-shopping-cart"></i>
+                    </button>
+                </h4>
+                <button type="button" class="btn btn-danger" data-dismiss="modal" aria-label="Cerrar">X</button>
+            </div>
+
+            <!-- ✅ Aquí aplicamos el scroll interno -->
+            <div class="modal-body modal-body-scrollable">
+                <div v-if="loadingModalProductos" class="text-center">
+                    <i class="fa fa-spinner fa-spin"></i> Cargando...
+                </div>
+                <div v-else>
+                    <input
+                        type="text"
+                        v-model="searchQueryProductos"
+                        class="form-control mb-2"
+                        placeholder="Buscar productos..."
+                    >
+                    <div v-if="filteredItemsProductos.length > 0" class="mt-3">
+                        <div class="row">
+                            <div v-for="item in filteredItemsProductos" :key="item.id" class="col-6 col-md-4 col-lg-3 mb-2">
+                                <div class="card-body pointer px-1 pt-1"
+                                     @click="abrirModalAgregar(item, selected_table)"
+                                     style="cursor: pointer;">
+                                    <img :src="item.image_url" class="img-thumbnail img-custom" style="width: 80%;">
+                                    <div class="card-body p-1">
+                                        <p class="product-name">{{ item.name }}</p>
+                                        <p class="product-price">${{ item.sale_unit_price_with_tax }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div v-else class="mt-3">
+                        <h5>No hay productos disponibles.</h5>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+    <!-- Modal: Agregar Cantidad -->
+    <div class="modal fade" id="modal_agregar_producto" tabindex="-1" role="dialog" data-backdrop="static">
+        <div class="modal-dialog modal-sm modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Agregar Producto</h5>
+                    <button type="button" class="btn btn-danger" data-dismiss="modal" aria-label="Cerrar">X</button>
+                </div>
+                <div class="modal-body text-center modal-body-scrollable">
+                    <p><strong>{{ selectedProduct ? selectedProduct.name : '' }}</strong></p>
+
+                    <div class="d-flex justify-content-center mb-3">
+                        <div class="input-group" style="width: 140px;">
+                            <button class="btn btn-outline-secondary" type="button" @click="decrementQuantity">−</button>
+                                <input
+                                    type="number"
+                                    class="form-control text-center no-spinner"
+                                    :value="selectedQuantity"
+                                    min = 1
+                                />
+                            <button class="btn btn-outline-secondary" type="button" @click="incrementQuantity">+</button>
+                        </div>
+                    </div>
+                    <button class="btn btn-primary w-100" @click="agregarProducto(selected_table)">
+                        Agregar
+                    </button>
+                    <button id="closeModalBtnAgregar" type="button" data-dismiss="modal" style="display: none;"></button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+     <!-- Modal: Traslado -->
+    <div class="modal fade" id="modal_traslado" tabindex="-1" role="dialog">
+        <div class="modal-dialog modal-sm modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Traslado - Cuenta {{ mesaSeleccionada }}</h5>
+                    <button type="button" class="btn btn-danger" data-dismiss="modal" aria-label="Cerrar">X</button>
+                </div>
+                <div class="modal-body text-center modal-body-scrollable">
+                     <div class="d-flex justify-content-center mb-3">
+                        <input
+                            type="number"
+                            class="form-control text-center"
+                            placeholder="Nueva Cuenta"
+                            v-model="selectedTableChange"
+                            min="1"
+                            style="width: 150px;"
+                        />
+                    </div>
+                    <button class="btn btn-primary w-100" @click="trasladarMesa(mesaSeleccionada, dbId)">
+                        Trasladar
+                    </button>
+                    <button id="closeModalBtnTraslado" type="button" data-dismiss="modal" style="display: none;"></button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Cuenta -->
+    <div class="modal fade" id="modal_cuenta" tabindex="-1" role="dialog">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Productos en la Cuenta {{ selected_table }}</h5>
+                    <button type="button" class="btn btn-danger" data-dismiss="modal" aria-label="Cerrar">X</button>
+                </div>
+                <div class="modal-body modal-body-scrollable">
+                    <table class="table table-bordered table-sm text-center">
+                        <thead>
+                            <tr>
+                                <th>Producto</th>
+                                <th>Cant</th>
+                                <th>Precio</th>
+                                <th>Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="(producto, index) in productosCuenta" :key="producto.id">
+                                <td>{{ producto.item_description }}</td>
+                                <td>{{ producto.quantity }}</td>
+                                <td>{{ formatearPrecio(producto.price) }}</td>
+                                <td>
+                                    <template v-if="producto.state !== 'R'">
+                                        <button class="btn btn-sm btn-danger" style="margin-bottom: 5px;"
+                                            @click="eliminarProducto(producto.id, dbId)"
+                                            title="Eliminar Producto">
+                                            <i class="fa fa-trash"></i>
+                                        </button>
+                                        <button class="btn btn-sm btn-success" style="margin-bottom: 5px;"
+                                            @click="clickAddItemAccount(producto.item_id, index, producto.quantity, producto.id)"
+                                            title="Facturar Producto">
+                                            <i class="fa fa-plus"></i>
+                                        </button>
+                                    </template>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-danger" @click="eliminarCuenta(dbId)">Borrar Cuenta</button>
+                    <button class="btn btn-success" @click="agregarCuentaCaja(dbId)">Facturar Cuenta</button>
+                </div>
+                <button id="closeModalBtnCuenta" type="button" data-dismiss="modal" style="display: none;"></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Carrito de compra -->
+    <div class="modal fade" id="modal_carrito_compra" tabindex="-1" role="dialog">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Carrito Cuenta {{ selected_table }}</h5>
+                     <button type="button" class="btn btn-danger" data-dismiss="modal" aria-label="Cerrar">X</button>
+                </div>
+                <div class="modal-body modal-body-scrollable">
+                    <table class="table table-bordered table-sm text-center">
+                        <thead>
+                            <tr>
+                                <th>Producto</th>
+                                <th>Cantidad</th>
+                                <th>Precio</th>
+                                <th>Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="(producto, index) in productosCuenta" :key="index">
+                                <td>{{ producto.item_description }}</td>
+                                <td>{{ producto.quantity }}</td>
+                                <td>{{ formatearPrecio(producto.price) }}</td>
+                                <td>
+                                    <button class="btn btn-sm btn-danger" @click="eliminarProductoCarrito(producto.id, dbId)" title="Eliminar Producto"><i class="fa fa-trash"></i></button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-danger" @click="eliminarCuentaCarrito(dbId)">Vaciar Carrito</button>
+                </div>
+                <button id="closeModalBtnCuentaCarrito" type="button" data-dismiss="modal" style="display: none;"></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Factura Pdf -->
+    <div class="modal fade" id="modal_pdf_cuenta" tabindex="-1" role="dialog">
+        <div class="modal-dialog modal-xl" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Detalle de la Cuenta</h5>
+                    <button type="button" class="btn btn-danger" data-dismiss="modal" aria-label="Cerrar">X</button>
+                </div>
+                <div class="modal-body">
+                    <div v-if="pdfUrl">
+                        <iframe
+                            :src="pdfUrl"
+                            width="100%"
+                            height="600px"
+                            style="border: none;"
+                        ></iframe>
+                    </div>
+                    <div v-else class="text-center">
+                        <p>Cargando documento...</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 </template>
 
 <style>
-/* The heart of the matter */
 .testimonial-group>.row {
     overflow-x: auto;
     white-space: nowrap;
@@ -462,6 +759,97 @@
   white-space: nowrap;
   text-overflow: ellipsis;
 }
+
+.mesa-btn {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background-color: #67C23A;
+  border: 2px solid #67C23A;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: bold;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s;
+  gap: 2px;
+  margin: 8px;
+  padding: 5px;
+}
+
+.mesa-btn i {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.mesa-btn .texto-boton {
+  font-size: 18px;
+  font-weight: bold;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.mesa-activa {
+  background-color: #ff006c !important;
+  border-color: #ff006c;
+  color: #ffffff;
+}
+
+.modal-body{
+    text-align: center;
+}
+
+.product-card {
+    width: 100%;
+    min-height: 200px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 10px;
+}
+
+.product-img {
+    width: 80px;
+    height: 80px;
+    object-fit: contain;
+    margin-bottom: 5px;
+}
+
+.product-name {
+    font-size: 11px;
+    font-weight: bold;
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    max-width: 90%;
+    text-align: center;
+}
+
+.product-price {
+    font-size: 12px;
+    color: #007bff;
+    margin: 0;
+}
+
+.no-spinner::-webkit-outer-spin-button,
+.no-spinner::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.no-spinner {
+  -moz-appearance: textfield;
+}
+
+.modal-body-scrollable {
+    max-height: 70vh;
+    overflow-y: auto;
+}
 </style>
 
 <script>
@@ -475,9 +863,10 @@ import WarehousesDetail from '../items/partials/warehouses.vue'
 import queryString from "query-string";
 import ExpenseForm from '../../../../../modules/Expense/Resources/assets/js/views/expenses/form.vue';
 import {functions} from '@mixins/functions'
+import { Modal } from 'bootstrap';
 
 export default {
-    props: ['configuration', 'soapCompany'],
+    props: ['configuration', 'soapCompany', 'tables_quantity', 'cuentas'],
     components: {
         PaymentForm,
         ItemForm,
@@ -496,11 +885,18 @@ export default {
             warehousesDetail: [],
             unittypeDetail: [],
             input_person: {},
+            contenidoCambiado: false,
+            botones: [],
+            mesaActiva: [],
+            selected_table: null,
+            dbId: null,
+            category_selected_productos: null,
             showDialogHistoryPurchases: false,
             showDialogHistorySales: false,
             showDialogNewPerson: false,
             showDialogNewItem: false,
             loading: false,
+            loadingModalProductos: false,
             is_payment: false, //aq
             // is_payment: true,//aq
             showWarehousesDetail: false,
@@ -528,6 +924,14 @@ export default {
             category_selected: "",
             plate_number_valid: true,
             electronic: false,
+            selectedProduct: null,
+            selectedQuantity: 1,
+            searchQueryProductos: '',
+            mesaSeleccionada: null,
+            selectedTableChange: null,
+            productosCuenta: [],
+            productosSeleccionados: [],
+            pdfUrl: null,
             showExpenseFormModal: false,
         };
     },
@@ -588,7 +992,15 @@ export default {
             return {
                 [`col-md-${clase}`]: true
             }
+        },
+        filteredItemsProductos() {
+        if (!this.searchQueryProductos) {
+            return this.items;
         }
+        return this.items.filter(item =>
+            item.name.toLowerCase().includes(this.searchQueryProductos.toLowerCase())
+        );
+    }
     },
     methods: {
         handleCloseExpenseForm() {
@@ -609,7 +1021,338 @@ export default {
                 limit: this.limit
             });
         },
+        decrementQuantity() {
+            if (this.selectedQuantity > 1) {
+                this.selectedQuantity--;
+            }
+        },
+        incrementQuantity() {
+            this.selectedQuantity++;
+        },
+        abrirModalFactura(selected_table, dbId) {
+            document.body.style.cursor = 'wait';
+            const mesaId = dbId;
+            const establecimiento = this.establishment.id;
+            const customerId = this.form.customer_id;
 
+            const timestamp = new Date().getTime();
+
+            this.pdfUrl = `/${this.resource}/record_detalle?mesaId=${mesaId}&establecimiento=${establecimiento}&customer=${customerId}&_=${timestamp}`;
+
+            const modalElement = document.getElementById('modal_pdf_cuenta');
+            const modal = new Modal(modalElement);
+            modal.show();
+            document.body.style.cursor = 'default';
+        },
+        cambiarContenido() {
+            if (this.tables_quantity > 0) {
+
+                this.botones = Array.from({ length: this.tables_quantity }, (_, i) => {
+                    const mesaId = i + 1;
+                    const cuenta = this.cuentas.find(c => c.table_number === mesaId);
+
+                    return {
+                        id: mesaId,
+                        db_id: cuenta ? cuenta.id : null,
+                        state: cuenta ? cuenta.state : 0,
+                    };
+                });
+            }
+        },
+        abrirModal(idBd,index) {
+          this.selected_table = index;
+          this.dbId = idBd;
+          const modalElement = document.getElementById('modal_order');
+          const modal = new Modal(modalElement);
+          modal.show();
+        },
+        abrirModalCategorias(selected_table, idBd) {
+            this.selected_table = selected_table;
+            this.dbId = idBd;
+            const modalElement = document.getElementById('modal_cuenta_categorias');
+            const modal = new Modal(modalElement);
+            modal.show();
+        },
+        abrirModalTraslado(table, idBd) {
+            this.mesaSeleccionada = table;
+            this.dbId = idBd;
+            const modalElement = document.getElementById('modal_traslado');
+            const modal = new Modal(modalElement);
+            modal.show();
+        },
+        abrirModalCuenta(selected_table, dbId) {
+            document.body.style.cursor = 'wait';
+            let establishment = this.establishment.id;
+            this.$http.get(`/${this.resource}/account_list`, {
+                params: {
+                    mesa: selected_table,
+                    mesaId: dbId,
+                    establecimiento: establishment
+                }
+            })
+            .then(response => {
+                const productos = response.data.data;
+
+                this.productosCuenta = productos;
+                this.productosSeleccionados = [];
+                this.selected_table = selected_table;
+                this.dbId = dbId;
+                const modal = new Modal(document.getElementById('modal_cuenta'));
+                modal.show();
+                document.body.style.cursor = 'default';
+            })
+            .catch(error => {
+                const errorMsg = error.response?.data?.message || 'Ocurrió un error al trasladar la cuenta.';
+                this.$message.error(errorMsg, 3);
+                document.body.style.cursor = 'default';
+             });
+        },
+        abrirModalProductos(idCategoria, selected_table) {
+            this.getRecords2(idCategoria);
+            this.selected_table = selected_table;
+            const modalElement = document.getElementById('modal_cuenta_productos');
+            const modal = new Modal(modalElement);
+            modal.show();
+        },
+        abrirModalAgregar(producto, selected_table) {
+            this.selected_table = selected_table;
+            this.selectedProduct = producto;
+            this.selectedQuantity = 1;
+            const modal = new Modal(document.getElementById('modal_agregar_producto'));
+            modal.show();
+        },
+        agregarProducto(selected_table) {
+            document.body.style.cursor = 'wait';
+            let establishment = this.establishment.id;
+
+            const payload = {
+                id: this.selectedProduct.item_id,
+                nombre: this.selectedProduct.description,
+                precio: this.selectedProduct.sale_unit_price_with_tax,
+                cantidad: this.selectedQuantity,
+                mesa: selected_table,
+                establecimiento: establishment
+            };
+
+            return this.$http
+                .post(`/${this.resource}/account`, payload)
+                .then(response => {
+                    const mesaIndex = this.botones.findIndex(b => b.id === selected_table);
+                    if (mesaIndex !== -1) {
+                        this.botones[mesaIndex].state = 1;
+                    }
+                    document.body.style.cursor = 'default';
+                    document.getElementById('closeModalBtnAgregar').click();
+                    this.$message.success(response.data.message, 3)
+                })
+                .catch(error => {
+                    console.error('Error al agregar producto:', error);
+                    document.body.style.cursor = 'default';
+                });
+        },
+        trasladarMesa(mesa, dbId) {
+            let establishment = this.establishment.id;
+
+            const payload = {
+                mesa_nueva: this.selectedTableChange,
+                mesa: mesa,
+                mesa_id : dbId,
+                establecimiento: establishment
+            };
+
+            return this.$http
+                .post(`/${this.resource}/transfer`, payload)
+                .then(response => {
+                    const mesaIndexAnterior = this.botones.findIndex(b => b.id === payload.mesa);
+                    const mesaIndexNueva = this.botones.findIndex(b => b.id === Number(payload.mesa_nueva));
+
+                    if (mesaIndexAnterior !== -1) {
+                      this.botones[mesaIndexAnterior].state = 0;
+                    }
+
+                    if (mesaIndexNueva !== -1) {
+                        this.botones[mesaIndexNueva].state = 1;
+                    }
+                    this.$message.success(response.data.message, 3)
+                    document.getElementById('closeModalBtnTraslado').click();
+                    document.getElementById('closeModalBtn').click();
+                })
+                .catch(error => {
+                    const errorMsg = error.response?.data?.message || 'Ocurrió un error al trasladar la cuenta.';
+                    this.$message.error(errorMsg, 3);
+                });
+        },
+        eliminarProducto(id, dbId){
+            let establishment = this.establishment.id;
+
+            const payload = {
+                cuenta_id: id,
+                mesa_id : dbId,
+                establecimiento: establishment
+            };
+
+            return this.$http
+                .post(`/${this.resource}/delete_product`, payload)
+                .then(response => {
+                    const mesaIndexAnterior = this.botones.findIndex(b => b.id === payload.mesa);
+                    const mesaIndexNueva = this.botones.findIndex(b => b.id === Number(payload.mesa_nueva));
+
+                    if (mesaIndexAnterior !== -1) {
+                      this.botones[mesaIndexAnterior].state = 0;
+                    }
+
+                    if (mesaIndexNueva !== -1) {
+                        this.botones[mesaIndexNueva].state = 1;
+                    }
+                    this.$message.success(response.data.message, 3)
+                    document.getElementById('closeModalBtnCuenta').click();
+                })
+                .catch(error => {
+                    const errorMsg = error.response?.data?.message || 'Ocurrió un error al eliminar el producto.';
+                    this.$message.error(errorMsg, 3);
+                });
+        },
+        eliminarProductoCarrito(id, dbId){
+            let establishment = this.establishment.id;
+
+            const payload = {
+                cuenta_id: id,
+                mesa_id : dbId,
+                establecimiento: establishment
+            };
+
+            return this.$http
+                .post(`/${this.resource}/delete_product`, payload)
+                .then(response => {
+                    const mesaIndexAnterior = this.botones.findIndex(b => b.id === payload.mesa);
+                    const mesaIndexNueva = this.botones.findIndex(b => b.id === Number(payload.mesa_nueva));
+
+                    if (mesaIndexAnterior !== -1) {
+                      this.botones[mesaIndexAnterior].state = 0;
+                    }
+
+                    if (mesaIndexNueva !== -1) {
+                        this.botones[mesaIndexNueva].state = 1;
+                    }
+                    this.$message.success(response.data.message, 3)
+                    document.getElementById('closeModalBtnCuentaCarrito').click();
+                })
+                .catch(error => {
+                    const errorMsg = error.response?.data?.message || 'Ocurrió un error al eliminar el producto.';
+                    this.$message.error(errorMsg, 3);
+                });
+        },
+        eliminarCuenta(dbId){
+            let establishment = this.establishment.id;
+
+            const payload = {
+                mesa_id : dbId,
+                establecimiento: establishment
+            };
+
+            return this.$http
+                .post(`/${this.resource}/delete_account`, payload)
+                .then(response => {
+                    const mesaIndexAnterior = this.botones.findIndex(b => b.db_id === payload.mesa_id);
+
+                    if (mesaIndexAnterior !== -1) {
+                      this.botones[mesaIndexAnterior].state = 0;
+                    }
+
+                    this.$message.success(response.data.message, 3)
+                    document.getElementById('closeModalBtnCuenta').click();
+                    document.getElementById('closeModalBtn').click();
+                })
+                .catch(error => {
+                    const errorMsg = error.response?.data?.message || 'Ocurrió un error al eliminar la cuenta.';
+                    this.$message.error(errorMsg, 3);
+                });
+        },
+        eliminarCuentaCarrito(dbId){
+            let establishment = this.establishment.id;
+
+            const payload = {
+                mesa_id : dbId,
+                establecimiento: establishment
+            };
+
+            return this.$http
+                .post(`/${this.resource}/delete_account`, payload)
+                .then(response => {
+                    const mesaIndexAnterior = this.botones.findIndex(b => b.db_id === payload.mesa_id);
+
+                    if (mesaIndexAnterior !== -1) {
+                      this.botones[mesaIndexAnterior].state = 0;
+                    }
+
+                    this.$message.success(response.data.message, 3)
+                    document.getElementById('closeModalBtnCuentaCarrito').click();
+                })
+                .catch(error => {
+                    const errorMsg = error.response?.data?.message || 'Ocurrió un error al eliminar la cuenta.';
+                    this.$message.error(errorMsg, 3);
+                });
+        },
+        async agregarCuentaCaja(dbId) {
+           if (!this.productosCuenta || this.productosCuenta.length === 0) {
+                return this.$message.warning('No hay productos en la cuenta para facturar.');
+            }
+
+            document.body.style.cursor = 'wait';
+
+            for (let i = 0; i < this.productosCuenta.length; i++) {
+                const producto = this.productosCuenta[i];
+
+                if (producto.state === 'R') continue;
+
+                await this.clickAddItemAccount(
+                    producto.item_id,
+                    i,
+                    producto.quantity,
+                    producto.id,
+                    true
+                );
+            }
+
+            document.body.style.cursor = 'default';
+
+            this.$notify({
+                title: '',
+                message: 'Cuenta facturada con éxito.',
+                type: 'success',
+                duration: 1000
+            });
+
+            document.getElementById('closeModalBtnCuenta').click();
+        },
+        formatearPrecio(precio) {
+            return Number(precio).toLocaleString('es-CO', { style: 'currency', currency: 'COP' });
+        },
+        verCarrito(selected_table){
+            document.body.style.cursor = 'wait';
+            let establishment = this.establishment.id;
+            this.$http.get(`/${this.resource}/shopping_car`, {
+                params: {
+                    mesa: selected_table,
+                    establecimiento: establishment
+                }
+            })
+            .then(response => {
+                const productos = response.data.data;
+
+                this.productosCuenta = productos;
+                this.productosSeleccionados = [];
+                this.selected_table = selected_table;
+                const modal = new Modal(document.getElementById('modal_carrito_compra'));
+                modal.show();
+                document.body.style.cursor = 'default';
+            })
+            .catch(error => {
+                const errorMsg = error.response?.data?.message || 'Ocurrió un error al mostrar el carrito.';
+                this.$message.error(errorMsg, 3);
+                document.body.style.cursor = 'default';
+             });
+        },
         getRecords() {
             this.loading = true;
 //            console.log(`/${this.resource}/search_items?${this.getQueryParameters()}&cat=${this.category_selected}`)
@@ -642,7 +1385,39 @@ export default {
                     }
                 });
         },
+        getRecords2(id) {
+            this.category_selected = id;
 
+            if (id === undefined || id === null) {
+                id = null; // Opcional, solo para mantener claridad
+             }
+
+            this.loadingModalProductos = true;
+
+            let url = `/${this.resource}/search_items?${this.getQueryParameters()}`;
+
+            if (id !== null) {
+                url += `&cat=${id}`;
+            }
+
+            return this.$http.get(url)
+                .then(response => {
+                    this.all_items = response.data.data;
+                    this.items = response.data.data;
+                    this.filterItems();
+                    this.pagination = response.data.meta;
+                    this.pagination.per_page = parseInt(response.data.meta.per_page);
+                    this.loadingModalProductos = false;
+                    this.pagination.total = response.data.meta.total || 0;
+                })
+                .catch(error => {
+                    console.error("Error cargando productos:", error);
+                    this.loadingModalProductos = false;
+                });
+        },
+        setDefaultImage(event) {
+            event.target.src = 'http://pc.facturadorpro.test/logo/imagen-no-disponible.jpg';
+        },
         setListPriceItem(item_unit_type, index) {
 
             let list_price = 0
@@ -946,7 +1721,8 @@ export default {
                 item_unit_types: [],
                 IdLoteSelected: null,
                 sale_unit_price_with_tax: 0,
-                refund: false
+                refund: false,
+                db_Id: 0,
             };
             //this.items_refund = []
         },
@@ -1036,6 +1812,7 @@ export default {
                 this.form_item.refund = true
                 this.form_item.sale_unit_price_with_tax = -1 * item.sale_unit_price_with_tax
                 this.items_refund.push(this.form_item);
+                formItem.db_id = 0;
                 //item.aux_quantity = 1;
             } else {
 //                console.log("Aqui no devolucion...")
@@ -1182,6 +1959,98 @@ export default {
             await this.setFormPosLocalStorage()
             await this.initFormItem()
         },
+        async clickAddItemAccount(itemId, index, quantity, dbId, input = false) {
+            document.body.style.cursor = 'wait';
+            let itemResponse;
+
+            try {
+                itemResponse = await this.$http.get(`/${this.resource}/get-item/${itemId}/${dbId}`);
+            } catch (error) {
+                document.body.style.cursor = 'default';
+                if (error.response && error.response.status === 422) {
+                    this.$message.error(error.response.data.message);
+                } else {
+                    this.$message.error('Error al obtener los datos del producto.');
+                }
+            }
+
+            const item = itemResponse.data.data;
+            const presentation = item.presentation;
+            if (this.type_refund) {
+                let formItem = JSON.parse(JSON.stringify(this.form_item));
+
+                formItem.id = itemId;
+                formItem.item = itemId;
+                formItem.unit_price_value = item.sale_unit_price;
+                formItem.unit_price = item.sale_unit_price;
+                formItem.quantity = quantity;
+                formItem.aux_quantity = quantity;
+
+                formItem.item = { ...item };
+                formItem.item.unit_price = item.sale_unit_price;
+                formItem.item.presentation = null;
+
+                formItem.item_id = item.item_id;
+                formItem.unit_type_id = item.unit_type_id;
+                formItem.tax_id = this.taxes.length > 0 ? (item.tax ? item.tax.id : null) : null;
+                formItem.tax = _.find(this.taxes, { id: formItem.tax_id });
+                formItem.unit_type = item.unit_type;
+                formItem.refund = true;
+                formItem.sale_unit_price_with_tax = -1 * item.sale_unit_price_with_tax;
+                formItem.db_Id = dbId;
+
+                this.items_refund.push(formItem);
+            } else {
+                const response = await this.getStatusStock(itemId, quantity);
+                if (!response.success) {
+                    document.body.style.cursor = 'default';
+                    return this.$message.error(response.message);
+                }
+
+                let formItem = JSON.parse(JSON.stringify(this.form_item));
+                formItem.item = { ...item };
+                formItem.id = itemId;
+                formItem.unit_price_value = item.sale_unit_price;
+                formItem.item.edit_sale_unit_price = item.sale_unit_price;
+                formItem.unit_price = item.sale_unit_price_with_tax;
+                formItem.item.unit_price = item.sale_unit_price_with_tax;
+
+                formItem.quantity = quantity;
+                formItem.aux_quantity = quantity;
+                formItem.item.aux_quantity = quantity;
+
+                formItem.item_id = item.item_id;
+                formItem.tax_id = this.taxes.length > 0 ? (item.tax ? item.tax.id : null) : null;
+                formItem.tax = _.find(this.taxes, { id: formItem.tax_id });
+                formItem.db_Id = dbId;
+
+                if (presentation) {
+                    formItem.presentation = { ...presentation };
+                    formItem.unit_type_id = presentation.unit_type_id;
+                    formItem.unit_type = presentation.unit_type;
+                } else {
+                    formItem.presentation = null;
+                    formItem.unit_type_id = item.unit_type_id;
+                    formItem.unit_type = item.unit_type;
+                }
+
+                 this.form.items.push(formItem);
+                if (!input) {
+                    this.$notify({
+                        title: "",
+                        message: "Producto añadido!",
+                        type: "success",
+                        duration: 700
+                    });
+                }
+            }
+
+            await this.calculateTotal();
+            document.body.style.cursor = 'default';
+            await this.setFormPosLocalStorage();
+            await this.initFormItem();
+            document.getElementById('closeModalBtnCuenta').click();
+        },
         async getStatusStock(item_id, quantity) {
             let data = {};
             if (!quantity) quantity = 0;
@@ -1193,11 +2062,21 @@ export default {
             return data;
         },
         async clickDeleteItem(index) {
-            this.form.items.splice(index, 1);
-
+            const item = this.form.items[index];
+            if (item.db_Id && item.db_Id !== 0) {
+                try {
+                    const response = await this.$http.post(`/${this.resource}/actualizar_estado_item/${item.db_Id}`);
+                    if (response.data.success) {
+                        this.form.items.splice(index, 1);
+                    }
+                } catch (error) {
+                    this.$message.error('Error en la petición al servidor');
+                }
+            } else {
+                this.form.items.splice(index, 1);
+            }
             this.calculateTotal();
-
-            await this.setFormPosLocalStorage()
+            await this.setFormPosLocalStorage();
         },
         async clickDeleteItemRefund(index) {
             this.items_refund.splice(index, 1);

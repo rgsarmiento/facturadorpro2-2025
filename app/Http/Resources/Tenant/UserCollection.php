@@ -37,6 +37,7 @@ class UserCollection extends ResourceCollection
                 'api_token' => $row->api_token,
                 'establishment_description' => optional($row->establishment)->description,
                 'type' => $type,
+                'prefix' => $row->prefix,
                 'locked' => (bool) $row->locked,
                 'fe_resolution_id' => $row->fe_resolution_id,
                 'nc_resolution_id' => $row->nc_resolution_id,

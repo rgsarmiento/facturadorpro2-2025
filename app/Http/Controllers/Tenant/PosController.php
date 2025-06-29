@@ -8,6 +8,8 @@ use App\Models\Tenant\Item;
 use App\Models\Tenant\Person;
 use App\Models\Tenant\Catalogs\AffectationIgvType;
 use App\Models\Tenant\Establishment;
+use App\Models\Tenant\Table;
+use App\Models\Tenant\TableAccount;
 use App\Models\Tenant\Series;
 use App\Models\Tenant\PaymentMethodType;
 use App\Models\Tenant\CardBrand;
@@ -23,6 +25,7 @@ use Modules\Item\Models\Category;
 use Modules\Finance\Traits\FinanceTrait;
 use App\Models\Tenant\Company;
 use App\Models\Tenant\Document;
+use Barryvdh\DomPDF\Facade as PDF;
 use Modules\Factcolombia1\Models\Tenant\{
     Currency,
     TypeDocument,
@@ -36,6 +39,7 @@ use App\Models\Tenant\ConfigurationPos;
 use App\Http\Requests\Tenant\ConfigurationPosRequest;
 use Modules\Factcolombia1\Models\TenantService\AdvancedConfiguration;
 use App\Http\Resources\Tenant\PosCollection;
+use Illuminate\Support\Facades\Auth;
 use Modules\Factcolombia1\Models\TenantService\{
     Company as ServiceCompany
 };
@@ -61,16 +65,294 @@ class PosController extends Controller
 //        \Log::debug($configuration_pos);
         $configuration->configuration_pos = $configuration_pos;
 
+        $establishment_id = User::where('id',auth()->user()->id)->first();
+        $tables = Establishment::select('tables')->where('id',$establishment_id->establishment_id)->first();
+        $tables_quantity = $tables->tables;
+        $cuentas = [];
+
+        if(!empty($tables)){
+
+            $tables_array = Table::select('id', 'table_number')->where('establishment_id', $establishment_id->establishment_id)->get();
+
+            foreach($tables_array as $line){
+                $account = TableAccount::select('account')
+                ->where('account', $line->id)->whereIn('state', ['A', 'R'])->first();
+
+                if(!empty($account)){
+                    $cuentas[] = [
+                        'id' => $account->account,
+                        'state' => 1,
+                        'table_number' => $line->table_number
+                    ];
+                }else{
+                    $cuentas[] = [
+                        'id' => $line->id,
+                        'state' => 0,
+                        'table_number' => $line->table_number
+                    ];
+                }
+            }
+        }
+
         $company = Company::select('soap_type_id')->first();
         $soap_company  = $company->soap_type_id;
 
-        return view('tenant.pos.index', compact('configuration', 'soap_company'));
+        return view('tenant.pos.index', compact('configuration', 'soap_company', 'tables_quantity', 'cuentas'));
     }
 
     public function configuration()
     {
         $configuration = ConfigurationPos::first();
         return view('tenant.pos.configuration', compact('configuration'));
+    }
+
+    public function add_account(Request $request)
+    {
+        $user = Auth::user()->id;
+        $data = $request->all();
+
+        $table = Table::select('id')->where('establishment_id', $data['establecimiento'])
+        ->where('table_number', $data['mesa'])->first();
+
+        if (!$table) {
+            return response()->json(['success' => false, 'message' => 'Mesa no encontrada'], 404);
+        }
+
+        $registro = new TableAccount();
+        $registro->account = $table->id;
+        $registro->state = 'A';
+        $registro->price = $data['precio'];
+        $registro->quantity = $data['cantidad'];
+        $registro->item_id = $data['id'];
+        $registro->item_description = $data['nombre'];
+        $registro->created_at = Carbon::now();
+        $registro->updated_at = Carbon::now();
+        $registro->user_id = $user;
+        $registro->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => 'Producto agregado exitosamente',
+            'data' => $registro
+        ]);
+    }
+
+    public function account_list(Request $request){
+        $data = $request->all();
+
+        $table = Table::select('id')->where('establishment_id', $data['establecimiento'])
+        ->where('table_number', $data['mesa'])
+        ->where('id', $data['mesaId'])->first();
+
+        $products = TableAccount::select('item_description', 'price', 'quantity', 'account', 'id', 'item_id', 'state')
+        ->where('account', $table->id)->whereIn('state', ['A', 'R'])->get();
+
+        if($products->isEmpty()){
+            return response()->json([
+                'message' => 'La cuenta no tiene productos.',
+            ], 422);
+        }else{
+            return response()->json([
+                'data' => $products
+            ]);
+        }
+    }
+
+    public function record_detalle(Request $request){
+
+        $mesaId = $request->input('mesaId');
+        $establecimiento = $request->input('establecimiento');
+        $customerId = $request->input('customer');
+        $total_venta = 0;
+        $subtotal = 0;
+        $descuento = 0;
+        $total_sin_impuestos = 0;
+        $impuesto = [];
+        $total_impuestos = 0;
+
+        $items = TableAccount::select('item_description', 'price', 'quantity', 'account', 'id', 'item_id', 'state')
+        ->where('account', $mesaId)->whereIn('state', ['A', 'R'])->get();
+
+        $sucursal = Establishment::where('id', $establecimiento)->first();
+
+        $customer = Person::where('id', $customerId)->first();
+
+        $company = Company::active();
+        $date_of_issue = Carbon::now()->toDateString();
+        $created_at = Carbon::now()->format('H:i:s');
+
+        foreach ($items as $product) {
+            $total_unidad = 0;
+            $total_linea = 0;
+            $total_linea_impuesto = 0;
+
+            $item = Item::find($product->item_id);
+            $taxes = Tax::select('id','rate', 'name', 'is_retention')->where('id', $item->tax_id)->first();
+
+            if ($item && $taxes) {
+                $total_unidad = ($item->sale_unit_price * $taxes->rate) / 100;
+                $total_linea = $total_unidad * $product->quantity;
+                $total_linea_impuesto = ($total_unidad + $item->sale_unit_price) * $product->quantity;
+
+                if (!isset($impuesto[$taxes->id])) {
+                    $impuesto[$taxes->id] = [
+                        'name' => $taxes->name,
+                        'total' => 0,
+                        'is_retention' => $tax->is_retention ?? false,
+                    ];
+                }
+
+                $impuesto[$taxes->id]['total'] += $total_linea;
+
+                $product->item = $item;
+                $product->total_tax = $total_linea;
+                $product->subtotal = $total_linea_impuesto;
+            }
+            $subtotal += $item->sale_unit_price * $product->quantity;
+            $total_impuestos += $total_linea;
+        }
+
+        $total_sin_impuestos = $subtotal - $descuento;
+        $total_venta += $subtotal + $total_impuestos;
+
+        if($items->isEmpty()){
+            return response()->json([
+                'message' => 'La cuenta no tiene productos.',
+            ], 422);
+        }
+
+        $customPaper = [0, 0, 226, 600];
+        $pdf = PDF::loadView('tenant.pos.account_ticket', compact('items', 'sucursal', 'customer', 'company', 'date_of_issue', 'created_at', 'subtotal', 'descuento', 'total_sin_impuestos', 'impuesto', 'total_venta'))
+            ->setPaper($customPaper, 'portrait');
+        return $pdf->stream("ticket.pdf");
+    }
+
+    public function transfer_account(Request $request){
+        $data = $request->all();
+
+        if($data['mesa_nueva'] <= 0){
+            return response()->json([
+                'message' => 'El número de la cuenta debe ser mayor de 0.',
+            ], 422);
+        }
+
+        $table = Table::select('id')->where('establishment_id', $data['establecimiento'])
+        ->where('table_number', $data['mesa_nueva'])->first();
+
+        $products = TableAccount::select('item_description', 'price', 'quantity')
+        ->where('account', $data['mesa_id'])->whereIn('state', ['A', 'R'])->get();
+
+        if($products->isEmpty()){
+            return response()->json([
+                'message' => 'La cuenta ' . $data['mesa'] . ' no tiene productos.',
+            ], 422);
+        }else{
+
+            TableAccount::where('account', $data['mesa_id'])
+                ->whereIn('state', ['A', 'R'])
+                ->update([
+                'account' => $table->id,
+            ]);
+
+            return [
+                'success' => true,
+                'message' => 'Cuenta Trasladada Correctamente.',
+            ];
+        }
+
+        $products2 = TableAccount::select('item_description', 'price', 'quantity')
+        ->where('account', $data['mesa_id'])->where('state', 'R')->get();
+
+        if(!$products2->isEmpty()){
+            return response()->json([
+                'message' => 'La cuenta ' . $data['mesa'] . ' se encuentra en proceso de facturación.',
+            ], 422);
+        }
+
+    }
+
+    public function delete_product(Request $request){
+        $data = $request->all();
+
+        TableAccount::where('account', $data['mesa_id'])
+            ->where('state', 'A')
+            ->where('id',  $data['cuenta_id'])
+            ->delete();
+
+        return [
+            'success' => true,
+            'message' => 'Producto eliminado correctamente.',
+        ];
+    }
+
+    public function shopping_car (Request $request){
+        $data = $request->all();
+
+        $table = Table::select('id')->where('establishment_id', $data['establecimiento'])
+        ->where('table_number', $data['mesa'])->first();
+
+        $products = TableAccount::select('item_description', 'price', 'quantity', 'account', 'id')
+        ->where('account', $table->id)->whereIn('state', ['A', 'R'])->get();
+
+        if($products->isEmpty()){
+            return response()->json([
+                'message' => 'La cuenta no tiene productos.',
+            ], 422);
+        }else{
+            return response()->json([
+                'data' => $products
+            ]);
+        }
+    }
+
+    public function delete_account(Request $request){
+        $data = $request->all();
+
+        TableAccount::where('account', $data['mesa_id'])
+            ->whereIn('state', ['A', 'R'])
+            ->delete();
+
+        return [
+            'success' => true,
+            'message' => 'Cuenta Eliminada Correctamente.',
+        ];
+    }
+
+    public function get_item($id, $id_cuenta){
+
+        $item = Item::with('tax')->findOrFail($id);
+
+        $tax_percentage = $item->tax ? $item->tax->percentage : 0;
+
+        $item->sale_unit_price_with_tax = round($item->sale_unit_price * (1 + ($tax_percentage / 100)), 2);
+        $id_user = auth()->user()->id;
+
+        $profile = User::select('type')->where('id', $id_user)->first();
+
+        if($profile->type == 'comand'){
+            return response()->json([
+                'message' => 'El usuario no puede facturar.',
+            ], 422);
+        }else{
+            TableAccount::where('id', $id_cuenta)
+                ->update([
+                'state' => 'R',
+            ]);
+
+            return response()->json([
+                'data' => $item
+            ]);
+        }
+
+    }
+
+    public function actualizar_estado_item($item) {
+        $updated = TableAccount::where('id', $item)
+            ->update(['state' => 'A']);
+
+        return response()->json([
+            'success' => $updated ? true : false
+        ]);
     }
 
     public function records()

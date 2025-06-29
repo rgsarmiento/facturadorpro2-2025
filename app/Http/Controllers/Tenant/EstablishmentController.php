@@ -5,11 +5,14 @@ use App\Models\Tenant\Catalogs\Department;
 use App\Models\Tenant\Catalogs\District;
 use App\Models\Tenant\Catalogs\Province;
 use App\Models\Tenant\Establishment;
+use App\Models\Tenant\Table;
 use App\Http\Controllers\Controller;
 use App\Http\Requests\Tenant\EstablishmentRequest;
 use App\Http\Resources\Tenant\EstablishmentResource;
 use App\Http\Resources\Tenant\EstablishmentCollection;
 use App\Models\Tenant\Warehouse;
+use Illuminate\Support\Facades\DB;
+use Stancl\Tenancy\Facades\Tenancy;
 
 use Modules\Factcolombia1\Models\Tenant\{
     TypeIdentityDocument,
@@ -59,6 +62,62 @@ class EstablishmentController extends Controller
             $warehouse->establishment_id = $establishment->id;
             $warehouse->description = 'Almacén - '.$establishment->description;
             $warehouse->save();
+        }
+
+        $tables_quantity = Table::where('establishment_id', $establishment->id)->count();
+
+        if ($request->has('tables') && is_numeric($request->tables) && $request->tables > 0) {
+            $tablesData = [];
+            $tablesDataUpdate = [];
+
+            if ($tables_quantity == 0) {
+                for ($i = 1; $i <= $request->tables; $i++) {
+                    $tablesData[] = [
+                        'table_number' => $i,
+                        'table_state' => 'A',
+                        'establishment_id' => $establishment->id,
+                        'created_at' => now(),
+                        'updated_at' => now(),
+                    ];
+                }
+                Table::insert($tablesData);
+            } else {
+                for ($i = 1; $i <= $request->tables; $i++) {
+                    if ($i <= $tables_quantity) {
+
+                        $tablesDataUpdate[] = [
+                            'table_number' => $i,
+                            'table_state' => 'A', // Activa
+                            'establishment_id' => $establishment->id,
+                            'updated_at' => now(),
+                        ];
+                    } else {
+
+                        $tablesData[] = [
+                            'table_number' => $i,
+                            'table_state' => 'A', // Activa
+                            'establishment_id' => $establishment->id,
+                            'created_at' => now(),
+                            'updated_at' => now(),
+                        ];
+                    }
+                }
+
+                foreach ($tablesDataUpdate as $data) {
+                    Table::where([
+                        ['establishment_id', '=', $data['establishment_id']],
+                        ['table_number', '=', $data['table_number']]
+                    ])->update(['table_state' => $data['table_state'], 'updated_at' => $data['updated_at']]);
+                }
+
+                if (!empty($tablesData)) {
+                    Table::insert($tablesData);
+                }
+
+                Table::where('establishment_id', $establishment->id)
+                    ->where('table_number', '>', $request->tables)
+                    ->update(['table_state' => 'I', 'updated_at' => now()]);
+            }
         }
 
         return [

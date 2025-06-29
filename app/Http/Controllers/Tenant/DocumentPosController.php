@@ -66,6 +66,7 @@ use Modules\Factcolombia1\Models\TenantService\{
 use App\Models\Tenant\Document;
 use App\Models\Tenant\DocumentPos;
 use App\Models\Tenant\DocumentPosItem;
+use App\Models\Tenant\TableAccount;
 use App\Models\Tenant\DocumentPosPayment;
 use App\Models\Tenant\ConfigurationPos;
 use App\Http\Resources\Tenant\DocumentPosResource;
@@ -375,6 +376,16 @@ class DocumentPosController extends Controller
 //                    }
 ///                    $tax_exclusive_amount += $tax_totals[count($tax_totals) - 1]['taxable_amount'];
                     // Sumar taxable_amount de los tax_totals de cada línea
+
+                    if($row['db_Id'] != 0){
+                        TableAccount::where('id', $row['db_Id'])
+                            ->update([
+                            'state' => 'F',
+                            'prefix' => $data['prefix'],
+                            'number' => $data['number']
+                        ]);
+                    }
+
                     if(isset($invoice_lines[count($invoice_lines) - 1]['tax_totals'])) {
                         foreach($invoice_lines[count($invoice_lines) - 1]['tax_totals'] as $tax_total) {
                             $tax_exclusive_amount += floatval($tax_total['taxable_amount']);

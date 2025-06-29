@@ -7,6 +7,7 @@ use App\Http\Resources\Tenant\UserResource;
 use App\Models\Tenant\Establishment;
 use App\Models\Tenant\Module;
 use App\Models\Tenant\User;
+use App\Models\Tenant\ConfigurationPos;
 use App\Http\Resources\Tenant\UserCollection;
 use Modules\LevelAccess\Models\ModuleLevel;
 use Modules\Factcolombia1\Models\Tenant\TypeDocument;
@@ -36,7 +37,8 @@ class UserController extends Controller
             ->get();
 
         $establishments = Establishment::orderBy('description')->get();
-        $types = [['type' => 'admin', 'description'=>'Administrador'], ['type' => 'seller', 'description'=>'Vendedor']];
+        $types = [['type' => 'admin', 'description'=>'Administrador'], ['type' => 'seller', 'description'=>'Vendedor'], ['type' => 'comand', 'description'=>'Comandero']];;
+        $prefixs = ConfigurationPos::select('prefix')->distinct()->get();
         $fe_resolutions = TypeDocument::where('code', 1)->where('id', '!=', 1)->selectRaw("*, CONCAT(COALESCE(prefix, ''), ' / ', COALESCE(resolution_number, ''), ' / ', COALESCE(`from`, ''), ' / ', COALESCE(`to`, ''), ' / ', COALESCE(resolution_date_end, '')) as description")->orderBy('prefix')->get();
         $nc_resolutions = TypeDocument::where('code', 4)->selectRaw("*, CONCAT(COALESCE(prefix, ''), ' / ', COALESCE(resolution_number, ''), ' / ', COALESCE(`from`, ''), ' / ', COALESCE(`to`, ''), ' / ', COALESCE(resolution_date_end, '')) as description")->orderBy('prefix')->get();
         $nd_resolutions = TypeDocument::where('code', 5)->selectRaw("*, CONCAT(COALESCE(prefix, ''), ' / ', COALESCE(resolution_number, ''), ' / ', COALESCE(`from`, ''), ' / ', COALESCE(`to`, ''), ' / ', COALESCE(resolution_date_end, '')) as description")->orderBy('prefix')->get();
@@ -54,7 +56,7 @@ class UserController extends Controller
         $ni_resolutions->each(function($item) use ($today) {
             $item->vencida = ($item->resolution_date_end === null) ? false : ($item->resolution_date_end < $today);
         });
-        return compact('modules', 'establishments','types', 'fe_resolutions', 'nc_resolutions', 'nd_resolutions', 'ni_resolutions');
+        return compact('modules', 'establishments','types','prefixs', 'fe_resolutions', 'nc_resolutions', 'nd_resolutions', 'ni_resolutions');
     }
 
     public function store(UserRequest $request)
@@ -80,6 +82,7 @@ class UserController extends Controller
         $user->nd_resolution_id = $request->input('nd_resolution_id');
         $user->ni_resolution_id = $request->input('ni_resolution_id');
         $user->type = $request->input('type');
+        $user->prefix = $request->input('prefix');
         if (!$id) {
             $user->api_token = str_random(50);
             $user->password = bcrypt($request->input('password'));

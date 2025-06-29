@@ -455,6 +455,16 @@ if ($hostname) {
            Route::get('pos/records', 'Tenant\PosController@records');
            Route::get('pos/app_data', 'Tenant\DocumentPosController@app_data');
            Route::post('pos/store_app_data', 'Tenant\DocumentPosController@store_app_data');
+           Route::get('pos/tables_quantity/{establishment}', 'Tenant\PosController@tables_quantity');
+           Route::post('pos/account', 'Tenant\PosController@add_account');
+           Route::get('pos/account_list', 'Tenant\PosController@account_list');
+           Route::post('pos/transfer', 'Tenant\PosController@transfer_account');
+           Route::post('pos/delete_product', 'Tenant\PosController@delete_product');
+           Route::post('pos/delete_account', 'Tenant\PosController@delete_account');
+           Route::get('pos/shopping_car', 'Tenant\PosController@shopping_car');
+           Route::get('pos/get-item/{item}/{cuenta}', 'Tenant\PosController@get_item');
+           Route::post('pos/actualizar_estado_item/{item}', 'Tenant\PosController@actualizar_estado_item');
+           Route::get('pos/record_detalle', 'Tenant\PosController@record_detalle');
 
            Route::get('cash', 'Tenant\CashController@index')->name('tenant.cash.index');
            Route::get('cash/columns', 'Tenant\CashController@columns');

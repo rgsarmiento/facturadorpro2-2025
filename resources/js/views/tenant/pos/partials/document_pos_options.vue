@@ -148,10 +148,12 @@
             clickNewSale(){
                 this.initForm()
                 this.$eventHub.$emit('cancelSale')
+                window.location.href = '/pos';
             },
 
             clickNewSaleNote() {
                 this.clickClose()
+                window.location.href = '/pos'
             },
 
             clickClose() {

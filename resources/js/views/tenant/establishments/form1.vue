@@ -125,6 +125,15 @@
                         </div>
                     </div>
                 </div>
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="form-group" :class="{'has-danger': errors.tables}">
+                            <label class="control-label">Cantidad mesas</label>
+                            <el-input v-model="form.tables" :maxlength="4"></el-input>
+                            <small class="form-control-feedback" v-if="errors.tables" v-text="errors.tables[0]"></small>
+                        </div>
+                    </div>
+                </div>
             </div>
             <div class="form-actions text-right mt-4">
                 <el-button @click.prevent="close()">Cancelar</el-button>
@@ -202,6 +211,7 @@
                     web_address: null,
                     aditional_information: null,
                     establishment_logo: null,
+                    tables : null,
                 }
 
                 this.departmentss();
