@@ -45,7 +45,7 @@
                                 $totalTax = 0;
                                 $grandTotal = 0;
                             @endphp
-    
+
                             @foreach($records as $value)
                                 @php
                                     $row = $value->getDataReportSoldItems();
@@ -69,7 +69,7 @@
                                     <td class="celda">{{ number_format($row['total'], 2, ',', '.') }}</td>
                                 </tr>
                             @endforeach
-    
+
                             <!-- Fila de Totales -->
                             <tr>
                                 <td class="celda" colspan="3"><strong>Total:</strong></td>

@@ -180,6 +180,7 @@ class PosController extends Controller
         $company = Company::active();
         $date_of_issue = Carbon::now()->toDateString();
         $created_at = Carbon::now()->format('H:i:s');
+        $account = $items[0]->account;
 
         foreach ($items as $product) {
             $total_unidad = 0;
@@ -215,14 +216,18 @@ class PosController extends Controller
         $total_sin_impuestos = $subtotal - $descuento;
         $total_venta += $subtotal + $total_impuestos;
 
-        if($items->isEmpty()){
-            return response()->json([
-                'message' => 'La cuenta no tiene productos.',
-            ], 422);
+       if ($items->isEmpty()) {
+            $mensaje = "La cuenta no tiene productos para mostrar.";
+
+            $customPaper = [0, 0, 226, 600];
+            $pdf = PDF::loadView('tenant.pos.account_ticket_empty', compact('mensaje', 'sucursal', 'customer', 'company', 'date_of_issue', 'created_at'))
+                ->setPaper($customPaper, 'portrait');
+
+            return $pdf->stream("ticket.pdf");
         }
 
         $customPaper = [0, 0, 226, 600];
-        $pdf = PDF::loadView('tenant.pos.account_ticket', compact('items', 'sucursal', 'customer', 'company', 'date_of_issue', 'created_at', 'subtotal', 'descuento', 'total_sin_impuestos', 'impuesto', 'total_venta'))
+        $pdf = PDF::loadView('tenant.pos.account_ticket', compact('items', 'sucursal', 'customer', 'company', 'date_of_issue', 'created_at', 'subtotal', 'descuento', 'total_sin_impuestos', 'impuesto', 'total_venta', 'account'))
             ->setPaper($customPaper, 'portrait');
         return $pdf->stream("ticket.pdf");
     }

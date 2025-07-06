@@ -79,7 +79,7 @@
             <td colspan="2" class="text-center"><h4 style="margin:0;">{{ $company->name }}</h4></td>
         </tr>
         <tr>
-            <td colspan="2" class="text-center"><h5 style="margin:0;">Nit: {{ $company->identification_number }}</h5></td>
+            <td colspan="2" class="text-center"><h5 style="margin:0;">Nit: {{ $company->number }}</h5></td>
         </tr>
         <tr>
             <td colspan="2" class="text-center"><h6 style="margin:0;">{{ ($sucursal->email !== '-') ? $sucursal->email : '' }}</h6></td>
@@ -100,6 +100,9 @@
 
         <tr>
             <td colspan="2"><h6 style="margin:0;" class="text">Dirección: {{ $customer->address }}</h6></td>
+        </tr>
+        <tr>
+            <td colspan="2"><h6 style="margin:0;" class="text">Cuenta: {{ $account }}</h6></td>
         </tr>
     </table>
 
@@ -181,8 +184,6 @@
             <td class="text-right font-bold desc">{{number_format($total_venta, 2)}}</td>
         </tr>
     </table>
-
-    <h6 class="text-center">GRACIAS POR SU COMPRA</h6>
 </body>
 
 </html>
