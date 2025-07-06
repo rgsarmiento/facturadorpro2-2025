@@ -737,6 +737,7 @@ class Document extends ModelTenant
             'type_document_name' => $this->type_document->name,
             'currency_code' => $this->currency->code,
             'customer_name' => $this->customer->name,
+            'customer_code' => $this->customer->code,
             'net_total' => $this->generalApplyNumberFormat($this->sale),
             'total' => $this->generalApplyNumberFormat($this->total),
             'total_exempt' => $this->generalApplyNumberFormat($this->getTotalExempt()),
