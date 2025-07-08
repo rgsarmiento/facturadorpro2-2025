@@ -255,13 +255,14 @@
                 }).then(() => {
                 });
             },
+
             clickVoided(id) {
                 this.$confirm('¿Estás seguro de que deseas anular este documento?', 'Confirmar Anulación', {
                     confirmButtonText: 'Sí',
                     cancelButtonText: 'No',
                     type: 'warning'
                 }).then(() => {
-                    this.$http.get(`/${this.resource}/voided/resolutions`)
+                    this.$http.get(`/${this.resource}/voided/resolutions/${id}`)
                         .then(response => {
                             if (response.data.quantity > 0) {
                                 this.anular(id);
@@ -277,6 +278,7 @@
                     this.$message.info('Anulación cancelada');
                 });
             },
+
             anular(id) {
                 const loadingInstance = this.$loading({
                     lock: true,
@@ -305,10 +307,12 @@
                         }
                     });
             },
+
             clickRefund(id)
             {
                 location.href = `/${this.resource}/refund/${id}`
             },
+
             async clickSincronize() {
                 this.sincronizing = true
 

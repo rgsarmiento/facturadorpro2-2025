@@ -414,7 +414,7 @@ if ($hostname) {
             Route::get('document-pos/refund/{id}', 'Tenant\DocumentPosController@create_refund');
             Route::get('document-pos/record2/{id}', 'Tenant\DocumentPosController@record2');
             Route::get('document-pos/anulate/{id}', 'Tenant\DocumentPosController@anulate');
-            Route::get('document-pos/voided/resolutions', 'Tenant\DocumentPosController@anulateResolutions');
+            Route::get('document-pos/voided/resolutions/{id}', 'Tenant\DocumentPosController@anulateResolutions');
             Route::post('document-pos/email', 'Tenant\DocumentPosController@email');
             Route::get('document-pos/sincronize', 'Tenant\DocumentPosController@sincronize');
 

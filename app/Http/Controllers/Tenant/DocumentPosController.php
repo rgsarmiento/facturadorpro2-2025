@@ -1194,8 +1194,7 @@ class DocumentPosController extends Controller
 
     }
 
-    public function getNextNumber($type_document_id, $prefix)
-    {
+    public function getNextNumber($type_document_id, $prefix){
         $company = ServiceTenantCompany::firstOrFail();
         $base_url = config('tenant.service_fact');
         $ch = curl_init("{$base_url}ubl2.1/next-consecutive");
@@ -1215,36 +1214,40 @@ class DocumentPosController extends Controller
         ));
         $response = curl_exec($ch);
         curl_close($ch);
-
         return json_decode($response);
     }
 
     public function setJsonAnulate($document) {
         $company = Company::active();
-        $document_type = TypeDocument::where('code', 26)->first();
-        $data_consecutive = $this->getNextNumber($document_type->code, $document_type->prefix);
         $request_api = json_decode($document->request_api);
-        $request_api->legal_monetary_totals->tax_exclusive_amount = $request_api->legal_monetary_totals->line_extension_amount;
+        if($request_api->type_document_id == 15)
+            $document_type = TypeDocument::where('code', 26)->first();
+        else
+            $document_type = TypeDocument::where('code', 4)->first();
+
+        $data_consecutive = $this->getNextNumber($document_type->code, $document_type->prefix);
+        if($request_api->type_document_id == 15)
+            $request_api->legal_monetary_totals->tax_exclusive_amount = $request_api->legal_monetary_totals->line_extension_amount;
+        $establishment = Establishment::where('id', auth()->user()->establishment_id)->first();
         $json = [
             'prefix' => $document_type->prefix,
             'resolution_number' => $document_type->resolution_number,
             'number' => $data_consecutive->number,
             'date' => Carbon::now()->format('Y-m-d'),
             'time' => Carbon::now()->format('H:i:s'),
-//            'establishment_name' => $company->name,
-//            'establishment_address' => $document->establishment->address,
-//            'establishment_phone' => $document->establishment->telephone,
-//            'establishment_municipality' => $document->establishment->department_id,
+            'establishment_name' => $establishment->description,
+            'establishment_address' => $establishment->address,
+            'establishment_phone' => $establishment->telephone,
             'billing_reference' => [
                 'number' => $request_api->prefix.$request_api->number,
                 'issue_date' => $request_api->date,
                 'type_document_id' => 15,
                 "uuid" => $document->cude
             ],
-            'is_eqdoc' => true,
+            'is_eqdoc' => $request_api->type_document_id == 15 ? true : false,
             'discrepancyresponsecode' => 2,
-            'notes' => 'NOTA CREDITO A DOCUMENTO EQUIVALENTE POS',
-            'type_document_id' => 26,
+            'notes' => $request_api->type_document_id == 15 ? 'NOTA CREDITO A DOCUMENTO EQUIVALENTE POS' : 'NOTA CREDITO A DOCUMENTO FACTURA ELECTRONICA POS',
+            'type_document_id' => $request_api->type_document_id == 15 ? 26 : 4,
             'sendmail' => true,
             'sendmailtome' => true,
             'head_note' => '',
@@ -1257,8 +1260,7 @@ class DocumentPosController extends Controller
         return $json;
     }
 
-    public function sendJsonAnulate($json)
-    {
+    public function sendJsonAnulate($json){
         $company = ServiceTenantCompany::firstOrFail();
         $base_url = config('tenant.service_fact');
         $ch = curl_init("{$base_url}ubl2.1/credit-note");
@@ -1275,19 +1277,17 @@ class DocumentPosController extends Controller
         ));
         $response = curl_exec($ch);
         curl_close($ch);
-
-        if(config('tenant.show_log')) {
-            \Log::debug('DocumentPosController:1186: '.$response);
-        }
-
+//        \Log::debug($data);
+//        \Log::debug($company->api_token);
+//        \Log::debug("{$base_url}ubl2.1/credit-note");
+//        \Log::debug($response);
         return json_decode($response);
     }
 
-    public function anulate($id)
-    {
+    public function anulate($id){
         DB::connection('tenant')->beginTransaction();
         try {
-            $obj =  DocumentPos::find($id);
+            $obj = DocumentPos::find($id);
             if($obj->electronic){
                 //enviar json
                 $json = $this->setJsonAnulate($obj);
@@ -1362,9 +1362,15 @@ class DocumentPosController extends Controller
         DB::connection('tenant')->commit();
     }
 
-    public function anulateResolutions()
-    {
-        $records = TypeDocument::where('code', 26)->get();
+    public function anulateResolutions($id){
+        $obj =  DocumentPos::find($id);
+        $request_api = null;
+        if($obj->electronic)
+            $request_api = json_decode($obj->request_api);
+        if($request_api->type_document_id == 15)
+            $records = TypeDocument::where('code', 26)->get();
+        else
+            $records = TypeDocument::where('code', 4)->get();
         return [
             'data' => $records,
             'quantity' => $records->count()
