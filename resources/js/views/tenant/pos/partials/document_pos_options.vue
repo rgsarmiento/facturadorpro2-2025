@@ -43,15 +43,11 @@
                 </div>
             </span>
         </el-dialog>
-
     </div>
 </template>
 
 <script>
-
-
     export default {
-
         props: ['showDialog', 'recordId', 'showClose', 'originPos'],
         data() {
             return {
@@ -71,10 +67,12 @@
                 enable_qz_tray: false,
             }
         },
+
         async created() {
             this.initForm()
             await this.getConfigPrint()
         },
+
         methods: {
             async getConfigPrint() {
                 console.info('iniciando qztray');
@@ -84,9 +82,10 @@
                         this.enable_qz_tray = response.data.enable_qz_tray;
                     })
                 if(this.enable_qz_tray) {
-                    startConnection()
+//                    startConnection()
                 }
             },
+
             async printTicket() {
                 let html_content = null
                 await this.$http.get(this.form.print_html)
@@ -115,6 +114,7 @@
                         .catch(displayError)
                 }
             },
+
             initForm() {
                 this.errors = {}
                 this.form = {
@@ -130,35 +130,43 @@
                     number:null,
                 }
             },
+
             create() {
+                console.log('create')
                 this.$http.get(`/${this.resource}/record/${this.recordId}`)
                     .then(response => {
                         this.form = response.data.data
                         this.titleDialog = `Documento POS registrado:  ${this.form.serie}-${this.form.number}`
-                        this.printTicket()
+//                        this.printTicket()
                     })
             },
+
             clickFinalize() {
                 location.href = `/${this.resource}`
             },
+
             clickNewSale(){
                 this.initForm()
                 this.$eventHub.$emit('cancelSale')
-
             },
+
             clickNewSaleNote() {
                 this.clickClose()
             },
+
             clickClose() {
                 this.$emit('update:showDialog', false)
                 this.initForm()
             },
+
             clickDownload(){
                 window.open(`/downloads/saleNote/sale_note/${this.form.external_id}`, '_blank');
             },
+
             clickToPrint(format){
                 window.open(`/${this.resource}/print/${this.form.id}/${format}`, '_blank');
             },
+
             clickSendEmail() {
                 this.loading=true
                 this.$http.post(`/${this.resource}/email`, {
@@ -184,7 +192,6 @@
 
                     })
             },
-
         }
     }
 </script>

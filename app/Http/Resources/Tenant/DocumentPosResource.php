@@ -35,9 +35,7 @@ class DocumentPosResource extends JsonResource
         ];
     }
 
-
     public static function getTransformPayments($payments){
-
         return $payments->transform(function($row, $key){
             return [
                 'id' => $row->id,

@@ -602,3 +602,13 @@ p {
 .mx-auto {
   margin-left: auto !important;
 }
+
+table { page-break-inside: avoid; }
+
+tr { page-break-inside: avoid; }
+
+td, th { page-break-inside: avoid; }
+
+.full-width { width: 100%; }
+
+body { font-size: 10pt; }

@@ -758,28 +758,20 @@ class DocumentPosController extends Controller
 //    }
 
     private function setFilename(){
-
         $name = [$this->sale_note->series,$this->sale_note->number,date('Ymd')];
         $this->sale_note->filename = join('-', $name);
         $this->sale_note->save();
-
     }
 
     public function toPrint($external_id, $format) {
-
         $sale_note = DocumentPos::where('external_id', $external_id)->first();
-
         if (!$sale_note) throw new Exception("El código {$external_id} es inválido, no se encontro la nota de venta relacionada");
-
         $view = $this->reloadPDF($sale_note, $format, $sale_note->filename);
-
         if($format == 'html') {
             return $view;
         }
         $temp = tempnam(sys_get_temp_dir(), 'sale_note');
-
         file_put_contents($temp, $this->getStorage($sale_note->filename, 'sale_note'));
-
         return response()->file($temp);
     }
 
@@ -791,20 +783,16 @@ class DocumentPosController extends Controller
         ini_set("pcre.backtrack_limit", "5000000");
         $template = new Template();
         $pdf = new Mpdf();
-
         $this->company = CoCompany::active();
         $this->document = ($sale_note != null) ? $sale_note : $this->sale_note;
-
         $this->configuration = Configuration::first();
         $configuration = $this->configuration->formats;
         $base_template = $configuration;
-
         $path_css = app_path('CoreFacturalo'.DIRECTORY_SEPARATOR.'Templates'.
                                              DIRECTORY_SEPARATOR.'pdf'.
                                              DIRECTORY_SEPARATOR.$base_template.
                                              DIRECTORY_SEPARATOR.'style.css');
         $stylesheet = file_get_contents($path_css);
-
         if($format_pdf == 'html') {
             $html = $template->pdf($base_template, "document_pos", $this->company, $this->document, 'ticket');
             $html = str_replace(
@@ -814,11 +802,8 @@ class DocumentPosController extends Controller
             );
             return $html;
         }
-
         $html = $template->pdf($base_template, "document_pos", $this->company, $this->document, $format_pdf);
-
         if (($format_pdf === 'ticket') OR ($format_pdf === 'ticket_58')) {
-
             $width = ($format_pdf === 'ticket_58') ? 56 : 78 ;
             if(config('tenant.enabled_template_ticket_80')) $width = 76;
 
@@ -853,7 +838,7 @@ class DocumentPosController extends Controller
                 'mode' => 'utf-8',
                 'format' => [
                     $width,
-                    100 +
+                    175 +
                     (($quantity_rows * 8) + $extra_by_item_description) +
                     ($discount_global * 3) +
                     $company_logo +
@@ -958,7 +943,6 @@ class DocumentPosController extends Controller
             $html_footer = $template->pdfFooter($base_template);
             $pdf->SetHTMLFooter($html_footer);
         }*/
-
         $this->uploadFile($this->document->filename, $pdf->output('', 'S'), 'sale_note');
     }
 
@@ -966,8 +950,6 @@ class DocumentPosController extends Controller
     {
         $this->uploadStorage($filename, $file_content, $file_type);
     }
-
-
 
     public function table($table)
     {
