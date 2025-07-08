@@ -1365,15 +1365,17 @@ class DocumentPosController extends Controller
     public function anulateResolutions($id){
         $obj =  DocumentPos::find($id);
         $request_api = null;
-        if($obj->electronic)
+        $records = [];
+        if($obj->electronic){
             $request_api = json_decode($obj->request_api);
-        if($request_api->type_document_id == 15)
-            $records = TypeDocument::where('code', 26)->get();
-        else
-            $records = TypeDocument::where('code', 4)->get();
+            if($request_api->type_document_id == 15)
+                $records = TypeDocument::where('code', 26)->get();
+            else
+                $records = TypeDocument::where('code', 4)->get();
+        }
         return [
-            'data' => $records,
-            'quantity' => $records->count()
+            'data' => $obj->electronic ? $records : [],
+            'quantity' => $obj->electronic ? $records->count() : 1
         ];
     }
 
