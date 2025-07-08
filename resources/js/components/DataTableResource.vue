@@ -1,7 +1,6 @@
 <template>
     <div>
         <div class="row ">
-
             <div class="col-md-12 col-lg-12 col-xl-12 ">
                 <div class="row" v-if="applyFilter">
                     <div class="col-lg-4 col-md-4 col-sm-12 pb-2">
@@ -35,10 +34,7 @@
                         </template>
                     </div>
                 </div>
-
             </div>
-
-
             <div class="col-md-12">
                 <div class="table-responsive">
                     <table class="table">
@@ -61,13 +57,10 @@
                 </div>
             </div>
         </div>
-
     </div>
 </template>
 
-
 <script>
-
     import moment from 'moment'
     import queryString from 'query-string'
 
@@ -80,6 +73,7 @@
                 required: false
             }
         },
+
         data () {
             return {
                 search: {
@@ -91,27 +85,31 @@
                 pagination: {}
             }
         },
+
         computed: {
         },
+
         created() {
             this.$eventHub.$on('reloadData', () => {
                 this.getRecords()
             })
         },
+
         async mounted () {
-            // let column_resource = _.split(this.resource, '/')
+           // let column_resource = _.split(this.resource, '/')
            // console.log(column_resource)
             await this.$http.get(`/${this.resource}/columns`).then((response) => {
                 this.columns = response.data
                 this.search.column = _.head(Object.keys(this.columns))
             });
             await this.getRecords()
-
         },
+
         methods: {
             customIndex(index) {
                 return (this.pagination.per_page * (this.pagination.current_page - 1)) + index + 1
             },
+
             getRecords() {
                 return this.$http.get(`/${this.resource}/records?${this.getQueryParameters()}`).then((response) => {
                     this.records = response.data.data
@@ -119,6 +117,7 @@
                     this.pagination.per_page = parseInt(response.data.meta.per_page)
                 });
             },
+
             getQueryParameters() {
                 return queryString.stringify({
                     page: this.pagination.current_page,
@@ -126,6 +125,7 @@
                     ...this.search
                 })
             },
+
             changeClearInput(){
                 this.search.value = ''
                 this.getRecords()

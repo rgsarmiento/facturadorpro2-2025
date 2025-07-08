@@ -21,6 +21,8 @@ if($hostname) {
                     Route::get('downloadFile/{filename}', 'DocumentPayrollController@downloadFile');
                     Route::post('send-email', 'DocumentPayrollController@sendEmail');
                     Route::post('query-zipkey', 'DocumentPayrollController@queryZipkey');
+                    Route::post('block-payrolls-index', 'DocumentPayrollController@blockPayrollsIndex')->name('tenant.block-payrolls.index');
+                    Route::post('block-payrolls-create', 'DocumentPayrollController@blockPayrollsCreate')->name('tenant.block-payrolls.create');
                 });
 
                 // nómina eliminación y ajuste

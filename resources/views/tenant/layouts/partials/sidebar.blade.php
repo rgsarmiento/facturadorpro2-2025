@@ -1,8 +1,8 @@
 @php
     $path = explode('/', request()->path());
-    $path[1] = (array_key_exists(1, $path)> 0)?$path[1]:'';
-    $path[2] = (array_key_exists(2, $path)> 0)?$path[2]:'';
-    $path[0] = ($path[0] === '')?'documents':$path[0];
+    $path[1] = (array_key_exists(1, $path)> 0) ? $path[1] : '';
+    $path[2] = (array_key_exists(2, $path)> 0) ? $path[2] : '';
+    $path[0] = ($path[0] === '') ? 'documents' : $path[0];
 @endphp
 <aside id="sidebar-left" class="sidebar-left">
     <div class="sidebar-header">
@@ -31,7 +31,7 @@
                     @if(in_array('dashboard', $vc_modules))
                     <li class="{{ ($path[0] === 'dashboard')?'nav-active':'' }}">
                         <a class="nav-link" href="{{ route('tenant.dashboard.index') }}">
-                            <span class="float-right badge badge-red badge-danger mr-3">Nuevo</span>
+<!--                            <span class="float-right badge badge-red badge-danger mr-3">Nuevo</span>    -->
                             <i class="fas fa-tachometer-alt" aria-hidden="true"></i>
                             <span>Dashboard</span>
                         </a>
@@ -312,7 +312,6 @@
                                 </li> --}}
 
                                 @if(in_array('incentives', $vc_module_levels))
-
                                     <li class="nav-parent
                                         {{ ($path[0] === 'incentives')?'nav-active nav-expanded':'' }}
                                         {{ ($path[0] === 'user-commissions')?'nav-active nav-expanded':'' }}
@@ -333,13 +332,8 @@
                                             </li>
                                         </ul>
                                     </li>
-
                                 @endif
-
-
-
                             @endif
-
                         </ul>
                     </li>
                     @endif
@@ -354,7 +348,7 @@
                         {{ ($path[0] === 'document-pos')?'nav-active nav-expanded':'' }}
                         ">
                             <a class="nav-link" href="#">
-                                <span class="float-right badge badge-red badge-danger mr-3">Nuevo</span>
+                            <!--    <span class="float-right badge badge-red badge-danger mr-3">Nuevo</span>    -->
                                 <i class="fas fa-cash-register" aria-hidden="true"></i>
                                 <span>Punto de Venta P.O.S.</span>
                             </a>
@@ -395,13 +389,13 @@
                     @if(in_array('ecommerce', $vc_modules))
                     <li class="nav-parent {{ in_array($path[0], ['ecommerce','items_ecommerce', 'tags', 'promotions', 'orders', 'configuration'])?'nav-active nav-expanded':'' }}">
                         <a class="nav-link" href="#">
-                            <span class="float-right badge badge-red badge-danger mr-3">Nuevo</span>
+                        <!--    <span class="float-right badge badge-red badge-danger mr-3">Nuevo</span>    -->
                             <i class="fas fa-store" aria-hidden="true"></i>
                             <span>Tienda Virtual</span>
                         </a>
                         <ul class="nav nav-children">
                             <li class="">
-                                <a class="nav-link" onclick="window.open( '{{ route("tenant.ecommerce.index") }} ')">
+                                <a class="nav-link" onclick="window.open('{{ route("tenant.ecommerce.index") }}')">
                                     Ir a Tienda
                                 </a>
                             </li>
@@ -858,7 +852,7 @@
                                             ? 'nav-active nav-expanded' : ''}}">
 
                         <a class="nav-link" href="#">
-                            <span class="float-right badge badge-red badge-danger mr-3">Nuevo</span>
+                            <!--<span class="float-right badge badge-red badge-danger mr-3">Nuevo</span> -->
                             <i class="fas fa-hand-holding-usd" aria-hidden="true"></i>
                             <span>Finanzas</span>
                         </a>
@@ -919,31 +913,44 @@
                                             ? 'nav-active nav-expanded' : ''}}">
 
                         <a class="nav-link" href="#">
-                            <span class="float-right badge badge-red badge-danger mr-3">Nuevo</span>
+                        <!--    <span class="float-right badge badge-red badge-danger mr-3">Nuevo</span>  -->
                             <i class="fas fa-clipboard-list" aria-hidden="true"></i>
                             <span>Nóminas</span>
                         </a>
-
                         <ul class="nav nav-children" style="">
-
                             <li class="{{(($path[0] === 'payroll') && ($path[1] == 'workers')) ? 'nav-active' : ''}}">
                                 <a class="nav-link" href="{{route('tenant.payroll.workers.index')}}">
                                     Empleados
                                 </a>
                             </li>
-
                             <li class="{{(($path[0] === 'payroll') && ($path[1] == 'document-payrolls') && $path[2] == 'create') ? 'nav-active' : ''}}">
                                 <a class="nav-link" href="{{route('tenant.payroll.document-payrolls.create')}}">
                                     Nueva nómina
                                 </a>
                             </li>
-
                             <li class="{{(($path[0] === 'payroll') && (in_array($path[1], ['document-payrolls', 'document-payroll-adjust-notes'])) && ($path[2] !== 'create')) ? 'nav-active' : ''}}">
                                 <a class="nav-link" href="{{route('tenant.payroll.document-payrolls.index')}}">
                                     Listado de nóminas
                                 </a>
                             </li>
-
+                            <li class="nav-parent {{ ($path[0] === 'payroll') ? 'nav-active nav-expanded' : '' }}
+                                                  {{ ($path[0] === 'block-payrolls') ? 'nav-active nav-expanded' : '' }}">
+                                <a class="nav-link" href="#">
+                                    Nóminas en bloque
+                                </a>
+                                <ul class="nav nav-children">
+                                    <li class="{{ ($path[0] === 'block-payrolls') ? 'nav-active' : '' }}">
+                                        <a class="nav-link" href="{{route('tenant.block-payrolls.index')}}">
+                                            Listado de bloques
+                                        </a>
+                                    </li>
+                                    <li class="{{ ($path[0] === 'new-block-payroll') ? 'nav-active' : '' }}">
+                                        <a class="nav-link" href="{{route('tenant.block-payrolls.create')}}">
+                                            Nuevo bloque de nóminas
+                                        </a>
+                                    </li>
+                                </ul>
+                            </li>
                         </ul>
 
                         {{-- <ul class="nav nav-children" style="">

@@ -34,8 +34,12 @@ use Modules\Payroll\Traits\UtilityTrait;
 
 class DocumentPayrollController extends Controller
 {
-
     use UtilityTrait;
+
+    public function blockPayrollsIndex()
+    {
+        return view('payroll::block-payrolls.index');
+    }
 
     public function index()
     {

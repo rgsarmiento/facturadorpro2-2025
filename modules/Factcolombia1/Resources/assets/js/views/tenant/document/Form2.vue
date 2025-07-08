@@ -627,6 +627,7 @@ export default {
             this.localConfiguration = response.data.data;
             if(this.fe_resolution_id){
                 this.form.resolution_id = this.fe_resolution_id
+                this.changeResolution()
             }
         },
 
@@ -835,6 +836,7 @@ export default {
                     this.form.resolution_id = this.invoice.type_document_id;
                 }
                 const resol = this.resolutions.find(x => x.id == this.form.resolution_id);
+                console.log('Resolución seleccionada:', resol);
                 if (resol) {
                     this.form.resolution_number = resol.resolution_number;
                     this.form.prefix = resol.prefix;
@@ -1296,7 +1298,7 @@ export default {
             },
 
             async preeliminarview() {
-                if(!this.form.resolution_number || !this.form.prefix)
+                if(!this.form.resolution_id || !this.form.prefix)
                 {
                     return this.$message.error('Debe seleccionar una Resolución')
                 }
@@ -1387,7 +1389,7 @@ export default {
             },
 
             async submit() {
-                if(!this.form.resolution_number || !this.form.prefix)
+                if(!this.form.resolution_id || !this.form.prefix)
                 {
                     return this.$message.error('Debe seleccionar una Resolución')
                 }
@@ -1505,15 +1507,14 @@ export default {
                     prefix: this.form.prefix,
                     resolution_number: this.form.resolution_number,
                 };
-
                 invoice.customer =  this.getCustomer();
                 invoice.tax_totals = await this.getTaxTotal();
                 invoice.legal_monetary_totals = await this.getLegacyMonetaryTotal();
-                invoice.allowance_charges = await this.createAllowanceCharge(invoice.legal_monetary_totals.allowance_total_amount, invoice.legal_monetary_totals.line_extension_amount );
-
+                if(this.total_global_discount > 0){
+                    invoice.allowance_charges = await this.createAllowanceCharge(invoice.legal_monetary_totals.allowance_total_amount, invoice.legal_monetary_totals.line_extension_amount );
+                }
                 invoice.invoice_lines = await this.getInvoiceLines();
                 invoice.with_holding_tax_total = await this.getWithHolding();
-
                 return invoice;
             },
 
@@ -1649,7 +1650,7 @@ export default {
                     const lineaBruta = Number(item.price) * Number(item.quantity);
                     const descuentoLinea = Number(item.discount);
                     line_ext_am += (lineaBruta - descuentoLinea);
-                    allowance_total_amount += descuentoLinea;
+//                    allowance_total_amount += descuentoLinea;
                 });
 
                 // 3. Cálculo del descuento global
