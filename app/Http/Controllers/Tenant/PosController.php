@@ -51,19 +51,21 @@ class PosController extends Controller
 
     public function index()
     {
-        $cash = Cash::where([['user_id', auth()->user()->id],['state', true]])->first();
+        $type = auth()->user()->type;
+        if ($type === 'comand') {
+            $configuration = Configuration::first();
+            $configuration_pos = ConfigurationPos::first();
+            $configuration->configuration_pos = $configuration_pos;
+        } else {
+            $cash = Cash::where([['user_id', auth()->user()->id],['state', true]])->first();
 
-        if(!$cash) return redirect()->route('tenant.cash.index');
+            if(!$cash) return redirect()->route('tenant.cash.index');
+            if(!$cash->resolution_id) return redirect()->route('tenant.cash.index');
 
-        if(!$cash->resolution_id) return redirect()->route('tenant.cash.index');
-
-        /*$configuration_pos_document = ConfigurationPos::first();
-        if(!$configuration_pos_document) return redirect()->route('tenant.pos.configuration');*/
-
-        $configuration = Configuration::first();
-        $configuration_pos = ConfigurationPos::where('id', $cash->resolution_id)->firstOrFail();
-//        \Log::debug($configuration_pos);
-        $configuration->configuration_pos = $configuration_pos;
+            $configuration = Configuration::first();
+            $configuration_pos = ConfigurationPos::where('id', $cash->resolution_id)->firstOrFail();
+            $configuration->configuration_pos = $configuration_pos;
+        }
 
         $establishment_id = User::where('id',auth()->user()->id)->first();
         $tables = Establishment::select('tables')->where('id',$establishment_id->establishment_id)->first();
@@ -71,12 +73,11 @@ class PosController extends Controller
         $cuentas = [];
 
         if(!empty($tables)){
-
             $tables_array = Table::select('id', 'table_number')->where('establishment_id', $establishment_id->establishment_id)->get();
 
             foreach($tables_array as $line){
                 $account = TableAccount::select('account')
-                ->where('account', $line->id)->whereIn('state', ['A', 'R'])->first();
+                    ->where('account', $line->id)->whereIn('state', ['A', 'R'])->first();
 
                 if(!empty($account)){
                     $cuentas[] = [
@@ -95,9 +96,9 @@ class PosController extends Controller
         }
 
         $company = Company::select('soap_type_id')->first();
-        $soap_company  = $company->soap_type_id;
+        $soap_company = $company->soap_type_id;
 
-        return view('tenant.pos.index', compact('configuration', 'soap_company', 'tables_quantity', 'cuentas'));
+        return view('tenant.pos.index', compact('configuration', 'soap_company', 'tables_quantity', 'cuentas', 'type'));
     }
 
     public function configuration()

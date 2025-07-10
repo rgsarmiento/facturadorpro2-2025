@@ -52,25 +52,24 @@
     <div v-if="plate_number_valid">
         <div v-if="!is_payment" class="row col-lg-12 m-0 p-0" v-loading="loading">
             <div v-if="botones.length === 0" class="col-lg-8 col-md-6 px-4 pt-3 hyo">
-
-                <template v-if="!search_item_by_barcode">
+                <template v-if="!search_item_by_barcode && type != 'comand'">
                     <el-input v-show="place  == 'prod' || place == 'cat2'" placeholder="Buscar productos" size="medium" v-model="input_item" @input="searchItems" autofocus class="m-bottom">
                         <el-button slot="append" icon="el-icon-plus" @click.prevent="showDialogNewItem = true"></el-button>
                     </el-input>
                 </template>
-                <template v-else>
+                <template v-else-if="type != 'comand'">
                     <el-input v-show="place  == 'prod' || place == 'cat2'" placeholder="Buscar productos" size="medium" v-model="input_item" @change="searchItemsBarcode" autofocus class="m-bottom">
                         <el-button slot="append" icon="el-icon-plus" @click.prevent="showDialogNewItem = true"></el-button>
                     </el-input>
                 </template>
 
-                <div v-if="place == 'cat2'" class="container testimonial-group">
+                <div v-if="place == 'cat2' && type != 'comand'" class="container testimonial-group">
                     <div class="row text-center flex-nowrap">
                         <div v-for="(item, index) in categories" @click="filterCategorie(item.id, true)" :style="{ backgroundColor: item.color}" :key="index" class="col-sm-3 pointer">{{item.name}}</div>
                     </div>
                 </div> <br>
 
-                <div v-if="place == 'cat'" class="row no-gutters">
+                <div v-if="place == 'cat' && type != 'comand'" class="row no-gutters">
                     <div v-for="(item, index) in categories" class="col" :key="index">
                         <div @click="filterCategorie(item.id)" class="card p-0 m-0 mb-1 mr-1 text-center">
                             <div :style="{ backgroundColor: item.color}" class="card-body pointer rounded-0" style="font-weight: bold;color: white;font-size: 18px;">
@@ -80,7 +79,18 @@
                     </div>
                 </div>
 
-                <div v-if="place == 'prod' || place == 'cat2'" class="row pos-items">
+                <div v-if="type == 'comand'" class="row justify-content-center">
+                    <div class="col-md-8 col-lg-6">
+                        <div class="card border-warning">
+                            <div class="card-body text-center">
+                                <i class="fas fa-ban fa-3x text-warning mb-3"></i>
+                                <h4 class="card-title text-warning">Acceso Restringido</h4>
+                                <p class="card-text">Este usuario no tiene permisos para realizar facturación.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div v-if="(place == 'prod' || place == 'cat2')" class="row pos-items">
                     <div v-for="(item,index) in items" v-bind:class="classObjectCol" :key="index">
                         <section class="card ">
                             <div class="card-body pointer px-2 pt-2" @click="clickAddItem(item,index)">
@@ -880,7 +890,7 @@ import {functions} from '@mixins/functions'
 import { Modal } from 'bootstrap';
 
 export default {
-    props: ['configuration', 'soapCompany', 'tables_quantity', 'cuentas'],
+    props: ['configuration', 'soapCompany', 'tables_quantity', 'cuentas', 'type'],
     components: {
         PaymentForm,
         ItemForm,
