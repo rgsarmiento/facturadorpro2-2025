@@ -619,7 +619,7 @@
                                             <span class="spinner-border spinner-border-sm me-2 d-none" role="status" aria-hidden="true"></span>
                                             <i class="fa fa-trash"></i>
                                         </button>
-                                        <button type="button" style="margin-bottom: 5px;" title="Facturar Producto" class="btn btn-sm btn-success" @click="clickAddItemAccount(producto.item_id, index, producto.quantity, producto.id)" id="btnAddItemAccount">
+                                        <button v-if="type !== 'comand'" type="button" style="margin-bottom: 5px;" title="Facturar Producto" class="btn btn-sm btn-success" @click="clickAddItemAccount(producto.item_id, index, producto.quantity, producto.id)" id="btnAddItemAccount">
                                             <span class="spinner-border spinner-border-sm me-2 d-none" role="status" aria-hidden="true"></span>
                                             <i class="fa fa-plus"></i>
                                         </button>
@@ -634,7 +634,7 @@
                         <span class="spinner-border spinner-border-sm me-2 d-none" role="status" aria-hidden="true"></span>
                             Borrar Cuenta
                     </button>
-                    <button class="btn btn-success"  @click="agregarCuentaCaja(dbId)" id="btnFacturarCuenta">
+                    <button v-if="type !== 'comand'" class="btn btn-success"  @click="agregarCuentaCaja(dbId)" id="btnFacturarCuenta">
                         <span class="spinner-border spinner-border-sm me-2 d-none" role="status" aria-hidden="true"></span>
                             Facturar Cuenta
                     </button>
