@@ -110,8 +110,7 @@ class DocumentPosController extends Controller
         return new DocumentPosCollection($records->paginate(config('tenant.items_per_page')));
     }
 
-    public function app_data()
-    {
+    public function app_data(){
         $record = Company::firstOrFail();
         return $record->only([
             'app_name',
@@ -120,12 +119,10 @@ class DocumentPosController extends Controller
         ]);
     }
 
-    public function store_app_data(Request $request)
-    {
+    public function store_app_data(Request $request){
         $record = Company::firstOrFail();
         $record->fill($request->all());
         $record->save();
-
         return [
             'success' => true,
             'message' => 'Datos de la aplicación actualizados correctamente.',
@@ -218,8 +215,10 @@ class DocumentPosController extends Controller
 //        DB::connection('tenant')->transaction(function () use ($request) {
             $type_document_string = 'el Documento Ticket Papel Nro: ';
             $data = $this->mergeData($request);
+//            \Log::debug($request->all());
 //            \Log::debug($request->type_resolution);
 //            \Log::debug(json_encode($data));
+//            return "";
             $customer = Person::where('number', $data['customer']['number'])->where('type', 'customers')->firstOrFail();
             $tax_totals = [];
             $invoice_lines = [];
@@ -946,16 +945,13 @@ class DocumentPosController extends Controller
         $this->uploadFile($this->document->filename, $pdf->output('', 'S'), 'sale_note');
     }
 
-    public function uploadFile($filename, $file_content, $file_type)
-    {
+    public function uploadFile($filename, $file_content, $file_type){
         $this->uploadStorage($filename, $file_content, $file_type);
     }
 
-    public function table($table)
-    {
+    public function table($table){
         switch ($table) {
             case 'taxes':
-
                 return Tax::all()->transform(function($row) {
                     return [
                         'id' => $row->id,
@@ -977,7 +973,6 @@ class DocumentPosController extends Controller
                 break;
 
             case 'customers':
-
                 $customers = Person::whereType('customers')->whereIsEnabled()->orderBy('name')->take(20)->get()->transform(function($row) {
                     return [
                         'id' => $row->id,
@@ -991,21 +986,15 @@ class DocumentPosController extends Controller
                     ];
                 });
                 return $customers;
-
                 break;
 
             case 'items':
-
                 $establishment_id = auth()->user()->establishment_id;
                 $warehouse = Warehouse::where('establishment_id', $establishment_id)->first();
                 $warehouse_id = ($warehouse) ? $warehouse->id:null;
-
                 $items_u = Item::whereWarehouse()->whereIsActive()->whereNotIsSet()->orderBy('description')->get();
-
                 $items_s = Item::where('unit_type_id','ZZ')->whereIsActive()->orderBy('description')->get();
-
                 $items = $items_u->merge($items_s);
-
                 return collect($items)->transform(function($row) use($warehouse_id, $warehouse){
                     $detail = $this->getFullDescription($row, $warehouse);
                     return [
@@ -1073,24 +1062,18 @@ class DocumentPosController extends Controller
                         'tax' => $row->tax,
                     ];
                 });
-
-
                 break;
             default:
-
                 return [];
-
                 break;
         }
     }
 
 
     public function getFullDescription($row, $warehouse){
-
         $desc = ($row->internal_id)?$row->internal_id.' - '.$row->name : $row->name;
         $category = ($row->category) ? "{$row->category->name}" : "";
         $brand = ($row->brand) ? "{$row->brand->name}" : "";
-
         if($row->unit_type_id != 'ZZ')
         {
             $warehouse_stock = ($row->warehouses && $warehouse) ? number_format($row->warehouses->where('warehouse_id', $warehouse->id)->first()->stock,2) : 0;
@@ -1099,10 +1082,7 @@ class DocumentPosController extends Controller
         else{
             $stock = '';
         }
-
-
         $desc = "{$desc} - {$brand}";
-
         return [
             'full_description' => $desc,
             'brand' => $brand,
@@ -1111,10 +1091,7 @@ class DocumentPosController extends Controller
         ];
     }
 
-
-    public function searchCustomerById($id)
-    {
-
+    public function searchCustomerById($id){
         $customers = Person::whereType('customers')
                     ->where('id',$id)
                     ->get()->transform(function($row) {
@@ -1129,15 +1106,12 @@ class DocumentPosController extends Controller
                             'telephone' =>  $row->telephone,
                         ];
                     });
-
         return compact('customers');
     }
 
-    public function option_tables()
-    {
+    public function option_tables(){
         $establishment = Establishment::where('id', auth()->user()->establishment_id)->first();
         $series = Series::where('establishment_id',$establishment->id)->get();
-
         $type_documents = TypeDocument::query()
                             ->get()
                             ->each(function($typeDocument) {
@@ -1145,29 +1119,22 @@ class DocumentPosController extends Controller
                                     ->hasPrefix($typeDocument->prefix)
                                     ->whereBetween('number', [$typeDocument->from, $typeDocument->to])
                                     ->max('number') ?? $typeDocument->from));
-
                                 $typeDocument->alert_date = ($typeDocument->resolution_date_end == null) ? false : Carbon::parse($typeDocument->resolution_date_end)->subMonth(1)->lt(Carbon::now());
                             });
-
         return compact('series', 'type_documents');
     }
 
-    public function email(Request $request)
-    {
+    public function email(Request $request){
         $company = Company::active();
         $record = DocumentPos::find($request->input('id'));
         $customer_email = $request->input('customer_email');
-
         Mail::to($customer_email)->send(new SaleNoteEmail($company, $record));
-
         return [
             'success' => true
         ];
     }
 
-
-    public function dispatches()
-    {
+    public function dispatches(){
         $dispatches = Dispatch::latest()->get(['id','series','number'])->transform(function($row) {
             return [
                 'id' => $row->id,
@@ -1175,23 +1142,18 @@ class DocumentPosController extends Controller
                 'number' => $row->number,
                 'number_full' => "{$row->series}-{$row->number}",
             ];
-        }); ;
-
+        });
         return $dispatches;
     }
 
-    public function enabledConcurrency(Request $request)
-    {
-
+    public function enabledConcurrency(Request $request){
         $sale_note = DocumentPos::findOrFail($request->id);
         $sale_note->enabled_concurrency = $request->enabled_concurrency;
         $sale_note->update();
-
         return [
             'success' => true,
             'message' => ($sale_note->enabled_concurrency) ? 'Recurrencia activada':'Recurrencia desactivada'
         ];
-
     }
 
     public function getNextNumber($type_document_id, $prefix){
@@ -1248,6 +1210,8 @@ class DocumentPosController extends Controller
             'discrepancyresponsecode' => 2,
             'notes' => $request_api->type_document_id == 15 ? 'NOTA CREDITO A DOCUMENTO EQUIVALENTE POS' : 'NOTA CREDITO A DOCUMENTO FACTURA ELECTRONICA POS',
             'type_document_id' => $request_api->type_document_id == 15 ? 26 : 4,
+            'type_invoice_id' => $document_type->id,
+            'type_resolution' => $document_type->name,
             'sendmail' => true,
             'sendmailtome' => true,
             'head_note' => '',
@@ -1291,6 +1255,9 @@ class DocumentPosController extends Controller
             if($obj->electronic){
                 //enviar json
                 $json = $this->setJsonAnulate($obj);
+//                \Log::debug(json_encode($obj));
+//                \Log::debug(json_encode($json));
+//                return "";
                 $response_api = $this->sendJsonAnulate($json);
                 $response = json_decode(json_encode($response_api), FALSE);
                 if(isset($response->errors)) {
@@ -1327,6 +1294,84 @@ class DocumentPosController extends Controller
             $obj->save();
             $establishment = Establishment::where('id', auth()->user()->establishment_id)->first();
             $warehouse = Warehouse::where('establishment_id',$establishment->id)->first();
+
+            if($obj->electronic){
+                $data = [
+                    'customer_id' => $obj->customer_id,
+                    'document_type_id' => null,
+                    'establishment_id' => $obj->establishment_id,
+                    'type_document_id' => $json['type_document_id'],
+                    'currency_id' => $obj->currency_id,
+                    'date_issue' => $json['date'],
+                    'date_of_issue' => $json['date'],
+                    'time_of_issue' => $json['time'],
+                    'exchange_rate_sale' => $obj->exchange_rate_sale,
+                    'date_expiration' => null,
+                    'type_invoice_id' => $json['type_invoice_id'],
+                    'total_discount' => $obj->total_discount,
+                    'total_tax' => $obj->total_tax,
+                    'watch' => false,
+                    'subtotal' => $obj->subtotal,
+                    'items' => json_decode($obj->items),
+                    'taxes' => $obj->taxes,
+                    'total' => $obj->total,
+                    'sale' => $obj->sale,
+                    'time_days_credit' => 0,
+                    'service_invoice' => json_encode($json),
+                    'payment_form_id' => 1,
+                    'payment_method_id' => 1,
+                    'payments' => [],
+                    'electronic' => true,
+                    'type_resolution' => $json['type_resolution'],
+                    'prefix' => $json['prefix'],
+                    'paid' => 1,
+                    'user_id' => auth()->user()->id,
+                    'external_id' => Str::uuid()->toString(),
+                    'customer' => $obj->customer,
+                    'establishment' => $obj->establishment,
+                    'soap_type_id' => "01",
+                    'state_type_id' => "01",
+                    'series' => $json['prefix'],
+                    'resolution_number' => $json['resolution_number'],
+                    'plate_number' => null,
+                    'cash_type' => null,
+                    'number' => $json['number'],
+                ];
+
+                $this->sale_note = DocumentPos::create($data);
+                $this->sale_note->request_api = json_encode($json);
+                $this->sale_note->cude = $response->ResponseDian->Envelope->Body->SendBillSyncResponse->SendBillSyncResult->XmlDocumentKey;
+                $this->sale_note->response_api = json_encode($response);
+                $this->sale_note->qr = $response->QRStr;
+                $this->sale_note->note_concept_id = $obj->id;
+                $this->sale_note->save();
+                $this->deleteAllPayments($this->sale_note->payments);
+                $data['items'] = json_decode(json_encode($data['items']), true);
+                foreach($data['items'] as $row) {
+                    $item_id = isset($row['id']) ? $row['id'] : null;
+                    $sale_note_item = DocumentPosItem::firstOrNew(['id' => $item_id]);
+                    if(isset($row['item']['lots'])){
+                        $row['item']['lots'] = isset($row['lots']) ? $row['lots']:$row['item']['lots'];
+                    }
+                    $sale_note_item->fill($row);
+                    $sale_note_item->document_pos_id = $this->sale_note->id;
+                    $sale_note_item->save();
+                    if(isset($row['lots'])){
+                        foreach($row['lots'] as $lot) {
+                            $record_lot = ItemLot::findOrFail($lot['id']);
+                            $record_lot->has_sale = true;
+                            $record_lot->update();
+                        }
+                    }
+                    if(isset($row['IdLoteSelected'])){
+                        $lot = ItemLotsGroup::find($row['IdLoteSelected']);
+                        $lot->quantity = ($lot->quantity - $row['quantity']);
+                        $lot->save();
+                    }
+                }
+                $this->setFilename();
+            }
+
             foreach ($obj->items as $item){
                 $quantity = $item->quantity;
                 if($item->refund == 1){
@@ -1352,6 +1397,8 @@ class DocumentPosController extends Controller
             ];
         }catch (\Exception $e){
             DB::connection('tenant')->rollBack();
+            \Log::debug($e->getMessage());
+            \Log::debug($e->getLine());
             return response([
                 'success' => false,
                 'message' => $e->getMessage(),
@@ -1409,11 +1456,34 @@ class DocumentPosController extends Controller
     public function downloadExternal($external_id)
     {
         $document = DocumentPos::where('external_id', $external_id)->first();
-        $this->reloadPDF($document, 'ticket', null);
-        return $this->downloadStorage($document->filename, 'sale_note');
-
+        $type_document_id = json_decode($document->request_api)->type_document_id;
+        if($type_document_id == 4 || $type_document_id == 26){
+            $company = ServiceTenantCompany::firstOrFail();
+            $base_url = config('tenant.service_fact');
+            $ch2 = curl_init("{$base_url}ubl2.1/download/{$company->identification_number}/NCS-{$document->prefix}{$document->number}.pdf");
+            curl_setopt($ch2, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch2, CURLOPT_CUSTOMREQUEST, "GET");
+            curl_setopt($ch2, CURLOPT_POSTFIELDS, "");
+            curl_setopt($ch2, CURLOPT_SSL_VERIFYHOST, 0);
+            curl_setopt($ch2, CURLOPT_SSL_VERIFYPEER, 0);
+            curl_setopt($ch2, CURLOPT_HTTPHEADER, array(
+                'Content-Type: application/json',
+                'Accept: application/json',
+                "Authorization: Bearer {$company->api_token}"
+            ));
+            $response = curl_exec($ch2);
+            curl_close($ch2);
+            $filename="NCS-{$document->prefix}{$document->number}.pdf";
+            return response($response, 200, [
+                'Content-Type' => 'application/pdf',
+                'Content-Disposition' => "inline; filename=\"{$filename}\"",
+            ]);
+        }
+        else{
+            $this->reloadPDF($document, 'ticket', null);
+            return $this->downloadStorage($document->filename, 'sale_note');
+        }
     }
-
 
     private function savePayments($sale_note, $payments){
 

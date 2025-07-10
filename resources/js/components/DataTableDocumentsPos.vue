@@ -1,7 +1,6 @@
 <template>
     <div>
         <div class="row ">
-
             <div class="col-md-12 col-lg-12 col-xl-12 ">
                 <div class="row" v-if="applyFilter">
                     <div class="col-lg-4 col-md-4 col-sm-12 pb-2">
@@ -35,7 +34,6 @@
                         </template>
                     </div>
                     <div class="col-lg-3 col-md-4 col-sm-12 pb-2">
-
                         <el-popover
                             placement="right"
                             width="450"
@@ -57,10 +55,7 @@
                         </el-popover>
                     </div>
                 </div>
-
             </div>
-
-
             <div class="col-md-12">
                 <div class="table-responsive">
                     <table class="table">
@@ -90,13 +85,10 @@
                 </div>
             </div>
         </div>
-
     </div>
 </template>
 
-
 <script>
-
     import moment from 'moment'
     import queryString from 'query-string'
 
@@ -109,6 +101,7 @@
                 required: false
             }
         },
+
         data () {
             return {
                 search: {
@@ -128,14 +121,17 @@
                 rangePicker: ''
             }
         },
+
         computed: {
         },
+
         created() {
             this.$eventHub.$on('reloadData', () => {
                 this.getRecords()
                 this.getTotals()
             })
         },
+
         async mounted () {
             let column_resource = _.split(this.resource, '/')
            // console.log(column_resource)
@@ -143,28 +139,26 @@
                 this.columns = response.data
                 this.search.column = _.head(Object.keys(this.columns))
             });
-
             /*await this.$http.get(`/${_.head(column_resource)}/columns2`).then((response) => {
                 this.series = response.data.series
             });*/
-
-
             await this.getRecords()
             await this.getTotals()
         },
+
         methods: {
             getTotals(){
-
                 // this.$http.get(`/${this.resource}/totals`)
                 //     .then((response) => {
                 //         // console.log(response)
                 //         this.totals = response.data
                 //     });
-
             },
+
             customIndex(index) {
                 return (this.pagination.per_page * (this.pagination.current_page - 1)) + index + 1
             },
+
             getRecords() {
                 console.log(`/${this.resource}/records`)
                 return this.$http.get(`/${this.resource}/records?${this.getQueryParameters()}`).then((response) => {
@@ -173,6 +167,7 @@
                     this.pagination.per_page = parseInt(response.data.meta.per_page)
                 });
             },
+
             getQueryParameters() {
                 return queryString.stringify({
                     page: this.pagination.current_page,
@@ -180,20 +175,19 @@
                     ...this.search
                 })
             },
+
             changeClearInput(){
                 this.search.value = ''
                 this.getRecords()
             },
+
             clickDownload(type) {
-                if(!this.rangePicker)
-                {
+                if(!this.rangePicker){
                     return
                 }
-
                 const params = queryString.stringify({
                     date_start: this.rangePicker[0],
                     date_end: this.rangePicker[1],
-
                 })
                 window.open(`/reports/report-taxes/pdf/?${params}`, '_blank');
             },

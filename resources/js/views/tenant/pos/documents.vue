@@ -97,9 +97,9 @@
                         <td class="text-right">
                             <!-- <button data-toggle="tooltip" data-placement="top" title="Anular" v-if="row.state_type_id != '11'" type="button" class="btn waves-effect waves-light btn-xs btn-danger"
                             @click.prevent="clickVoided(row.id)"><i class="fas fa-trash"></i></button>-->
-                            <button  data-toggle="tooltip" data-placement="top" title="Imprimir" v-if="row.state_type_id != '11'"  type="button" class="btn waves-effect waves-light btn-xs btn-info"
+                            <button  data-toggle="tooltip" data-placement="top" title="Imprimir" v-if="row.state_type_id != '11' && row.type_resolution != 'Nota de crédito al Documento Equivalente' && row.type_resolution != 'Nota crédito'"  type="button" class="btn waves-effect waves-light btn-xs btn-info"
                                     @click.prevent="clickOptions(row.id)"><i class="fas fa-print"></i></button>
-                            <button v-if="row.state_type_id != '11'" type="button" class="btn waves-effect waves-light btn-xs btn-danger m-1__2"
+                            <button v-if="row.state_type_id != '11' && row.type_resolution != 'Nota de crédito al Documento Equivalente' && row.type_resolution != 'Nota crédito'" type="button" class="btn waves-effect waves-light btn-xs btn-danger m-1__2"
                                     @click.prevent="clickVoided(row.id)"
                                     >Anular</button>
                         </td>
@@ -137,7 +137,6 @@
 </style>
 
 <script>
-
     import DataTable from '../../../components/DataTableDocumentsPos.vue'
     //import SaleNotePayments from './partials/payments.vue'
     import SaleNotesOptions from './partials/document_pos_options.vue'
@@ -218,10 +217,12 @@
             clickDownload(external_id) {
                 window.open(`/document-pos/downloadExternal/${external_id}`, '_blank');
             },
+
             clickOptions(recordId) {
                 this.saleNotesNewId = recordId
                 this.showDialogOptions = true
             },
+
             clickGenerate(recordId) {
                 this.recordId = recordId
                 this.showDialogGenerate = true

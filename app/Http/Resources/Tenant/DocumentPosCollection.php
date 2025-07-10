@@ -15,23 +15,18 @@ class DocumentPosCollection extends ResourceCollection
     public function toArray($request)
     {
         return $this->collection->transform(function($row, $key) {
-
             $total_paid = number_format($row->payments->sum('payment'), 2, ".", "");
             $total_pending_paid = number_format($row->total - $total_paid, 2, ".", "");
-
             // Convertir request_api a array de forma segura
             if (is_string($row->request_api)) {
                 $request_api = json_decode($row->request_api, true);
             } else {
                 $request_api = json_decode(json_encode($row->request_api), true);
             }
-
             // Asegurar que sea array
             $request_api = is_array($request_api) ? $request_api : [];
-
             // Obtener type_document_id como entero, si existe
             $type_document_id = isset($request_api['type_document_id']) ? (int) $request_api['type_document_id'] : null;
-
             // Determinar el tipo de resolución
             if($type_document_id === 1)
                 $type_resolution = 'Factura Electronica de Venta';
@@ -39,7 +34,13 @@ class DocumentPosCollection extends ResourceCollection
                 if($type_document_id === 15 && $row->electronic)
                     $type_resolution = 'Documento Equivalente POS Electronico';
                 else
-                    $type_resolution = 'Documento Ticket Papel';
+                    if($type_document_id === 26 && $row->electronic)
+                        $type_resolution = 'Nota de crédito al Documento Equivalente';
+                    else
+                        if($type_document_id === 4 && $row->electronic)
+                            $type_resolution = 'Nota crédito';
+                        else
+                            $type_resolution = 'Documento Ticket Papel';
 
             return [
                 'id' => $row->id,
