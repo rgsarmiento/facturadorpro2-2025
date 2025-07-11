@@ -16,7 +16,7 @@ class TenantTablesTable extends Migration
         Schema::create('tables', function (Blueprint $table) {
             $table->increments('id');
             $table->unsignedInteger('table_number');
-            $table->char('table_state', 1)->collation('utf8mb4_0900_ai_ci');
+            $table->char('table_state', 1);
             $table->unsignedInteger('establishment_id');
             $table->date('created_at')->nullable();
             $table->date('updated_at')->nullable();
