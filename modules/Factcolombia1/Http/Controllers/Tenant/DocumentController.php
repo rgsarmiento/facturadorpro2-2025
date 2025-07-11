@@ -826,10 +826,10 @@ class DocumentController extends Controller
                 $service_invoice['k_supplement_national']['TotAnticiposCop'] = "0.00";
             }
             $data_document_foreign_currency = json_encode($this->multiplyMonetaryValues($service_invoice, $calculationRate));
-//            \Log::debug("{$base_url}ubl2.1/invoice");
-//            \Log::debug($company->api_token);
-//            \Log::debug($correlative_api);
-//            \Log::debug($data_document);
+            \Log::debug("{$base_url}ubl2.1/invoice");
+            \Log::debug($company->api_token);
+            \Log::debug($correlative_api);
+            \Log::debug($data_document);
 //            \Log::debug($data_document_foreign_currency);
 //            \Log::debug($service_invoice);
 //            return ['success' => false, 'validation_errors' => true, 'message' => "Guardado en el Log...",];
@@ -847,7 +847,7 @@ class DocumentController extends Controller
                 "Authorization: Bearer {$company->api_token}"
             ));
             $response = curl_exec($ch);
-//            \Log::debug($response);
+            \Log::debug($response);
             curl_close($ch);
             $response_model = json_decode($response);
             $zip_key = null;

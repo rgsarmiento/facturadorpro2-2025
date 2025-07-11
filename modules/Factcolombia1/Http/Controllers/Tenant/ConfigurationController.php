@@ -696,10 +696,7 @@ class ConfigurationController extends Controller
     public function storeServiceCertificate(ConfigurationServiceCertificateCompanyRequest $request)
     {
         $company = ServiceCompany::firstOrFail();
-       // $base_url = env("SERVICE_FACT", "");
-
         $base_url = config("tenant.service_fact", "");
-
         $ch2 = curl_init("{$base_url}ubl2.1/config/certificate");
         $data = [
             "certificate"=> $request->certificate64,
@@ -717,10 +714,10 @@ class ConfigurationController extends Controller
             "Authorization: Bearer {$company->api_token}"
         ));
         $response_certificate = curl_exec($ch2);
+//        \Log::debug($response_certificate);
         $err = curl_error($ch2);
         $respuesta = json_decode($response_certificate);
-        if($err)
-        {
+        if($err){
             return [
                 'message' => "Error en peticion Api.",
                 'success' => false,
@@ -728,9 +725,7 @@ class ConfigurationController extends Controller
             ];
         }
         else{
-
-            if(property_exists($respuesta, 'success'))
-            {
+            if(property_exists($respuesta, 'success')){
                 $company->response_certificate = $response_certificate;
                 $company->save();
                 return [
@@ -740,7 +735,6 @@ class ConfigurationController extends Controller
                 ];
             }
             else{
-
                 return [
                     'message' => "Error en validacion de datos Api.",
                     'success' => false,
