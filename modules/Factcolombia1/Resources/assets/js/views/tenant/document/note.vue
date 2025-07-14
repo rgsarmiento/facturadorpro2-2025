@@ -892,7 +892,7 @@
 //                console.log(this.noteService)
                 if(this.note){
                     this.noteService.billing_reference = {
-                        number: String(this.note.correlative_api),
+                        number: this.note.prefix + '-' + String(this.note.correlative_api),
                         uuid: this.note.response_api_cufe,
                         issue_date: moment(this.note.date_issue).format('YYYY-MM-DD')
                     };

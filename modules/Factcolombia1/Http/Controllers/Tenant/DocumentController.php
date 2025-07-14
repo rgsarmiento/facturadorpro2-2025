@@ -826,10 +826,10 @@ class DocumentController extends Controller
                 $service_invoice['k_supplement_national']['TotAnticiposCop'] = "0.00";
             }
             $data_document_foreign_currency = json_encode($this->multiplyMonetaryValues($service_invoice, $calculationRate));
-            \Log::debug("{$base_url}ubl2.1/invoice");
-            \Log::debug($company->api_token);
-            \Log::debug($correlative_api);
-            \Log::debug($data_document);
+//            \Log::debug("{$base_url}ubl2.1/invoice");
+//            \Log::debug($company->api_token);
+//            \Log::debug($correlative_api);
+//            \Log::debug($data_document);
 //            \Log::debug($data_document_foreign_currency);
 //            \Log::debug($service_invoice);
 //            return ['success' => false, 'validation_errors' => true, 'message' => "Guardado en el Log...",];
@@ -847,7 +847,7 @@ class DocumentController extends Controller
                 "Authorization: Bearer {$company->api_token}"
             ));
             $response = curl_exec($ch);
-            \Log::debug($response);
+//            \Log::debug($response);
             curl_close($ch);
             $response_model = json_decode($response);
             $zip_key = null;
@@ -1401,6 +1401,7 @@ class DocumentController extends Controller
         try {
             $note_service = $request->note_service;
             $url_name_note = '';
+//            \Log::debug($request->all());
             $resolution = TypeDocument::where('id', $request['type_document_id'])->first();
             $type_document_service = $resolution['code'];
             if( $type_document_service == 4){
@@ -1456,7 +1457,62 @@ class DocumentController extends Controller
             if($sucursal->telephone != '-')
                 $note_service['establishment_phone'] = $sucursal->telephone;
             $note_service['establishment_email'] = $sucursal->email;
-            $note_service['customer']['dv'] = $this->validarDigVerifDIAN($note_service['customer']['identification_number']);
+
+            if(in_array($note_service['customer']['type_document_identification_id'], [1, 2, 3, 6, 10]))
+                $note_service['customer']['dv'] = $this->validarDigVerifDIAN($note_service['customer']['identification_number']);
+            else{
+                $city = City::where('id', $note_service['customer']['municipality_id_fact'])->first();
+                $note_service['customer']['municipality_name'] = $city->name;
+                $state = Department::where('id', $city->department_id)->first();
+                $note_service['customer']['state_name'] = $state->name;
+                $country = ServiceCountry::where('code', 'like', '%'.Country::where('id', $state->country_id)->first()->code.'%')->first();
+//                \Log::debug($country);
+                $note_service['customer']['country_id'] = $country->id;
+                unset($note_service['customer']['municipality_id_fact']);
+                unset($note_service['customer']['dv']);
+            }
+
+            $billing_reference_number = explode('-', $note_service['billing_reference']['number']);
+            $document_source = Document::where('prefix', $billing_reference_number[0])->where('number', $billing_reference_number[1])->first();
+
+            if($request->currency_id != 170)
+                $note_service['currency_id'] = TypeCurrency::where('code', 'like', Currency::where('id', $request->currency_id)->first()['code'].'%')->first()['id'];
+            else
+                $note_service['currency_id'] = 35;
+
+            if(!isset($note_service['calculationrate']))
+                $note_service['calculationrate'] = $document_source->calculationrate ?? 1;
+            $calculationRate = $note_service['calculationrate'] ?? 1;
+            $data_document = json_encode($note_service);
+
+            if($request->currency_id != 170){
+                $note_service['k_supplement_national']['FctConvCop'] = $calculationRate ?? 1;
+                $note_service['k_supplement_national']['MonedaCop'] = Currency::where('id', $request->currency_id)->first()['code'];
+                $note_service['k_supplement_national']['SubTotalCop'] = $note_service['legal_monetary_totals']['line_extension_amount'];
+                $note_service['k_supplement_national']['DescuentoDetalleCop'] = isset($note_service['legal_monetary_totals']['allowance_total_amount']) ? $note_service['legal_monetary_totals']['allowance_total_amount']: 0.00;
+                $note_service['k_supplement_national']['TotalFacturaCop'] = $note_service['legal_monetary_totals']['payable_amount'];
+                $note_service['k_supplement_national']['RecargoDetalleCop'] = isset($note_service['legal_monetary_totals']['charge_total_amount']) ? $note_service['legal_monetary_totals']['charge_total_amount'] : 0;
+                $note_service['k_supplement_national']['TotalBrutoFacturaCop'] = $note_service['legal_monetary_totals']['tax_exclusive_amount'];
+                $note_service['k_supplement_national']['TotIvaCop'] = number_format(array_sum(array_map(function($t) { return isset($t['tax_id']) && $t['tax_id'] == 1 ? ((float)$t['tax_amount']) : 0; }, $note_service['tax_totals'])), 2, '.', '');
+                $note_service['k_supplement_national']['TotIncCop'] = number_format(array_sum(array_map(function($t) { return isset($t['tax_id']) && $t['tax_id'] == 4 ? ((float)$t['tax_amount']) : 0; }, $note_service['tax_totals'])), 2, '.', '');
+                $note_service['k_supplement_national']['TotBolCop'] = number_format(array_sum(array_map(function($t) { return isset($t['tax_id']) && $t['tax_id'] == 10 ? ((float)$t['tax_amount']) : 0; }, $note_service['tax_totals'])), 2, '.', '');
+                $note_service['k_supplement_national']['TotICLCop'] = number_format(array_sum(array_map(function($t) { return isset($t['tax_id']) && $t['tax_id'] == 19 ? ((float)$t['tax_amount']) : 0; }, $note_service['tax_totals'])), 2, '.', '');
+                $note_service['k_supplement_national']['TotINPPCop'] = number_format(array_sum(array_map(function($t) { return isset($t['tax_id']) && $t['tax_id'] == 20 ? ((float)$t['tax_amount']) : 0; }, $note_service['tax_totals'])), 2, '.', '');
+                $note_service['k_supplement_national']['TotIBUACop'] = number_format(array_sum(array_map(function($t) { return isset($t['tax_id']) && $t['tax_id'] == 21 ? ((float)$t['tax_amount']) : 0; }, $note_service['tax_totals'])), 2, '.', '');
+                $note_service['k_supplement_national']['TotICUICop'] = number_format(array_sum(array_map(function($t) { return isset($t['tax_id']) && $t['tax_id'] == 22 ? ((float)$t['tax_amount']) : 0; }, $note_service['tax_totals'])), 2, '.', '');
+                $note_service['k_supplement_national']['TotADVCop'] = number_format(array_sum(array_map(function($t) { return isset($t['tax_id']) && $t['tax_id'] == 23 ? ((float)$t['tax_amount']) : 0; }, $note_service['tax_totals'])), 2, '.', '');
+                $note_service['k_supplement_national']['ImpOtroCop'] = number_format(array_sum(array_map(function($t) { return isset($t['tax_id']) && $t['tax_id'] == 15 ? ((float)$t['tax_amount']) : 0; }, $note_service['tax_totals'])), 2, '.', '');
+                $note_service['k_supplement_national']['MntImpCop'] = "0.00";
+                $note_service['k_supplement_national']['TotalNetoFacturaCop'] = $note_service['legal_monetary_totals']['payable_amount'];
+                $note_service['k_supplement_national']['MntDctoCop'] = isset($note_service['legal_monetary_totals']['allowance_total_amount']) ? $note_service['legal_monetary_totals']['allowance_total_amount'] : 0.00;
+                $note_service['k_supplement_national']['MntRcgoCop'] = isset($note_service['legal_monetary_totals']['charge_total_amount']) ? $note_service['legal_monetary_totals']['charge_total_amount'] : 0;
+                $note_service['k_supplement_national']['VlrPagarCop'] = $note_service['legal_monetary_totals']['payable_amount'];
+                $note_service['k_supplement_national']['ReteFueCop'] = "0.00";
+                $note_service['k_supplement_national']['ReteIvaCop'] = "0.00";
+                $note_service['k_supplement_national']['ReteIcaCop'] = "0.00";
+                $note_service['k_supplement_national']['TotAnticiposCop'] = "0.00";
+            }
+            $data_document_foreign_currency = json_encode($this->multiplyMonetaryValues($note_service, $calculationRate));
             $note_service['foot_note'] = "Modo de operación: Software Propio - by ".env('APP_NAME', 'TORRE SOFTWARE');
             $id_test = $company->test_id;
             $base_url = config('tenant.service_fact');
@@ -1470,11 +1526,15 @@ class DocumentController extends Controller
 //\Log::debug($company->api_token);
 //\Log::debug($correlative_api);
 //\Log::debug($data_document);
+//\Log::debug($data_document_foreign_currency);
 //            return $data_document;
 //            return "";
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
             curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
-            curl_setopt($ch, CURLOPT_POSTFIELDS,($data_document));
+            if($request->currency_id != 170)
+                curl_setopt($ch, CURLOPT_POSTFIELDS,($data_document_foreign_currency));
+            else
+                curl_setopt($ch, CURLOPT_POSTFIELDS,($data_document));
             curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
             curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
             curl_setopt($ch, CURLOPT_HTTPHEADER, array(
