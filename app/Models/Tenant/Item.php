@@ -11,14 +11,12 @@ use Modules\Item\Models\Category;
 use Modules\Item\Models\Brand;
 use Modules\Item\Models\ItemLot;
 use Modules\Item\Models\ItemLotsGroup;
-
 use Modules\Factcolombia1\Models\Tenant\TypeUnit;
 use Modules\Factcolombia1\Models\Tenant\Tax;
 use Modules\Factcolombia1\Models\Tenant\Currency;
 use Modules\Inventory\Models\Warehouse;
 use Modules\Item\Models\Color;
 use Modules\Item\Models\Size;
-
 
 class Item extends ModelTenant
 {
@@ -500,6 +498,4 @@ class Item extends ModelTenant
                         ->whereIsActive()
                         ->whereNotItemsAiu();
     }
-
-
 }

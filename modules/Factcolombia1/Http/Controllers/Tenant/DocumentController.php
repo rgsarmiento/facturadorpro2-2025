@@ -1816,19 +1816,7 @@ class DocumentController extends Controller
         }
     }
 
-
-    public function sendEmail($number, $client)
-    {
-        /*$company = Company::firstOrFail();
-        $document = Document::find($document);
-        $client = Client::find($client);
-        $servicecompany =  TenantServiceCompany::firstOrFail();
-        $customer_email = $client->email;
-        Mail::to($customer_email)->send(new SendGraphicRepresentation($company, $document, $servicecompany ));
-        return [
-            'success' => true,
-            'message' => "Email enviado con éxito."
-        ];*/
+    public function sendEmail($number, $client){
         $client = Client::find($client);
 
         $company = ServiceTenantCompany::firstOrFail();
@@ -1870,9 +1858,7 @@ class DocumentController extends Controller
         }
     }
 
-
-    private function getBaseUrlCorrelativeInvoice($type_service, $prefix = null, $ignore_state_document_id = false)
-    {
+    private function getBaseUrlCorrelativeInvoice($type_service, $prefix = null, $ignore_state_document_id = false){
         $base_url = config('tenant.service_fact');
         $url = "{$base_url}ubl2.1/invoice/current_number/{$type_service}";
         if($ignore_state_document_id){
@@ -1902,21 +1888,11 @@ class DocumentController extends Controller
         return $data;
     }
 
-    public function getCorrelativeInvoice($type_service, $prefix = null, $ignore_state_document_id = false)
-    {
-
+    public function getCorrelativeInvoice($type_service, $prefix = null, $ignore_state_document_id = false){
         $company = ServiceTenantCompany::firstOrFail();
-
-        // $base_url = config('tenant.service_fact');
-        // if($prefix)
-        //     $ch2 = curl_init("{$base_url}ubl2.1/invoice/current_number/{$type_service}/{$prefix}");
-        // else
-        //     $ch2 = curl_init("{$base_url}ubl2.1/invoice/current_number/{$type_service}");
-
         $url = $this->getBaseUrlCorrelativeInvoice($type_service, $prefix, $ignore_state_document_id);
         $ch2 = curl_init($url);
 //        dd($url, $ch2);
-
         curl_setopt($ch2, CURLOPT_RETURNTRANSFER, true);
         curl_setopt($ch2, CURLOPT_CUSTOMREQUEST, "GET");
         curl_setopt($ch2, CURLOPT_SSL_VERIFYHOST, 0);
@@ -2038,14 +2014,9 @@ class DocumentController extends Controller
     public function item_tables()
     {
         $items = $this->table('items');
-        // $items =  Item::query()
-        //     ->with('typeUnit', 'tax')
-        //     ->get();
-
+        // $items =  Item::query()->with('typeUnit', 'tax')->get();
         $taxes = $this->table('taxes');
-
         $items_aiu  = $this->table('items_aiu');
-
         return compact('items', 'taxes', 'items_aiu');
     }
 
@@ -2152,19 +2123,15 @@ class DocumentController extends Controller
         }
 
         if ($table === 'items') {
-
             $establishment_id = auth()->user()->establishment_id;
             $warehouse = ModuleWarehouse::where('establishment_id', $establishment_id)->first();
-
-            $items_u = ItemP::whereNotItemsAiu()->whereWarehouse()->whereIsActive()->whereNotIsSet()->orderBy('description')->take(20)->get();
-            $items_s = ItemP::whereNotItemsAiu()->where('unit_type_id','ZZ')->whereIsActive()->orderBy('description')->take(10)->get();
-
-           // $items_aiu = ItemP::whereIn('internal_id', ['aiu00001', 'aiu00002', 'aiu00003'])->get();
-
+//            $items_u = ItemP::whereNotItemsAiu()->whereWarehouse()->whereIsActive()->whereNotIsSet()->orderBy('description')->take(20)->get();
+//            $items_s = ItemP::whereNotItemsAiu()->where('unit_type_id','ZZ')->whereIsActive()->orderBy('description')->take(10)->get();
+            $items_u = ItemP::whereNotItemsAiu()->whereWarehouse()->whereIsActive()->whereNotIsSet()->orderBy('description')->get();
+            $items_s = ItemP::whereNotItemsAiu()->where('unit_type_id','ZZ')->whereIsActive()->orderBy('description')->get();
+            // $items_aiu = ItemP::whereIn('internal_id', ['aiu00001', 'aiu00002', 'aiu00003'])->get();
             $items = $items_u->merge($items_s);
-
             //$items = $items->merge($items_aiu);
-
             return collect($items)->transform(function($row) use($warehouse){
                 $detail = $this->getFullDescription($row, $warehouse);
                 $sale_unit_price_with_tax = $this->getSaleUnitPriceWithTax($row);

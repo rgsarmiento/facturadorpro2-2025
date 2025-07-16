@@ -219,7 +219,6 @@
         <item-form :showDialog.sync="showDialogNewItem"
                    :external="true"></item-form>
 
-
         <warehouses-detail
                 :showDialog.sync="showWarehousesDetail"
                 :isUpdateWarehouseId="isUpdateWarehouseId"
@@ -238,10 +237,9 @@
             :lots="lots"
             @addRowSelectLot="addRowSelectLot">
         </select-lots-form>
-
-
     </el-dialog>
 </template>
+
 <style>
 .el-select-dropdown {
     max-width: 80% !important;
@@ -250,19 +248,17 @@
 </style>
 
 <script>
-
     import ItemForm from '@views/items/form.vue'
     import LotsGroup from './inventory/lots_group.vue'
-
     import WarehousesDetail from './inventory/select_warehouses.vue'
     import SelectLotsForm from './inventory/lots.vue'
-
 
     export default {
         props: ['recordItem','showDialog', 'operationTypeId', 'currencyTypeIdActive', 'currencyTypeSymbolActive', 'exchangeRateSale', 'typeUser', 'isEditItemNote', 'configuration'],
         components: {ItemForm, LotsGroup, WarehousesDetail, SelectLotsForm},
         data() {
             return {
+                loading_items: true,
                 loading_search:false,
                 titleAction: '',
                 is_client:false,
@@ -301,29 +297,33 @@
                 barcodeInput: '', // Agrega esto para almacenar la entrada del código de barras
                 currentSearchItems: [], //carga productos actuales en la busqueda
                 localConfiguration: null,
-
             }
         },
+
         computed: {
             //mostrar el nombre del producto cuando se busca por codigo de barras
             currentProduct() {
                 return this.items.find(item => item.id === this.form.item_id);
             },
+
             itemTaxes() {
                 return this.taxes.filter(tax => !tax.is_retention);
             },
+
             retentiontaxes() {
                 return this.taxes.filter(tax => tax.is_retention);
             },
+
             retentionSelected() {
             if (this.retention.retention_id == null) return { rate: 0 };
 
                 return this.taxes.find(row => row.id == this.retention.retention_id);
             },
+
             showTotalAndSave() {
                 return (
-                this.document.hasOwnProperty("items") && this.document.items.length > 0
-            );
+                    this.document.hasOwnProperty("items") && this.document.items.length > 0
+                );
             },
 
             typeNoteDocuments() {
@@ -343,15 +343,17 @@
                 return "Impuesto incluido en el precio.";
             }
         },
+
         created() {
             this.initForm()
             this.$http.get(`/${this.resource}/item/tables`).then(response => {
                // console.log('tablas new edit')
                 this.taxes = response.data.taxes;
                 this.all_items = response.data.items
+                this.loadingItems = false;
+                this.$emit('items-loaded'); // Notifica al padre que ya terminó
                 this.items_aiu = response.data.items_aiu
                 this.filterItems()
-
             })
 
             this.$eventHub.$on('reloadDataItems', (item_id) => {
@@ -372,6 +374,7 @@
                 console.error("Error al obtener la configuración avanzada:", error);
                 });
         },
+
         methods: {
             // Método que se llama cuando se escanea un código de barras
             async handleBarcodeScan() {
@@ -394,6 +397,7 @@
                         this.barcodeInput = ''; // Limpia el campo después del escaneo
                     }
             },
+
             async searchRemoteItems(input) {
                 if (input.length > 2) {
                     this.loading_search = true;
@@ -427,15 +431,18 @@
                     this.currentSearchItems = [...this.items];
                 }
             },
+
             filterItems() {
                 this.items = this.all_items
             },
+
             RateSelectedTax(tax_id) {
                 if(tax_id != null)
                     return this.taxes.find(row => row.id == tax_id).rate;
                 else
                     return 0
             },
+
             enabledSearchItemsBarcode(){
 
                 if(this.search_item_by_barcode){
@@ -503,25 +510,22 @@
             },
 
             async create() {
+                console.log(this.recordItem)
                 this.titleDialog = (this.recordItem) ? ' Editar Producto o Servicio' : ' Agregar Producto o Servicio';
                 this.titleAction = (this.recordItem) ? ' Editar' : ' Agregar';
                 // let operation_type = await _.find(this.operation_types, {id: this.operationTypeId})
                 // this.affectation_igv_types = await _.filter(this.all_affectation_igv_types, {exportation: operation_type.exportation})
-
                 if (this.recordItem) {
                     // Aquí asignas el ID del ítem a editar en form.item_id
                     this.form.item_id = this.recordItem.item_id;
                     await this.changeItem()
-
                     this.form.tax_id = this.recordItem.tax_id
                     this.form.quantity = this.recordItem.quantity
                     this.form.notes = this.recordItem.notes
                     this.form.price = this.recordItem.price
                     this.form.discount = this.recordItem.discount
-
                     this.form.warehouse_id = this.recordItem.warehouse_id
                     this.isUpdateWarehouseId = this.recordItem.warehouse_id
-
                     if(this.isEditItemNote){
                         this.form.item.currency_type_id = this.currencyTypeIdActive
                         this.form.item.currency_type_symbol = this.currencyTypeSymbolActive
@@ -536,10 +540,12 @@
                 this.initForm()
                 this.$emit('update:showDialog', false)
             },
+
             async changeItem() {
                 // Busca el ítem en la lista de ítems disponibles por su ID
+//                console.log(JSON.stringify(this.items))
+//                console.log(this.form.item_id)
                 this.form.item = this.items.find(item => item.id === this.form.item_id);
-
                     // Añade el ítem a editar a currentSearchItems si no está presente
                     if (!this.currentSearchItems.some(item => item.id === this.form.item_id)) {
                     const itemToEdit = this.items.find(item => item.id === this.form.item_id);

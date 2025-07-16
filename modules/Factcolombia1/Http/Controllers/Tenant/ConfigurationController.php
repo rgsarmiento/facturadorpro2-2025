@@ -21,6 +21,7 @@ use DB;
 use Modules\Factcolombia1\Models\Tenant\{
     TypeIdentityDocument,
     TypeObligation,
+    TypeInvoice,
     TypeDocument,
     NoteConcept,
     TypeRegime,
@@ -149,7 +150,14 @@ class ConfigurationController extends Controller
         if($typeDocument->code == "4")
             return NoteConcept::query()->where('type_document_id', 3)->get();
         else
-            return NoteConcept::query()->where('type_document_id', 2)->get();
+            if($typeDocument->code == "5")
+                return NoteConcept::query()->where('type_document_id', 2)->get();
+            else
+                if($typeDocument->code == "26")
+                    return NoteConcept::query()->where('type_document_id', 998)->get();
+                else
+                    if($typeDocument->code == "25")
+                        return NoteConcept::query()->where('type_document_id', 999)->get();
     }
 
     /**
@@ -815,9 +823,13 @@ class ConfigurationController extends Controller
             $company = ServiceCompany::firstOrFail();
             $base_url = config("tenant.service_fact", "");
             $ch3 = curl_init("{$base_url}ubl2.1/config/resolution");
+            if($request->type_document_id != 9 && $request->type_document_id != 10 && $request->type_document_id != 4 && $request->type_document_id != 5 && $request->type_document_id != 11 && $request->type_document_id != 13 && $request->type_document_id != 24 && $request->type_document_id != 26 && $request->type_document_id != 25)
+                $type_document_id = TypeInvoice::where('code', $request->type_document_id)->firstOrFail()->id;
+            else
+                $type_document_id = $request->type_document_id;
             $data = [
                 "delete_all_type_resolutions" => false,
-                "type_document_id"=> $request->type_document_id,
+                "type_document_id"=> $type_document_id,
                 "prefix"=> $request->prefix,
                 "resolution"=> $request->resolution,
                 "resolution_date"=> $request->resolution_date,
@@ -856,7 +868,6 @@ class ConfigurationController extends Controller
                 ];
             }
 
-
             if(property_exists($respuesta, 'success'))
             {
                 $company->response_resolution = $response_resolution;
@@ -878,6 +889,7 @@ class ConfigurationController extends Controller
                 ]);
 
                 $response_redit_debit =  $this->storeResolutionNote();
+                $response_redit_debitEqDocs =  $this->storeResolutionNoteEqDocs();
 
                 /*if ($request->prefix == 'SETP')
                     $this->changeEnvironment('HABILITACION');
@@ -888,19 +900,21 @@ class ConfigurationController extends Controller
                     'message' => "Se guardaron los cambios.",
                     'success' => true,
                     'resolution' => $response_resolution,
-                    'response_redit_debit' => $response_redit_debit
+                    'response_redit_debit' => $response_redit_debit,
+                    'response_redit_debitEqDocs' => $response_redit_debitEqDocs
                 ];
+            }
+            else{
+                return [
+                    'message' => "Error en validacion de datos Api.",
+                    'success' => false,
+                    'resolution' => $response_resolution
+                ];
+            }
         }
-        else{
-            return [
-                'message' => "Error en validacion de datos Api.",
-                'success' => false,
-                'resolution' => $response_resolution
-            ];
-        }
-        }
-        catch(\Exception $e)
-        {
+        catch(\Exception $e){
+            \Log::debug($e->getMessage());
+            \Log::debug($e->getLine());
             return [
                 'success' => false,
                 'message' => $e->getMessage()
@@ -908,6 +922,108 @@ class ConfigurationController extends Controller
         }
     }
 
+    public function storeResolutionNoteEqDocs()
+    {
+        $response = [];
+        DB::connection('tenant')->beginTransaction();
+        try {
+            $company = ServiceCompany::firstOrFail();
+            $base_url = config("tenant.service_fact", "");
+            //NOTA CREDITO SSP
+            $ch5 = curl_init("{$base_url}ubl2.1/config/resolution");
+            $data_c = [
+                "type_document_id"=> 26,
+                "from"=> 1,
+                "to"=> 99999999,
+                "prefix"=> "NCDE",
+            ];
+
+            $data_resolution = json_encode($data_c);
+            curl_setopt($ch5, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch5, CURLOPT_CUSTOMREQUEST, "PUT");
+            curl_setopt($ch5, CURLOPT_POSTFIELDS,($data_resolution));
+            curl_setopt($ch5, CURLOPT_SSL_VERIFYHOST, 0);
+            curl_setopt($ch5, CURLOPT_SSL_VERIFYPEER, 0);
+            curl_setopt($ch5, CURLOPT_HTTPHEADER, array(
+                'Content-Type: application/json',
+                'Accept: application/json',
+                "Authorization: Bearer {$company->api_token}"
+            ));
+
+            $response_credit = curl_exec($ch5);
+            $response["credit"] = $response_credit;
+            curl_close($ch5);
+            $company->response_resolution_credit = $response_credit;
+            $type_document_name = TypeInvoice::where('id', 26)->firstOrFail()->name;
+            TypeDocument::updateOrCreate([
+                'id' => 998,
+                'code' => 26
+            ], [
+                'name' => $type_document_name,
+                'template' => 'face_c',
+                'resolution_date' => NULL,
+                'resolution_date_end' => NULL,
+                'prefix' => "NCDE",
+                'from' => 1,
+                'to' => 99999999
+            ]);
+            DB::connection('tenant')->table('co_type_documents')->where('code', 26)->where('prefix', 'NCDE')->update(['id' => 998]);
+            //NOTA DEBITO
+            $ch4 = curl_init("{$base_url}ubl2.1/config/resolution");
+            $data_d = [
+                "type_document_id"=> 25,
+                "from"=> 1,
+                "to"=> 99999999,
+                "prefix"=> "NDDE",
+            ];
+            $data_resolution_de = json_encode($data_d);
+            curl_setopt($ch4, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch4, CURLOPT_CUSTOMREQUEST, "PUT");
+            curl_setopt($ch4, CURLOPT_POSTFIELDS,($data_resolution_de));
+            curl_setopt($ch4, CURLOPT_SSL_VERIFYHOST, 0);
+            curl_setopt($ch4, CURLOPT_SSL_VERIFYPEER, 0);
+            curl_setopt($ch4, CURLOPT_HTTPHEADER, array(
+                'Content-Type: application/json',
+                'Accept: application/json',
+                "Authorization: Bearer {$company->api_token}"
+            ));
+            $type_document_name = TypeInvoice::where('id', 25)->firstOrFail()->name;
+            TypeDocument::updateOrCreate([
+                'id' => 999,
+                'code' => 25
+            ], [
+                'name' => $type_document_name,
+                'template' => 'face_d',
+                'resolution_date' => NULL,
+                'resolution_date_end' => NULL,
+                'prefix' => "NDDE",
+                'from' => 1,
+                'to' => 99999999
+            ]);
+            DB::connection('tenant')->table('co_type_documents')->where('code', 25)->where('prefix', 'NDDE')->update(['id' => 999]);
+
+            $response_debit = curl_exec($ch4);
+            $response["debit"] = $response_debit;
+
+            curl_close($ch4);
+            $company->response_resolution_debit = $response_debit;
+            $company->save();
+        }
+        catch (\Exception $e) {
+            DB::connection('tenant')->rollBack();
+            return [
+                'success' => false,
+                'message' => $e->getMessage(),
+                'data' => $response
+            ];
+        }
+        DB::connection('tenant')->commit();
+        return [
+            'success' => true,
+            'message' => "Se registraron con éxito las resoluciones para notas contables para documentos equivalentes.",
+            'data' => $response
+        ];
+    }
 
     //verifica si la configracion esta completa, ejecuta el test : 60 facturas,  20 notas credito, 20 notas debito
     public function testApiDian()

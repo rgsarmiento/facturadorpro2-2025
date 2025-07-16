@@ -160,19 +160,16 @@ if ($hostname) {
             Route::get('person-by-id/{id}', 'Tenant\PersonController@searchPersonById');
             Route::post('/persons/query-dian', 'Tenant\PersonController@queryDian');
 
-
             //Documents
             Route::post('documents/categories', 'Tenant\DocumentController@storeCategories');
             Route::post('documents/brands', 'Tenant\DocumentController@storeBrands');
             Route::get('documents/search/customers', 'Tenant\DocumentController@searchCustomers');
             Route::get('documents/search/customer/{id}', 'Tenant\DocumentController@searchCustomerById');
-
             Route::get('documents', 'Tenant\DocumentController@index')->name('tenant.documents.index')->middleware(['redirect.level','tenant.internal.mode']);
             Route::get('documents/columns', 'Tenant\DocumentController@columns');
             Route::get('documents/records', 'Tenant\DocumentController@records');
             Route::get('documents/create', 'Tenant\DocumentController@create')->name('tenant.documents.create')->middleware(['redirect.level','tenant.internal.mode']);
             Route::get('documents/create_tensu', 'Tenant\DocumentController@create_tensu')->name('tenant.documents.create_tensu');
-
             Route::get('documents/tables', 'Tenant\DocumentController@tables');
             Route::get('documents/record/{document}', 'Tenant\DocumentController@record');
             Route::post('documents', 'Tenant\DocumentController@store');
@@ -406,18 +403,24 @@ if ($hostname) {
 
             Route::post('document-pos', 'Tenant\DocumentPosController@store');
             Route::get('document-pos/record/{salenote}', 'Tenant\DocumentPosController@record');
+            Route::get('document-pos/tables', 'Tenant\DocumentPosController@tables');
             Route::get('document-pos/print/{external_id}/{format?}', 'Tenant\DocumentPosController@toPrint');
             Route::get('document-pos/records', 'Tenant\DocumentPosController@records');
             Route::get('document-pos/index', 'Tenant\DocumentPosController@index')->name('tenant.document_pos.index');
+            Route::post('document-pos/note', 'Tenant\DocumentPosController@storeNote');
+            Route::get('document-pos/note/{id}', 'Tenant\DocumentPosController@note');
+            Route::get('document-pos/note/credito/{id}', 'Tenant\DocumentPosController@credit_note');
+            Route::get('document-pos/note/debito/{id}', 'Tenant\DocumentPosController@debit_note');
             Route::get('document-pos/columns', 'Tenant\DocumentPosController@columns');
             Route::get('document-pos/downloadExternal/{external_id}', 'Tenant\DocumentPosController@downloadExternal');
+            Route::get('document-pos/downloadFile/{filename}', 'Tenant\DocumentPosController@downloadFile');
+            Route::post('document-pos/sendEmail', 'Tenant\DocumentPosController@sendEmail');
             Route::get('document-pos/refund/{id}', 'Tenant\DocumentPosController@create_refund');
             Route::get('document-pos/record2/{id}', 'Tenant\DocumentPosController@record2');
             Route::get('document-pos/anulate/{id}', 'Tenant\DocumentPosController@anulate');
             Route::get('document-pos/voided/resolutions/{id}', 'Tenant\DocumentPosController@anulateResolutions');
             Route::post('document-pos/email', 'Tenant\DocumentPosController@email');
             Route::get('document-pos/sincronize', 'Tenant\DocumentPosController@sincronize');
-
 
            Route::get('sale_note_payments/records/{sale_note}', 'Tenant\SaleNotePaymentController@records');
            Route::get('sale_note_payments/document/{sale_note}', 'Tenant\SaleNotePaymentController@document');

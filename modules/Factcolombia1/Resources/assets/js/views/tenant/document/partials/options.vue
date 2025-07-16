@@ -22,7 +22,6 @@
         </div>
 
         <div class="row" v-if="showDownload">
-
             <div class="col-lg-6 col-md-6 col-sm-12 text-center font-weight-bold mt-3">
                 <button type="button" class="btn btn-lg btn-info waves-effect waves-light" @click="clickDownload(form.download_pdf)">
                     <i class="fa fa-file-pdf"></i>
@@ -36,7 +35,6 @@
                 </button>
                  <p>Descargar XML</p>
             </div>
-
         </div>
         <div class="row mt-3">
             <div class="col-md-12">
@@ -73,19 +71,21 @@
 
 <script>
     export default {
-        props: ['showDialog', 'recordId', 'showClose', 'showDownload'],
+        props: ['showDialog', 'recordId', 'showClose', 'showDownload', 'isEqDoc'],
         data() {
             return {
                 titleDialog: null,
                 loading: false,
-                resource: 'co-documents',
+                resource: '',
                 errors: {},
                 form: {},
                 company: {},
                 locked_emission:{}
             }
         },
+
         async created() {
+            this.resource = this.isEqDoc ? 'document-pos' : 'co-documents'
             this.initForm()
             await this.$http.get(`/companies/record`)
                 .then(response => {
@@ -94,10 +94,10 @@
                     }
                 })
         },
+
         methods: {
             clickDownload(download) {
                 this.$http.get(`/${this.resource}/downloadFile/${this.downloadFilename(download)}`).then((response) => {
-
                     let res_data = response.data
                     if(!res_data.success)
                         return this.$message.error(res_data.message)
@@ -117,6 +117,7 @@
                 })
 //                window.open(download, '_blank');
             },
+
             downloadFilename(filename){
               c = ""
               for(var i = filename.length - 1; i >= 0; i--){
@@ -128,15 +129,14 @@
               }
               return c.split('').reverse().join('');
             },
-            clickSendWhatsapp() {
 
+            clickSendWhatsapp() {
                 if(!this.form.customer_phone){
                     return this.$message.error('El número es obligatorio')
                 }
-
                 window.open(`https://wa.me/51${this.form.customer_phone}?text=${this.form.message_text}`, '_blank');
-
             },
+
             initForm() {
                 this.errors = {};
                 this.form = {
@@ -151,16 +151,18 @@
                     download_xml: null,
                 };
             },
+
             async create() {
                 await this.$http.get(`/${this.resource}/record/${this.recordId}`).then(response => {
                     this.form = response.data.data;
                     this.titleDialog = 'Comprobante: '+this.form.number_full;
                 });
-
             },
+
             clickPrint(format){
                 window.open(`/print/document/${this.form.external_id}/${format}`, '_blank');
             },
+
             clickSendEmail() {
                 this.loading = true
                 this.$http.post(`/${this.resource}/sendEmail`, {
@@ -186,12 +188,15 @@
                         this.loading = false
                     })
             },
+
             clickFinalize() {
-                location.href = (this.isContingency) ? `/contingencies` : `/${this.resource}`
+                location.href = (this.isContingency) ? `/contingencies` : `/document-pos/index`
             },
+
             clickNewDocument() {
                 this.clickClose()
             },
+
             clickClose() {
                 this.$emit('update:showDialog', false)
                 this.initForm()

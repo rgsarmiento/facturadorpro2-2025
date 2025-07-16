@@ -23,6 +23,8 @@ use App\Models\Tenant\Catalogs\PriceType;
 use App\Models\Tenant\Catalogs\SystemIscType;
 use App\Models\Tenant\Catalogs\AttributeType;
 use Modules\Factcolombia1\Models\Tenant\Company as CoCompany;
+use Modules\Factcolombia1\Models\Tenant\NoteConcept;
+use Modules\Factcolombia1\Http\Requests\Tenant\DocumentPosRequest;
 use App\Models\Tenant\Company;
 use App\Models\Tenant\Dispatch;
 use App\Http\Requests\Tenant\SaleNoteRequest;
@@ -51,6 +53,12 @@ use Modules\Factcolombia1\Models\Tenant\{
     Currency,
     TypeDocument,
     Tax,
+    PaymentMethod,
+    PaymentForm,
+    TypeInvoice,
+};
+use Modules\Factcolombia1\Models\Tenant\{
+    Company as PosCompany,
 };
 use Modules\Factcolombia1\Models\TenantService\{
     Company as ServiceTenantCompany
@@ -76,7 +84,6 @@ class DocumentPosController extends Controller
     {
         return view('tenant.pos.documents');
     }
-
 
     public function create($id = null)
     {
@@ -110,6 +117,26 @@ class DocumentPosController extends Controller
         return new DocumentPosCollection($records->paginate(config('tenant.items_per_page')));
     }
 
+    public function credit_note($id){
+        $note = DocumentPos::with(['items'])->findOrFail($id);
+        $invoice = DocumentPos::with(['items'])->findOrFail($id);
+        $command = "credito";
+        return view('tenant.pos.note', compact('note', 'invoice', 'command'));
+    }
+
+    public function debit_note($id){
+        $note = DocumentPos::with(['items'])->findOrFail($id);
+        $invoice = DocumentPos::with(['items'])->findOrFail($id);
+        $command = "debito";
+        return view('tenant.pos.note', compact('note', 'invoice', 'command'));
+    }
+
+    public function note($id, $command = null) {
+        $note = DocumentPos::with(['items'])->findOrFail($id);
+        $invoice = DocumentPos::with(['items'])->findOrFail($id);
+        return view('tenant.pos.note', compact('note', 'invoice', 'command'));
+    }
+
     public function app_data(){
         $record = Company::firstOrFail();
         return $record->only([
@@ -117,6 +144,48 @@ class DocumentPosController extends Controller
             'app_owner_name',
             'app_business_name',
         ]);
+    }
+
+    public function sendEmail($number, $client){
+        $client = Client::find($client);
+
+        $company = ServiceTenantCompany::firstOrFail();
+
+        $send= (object)['number'=> $number, 'email'=> $client->email];
+        $data_send = json_encode($send);
+
+        $base_url = config('tenant.service_fact');
+        $ch2 = curl_init("{$base_url}send_mail");
+        curl_setopt($ch2, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch2, CURLOPT_CUSTOMREQUEST, "POST");
+        curl_setopt($ch2, CURLOPT_POSTFIELDS,($data_send));
+        curl_setopt($ch2, CURLOPT_SSL_VERIFYHOST, 0);
+        curl_setopt($ch2, CURLOPT_SSL_VERIFYPEER, 0);
+        curl_setopt($ch2, CURLOPT_HTTPHEADER, array(
+            'Content-Type: application/json',
+            'Accept: application/json',
+            "Authorization: Bearer {$company->api_token}"
+        ));
+
+        $response = curl_exec($ch2);
+        $respuesta = json_decode($response);
+        curl_close($ch2);
+
+        if(property_exists($respuesta, 'success'))
+        {
+            return [
+                'success' => $respuesta->success,
+                'message' => $respuesta->message
+            ];
+        }
+        else{
+
+            return [
+                'success' => false,
+                'message' => 'No se puedo enviar el correo.'
+            ];
+
+        }
     }
 
     public function store_app_data(Request $request){
@@ -147,19 +216,24 @@ class DocumentPosController extends Controller
                                     'telephone' =>  $row->telephone,
                                 ];
                             });
-
         return compact('customers');
     }
 
-    public function tables()
-    {
+    public function tables(){
         $customers = $this->table('customers');
         $establishments = Establishment::where('id', auth()->user()->establishment_id)->get();
-        // $currency_types = CurrencyType::whereActive()->get();
-        // $discount_types = ChargeDiscountType::whereType('discount')->whereLevel('item')->get();
-        // $charge_types = ChargeDiscountType::whereType('charge')->whereLevel('item')->get();
         $company = Company::active();
         $payment_method_types = PaymentMethodType::all();
+        $type_documents = TypeDocument::query()
+                            ->get()
+                            ->each(function($typeDocument) {
+                                $typeDocument->alert_range = (($typeDocument->to - 100) < (Document::query()
+                                    ->hasPrefix($typeDocument->prefix)
+                                    ->whereBetween('number', [$typeDocument->from, $typeDocument->to])
+                                    ->max('number') ?? $typeDocument->from));
+                                $typeDocument->alert_date = ($typeDocument->resolution_date_end == null) ? false : Carbon::parse($typeDocument->resolution_date_end)->subMonth(1)->lt(Carbon::now());
+                                $typeDocument->name_description = "{$typeDocument->name} / {$typeDocument->prefix} / {$typeDocument->resolution_number} / {$typeDocument->from} / {$typeDocument->to} / {$typeDocument->resolution_date_end}";
+                            });
         $series = collect(Series::all())->transform(function($row) {
             return [
                 'id' => $row->id,
@@ -169,11 +243,17 @@ class DocumentPosController extends Controller
                 'number' => $row->number
             ];
         });
-        $payment_destinations = $this->getPaymentDestinations();
+        $payment_methods = PaymentMethod::all();
+        $payment_forms = PaymentForm::all();
+        $type_invoices = TypeInvoice::all();
         $currencies = Currency::all();
+        $resolutions = TypeDocument::select('id', 'prefix', 'code', 'resolution_number', 'from', 'to', 'description', 'resolution_date_end')->whereNotNull('resolution_number')->whereIn('code', [1, 2, 3])->where('resolution_date_end', '>', Carbon::now())->get();
+        $fe_resolution_id = auth()->user()->fe_resolution_id;
+        $nc_resolution_id = auth()->user()->nc_resolution_id;
+        $nd_resolution_id = auth()->user()->nd_resolution_id;
+        $payment_destinations = $this->getPaymentDestinations();
         $taxes = $this->table('taxes');
-
-        return compact('customers', 'establishments','currencies', 'taxes','company','payment_method_types', 'series', 'payment_destinations');
+        return compact('customers', 'establishments','currencies', 'taxes','company','payment_method_types', 'series', 'payment_destinations', 'type_documents', 'resolutions', 'fe_resolution_id', 'nc_resolution_id', 'nd_resolution_id'  );
     }
 
     public function changed($id)
@@ -1248,6 +1328,346 @@ class DocumentPosController extends Controller
         return json_decode($response);
     }
 
+    public function storeNote(DocumentPosRequest $request) {
+        DB::connection('tenant')->beginTransaction();
+//        try {
+            $note_service = $request->note_service;
+            $url_name_note = '';
+//            \Log::debug($request->all());
+//            return "";
+            $resolution = TypeDocument::where('id', $request['type_document_id'])->first();
+            $type_document_service = $resolution['code'];
+            if($type_document_service == 4 || $type_document_service == 26){
+                $url_name_note = 'credit-note';
+            }
+            elseif($type_document_service == 5 || $type_document_service == 25){
+                $url_name_note = 'debit-note';
+            }
+            $note_service['type_document_id'] = $type_document_service;
+            $this->company = PosCompany::query()->with('country', 'version_ubl', 'type_identity_document')->firstOrFail();
+            if (($this->company->limit_documents != 0) && (DocumentPos::count() >= $this->company->limit_documents))
+                return [
+                        'success' => false,
+                        'message' => '"Has excedido el límite de documentos de tu cuenta."'
+                ];
+            // $correlative_api = $this->getCorrelativeInvoice($type_document_service);
+            $company = ServiceTenantCompany::firstOrFail();
+            // si la empresa esta en habilitacion, envio el parametro ignore_state_document_id en true
+            // para buscar el correlativo en api sin filtrar por el campo state_document_id=1
+            $ignore_state_document_id = ($company->type_environment_id === 2);
+//            \Log::debug($request->all());
+            $correlative_api = $this->getCorrelativeInvoice($type_document_service, $resolution['prefix'], $ignore_state_document_id);
+            // dd($correlative_api);
+
+            if(!is_numeric($correlative_api)){
+                return [
+                    'success' => false,
+                    'message' => 'Error al obtener correlativo Api.'
+                ];
+            }
+
+            if($request->type_eq_doc == 15){
+                $note_service['is_eqdoc'] = true;
+                $note_service['billing_reference']['type_document_id'] = 15;
+            }
+            $note_service['number'] = $correlative_api;
+            $note_service['prefix'] = $resolution['prefix'];
+            $note_service['resolution_number'] = $resolution['resolution_number'];
+            $note_service['date'] = date('Y-m-d', strtotime($request->date_issue));
+            $note_service['time'] = date('H:i:s');
+            $datoscompany = PosCompany::with('type_regime', 'version_ubl', 'type_identity_document')->firstOrFail();
+            // $company = ServiceTenantCompany::firstOrFail();
+            $note_concept_id = NoteConcept::query()->where('id', $request->note_concept_id)->get();
+            $note_service['discrepancyresponsecode'] = $note_concept_id[0]->code;
+            $note_service['ivaresponsable'] = $datoscompany->type_regime->name;
+            $note_service['nombretipodocid'] = $datoscompany->type_identity_document->name;
+            $note_service['tarifaica'] = $datoscompany->ica_rate;
+            $note_service['actividadeconomica'] = $datoscompany->economic_activity_code;
+            $note_service['notes'] = $request->observation;
+            $sucursal = \App\Models\Tenant\Establishment::where('id', auth()->user()->establishment_id)->first();
+            if(file_exists(storage_path('sendmail.api')))
+                $note_service['sendmail'] = true;
+            $note_service['ivaresponsable'] = $datoscompany->type_regime->name;
+            $note_service['establishment_name'] = $sucursal->description;
+            if($sucursal->address != '-')
+                $note_service['establishment_address'] = $sucursal->address;
+            if($sucursal->telephone != '-')
+                $note_service['establishment_phone'] = $sucursal->telephone;
+            $note_service['establishment_email'] = $sucursal->email;
+
+            if(in_array($note_service['customer']['type_document_identification_id'], [1, 2, 3, 6, 10]))
+                $note_service['customer']['dv'] = $this->validarDigVerifDIAN($note_service['customer']['identification_number']);
+            else{
+                $city = City::where('id', $note_service['customer']['municipality_id_fact'])->first();
+                $note_service['customer']['municipality_name'] = $city->name;
+                $state = Department::where('id', $city->department_id)->first();
+                $note_service['customer']['state_name'] = $state->name;
+                $country = ServiceCountry::where('code', 'like', '%'.Country::where('id', $state->country_id)->first()->code.'%')->first();
+//                \Log::debug($country);
+                $note_service['customer']['country_id'] = $country->id;
+                unset($note_service['customer']['municipality_id_fact']);
+                unset($note_service['customer']['dv']);
+            }
+
+            $billing_reference_number = explode('-', $note_service['billing_reference']['number']);
+            $document_source = DocumentPos::where('prefix', $billing_reference_number[0])->where('number', $billing_reference_number[1])->first();
+
+            if($request->currency_id != 170)
+                $note_service['currency_id'] = TypeCurrency::where('code', 'like', Currency::where('id', $request->currency_id)->first()['code'].'%')->first()['id'];
+            else
+                $note_service['currency_id'] = 35;
+
+            if(!isset($note_service['calculationrate']))
+                $note_service['calculationrate'] = $document_source->calculationrate ?? 1;
+            $calculationRate = $note_service['calculationrate'] ?? 1;
+            $data_document = json_encode($note_service);
+
+            if($request->currency_id != 170){
+                $note_service['k_supplement_national']['FctConvCop'] = $calculationRate ?? 1;
+                $note_service['k_supplement_national']['MonedaCop'] = Currency::where('id', $request->currency_id)->first()['code'];
+                $note_service['k_supplement_national']['SubTotalCop'] = $note_service['legal_monetary_totals']['line_extension_amount'];
+                $note_service['k_supplement_national']['DescuentoDetalleCop'] = isset($note_service['legal_monetary_totals']['allowance_total_amount']) ? $note_service['legal_monetary_totals']['allowance_total_amount']: 0.00;
+                $note_service['k_supplement_national']['TotalFacturaCop'] = $note_service['legal_monetary_totals']['payable_amount'];
+                $note_service['k_supplement_national']['RecargoDetalleCop'] = isset($note_service['legal_monetary_totals']['charge_total_amount']) ? $note_service['legal_monetary_totals']['charge_total_amount'] : 0;
+                $note_service['k_supplement_national']['TotalBrutoFacturaCop'] = $note_service['legal_monetary_totals']['tax_exclusive_amount'];
+                $note_service['k_supplement_national']['TotIvaCop'] = number_format(array_sum(array_map(function($t) { return isset($t['tax_id']) && $t['tax_id'] == 1 ? ((float)$t['tax_amount']) : 0; }, $note_service['tax_totals'])), 2, '.', '');
+                $note_service['k_supplement_national']['TotIncCop'] = number_format(array_sum(array_map(function($t) { return isset($t['tax_id']) && $t['tax_id'] == 4 ? ((float)$t['tax_amount']) : 0; }, $note_service['tax_totals'])), 2, '.', '');
+                $note_service['k_supplement_national']['TotBolCop'] = number_format(array_sum(array_map(function($t) { return isset($t['tax_id']) && $t['tax_id'] == 10 ? ((float)$t['tax_amount']) : 0; }, $note_service['tax_totals'])), 2, '.', '');
+                $note_service['k_supplement_national']['TotICLCop'] = number_format(array_sum(array_map(function($t) { return isset($t['tax_id']) && $t['tax_id'] == 19 ? ((float)$t['tax_amount']) : 0; }, $note_service['tax_totals'])), 2, '.', '');
+                $note_service['k_supplement_national']['TotINPPCop'] = number_format(array_sum(array_map(function($t) { return isset($t['tax_id']) && $t['tax_id'] == 20 ? ((float)$t['tax_amount']) : 0; }, $note_service['tax_totals'])), 2, '.', '');
+                $note_service['k_supplement_national']['TotIBUACop'] = number_format(array_sum(array_map(function($t) { return isset($t['tax_id']) && $t['tax_id'] == 21 ? ((float)$t['tax_amount']) : 0; }, $note_service['tax_totals'])), 2, '.', '');
+                $note_service['k_supplement_national']['TotICUICop'] = number_format(array_sum(array_map(function($t) { return isset($t['tax_id']) && $t['tax_id'] == 22 ? ((float)$t['tax_amount']) : 0; }, $note_service['tax_totals'])), 2, '.', '');
+                $note_service['k_supplement_national']['TotADVCop'] = number_format(array_sum(array_map(function($t) { return isset($t['tax_id']) && $t['tax_id'] == 23 ? ((float)$t['tax_amount']) : 0; }, $note_service['tax_totals'])), 2, '.', '');
+                $note_service['k_supplement_national']['ImpOtroCop'] = number_format(array_sum(array_map(function($t) { return isset($t['tax_id']) && $t['tax_id'] == 15 ? ((float)$t['tax_amount']) : 0; }, $note_service['tax_totals'])), 2, '.', '');
+                $note_service['k_supplement_national']['MntImpCop'] = "0.00";
+                $note_service['k_supplement_national']['TotalNetoFacturaCop'] = $note_service['legal_monetary_totals']['payable_amount'];
+                $note_service['k_supplement_national']['MntDctoCop'] = isset($note_service['legal_monetary_totals']['allowance_total_amount']) ? $note_service['legal_monetary_totals']['allowance_total_amount'] : 0.00;
+                $note_service['k_supplement_national']['MntRcgoCop'] = isset($note_service['legal_monetary_totals']['charge_total_amount']) ? $note_service['legal_monetary_totals']['charge_total_amount'] : 0;
+                $note_service['k_supplement_national']['VlrPagarCop'] = $note_service['legal_monetary_totals']['payable_amount'];
+                $note_service['k_supplement_national']['ReteFueCop'] = "0.00";
+                $note_service['k_supplement_national']['ReteIvaCop'] = "0.00";
+                $note_service['k_supplement_national']['ReteIcaCop'] = "0.00";
+                $note_service['k_supplement_national']['TotAnticiposCop'] = "0.00";
+            }
+            $data_document_foreign_currency = json_encode($this->multiplyMonetaryValues($note_service, $calculationRate));
+            $note_service['foot_note'] = "Modo de operación: Software Propio - by ".env('APP_NAME', 'TORRE SOFTWARE');
+            $id_test = $company->test_id;
+            $base_url = config('tenant.service_fact');
+            if($company->type_environment_id == 2 && $company->test_id != 'no_test_set_id')
+                $ch = curl_init("{$base_url}ubl2.1/{$url_name_note}/{$id_test}");
+            else
+                $ch = curl_init("{$base_url}ubl2.1/{$url_name_note}");
+            $data_document = json_encode($note_service);
+
+//\Log::debug("{$base_url}ubl2.1/{$url_name_note}");
+//\Log::debug($company->api_token);
+//\Log::debug($correlative_api);
+//\Log::debug($data_document);
+//\Log::debug($data_document_foreign_currency);
+//            return $data_document;
+//            return "";
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
+            if($request->currency_id != 170)
+                curl_setopt($ch, CURLOPT_POSTFIELDS,($data_document_foreign_currency));
+            else
+                curl_setopt($ch, CURLOPT_POSTFIELDS,($data_document));
+            curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, array(
+                'Content-Type: application/json',
+                'Accept: application/json',
+                "Authorization: Bearer {$company->api_token}"
+            ));
+            $response = curl_exec($ch);
+            curl_close($ch);
+//\Log::debug($response);
+//return "";
+
+            $response_model = json_decode($response);
+            $zip_key = null;
+            $invoice_status_api = null;
+            $response_status = null;
+
+            if($company->type_environment_id == 2 && $company->test_id != 'no_test_set_id'){
+                if(array_key_exists('urlinvoicepdf', $response_model) && array_key_exists('urlinvoicexml', $response_model) )
+                {
+                    if(!is_string($response_model->ResponseDian->Envelope->Body->SendTestSetAsyncResponse->SendTestSetAsyncResult->ZipKey))
+                    {
+                        if(is_string($response_model->ResponseDian->Envelope->Body->SendTestSetAsyncResponse->SendTestSetAsyncResult->ErrorMessageList->XmlParamsResponseTrackId->Success))
+                        {
+                            if($response_model->ResponseDian->Envelope->Body->SendTestSetAsyncResponse->SendTestSetAsyncResult->ErrorMessageList->XmlParamsResponseTrackId->Success == 'false')
+                            {
+                                return [
+                                    'success' => false,
+                                    'message' => $response_model->ResponseDian->Envelope->Body->SendTestSetAsyncResponse->SendTestSetAsyncResult->ErrorMessageList->XmlParamsResponseTrackId->ProcessedMessage
+                                ];
+                            }
+                        }
+                    }
+                    else
+                    {
+                        if(is_string($response_model->ResponseDian->Envelope->Body->SendTestSetAsyncResponse->SendTestSetAsyncResult->ZipKey))
+                        {
+                            $zip_key = $response_model->ResponseDian->Envelope->Body->SendTestSetAsyncResponse->SendTestSetAsyncResult->ZipKey;
+                        }
+                    }
+                }
+                $response_status = null;
+            }
+            else{
+                if($response_model->ResponseDian->Envelope->Body->SendBillSyncResponse->SendBillSyncResult->IsValid == "true")
+                    $type_document_service = $type_document_service;
+//                    $this->setStateDocument($type_document_service, $correlative_api);
+                else
+                {
+                    if(is_array($response_model->ResponseDian->Envelope->Body->SendBillSyncResponse->SendBillSyncResult->ErrorMessage->string))
+                        $mensajeerror = implode(",", $response_model->ResponseDian->Envelope->Body->SendBillSyncResponse->SendBillSyncResult->ErrorMessage->string);
+                    else
+                        $mensajeerror = $response_model->ResponseDian->Envelope->Body->SendBillSyncResponse->SendBillSyncResult->ErrorMessage->string;
+                    if($response_model->ResponseDian->Envelope->Body->SendBillSyncResponse->SendBillSyncResult->IsValid == 'false')
+                    {
+                        return [
+                            'success' => false,
+                            'message' => "Error al Validar Nota Nro: {$correlative_api} Errores: ".$mensajeerror
+                        ];
+                    }
+                }
+            }
+
+            $this->company = PosCompany::query()->with('country', 'version_ubl', 'type_identity_document')->firstOrFail();
+            if (($this->company->limit_documents != 0) && (DocumentPos::count() >= $this->company->limit_documents)) throw new \Exception("Has excedido el límite de documentos de tu cuenta.");
+
+            $data = [
+                'customer_id' => $request->customer_id,
+                'document_type_id' => null,
+                'establishment_id' => $sucursal->id,
+                'type_document_id' => $type_document_service,
+                'currency_id' => $request->currency_id,
+                'date_issue' => $note_service['date'],
+                'date_of_issue' => $note_service['date'],
+                'time_of_issue' => $note_service['time'],
+                'exchange_rate_sale' => 1,
+                'date_expiration' => null,
+                'type_invoice_id' => $request->type_eq_doc,
+                'total_discount' => $request->total_discount,
+                'total_tax' => $request->total_tax,
+                'watch' => false,
+                'subtotal' => $request->subtotal,
+                'items' => $request->items,
+                'taxes' => $request->taxes,
+                'total' => $request->total,
+                'sale' => $request->sale,
+                'time_days_credit' => 0,
+                'service_invoice' => json_encode($note_service),
+                'payment_form_id' => 1,
+                'payment_method_id' => 1,
+                'payments' => [],
+                'electronic' => true,
+                'type_resolution' => $resolution['name'],
+                'prefix' => $note_service['prefix'],
+                'paid' => 1,
+                'user_id' => auth()->user()->id,
+                'external_id' => Str::uuid()->toString(),
+                'customer' => Person::where('id', $request->customer_id)->first(),
+                'establishment' => $sucursal,
+                'soap_type_id' => "01",
+                'state_type_id' => "01",
+                'series' => $note_service['prefix'],
+                'resolution_number' => $note_service['resolution_number'],
+                'plate_number' => null,
+                'cash_type' => null,
+                'number' => $note_service['number'],
+            ];
+
+            $this->sale_note = DocumentPos::create($data);
+            $this->sale_note->request_api = json_encode($note_service);
+            $this->sale_note->cude = $response_model->ResponseDian->Envelope->Body->SendBillSyncResponse->SendBillSyncResult->XmlDocumentKey;
+            $this->sale_note->response_api = json_encode($response_model);
+            $this->sale_note->qr = $response_model->QRStr;
+            $this->sale_note->note_concept_id = $request->reference_id;
+            $this->sale_note->save();
+            $this->deleteAllPayments($this->sale_note->payments);
+            $data['items'] = json_decode(json_encode($data['items']), true);
+            foreach($data['items'] as $row) {
+                $item_id = isset($row['id']) ? $row['id'] : null;
+                $sale_note_item = DocumentPosItem::firstOrNew(['id' => $item_id]);
+                if(isset($row['item']['lots'])){
+                    $row['item']['lots'] = isset($row['lots']) ? $row['lots']:$row['item']['lots'];
+                }
+                $sale_note_item->fill($row);
+                $sale_note_item->document_pos_id = $this->sale_note->id;
+                $sale_note_item->save();
+                if(isset($row['lots'])){
+                    foreach($row['lots'] as $lot) {
+                        $record_lot = ItemLot::findOrFail($lot['id']);
+                        $record_lot->has_sale = true;
+                        $record_lot->update();
+                    }
+                }
+                if(isset($row['IdLoteSelected'])){
+                    $lot = ItemLotsGroup::find($row['IdLoteSelected']);
+                    $lot->quantity = ($lot->quantity - $row['quantity']);
+                    $lot->save();
+                }
+            }
+            $this->setFilename();
+/*        }
+        catch (\Exception $e) {
+            DB::connection('tenant')->rollBack();
+            // Inicializar el mensaje de error
+            $userFriendlyMessage = 'Ocurrió un error inesperado.';
+            // Verificar si hay un mensaje de error específico en la respuesta de la API
+            if (isset($response_model->message)) {
+                $userFriendlyMessage = $response_model->message;  // Mensaje general de la API
+                // Verificar si hay detalles de errores específicos
+                if (isset($response_model->errors) && is_object($response_model->errors)) {
+                    $errorDetailsArray = []; // Cambia a array para mejorar eficiencia
+                    foreach ($response_model->errors as $field => $errorMessages) {
+                        if (is_array($errorMessages)) {
+                            $errorDetailsArray[] = implode(', ', $errorMessages);
+                        } else {
+                            $errorDetailsArray[] = $errorMessages;
+                        }
+                    }
+                    // Concatenar detalles de los errores al mensaje para el usuario
+                    if (!empty($errorDetailsArray)) {
+                        $userFriendlyMessage .= ' ' . implode(' ', $errorDetailsArray);
+                    }
+                }
+            }
+            // Obtener el mensaje de la excepción
+            $errorMessage = $e->getMessage();
+            // Verificar si el mensaje contiene "Undefined property: stdClass::$Response"
+            if (strpos($errorMessage, 'Undefined property: stdClass::$Response') !== false) {
+                // Si el mensaje contiene "Undefined property: stdClass::$Response", no mostrar nada
+                $errorMessage = '';
+            }
+            // Devolver la respuesta con un mensaje de error más detallado
+            return [
+                'success' => false,
+                'validation_errors' => true,
+                'message' =>  $errorMessage . ' ' . $userFriendlyMessage,
+                'line' => $e->getLine(),
+                'trace' => $e->getTrace(),
+            ];
+        }   */
+        DB::connection('tenant')->commit();
+        $this->company = PosCompany::query()->with('country', 'version_ubl', 'type_identity_document')->firstOrFail();
+        if (($this->company->limit_documents != 0) && (DocumentPos::count() >= $this->company->limit_documents - 10))
+            $over = ", ADVERTENCIA, ha consumido ".DocumentPos::count()." documentos de su cantidad contratada de: ".$this->company->limit_documents;
+        else
+            $over = "";
+        return [
+            'success' => true,
+            'message' => "Se registro con éxito el documento #{$this->sale_note->prefix}{$this->sale_note->number}. {$over}",
+            'data' => [
+                'id' => $this->sale_note->id
+            ]
+           //'data' => $data_document
+        ];
+    }
+
     public function anulate($id){
         DB::connection('tenant')->beginTransaction();
         try {
@@ -1453,8 +1873,34 @@ class DocumentPosController extends Controller
 
     }
 
-    public function downloadExternal($external_id)
-    {
+    public function downloadFile($filename){
+        $company = ServiceTenantCompany::firstOrFail();
+        $base_url = config('tenant.service_fact');
+        $ch2 = curl_init("{$base_url}ubl2.1/download/{$company->identification_number}/{$filename}/BASE64");
+        curl_setopt($ch2, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch2, CURLOPT_CUSTOMREQUEST, "GET");
+        curl_setopt($ch2, CURLOPT_SSL_VERIFYHOST, 0);
+        curl_setopt($ch2, CURLOPT_SSL_VERIFYPEER, 0);
+        curl_setopt($ch2, CURLOPT_HTTPHEADER, array(
+            'Content-Type: application/json',
+            'Accept: application/json',
+            "Authorization: Bearer {$company->api_token}"
+        ));
+        $response_data = curl_exec($ch2);
+        $err = curl_error($ch2);
+        curl_close($ch2);
+        if($err){
+            return [
+                'success' => false,
+                'message' => "No se pudo descargar el archivo: ".$filename
+            ];
+        }
+        else{
+            return $response_data;
+        }
+    }
+
+    public function downloadExternal($external_id){
         $document = DocumentPos::where('external_id', $external_id)->first();
         $type_document_id = json_decode($document->request_api)->type_document_id;
         if($type_document_id == 4 || $type_document_id == 26){
@@ -1771,8 +2217,93 @@ class DocumentPosController extends Controller
             $customer->city_id = $document->customer_document->municipality_id_fact ?? 12688;
             $customer->save();
         }
-
         return $customer->id;
     }
 
+    public function getCorrelativeInvoice($type_service, $prefix = null, $ignore_state_document_id = false){
+        $company = ServiceTenantCompany::firstOrFail();
+        $url = $this->getBaseUrlCorrelativeInvoice($type_service, $prefix, $ignore_state_document_id);
+        $ch2 = curl_init($url);
+//        dd($url, $ch2);
+        curl_setopt($ch2, CURLOPT_RETURNTRANSFER, true);
+        curl_setopt($ch2, CURLOPT_CUSTOMREQUEST, "GET");
+        curl_setopt($ch2, CURLOPT_SSL_VERIFYHOST, 0);
+        curl_setopt($ch2, CURLOPT_SSL_VERIFYPEER, 0);
+        curl_setopt($ch2, CURLOPT_HTTPHEADER, array(
+            'Content-Type: application/json',
+            'Accept: application/json',
+            "Authorization: Bearer {$company->api_token}"
+        ));
+        $response_data = curl_exec($ch2);
+        $err = curl_error($ch2);
+        curl_close($ch2);
+        $response_encode = json_decode($response_data);
+//        \Log::debug($url);
+//        \Log::debug($company->api_token);
+//        \Log::debug($response_data);
+        if($err){
+            return null;
+        }
+        else{
+            return $response_encode->number;
+        }
+    }
+
+    private function getBaseUrlCorrelativeInvoice($type_service, $prefix = null, $ignore_state_document_id = false){
+        $base_url = config('tenant.service_fact');
+        $url = "{$base_url}ubl2.1/invoice/current_number/{$type_service}";
+        if($ignore_state_document_id){
+            $val_prefix = $prefix ? $prefix : 'null';
+            $url .= "/{$val_prefix}/{$ignore_state_document_id}";
+        }else{
+            if($prefix){
+                $url .= "/{$prefix}";
+            }
+        }
+        return $url;
+    }
+
+    protected function validarDigVerifDIAN($nit)
+    {
+        if(is_numeric(trim($nit))){
+            $secuencia = array(3, 7, 13, 17, 19, 23, 29, 37, 41, 43, 47, 53, 59, 67, 71);
+            $d = str_split(trim($nit));
+            krsort($d);
+            $cont = 0;
+            unset($val);
+            foreach ($d as $key => $value) {
+                $val[$cont] = $value * $secuencia[$cont];
+                $cont++;
+            }
+            $suma = array_sum($val);
+            $div = intval($suma / 11);
+            $num = $div * 11;
+            $resta = $suma - $num;
+            if ($resta == 1)
+                return $resta;
+            else
+                if($resta != 0)
+                    return 11 - $resta;
+                else
+                    return $resta;
+        } else {
+            return FALSE;
+        }
+    }
+
+    // Función recursiva para procesar los valores
+    public function multiplyMonetaryValues($data, $rate) {
+        foreach ($data as $key => $value) {
+            if (is_array($value)) {
+                $data[$key] = $this->multiplyMonetaryValues($value, $rate);
+            }
+            else {
+                // Detectar claves que representan montos
+                if (is_numeric($value) && preg_match('/line_extension_amount|tax_exclusive_amount|tax_inclusive_amount|allowance_total_amount|charge_total_amount|payable_amount|tax_amount|taxable_amount|amount|base_amount|price_amount/i', $key)) {
+                    $data[$key] = number_format($value * $rate, 2, '.', '');
+                }
+            }
+        }
+        return $data;
+    }
 }

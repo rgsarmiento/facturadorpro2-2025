@@ -4,6 +4,9 @@ namespace App\Http\Resources\Tenant;
 
 use Illuminate\Http\Resources\Json\JsonResource;
 use App\Models\Tenant\DocumentPos;
+use Modules\Factcolombia1\Models\TenantService\{
+    Company as ServiceTenantCompany
+};
 
 class DocumentPosResource extends JsonResource
 {
@@ -15,12 +18,28 @@ class DocumentPosResource extends JsonResource
      */
     public function toArray($request)
     {
+        $company = ServiceTenantCompany::select('identification_number')->whereFilterWithOutAllRelations()->firstOrFail();
+        $base_url_api = config('tenant.service_fact');
+        $response_api = json_decode($this->response_api);
+//        \Log::debug(json_encode($response_api));
+        $isEqDoc = false;
+        if((strpos($this->response_api, 'NCQS') != 0 && strpos($this->response_api, 'La Nota de ajuste cr') != 0 && strpos($this->response_api, 'dito del documento equivalente') != 0) ||
+           (strpos($this->response_api, 'NCS') != 0 && strpos($this->response_api, 'La Nota de cr') != 0 && strpos($this->response_api, 'dito electr') != 0))
+           $response_api->urlinvoicepdf = str_replace('NCQS', 'NCS', $response_api->urlinvoicepdf);
 
+        $download_xml = "{$base_url_api}download/{$company->identification_number}/{$response_api->urlinvoicexml}";
+        $download_pdf = "{$base_url_api}download/{$company->identification_number}/{$response_api->urlinvoicepdf}";
+        $customer = is_string($this->customer) ? json_decode($this->customer) : $this->customer;
+        if($this->response_api){
+            $response = json_decode($this->response_api);
+            $response_api_message = isset($response->message) ? $response->message : null;
+        }
         $sale_note = DocumentPos::find($this->id);
         $sale_note->payments = self::getTransformPayments($sale_note->payments);
-
         return [
             'id' => $this->id,
+            'correlative_api' => $this->number,
+            'number_full' => $this->series."-".$this->number,
             'external_id' => $this->external_id,
             'number' => $this->number_full,
             'identifier' => $this->identifier,
@@ -31,7 +50,15 @@ class DocumentPosResource extends JsonResource
             'print_html' => url('')."/document-pos/print/{$this->external_id}/html",
             'document_pos' => $sale_note,
             'serie' => $this->series,
-            'number' => $this->number
+            'number' => $this->number,
+            'customer_email' => $customer->email,
+            'customer_phone' => $isEqDoc ? $customer->phone : $customer->telephone,
+            'response_api_message' => $response_api_message,
+            'download_xml' => $download_xml,
+            'download_pdf' => $download_pdf,
+            'state_document_id' => $this->state_document_id,
+            'response_message_query_zipkey' => $this->response_message_query_zipkey,
+            'type_environment_id' => $this->type_environment_id,
         ];
     }
 

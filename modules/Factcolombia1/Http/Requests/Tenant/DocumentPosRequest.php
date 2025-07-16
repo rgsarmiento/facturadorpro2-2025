@@ -5,7 +5,7 @@ namespace Modules\Factcolombia1\Http\Requests\Tenant;
 use Illuminate\Foundation\Http\FormRequest;
 use Modules\Factcolombia1\Traits\Tenant\RequestsTrait;
 
-class DocumentRequest extends FormRequest
+class DocumentPosRequest extends FormRequest
 {
     use RequestsTrait;
 
@@ -40,7 +40,7 @@ class DocumentRequest extends FormRequest
             'calculationrate' => 'nullable|numeric|between:0.00,9999.99',
             'date_expiration' => 'nullable|date',
             'observation' => 'nullable|string',
-            'reference_id' => 'nullable|exists:tenant.documents,id',
+            'reference_id' => 'nullable|exists:tenant.documents_pos,id',
             'note_concept_id' => 'nullable|exists:tenant.co_note_concepts,id',
             'sale' => 'required|numeric|between:0.00,9999999999.99',
             'total_discount' => 'required|numeric|between:0.00,9999999999.99',

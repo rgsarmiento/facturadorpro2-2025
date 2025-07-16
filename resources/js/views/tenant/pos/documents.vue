@@ -95,6 +95,16 @@
                             {{row.paid ? 'Pagado' : 'Pendiente'}}
                         </td>
                         <td class="text-right">
+                            <template v-if="row.state_type_id != '11' && row.type_resolution != 'Documento Ticket Papel' && row.type_resolution != 'Nota de crédito al Documento Equivalente' && row.type_resolution != 'Nota crédito'">
+                                <el-dropdown @command="(command) => handleNoteCommand(command, row)">
+                                    <el-button type="warning" size="mini">Nota <i class="el-icon-arrow-down el-icon--right"></i></el-button>
+                                    <el-dropdown-menu slot="dropdown">
+                                        <el-dropdown-item command="elegir">Elegir en el formulario</el-dropdown-item>
+                                        <el-dropdown-item command="credito">Nota crédito</el-dropdown-item>
+                                        <el-dropdown-item command="debito">Nota débito</el-dropdown-item>
+                                    </el-dropdown-menu>
+                                </el-dropdown>
+                            </template>
                             <!-- <button data-toggle="tooltip" data-placement="top" title="Anular" v-if="row.state_type_id != '11'" type="button" class="btn waves-effect waves-light btn-xs btn-danger"
                             @click.prevent="clickVoided(row.id)"><i class="fas fa-trash"></i></button>-->
                             <button  data-toggle="tooltip" data-placement="top" title="Imprimir" v-if="row.state_type_id != '11' && row.type_resolution != 'Nota de crédito al Documento Equivalente' && row.type_resolution != 'Nota crédito'"  type="button" class="btn waves-effect waves-light btn-xs btn-info"
@@ -186,8 +196,10 @@
                 sincronizing: false,
             }
         },
+
         created() {
         },
+
         filters:{
             period(name)
             {
@@ -221,6 +233,25 @@
             clickOptions(recordId) {
                 this.saleNotesNewId = recordId
                 this.showDialogOptions = true
+            },
+
+            handleNoteCommand(command, row){
+//                console.log(command)
+//                console.log(`/${this.resource}/note/${row.id}`)
+                if (command === 'elegir') {
+                    // Acción Elegir en el formulario
+                    window.location.href = `/${this.resource}/note/${row.id}`
+                }
+                else
+                    if (command === 'credito') {
+                        // Acción para Nota crédito
+                        window.location.href = `/${this.resource}/note/credito/${row.id}`
+                    }
+                    else
+                        if (command === 'debito') {
+                            // Acción para Nota débito
+                            window.location.href = `/${this.resource}/note/debito/${row.id}`
+                        }
             },
 
             clickGenerate(recordId) {

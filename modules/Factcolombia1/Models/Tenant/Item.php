@@ -14,7 +14,6 @@ class Item extends Model
 
     protected $table = 'co_items';
 
-
     /**
      * The attributes that are mass assignable.
      *

@@ -1,7 +1,7 @@
 <template>
     <div class="card mb-0 pt-2 pt-md-0">
         <div class="card-header bg-info">
-            {{ note ? `Nueva Nota (${note.prefix}-${note.number})` : 'Nota Contable Sin Referencia a Factura' }}
+            {{ note ? `Nueva Nota Documento Equivalente (${note.prefix}-${note.number})` : 'Nota Contable Sin Referencia a Factura' }}
         </div>
         <div class="card-body" v-if="loading_form">
             <div class="invoice">
@@ -13,7 +13,8 @@
                             <div class="col-md-4 col-lg-4 pb-2">
                                 <div class="form-group" :class="{'has-danger': errors.type_document_id}">
                                     <label class="control-label">Tipo de nota/Resolucion</label>
-                                    <el-select v-model="form.type_document_id" filterable @change="changeDocumentType" popper-class="el-select-document_type" dusk="type_document_id" class="border-left rounded-left border-info" :disabled="(nc_resolution_id !== null && command === 'credito') || (nd_resolution_id !== null && command === 'debito')">
+<!--                                    <el-select v-model="form.type_document_id" filterable @change="changeDocumentType" popper-class="el-select-document_type" dusk="type_document_id" class="border-left rounded-left border-info" :disabled="(nc_resolution_id !== null && command === 'credito') || (nd_resolution_id !== null && command === 'debito')">     -->
+                                    <el-select v-model="form.type_document_id" filterable @change="changeDocumentType" popper-class="el-select-document_type" dusk="type_document_id" class="border-left rounded-left border-info">
                                         <el-option v-for="option in type_documents" :key="option.id" :value="option.id" :label="option.name_description"></el-option>
                                     </el-select>
                                     <small class="form-control-feedback" v-if="errors.type_document_id" v-text="errors.type_document_id[0]"></small>
@@ -119,13 +120,11 @@
                                                 <td class="text-center">{{row.item.unit_type.name}}</td>
                                                 <!-- <td class="text-center">{{(row.item.hasOwnProperty('unit_type') ) ? row.item.unit_type.name : row.item.item.unit_type.name}}</td> -->
 
-
                                                 <td class="text-right">{{row.quantity}}</td>
                                                 <!--<td class="text-right" v-else ><el-input-number :min="0.01" v-model="row.quantity"></el-input-number> </td> -->
 
                                                 <td class="text-right">{{ratePrefix()}} {{getFormatDecimal(row.price)}}</td>
                                                 <!--<td class="text-right" v-else ><el-input-number :min="0.01" v-model="row.unit_price"></el-input-number> </td> -->
-
 
                                                 <td class="text-right">{{ratePrefix()}} {{getFormatDecimal(row.subtotal)}}</td>
                                                 <td class="text-right">{{ratePrefix()}} {{getFormatDecimal(row.discount)}}</td>
@@ -133,7 +132,6 @@
                                                 <td class="text-right">
                                                     <button type="button" class="btn waves-effect waves-light btn-xs btn-danger" @click.prevent="clickRemoveItem(index)">x</button>
                                                     <button type="button" class="btn waves-effect waves-light btn-xs btn-info" :disabled="!itemsLoaded" @click="ediItem(row, index)" ><span style='font-size:10px;'>&#9998;</span> </button>
-
                                                 </td>
                                             </tr>
                                             <tr><td colspan="9"></td></tr>
@@ -150,7 +148,6 @@
 
                             <div class="col-md-12" style="display: flex; flex-direction: column; align-items: flex-end;" v-if="form.items.length > 0">
                                 <table>
-
                                     <tr>
                                         <td>TOTAL VENTA</td>
                                         <td>:</td>
@@ -175,10 +172,8 @@
                                         <td>:</td>
                                         <td class="text-right">{{ratePrefix()}} {{ getFormatDecimal(form.subtotal) }}</td>
                                     </tr>
-
                                     <template v-for="(tax, index) in form.taxes">
                                         <tr v-if="((tax.is_retention) && (tax.apply))" :key="index">
-
                                             <td>{{tax.name}}(-)</td>
                                             <td>:</td>
                                             <!-- <td class="text-right">
@@ -193,19 +188,13 @@
                                             </td>
                                         </tr>
                                     </template>
-
                                 </table>
-
                                 <template>
                                     <h3 class="text-right"><b>TOTAL: </b>{{ratePrefix()}} {{ getFormatDecimal(form.total) }}</h3>
                                 </template>
                             </div>
-
                         </div>
-
                     </div>
-
-
                     <div class="form-actions text-right mt-4">
                         <el-button @click.prevent="close()">Cancelar</el-button>
                         <el-button class="submit" type="primary" native-type="submit" :loading="loading_submit" v-if="form.items.length > 0">Generar</el-button>
@@ -213,33 +202,29 @@
                 </form>
             </div>
 
-        <document-form-item :showDialog.sync="showDialogAddItem"
-                           :recordItem="recordItem"
-                           :isEditItemNote="false"
-                           :operation-type-id="form.operation_type_id"
-                           :currency-type-id-active="form.currency_id"
-                           :currency-type-symbol-active="ratePrefix()"
-                           :exchange-rate-sale="form.exchange_rate_sale"
-                           :typeUser="typeUser"
-                           @add="addRow"
-                           @items-loaded="itemsLoaded = true"></document-form-item>
+            <document-form-item :showDialog.sync="showDialogAddItem"
+                               :recordItem="recordItem"
+                               :isEditItemNote="false"
+                               :operation-type-id="form.operation_type_id"
+                               :currency-type-id-active="form.currency_id"
+                               :currency-type-symbol-active="ratePrefix()"
+                               :exchange-rate-sale="form.exchange_rate_sale"
+                               :typeUser="typeUser"
+                               @add="addRow"
+                               @items-loaded="itemsLoaded = true"></document-form-item>
 
-        <person-form :showDialog.sync="showDialogNewPerson"
-                       type="customers"
-                       :external="true"
-                       :input_person="input_person"
-                       :type_document_id = form.type_document_id></person-form>
+            <person-form :showDialog.sync="showDialogNewPerson"
+                           type="customers"
+                           :external="true"
+                           :input_person="input_person"
+                           :type_document_id = form.type_document_id></person-form>
 
-        <document-options :showDialog.sync="showDialogOptions"
-                            :recordId="documentNewId"
-                            :showDownload="true"
-                            :showClose="false"></document-options>
-
-        <document-form-retention :showDialog.sync="showDialogAddRetention"
-                           @add="addRowRetention"></document-form-retention>
-
-
-    </div>
+            <document-options :showDialog.sync="showDialogOptions"
+                                :recordId="documentNewId"
+                                :showDownload="true"
+                                :showClose="false"
+                                :isEqDoc="true"></document-options>
+        </div>
     </div>
 </template>
 
@@ -264,32 +249,28 @@
 
 </style>
 <script>
-    import DocumentFormItem from './partials/item.vue'
-    import DocumentFormRetention from './partials/retention.vue'
+    import DocumentFormItem from '@viewsModuleProColombia/tenant/document/partials/item.vue'
     import PersonForm from '@views/persons/form.vue'
-    // import DocumentOptions from '../documents/partials/options.vue'
-    // import {functions, exchangeRate} from '@mixins/functions'
-    // import {calculateRowItem} from '../../../helpers/functions'
-    // import Helper from "../../../mixins/Helper";
-    import DocumentOptions from './partials/options.vue'
+    import DocumentOptions from '@viewsModuleProColombia/tenant/document/partials/options.vue'
 
     export default {
         props: ['typeUser', 'note', 'invoice', 'command'],
-        components: {PersonForm, DocumentFormItem, DocumentFormRetention, DocumentOptions},
+        components: {PersonForm, DocumentFormItem, DocumentOptions},
         // mixins: [Helper],
         data() {
             return {
-                itemsLoaded: false,
                 datEmision: {
                   disabledDate(time) {
                     return time.getTime() > moment();
                   }
                 },
-                input_person:{},
-                company:{},
-                is_client:false,
+                itemsLoaded: false,
+                input_person: {},
+                company: {},
+                is_client: false,
                 recordItem: null,
                 resource: 'co-documents',
+                resource_pos: 'document-pos',
                 showDialogAddItem: false,
                 showDialogAddRetention: false,
                 showDialogNewPerson: false,
@@ -297,7 +278,9 @@
                 loading_submit: false,
                 loading_form: false,
                 errors: {},
-                form: {},
+                form: {
+                    type_eq_doc: null,
+                },
                 nc_resolution_id: null,
                 nc_resolution_id: null,
                 note_concepts: [],
@@ -324,7 +307,7 @@
         async created() {
 //            console.log(this.command)
             await this.initForm()
-            await this.$http.get(`/${this.resource}/tables`)
+            await this.$http.get(`/${this.resource_pos}/tables`)
                 .then(response => {
                     this.all_customers = response.data.customers;
                     this.taxes = response.data.taxes
@@ -337,6 +320,8 @@
                     this.nc_resolution_id = response.data.nc_resolution_id
                     this.nd_resolution_id = response.data.nd_resolution_id
                     this.filterCustomers();
+                    if(this.note.electronic)
+                        this.form.type_eq_doc = JSON.parse(this.note.request_api).type_document_id
                     this.typeNoteDocuments()
                     this.load_invoice();
                 })
@@ -345,6 +330,7 @@
             else
                 this.customers = this.all_customers
             this.loading_form = true
+//            console.log(JSON.stringify(this.note))
             if(this.note){
                 this.$eventHub.$on('reloadDataPersons', (customer_id) => {
                     this.reloadDataCustomers(customer_id)
@@ -353,14 +339,14 @@
             this.$eventHub.$on('initInputPerson', () => {
                 this.initInputPerson()
             })
-            if(this.nc_resolution_id && this.command === "credito"){
-                this.form.type_document_id = this.nc_resolution_id
-                this.changeDocumentType()
-            }
-            if(this.nd_resolution_id && this.command === "debito"){
-                this.form.type_document_id = this.nd_resolution_id
-                this.changeDocumentType()
-            }
+//            if(this.nc_resolution_id && this.command === "credito"){
+//                this.form.type_document_id = this.nc_resolution_id
+//                this.changeDocumentType()
+//            }
+//            if(this.nd_resolution_id && this.command === "debito"){
+//                this.form.type_document_id = this.nd_resolution_id
+//                this.changeDocumentType()
+//            }
         },
 
         methods: {
@@ -373,14 +359,25 @@
 
             typeNoteDocuments() {
 //                console.log(this.all_type_documents)
+//                console.log(this.form.type_eq_doc)
                 if(this.command === null)
-                    this.type_documents = this.all_type_documents.filter(row => row.code === "4" || row.code === "5");
+                    if(this.form.type_eq_doc === 1)
+                        this.type_documents = this.all_type_documents.filter(row => row.code === "4" || row.code === "5");
+                    else
+                        this.type_documents = this.all_type_documents.filter(row => row.code === "26" || row.code === "25");
                 else
                     if(this.command === "credito")
-                        this.type_documents = this.all_type_documents.filter(row => row.code === "4");
+                        if(this.form.type_eq_doc === 1)
+                            this.type_documents = this.all_type_documents.filter(row => row.code === "4");
+                        else
+                            this.type_documents = this.all_type_documents.filter(row => row.code === "26");
+
                     else
                         if(this.command === "debito")
-                            this.type_documents = this.all_type_documents.filter(row => row.code === "5");
+                            if(this.form.type_eq_doc === 1)
+                                this.type_documents = this.all_type_documents.filter(row => row.code === "5");
+                            else
+                                this.type_documents = this.all_type_documents.filter(row => row.code === "25");
             },
 
             ratePrefix(tax = null) {
@@ -442,17 +439,14 @@
                 return formattedPrice;
             },
 
-            ediItem(row, index)
-            {
+            ediItem(row, index){
                 row.indexi = index
                 this.recordItem = row
                 this.showDialogAddItem = true
-
             },
 
             searchRemoteCustomers(input) {
                 if (input.length > 0) {
-
                     this.loading_search = true
                     let parameters = `input=${input}&type_document_id=${this.form.type_document_id}&operation_type_id=${this.form.operation_type_id}`
 
@@ -486,9 +480,10 @@
 //                    console.log(row.item)
                     row.item = this.prepareIndividualItem(row)
 //                    row.price = row.unit_price
-//                    console.log(row.item)
-                    row.price = row.item.price ? row.item.price : row.item.price_amount
+                    row.price = row.item.price ? row.item.price : row.item.unit_price
+                    row.subtotal = row.item.unit_price * row.quantity
                     row.id = row.item.id
+//                    console.log(row)
                     return row
                 })
             },
@@ -502,6 +497,7 @@
             initForm() {
 //                console.log(this.note)
                 this.form = {
+                    type_eq_doc: null,
                     customer_id: this.note ? this.note.customer_id : null,
                     type_document_id: null,
                     note_concept_id: null,
@@ -804,13 +800,13 @@
                         total -= Number(tax.retention).toFixed(2);
                     }
                 });
-
                 val.total = Number(total).toFixed(2)
+            },
 
-            },
             close() {
-                location.href = (this.is_contingency) ? `/contingencies` : `/${this.resource}`
+                location.href = (this.is_contingency) ? `/contingencies` : `/document-pos/index`
             },
+
             reloadDataCustomers(customer_id) {
                 // this.$http.get(`/${this.resource}/table/customers`).then((response) => {
                 //     this.customers = response.data
@@ -836,8 +832,10 @@
                 this.form.note_service = this.noteService;
                 // return
                 this.loading_submit = true
+                this.form.payment_form_id = 1;
+                this.form.payment_method_id = 10;
 //                console.log(this.form)
-                this.$http.post(`/${this.resource}/note`, this.form).then(response => {
+                this.$http.post(`/${this.resource_pos}/note`, this.form).then(response => {
                     if (response.data.success) {
                         this.resetForm();
                         this.documentNewId = response.data.data.id;
@@ -894,8 +892,8 @@
 //                console.log(this.noteService)
                 if(this.note){
                     this.noteService.billing_reference = {
-                        number: this.note.prefix + '-' + String(this.note.correlative_api),
-                        uuid: this.note.response_api_cufe,
+                        number: this.note.prefix + '-' + String(this.note.number),
+                        uuid: this.note.cude,
                         issue_date: moment(this.note.date_issue).format('YYYY-MM-DD')
                     };
                 }
@@ -904,7 +902,7 @@
                 this.noteService.tax_totals = await this.getTaxTotal();
                 this.noteService.with_holding_tax_total = await this.getWithHolding();
 
-                if(this.noteService.type_document_id == 4)
+                if(this.noteService.type_document_id == 4 || this.noteService.type_document_id == 26)
                 {
                     this.noteService.legal_monetary_totals = await this.getLegacyMonetaryTotal();
                     this.noteService.credit_note_lines = await this.getCreditNoteLines();
@@ -912,7 +910,7 @@
                         this.noteService.legal_monetary_totals.allowance_total_amount, this.noteService.legal_monetary_totals.line_extension_amount
                     );
                 }
-                else if(this.noteService.type_document_id == 5){
+                else if(this.noteService.type_document_id == 5 || this.noteService.type_document_id == 25){
                     this.noteService.requested_monetary_totals = await this.getLegacyMonetaryTotal();
                     this.noteService.debit_note_lines = await this.getCreditNoteLines();
                     /*this.noteService.allowance_charges = await this.createAllowanceCharge(
