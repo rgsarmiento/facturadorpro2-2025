@@ -20,6 +20,15 @@ class HttpConnectionApi
     public function sendRequestToApi($url, $params, $method = 'PUT')
     {
         try {
+            if (isset($params['accrued']['severance']) && is_array($params['accrued']['severance'])) {
+                foreach ($params['accrued']['severance'] as $key => $severanceObj) {
+                    if (is_object($severanceObj) && isset($severanceObj->quantity)) {
+                        unset($severanceObj->quantity);
+                    } elseif (is_array($severanceObj) && isset($severanceObj['quantity'])) {
+                        unset($params['accrued']['severance'][$key]['quantity']);
+                    }
+                }
+            }
 //            \Log::debug($url);
 //            \Log::debug(json_encode($params));
 //            \Log::debug($this->api_token);
