@@ -8,7 +8,7 @@
             $filename_logo = public_path("storage/uploads/logos/{$company->logo}");
     }
     else
-        $filename_logo = public_path("storage/uploads/logos/{$company->logo}");
+        $filename_logo = "";
 @endphp
 <!DOCTYPE html>
 <html>

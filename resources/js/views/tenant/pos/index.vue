@@ -1167,7 +1167,7 @@ export default {
 
             const payload = {
                 id: this.selectedProduct.item_id,
-                nombre: this.selectedProduct.description,
+                nombre: this.selectedProduct.name,
                 precio: this.selectedProduct.sale_unit_price_with_tax,
                 cantidad: this.selectedQuantity,
                 mesa: selected_table,
@@ -2267,6 +2267,8 @@ export default {
                 try {
                     const response = await this.$http.post(`/${this.resource}/actualizar_estado_item/${item.db_Id}`);
                     if (response.data.success) {
+                        this.form.items.splice(index, 1);
+                    }else{
                         this.form.items.splice(index, 1);
                     }
                 } catch (error) {
