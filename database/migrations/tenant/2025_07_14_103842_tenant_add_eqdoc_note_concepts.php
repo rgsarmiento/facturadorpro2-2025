@@ -14,16 +14,32 @@ class TenantAddEqDocNoteConcepts extends Migration
      */
     public function up()
     {
+        // Primero verificamos si ya existen registros con los IDs que queremos usar
+        $existingId998 = \DB::connection('tenant')->table('co_type_documents')->where('id', 998)->first();
+        $existingId999 = \DB::connection('tenant')->table('co_type_documents')->where('id', 999)->first();
+
+        // Si ya existe un registro con ID 998, lo eliminamos temporalmente
+        if ($existingId998) {
+            \DB::connection('tenant')->table('co_type_documents')->where('id', 998)->delete();
+        }
+
+        // Si ya existe un registro con ID 999, lo eliminamos temporalmente
+        if ($existingId999) {
+            \DB::connection('tenant')->table('co_type_documents')->where('id', 999)->delete();
+        }
+
+        // Ahora insertamos o actualizamos los registros con los códigos específicos
         \DB::connection('tenant')->table('co_type_documents')->updateOrInsert(
-            ['id' => 998],
-            ['code' => 26, 'name' => 'Nota de crédito al Documento Equivalente', 'resolution_number' => '12345', 'template' => 'face_c', 'prefix' => 'NCDE', 'from' => 1, 'to' => 99999999]
+            ['code' => 26, 'prefix' => 'NCDE'],
+            ['id' => 998, 'name' => 'Nota de crédito al Documento Equivalente', 'resolution_number' => '12345', 'template' => 'face_c', 'from' => 1, 'to' => 99999999]
         );
+
         \DB::connection('tenant')->table('co_type_documents')->updateOrInsert(
-            ['id' => 999],
-            ['code' => 25, 'name' => 'Nota de debito al Documento Equivalente', 'resolution_number' => '12345', 'template' => 'face_d', 'prefix' => 'NDDE', 'from' => 1, 'to' => 99999999]
+            ['code' => 25, 'prefix' => 'NDDE'],
+            ['id' => 999, 'name' => 'Nota de debito al Documento Equivalente', 'resolution_number' => '12345', 'template' => 'face_d', 'from' => 1, 'to' => 99999999]
         );
-        DB::connection('tenant')->table('co_type_documents')->where('code', 25)->where('prefix', 'NDDE')->update(['id' => 999]);
-        DB::connection('tenant')->table('co_type_documents')->where('code', 26)->where('prefix', 'NCDE')->update(['id' => 998]);
+
+        // Crear los conceptos de nota
         NoteConcept::updateOrCreate(['id' => 9], ['id' => 9, 'type_document_id' => 998, 'name' => 'Devolución parcial de los bienes y/o no aceptación parcial del servicio', 'code' => '1']);
         NoteConcept::updateOrCreate(['id' => 10], ['id' => 10, 'type_document_id' => 998, 'name' => 'Anulación del documento equivalente', 'code' => '2']);
         NoteConcept::updateOrCreate(['id' => 11], ['id' => 11, 'type_document_id' => 998, 'name' => 'Rebaja  o descuento parcial o total', 'code' => '3']);
@@ -32,6 +48,8 @@ class TenantAddEqDocNoteConcepts extends Migration
         NoteConcept::updateOrCreate(['id' => 14], ['id' => 14, 'type_document_id' => 999, 'name' => 'Intereses', 'code' => '1']);
         NoteConcept::updateOrCreate(['id' => 15], ['id' => 15, 'type_document_id' => 999, 'name' => 'Gastos por cobrar', 'code' => '2']);
         NoteConcept::updateOrCreate(['id' => 16], ['id' => 16, 'type_document_id' => 999, 'name' => 'Cambio del valor', 'code' => '3']);
+
+        // Actualizar registros existentes en co_note_concepts si es necesario
         DB::connection('tenant')->table('co_note_concepts')->where('code', 1)->where('type_document_id', 998)->update(['id' => 9]);
         DB::connection('tenant')->table('co_note_concepts')->where('code', 2)->where('type_document_id', 998)->update(['id' => 10]);
         DB::connection('tenant')->table('co_note_concepts')->where('code', 3)->where('type_document_id', 998)->update(['id' => 11]);
