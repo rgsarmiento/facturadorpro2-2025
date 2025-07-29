@@ -435,7 +435,7 @@
                         </button>
 
                         <button class="btn btn-custom btn-lg mb-3" type="button" @click="abrirModalFactura(selected_table, dbId)">
-                            <i class="fa fa-receipt"></i> Resumen
+                            <i class="fa fa-receipt"></i> Estado de Cuenta
                         </button>
                         <button class="btn btn-custom btn-lg mb-3" type="button" @click="eliminarCuenta(dbId)" id="btnEliminarCuenta">
                             <span class="spinner-border spinner-border-sm me-2 d-none" role="status" aria-hidden="true"></span>
@@ -697,17 +697,20 @@
                     <button type="button" class="btn btn-danger" data-dismiss="modal" aria-label="Cerrar">X</button>
                 </div>
                 <div class="modal-body">
-                    <div v-if="pdfUrl">
-                        <iframe
-                            :src="pdfUrl"
-                            width="100%"
-                            height="600px"
-                            style="border: none;"
-                        ></iframe>
+                    <div v-if="!pdfLoaded" class="text-center py-4">
+                        <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+                            <span class="sr-only">Cargando...</span>
+                        </div>
+                        <p class="mt-2">Cargando documento...</p>
                     </div>
-                    <div v-else class="text-center">
-                        <p>Cargando documento...</p>
-                    </div>
+                    <iframe
+                        v-show="pdfLoaded"
+                        :src="pdfUrl"
+                        width="100%"
+                        height="600px"
+                        style="border: none;"
+                        @load="onPdfLoad"
+                    ></iframe>
                 </div>
             </div>
         </div>
@@ -958,6 +961,8 @@ export default {
             pdfUrl: null,
             vistaCambiada: false,
             showExpenseFormModal: false,
+            pdfUrl: null,
+            pdfLoaded: false,
         };
     },
 
@@ -1055,11 +1060,12 @@ export default {
             this.selectedQuantity++;
         },
         abrirModalFactura(selected_table, dbId) {
+            this.pdfLoaded = false;
             document.body.style.cursor = 'wait';
+
             const mesaId = dbId;
             const establecimiento = this.establishment.id;
             const customerId = this.form.customer_id;
-
             const timestamp = new Date().getTime();
 
             this.pdfUrl = `/${this.resource}/record_detalle?mesaId=${mesaId}&establecimiento=${establecimiento}&customer=${customerId}&_=${timestamp}`;
@@ -1067,7 +1073,12 @@ export default {
             const modalElement = document.getElementById('modal_pdf_cuenta');
             const modal = new Modal(modalElement);
             modal.show();
+
             document.body.style.cursor = 'default';
+        },
+
+        onPdfLoad() {
+            this.pdfLoaded = true;
         },
         cambiarContenido() {
             if (this.vistaCambiada || this.tables_quantity <= 0) return;
@@ -1419,6 +1430,7 @@ export default {
             });
 
             document.getElementById('closeModalBtnCuenta').click();
+            document.getElementById('closeModalBtn').click();
         },
         formatearPrecio(precio) {
             return Number(precio).toLocaleString('es-CO', { style: 'currency', currency: 'COP' });
