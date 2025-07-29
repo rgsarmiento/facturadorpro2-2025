@@ -576,6 +576,12 @@ export default {
 
         let tax = [];
         this.document.items.forEach(element => {
+            // Verificar que element.tax no sea null o undefined
+            if (!element.tax) {
+                console.warn('Elemento sin información de impuesto:', element);
+                return; // Saltar este elemento
+            }
+
             let find = tax.find(x => x.tax_id == element.tax.type_tax_id && x.percent == element.tax.rate);
             if(find)
             {
@@ -632,7 +638,9 @@ export default {
 
     getInvoiceLines() {
 
-        let data = this.document.items.map(x => {
+        let data = this.document.items
+            .filter(x => x.tax) // Filtrar elementos que tengan tax definido
+            .map(x => {
             return {
 
                 unit_measure_id: x.item.unit_type.code, //codigo api dian de unidad

@@ -96,7 +96,6 @@
         },
 
         async mounted () {
-           // let column_resource = _.split(this.resource, '/')
            // console.log(column_resource)
             await this.$http.get(`/${this.resource}/columns`).then((response) => {
                 this.columns = response.data

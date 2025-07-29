@@ -144,6 +144,10 @@ class Worker extends PayrollBaseModel
     {
         return [
             'id' => $this->id,
+            'code' => $this->code,
+            'payroll_type_document_identification_id' => $this->payroll_type_document_identification_id,
+            'cellphone' => $this->cellphone,
+            'position' => $this->position,
             'search_fullname' => $this->search_fullname,
             'salary' => $this->salary,
             'work_start_date' => $this->work_start_date,
@@ -167,6 +171,7 @@ class Worker extends PayrollBaseModel
             'type_worker_id' => $this->type_worker_id,
             'sub_type_worker_id' => $this->sub_type_worker_id,
             'payroll_type_document_identification_id' => $this->payroll_type_document_identification_id,
+            'payroll_type_document_identification_name' => PayrollTypeDocumentIdentification::find($this->payroll_type_document_identification_id)->name ?? null,
             'municipality_id' => $this->municipality_id,
             'type_contract_id' => $this->type_contract_id,
             'identification_number' => $this->identification_number,

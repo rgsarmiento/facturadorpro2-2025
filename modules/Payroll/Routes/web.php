@@ -5,9 +5,7 @@ $hostname = app(Hyn\Tenancy\Contracts\CurrentHostname::class);
 if($hostname) {
     Route::domain($hostname->fqdn)->group(function () {
         Route::middleware(['auth', 'redirect.module', 'locked.tenant'])->group(function() {
-
             Route::prefix('payroll')->group(function () {
-
                 // registro nómina
                 Route::prefix('document-payrolls')->group(function () {
                     Route::get('', 'DocumentPayrollController@index')->name('tenant.payroll.document-payrolls.index');
@@ -21,8 +19,22 @@ if($hostname) {
                     Route::get('downloadFile/{filename}', 'DocumentPayrollController@downloadFile');
                     Route::post('send-email', 'DocumentPayrollController@sendEmail');
                     Route::post('query-zipkey', 'DocumentPayrollController@queryZipkey');
-                    Route::post('block-payrolls-index', 'DocumentPayrollController@blockPayrollsIndex')->name('tenant.block-payrolls.index');
-                    Route::post('block-payrolls-create', 'DocumentPayrollController@blockPayrollsCreate')->name('tenant.block-payrolls.create');
+                });
+
+                // Bloque de nóminas
+                Route::prefix('block-payrolls')->group(function () {
+                    Route::get('', 'BlockPayrollController@index')->name('tenant.block-payrolls.index');
+                    Route::get('create', 'BlockPayrollController@create')->name('tenant.block-payrolls.create');
+                    Route::get('tables', 'BlockPayrollController@tables');
+                    Route::get('columns', 'BlockPayrollController@columns');
+                    Route::get('records', 'BlockPayrollController@records');
+                    Route::get('table/{table}', 'BlockPayrollController@table');
+                    Route::post('', 'BlockPayrollController@store');
+                    Route::get('record/{record}', 'BlockPayrollController@record');
+                    Route::get('active-workers', 'BlockPayrollController@activeWorkers');
+                    Route::get('downloadFile/{filename}', 'BlockPayrollController@downloadFile');
+                    Route::post('send-email', 'BlockPayrollController@sendEmail');
+                    Route::post('query-zipkey', 'BlockPayrollController@queryZipkey');
                 });
 
                 // nómina eliminación y ajuste

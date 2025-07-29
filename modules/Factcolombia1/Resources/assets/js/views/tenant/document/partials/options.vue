@@ -190,7 +190,7 @@
             },
 
             clickFinalize() {
-                location.href = (this.isContingency) ? `/contingencies` : `/document-pos/index`
+                location.href = this.isEqDoc ? `/document-pos/index` : `/co-documents`;
             },
 
             clickNewDocument() {

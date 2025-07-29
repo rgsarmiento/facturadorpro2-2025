@@ -320,6 +320,7 @@ Vue.component('tenant-workers-index', require('@viewsModulePayroll/workers/index
 Vue.component('tenant-document-payrolls-index', require('@viewsModulePayroll/document-payrolls/index.vue'));
 Vue.component('tenant-document-payrolls-form', require('@viewsModulePayroll/document-payrolls/form.vue'));
 Vue.component('tenant-block-payrolls-index', require('@viewsModulePayroll/block-payrolls/index.vue'));
+Vue.component('tenant-block-payrolls-form', require('@viewsModulePayroll/block-payrolls/form.vue'));
 
 // Vue.component('tenant-type-workers-index', require('@viewsModulePayroll/type-workers/index.vue'));
 // Vue.component('tenant-sub-type-workers-index', require('@viewsModulePayroll/sub-type-workers/index.vue'));
