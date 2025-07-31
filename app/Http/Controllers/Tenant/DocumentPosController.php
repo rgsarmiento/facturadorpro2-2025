@@ -1902,7 +1902,7 @@ class DocumentPosController extends Controller
 
     public function downloadExternal($external_id){
         $document = DocumentPos::where('external_id', $external_id)->first();
-        $type_document_id = json_decode($document->request_api)->type_document_id;
+        $type_document_id = $document->electronic ? json_decode($document->request_api)->type_document_id : null;
         if($type_document_id == 4 || $type_document_id == 26){
             $company = ServiceTenantCompany::firstOrFail();
             $base_url = config('tenant.service_fact');
