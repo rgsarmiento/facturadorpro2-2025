@@ -27,8 +27,8 @@ class DocumentPosResource extends JsonResource
            (strpos($this->response_api, 'NCS') != 0 && strpos($this->response_api, 'La Nota de cr') != 0 && strpos($this->response_api, 'dito electr') != 0))
            $response_api->urlinvoicepdf = str_replace('NCQS', 'NCS', $response_api->urlinvoicepdf);
 
-        $download_xml = "{$base_url_api}download/{$company->identification_number}/{$response_api->urlinvoicexml}";
-        $download_pdf = "{$base_url_api}download/{$company->identification_number}/{$response_api->urlinvoicepdf}";
+        $download_xml = $isEqDoc ? "{$base_url_api}download/{$company->identification_number}/{$response_api->urlinvoicexml}" : null;
+        $download_pdf = $isEqDoc ? "{$base_url_api}download/{$company->identification_number}/{$response_api->urlinvoicepdf}" : null;
         $customer = is_string($this->customer) ? json_decode($this->customer) : $this->customer;
         if($this->response_api){
             $response = json_decode($this->response_api);
@@ -53,11 +53,11 @@ class DocumentPosResource extends JsonResource
             'number' => $this->number,
             'customer_email' => $customer->email,
             'customer_phone' => $isEqDoc ? $customer->phone : $customer->telephone,
-            'response_api_message' => $response_api_message,
+            'response_api_message' => $isEqDoc ? $response_api_message : null,
             'download_xml' => $download_xml,
             'download_pdf' => $download_pdf,
             'state_document_id' => $this->state_document_id,
-            'response_message_query_zipkey' => $this->response_message_query_zipkey,
+            'response_message_query_zipkey' => $isEqDoc ? $this->response_message_query_zipkey : null,
             'type_environment_id' => $this->type_environment_id,
         ];
     }
