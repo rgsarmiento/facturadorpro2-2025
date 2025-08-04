@@ -248,6 +248,7 @@ class DocumentPos extends ModelTenant
         return [
             'id' => $this->id,
             'date_of_issue' => $this->date_of_issue->format('Y-m-d'),
+            'created_at' => $this->created_at,
             'customer_name' => $this->customer->name,
             'customer_number' => $this->customer->number,
             'currency_type_id' => $this->currency->name,

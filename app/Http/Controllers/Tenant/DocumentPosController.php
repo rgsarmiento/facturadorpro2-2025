@@ -100,8 +100,8 @@ class DocumentPosController extends Controller
     {
         return [
             'date_of_issue' => 'Fecha de emisión',
-//            'number' => 'Número',
-//            'customer' => 'Cliente',
+            'number' => 'Número',
+            //'customer' => 'Cliente',
         ];
     }
 
@@ -114,8 +114,20 @@ class DocumentPosController extends Controller
 
     public function records(Request $request)
     {
-        $records = DocumentPos::where($request->column, 'like', "%{$request->value}%")->latest('id');
-        return new DocumentPosCollection($records->paginate(config('tenant.items_per_page')));
+        $query = DocumentPos::query();
+        $validColumns = ['date_of_issue', 'state_type_id', 'number', 'customer'];
+        $column = $request->get('column');
+        $value = $request->get('value');
+
+        if (in_array($column, $validColumns) && $request->filled('value')) {
+            $query->where($column, 'like', "{$value}%");
+        }
+
+        if ($request->filled('state_type_id')) {
+            $query->where('state_type_id', $request->get('state_type_id'));
+        }
+
+        return new DocumentPosCollection($query->latest('id')->paginate(config('tenant.items_per_page')));
     }
 
     public function credit_note($id){
