@@ -71,6 +71,15 @@
                                             <small v-if="periodDateError" class="text-danger">{{ periodDateError }}</small>
                                         </div>
                                     </div>
+                                    <div class="col-md-3">
+                                        <div class="form-group">
+                                            <label class="control-label">Resolución</label>
+                                            <el-select @change="changeResolution" v-model="form.type_document_id" class="border-left rounded-left border-info">
+                                                <el-option v-for="option in form.tables.resolutions" :key="option.id" :value="option.id" :label="`${option.prefix} / ${option.resolution_number ? option.resolution_number : ''} / ${option.from ? option.from : ''} / ${option.to ? option.to : ''}`"></el-option>
+                                            </el-select>
+                                            <small class="form-control-feedback" v-if="errors.type_document_id" v-text="errors.type_document_id[0]"></small>
+                                        </div>
+                                    </div>
                                 </div>
                                 <div class="row mt-4">
                                     <div class="col-md-12">
@@ -134,6 +143,41 @@
                                     </div>
                                 </div>
                             </el-tab-pane>
+                            <el-tab-pane label="Periodo" name="period">
+                                <div class="row">
+                                    <div class="col-md-3">
+                                        <div class="form-group" :class="{'has-danger': errors['period.admision_date']}">
+                                            <label class="control-label">Fecha de admisión<span class="text-danger"> *</span>
+                                                <el-tooltip class="item" effect="dark" content="Fecha de inicio de labores del empleado" placement="top-start">
+                                                    <i class="fa fa-info-circle"></i>
+                                                </el-tooltip>
+                                            </label>
+                                            <el-date-picker v-model="form.period.admision_date" type="date" value-format="yyyy-MM-dd" :clearable="false"></el-date-picker>
+                                            <small class="form-control-feedback" v-if="errors['period.admision_date']" v-text="errors['period.admision_date'][0]"></small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="form-group" :class="{'has-danger': errors['period.worked_time']}">
+                                            <label class="control-label">Tiempo trabajado<span class="text-danger"> *</span></label>
+                                            <el-input-number v-model="form.period.worked_time" :min="0" controls-position="right"></el-input-number>
+                                            <small class="form-control-feedback" v-if="errors['period.worked_time']" v-text="errors['period.worked_time'][0]"></small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-3">
+                                        <div class="form-group" :class="{'has-danger': errors.payroll_period_id}">
+                                            <label class="control-label">Periodo de nómina<span class="text-danger"> *</span>
+                                                <el-tooltip class="item" effect="dark" content="Frecuencia de pago" placement="top-start">
+                                                    <i class="fa fa-info-circle"></i>
+                                                </el-tooltip>
+                                            </label>
+                                            <el-select v-model="form.payroll_period_id"   filterable class="border-left rounded-left border-info">
+                                                <el-option v-for="option in form.tables.payroll_periods" :key="option.id" :value="option.id" :label="option.name"></el-option>
+                                            </el-select>
+                                            <small class="form-control-feedback" v-if="errors.payroll_period_id" v-text="errors.payroll_period_id[0]"></small>
+                                        </div>
+                                    </div>
+                                </div>
+                            </el-tab-pane>
                         </el-tabs>
                     </div>
                     <div class="row mt-4">
@@ -177,6 +221,13 @@
                 form: {
                     date_of_issue: '',
                     time_of_issue: '',
+                    period: {
+                        admision_date: moment().format('YYYY-MM-DD'),
+                        settlement_start_date: null,
+                        settlement_end_date: null,
+                        worked_time: 0,
+                        issue_date: moment().format('YYYY-MM-DD'),
+                    },
                     workers_quantity: 0,
                     accrued_total: 0,
                     deductions_total: 0,
@@ -184,12 +235,13 @@
                     period_end: '',
                     period_type: 'mensual',
                     items: [],
+                    tables: { resolutions: [] }, // Inicialización para evitar errores
                 },
                 activeName: 'active-workers',
                 selectedWorkerId: null,
                 globalGenerateProvisions: false,
                 periodDateError: '',
-            }
+            };
         },
 
         async created() {
@@ -246,10 +298,6 @@
                 this.form.time_of_issue = now.toTimeString().slice(0, 8);
             },
 
-            getTables(){
-
-            },
-
             getActiveWorkers() {
                 this.loading = true
                 this.$http.get(`/${this.resource}/active-workers`).then((response) => {
@@ -266,12 +314,23 @@
             getTables() {
                 this.loading = true
                 this.$http.get(`/${this.resource}/tables`).then((response) => {
-                    this.form.tables = response.data
+                    this.form.tables = response.data || { resolutions: [] }; // Asegurar estructura
+                    console.log('Tables loaded:', this.form.tables)
                     this.loading = false
                 }).catch((error) => {
                     this.loading = false
                     this.$message.error(getValueIfNull(error.response.data.message, 'Error al cargar las tablas'))
                 })
+            },
+
+            changeResolution() {
+                if (this.form.tables && this.form.tables.resolutions) { // Verificación añadida
+                    let resolution = _.find(this.form.tables.resolutions, { id: this.form.type_document_id });
+                    if (resolution) {
+                        this.form.prefix = resolution.prefix;
+                        this.form.resolution_number = resolution.resolution_number;
+                    }
+                }
             },
 
             removeItem(index) {
