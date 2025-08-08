@@ -157,7 +157,7 @@ class Worker extends PayrollBaseModel
             'payment' => $this->payment ?? $this->getDefaultDataPayment(),
             'is_type_worker_sena' => $this->is_type_worker_sena,
             'discount_pension' => $this->discount_pension,
-            'generate_provisions' => false, // Valor por defecto para el switch
+            // generate_provisions será establecido por el frontend según el contexto
         ];
     }
 

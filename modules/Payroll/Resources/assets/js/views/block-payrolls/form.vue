@@ -42,7 +42,9 @@
                             <!-- Campos para period -->
                             <div class="col-md-3">
                                 <div class="form-group" :class="{'has-danger': errors.period_start}">
-                                    <label>Fecha de inicio de periodo<span class="text-danger"> *</span></label>
+                                    <label>Fecha de inicio de periodo<span class="text-danger"> *</span>
+                                        <small v-if="editMode" class="text-muted">(No editable)</small>
+                                    </label>
                                     <el-date-picker
                                         v-model="form.period_start"
                                         type="date"
@@ -50,6 +52,7 @@
                                         value-format="yyyy-MM-dd"
                                         format="yyyy-MM-dd"
                                         class="w-100"
+                                        :disabled="editMode"
                                         @change="validatePeriodDates"
                                     ></el-date-picker>
                                     <small class="form-control-feedback" v-if="errors.period_start" v-text="errors.period_start[0]"></small>
@@ -57,7 +60,9 @@
                             </div>
                             <div class="col-md-3">
                                 <div class="form-group" :class="{'has-danger': errors.period_end}">
-                                    <label>Fecha de fin de periodo<span class="text-danger"> *</span></label>
+                                    <label>Fecha de fin de periodo<span class="text-danger"> *</span>
+                                        <small v-if="editMode" class="text-muted">(No editable)</small>
+                                    </label>
                                     <el-date-picker
                                         v-model="form.period_end"
                                         type="date"
@@ -65,6 +70,7 @@
                                         value-format="yyyy-MM-dd"
                                         format="yyyy-MM-dd"
                                         class="w-100"
+                                        :disabled="editMode"
                                         @change="validatePeriodDates"
                                     ></el-date-picker>
                                     <small v-if="periodDateError" class="text-danger">{{ periodDateError }}</small>
@@ -380,10 +386,10 @@
         async created() {
             this.setCurrentDateTime();
             await this.getTables();
-            
+
             // Detectar modo edición basado en la URL
             this.detectEditMode();
-            
+
             if (this.editMode) {
                 await this.loadBlockPayrollData();
             } else {
@@ -553,7 +559,7 @@
                 const employeePaymentData = {};
                 selectedWorkers.forEach(workerId => {
                     const paymentData = this.employeePaymentData[workerId] || {};
-                    
+
                     employeePaymentData[workerId] = {
                         worker_id: workerId,
                         payment_method_id: paymentData.payment_method_id || null,
@@ -574,10 +580,10 @@
                 }
 
                 // Determinar endpoint según modo
-                const endpoint = this.editMode 
-                    ? `/${this.resource}/update-block/${this.blockPayrollId}` 
+                const endpoint = this.editMode
+                    ? `/${this.resource}/update-block/${this.blockPayrollId}`
                     : `/${this.resource}/store-without-generate`;
-                
+
                 const method = this.editMode ? 'put' : 'post';
 
                 // Enviar al backend
@@ -773,11 +779,11 @@
 
                 // Inicializar datos por defecto para cada empleado
                 this.form.items.forEach(worker => {
-                    // Inicializar generate_provisions si no existe
-                    if (worker.generate_provisions === undefined) {
+                    // Inicializar generate_provisions si no existe (solo establecer valor por defecto)
+                    if (worker.generate_provisions === undefined || worker.generate_provisions === null) {
                         this.$set(worker, 'generate_provisions', false);
                     }
-                    
+
                     if (!this.employeePeriodData[worker.id]) {
                         const admisionDate = worker.work_start_date || defaultDate;
 
@@ -1027,7 +1033,7 @@
                 // Detectar si estamos en modo edición basado en la URL
                 const currentPath = window.location.pathname;
                 const editMatch = currentPath.match(/\/payroll\/block-payrolls\/edit-block\/(\d+)/);
-                
+
                 if (editMatch) {
                     this.editMode = true;
                     this.blockPayrollId = parseInt(editMatch[1]);
@@ -1039,7 +1045,7 @@
                 try {
                     const response = await this.$http.get(`/${this.resource}/edit-block/${this.blockPayrollId}`);
                     const blockPayroll = response.data;
-                    
+
                     // Cargar datos básicos del formulario
                     this.form.date_of_issue = blockPayroll.date_of_issue;
                     this.form.time_of_issue = blockPayroll.time_of_issue;
@@ -1051,28 +1057,39 @@
                     this.form.workers_quantity = blockPayroll.workers_quantity;
                     this.form.accrued_total = blockPayroll.accrued_total;
                     this.form.deductions_total = blockPayroll.deductions_total;
-                    
+
                     // Cargar trabajadores desde el payload
                     if (blockPayroll.payload && blockPayroll.payload.selected_workers) {
                         const workerIds = blockPayroll.payload.selected_workers;
                         await this.loadWorkersForEdit(workerIds);
-                        
+
                         // Inicializar datos por defecto para todos los empleados
                         this.initializeEmployeesArray();
-                        
+
                         // Cargar datos de período de cada empleado (sobrescribir los por defecto)
                         if (blockPayroll.payload.employee_period_data) {
                             this.employeePeriodData = blockPayroll.payload.employee_period_data;
                         }
-                        
+
                         // Cargar datos de pago de cada empleado (sobrescribir los por defecto)
                         if (blockPayroll.payload.employee_payment_data) {
                             this.employeePaymentData = blockPayroll.payload.employee_payment_data;
                         }
-                        
+
+                        // Restaurar valores de generate_provisions desde el payload
+                        if (blockPayroll.payload.employee_period_data) {
+                            this.form.items.forEach(worker => {
+                                const periodData = blockPayroll.payload.employee_period_data[worker.id];
+                                if (periodData && periodData.generate_provisions !== undefined) {
+                                    console.log(`Restaurando generate_provisions para worker ${worker.id}:`, periodData.generate_provisions);
+                                    this.$set(worker, 'generate_provisions', periodData.generate_provisions);
+                                }
+                            });
+                        }
+
                         // Seleccionar el primer trabajador
                         this.selectedWorkerId = this.form.items.length > 0 ? this.form.items[0].id : null;
-                        
+
                         // Cargar datos del primer empleado
                         if (this.selectedWorkerId) {
                             this.$nextTick(() => {
@@ -1081,7 +1098,7 @@
                             });
                         }
                     }
-                    
+
                     this.loading = false;
                 } catch (error) {
                     this.loading = false;
@@ -1093,10 +1110,10 @@
             async loadWorkersForEdit(workerIds) {
                 try {
                     // Obtener datos completos de los trabajadores
-                    const workersPromises = workerIds.map(id => 
+                    const workersPromises = workerIds.map(id =>
                         this.$http.get(`/payroll/workers/search-by-id/${id}`)
                     );
-                    
+
                     const workersResponses = await Promise.all(workersPromises);
                     // El endpoint devuelve {workers: [...]} así que necesitamos extraer workers[0]
                     this.form.items = workersResponses.map(response => response.data.workers[0]).filter(worker => worker);

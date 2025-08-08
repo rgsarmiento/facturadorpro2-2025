@@ -51,7 +51,7 @@ class BlockPayrollController extends Controller
     public function editBlock($id)
     {
         $blockPayroll = BlockPayroll::findOrFail($id);
-        
+
         // Solo permitir edición si el estado es "Registrado" (state_block_id = 1)
         if ($blockPayroll->state_block_id !== 1) {
             if (request()->expectsJson()) {
@@ -59,12 +59,12 @@ class BlockPayrollController extends Controller
             }
             return redirect()->route('tenant.block-payrolls.index')->with('error', 'Solo se pueden editar bloques de nómina en estado "Registrado"');
         }
-        
+
         // Si es una petición AJAX, devolver datos JSON
         if (request()->expectsJson()) {
             return response()->json($blockPayroll);
         }
-        
+
         // Si no es AJAX, devolver vista
         return view('payroll::block-payrolls.form', compact('blockPayroll'));
     }
@@ -386,7 +386,7 @@ class BlockPayrollController extends Controller
 
     /**
      * Actualizar un bloque de nómina existente
-     * 
+     *
      * @param Request $request
      * @param int $id
      * @return array
@@ -395,7 +395,7 @@ class BlockPayrollController extends Controller
     {
         try {
             $blockPayroll = BlockPayroll::findOrFail($id);
-            
+
             // Solo permitir actualización si el estado es "Registrado" (state_block_id = 1)
             if ($blockPayroll->state_block_id !== 1) {
                 return [
@@ -530,20 +530,20 @@ class BlockPayrollController extends Controller
                     $subQuery->whereRaw('JSON_UNQUOTE(JSON_EXTRACT(payload, "$.general_period_start")) <= ?', [$periodStart])
                              ->whereRaw('JSON_UNQUOTE(JSON_EXTRACT(payload, "$.general_period_end")) >= ?', [$periodEnd]);
                 });
-                
+
                 // Caso 2: Un período existente está completamente dentro del período solicitado
                 $query->orWhere(function ($subQuery) use ($periodStart, $periodEnd) {
                     $subQuery->whereRaw('JSON_UNQUOTE(JSON_EXTRACT(payload, "$.general_period_start")) >= ?', [$periodStart])
                              ->whereRaw('JSON_UNQUOTE(JSON_EXTRACT(payload, "$.general_period_end")) <= ?', [$periodEnd]);
                 });
-                
+
                 // Caso 3: El período solicitado se traslapa por el inicio
                 $query->orWhere(function ($subQuery) use ($periodStart, $periodEnd) {
                     $subQuery->whereRaw('JSON_UNQUOTE(JSON_EXTRACT(payload, "$.general_period_start")) <= ?', [$periodStart])
                              ->whereRaw('JSON_UNQUOTE(JSON_EXTRACT(payload, "$.general_period_end")) >= ?', [$periodStart])
                              ->whereRaw('JSON_UNQUOTE(JSON_EXTRACT(payload, "$.general_period_end")) <= ?', [$periodEnd]);
                 });
-                
+
                 // Caso 4: El período solicitado se traslapa por el final
                 $query->orWhere(function ($subQuery) use ($periodStart, $periodEnd) {
                     $subQuery->whereRaw('JSON_UNQUOTE(JSON_EXTRACT(payload, "$.general_period_start")) >= ?', [$periodStart])

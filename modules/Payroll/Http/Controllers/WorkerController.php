@@ -110,13 +110,13 @@ class WorkerController extends Controller
             $worker = Worker::with(['payroll_type_document_identification'])
                 ->where('id', $id)
                 ->first();
-            
+
             if (!$worker) {
                 return [
                     'workers' => []
                 ];
             }
-            
+
             return [
                 'workers' => [$worker->getSearchRowResource()]
             ];
