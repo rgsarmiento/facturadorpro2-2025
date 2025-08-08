@@ -212,31 +212,31 @@ class BlockPayrollController extends Controller
         try {
             // Validar que no exista un registro con el mismo período ANTES de la transacción
             $existingRecord = null;
-            
+
             // Log para debugging
             \Log::info("Validando período duplicado", [
                 'period_start' => $request->general_period_start,
                 'period_end' => $request->general_period_end
             ]);
-            
+
             try {
                 // Intento 1: Usar columnas virtuales (más eficiente)
                 $existingRecord = BlockPayroll::where('period_start_virtual', $request->general_period_start)
                     ->where('period_end_virtual', $request->general_period_end)
                     ->first();
-                
+
                 \Log::info("Resultado consulta columnas virtuales", [
                     'found' => $existingRecord ? true : false,
                     'record_id' => $existingRecord ? $existingRecord->id : null
                 ]);
             } catch (Exception $e) {
                 \Log::warning("Error con columnas virtuales, usando fallback", ['error' => $e->getMessage()]);
-                
+
                 // Intento 2: Si falla, usar consultas JSON (fallback)
                 $existingRecord = BlockPayroll::whereRaw("JSON_UNQUOTE(JSON_EXTRACT(period, '$.period_start')) = ?", [$request->general_period_start])
                     ->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(period, '$.period_end')) = ?", [$request->general_period_end])
                     ->first();
-                    
+
                 \Log::info("Resultado consulta JSON fallback", [
                     'found' => $existingRecord ? true : false,
                     'record_id' => $existingRecord ? $existingRecord->id : null
@@ -249,13 +249,13 @@ class BlockPayrollController extends Controller
                     'period_start' => $request->general_period_start,
                     'period_end' => $request->general_period_end
                 ]);
-                
+
                 return [
                     'success' => false,
                     'message' => "Ya existe un bloque de nómina para el período del {$request->general_period_start} al {$request->general_period_end}"
                 ];
             }
-            
+
             $data = DB::connection('tenant')->transaction(function () use($request) {
 
                 // Preparar datos del periodo para cada empleado

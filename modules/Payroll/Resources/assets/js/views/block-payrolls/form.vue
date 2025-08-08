@@ -168,7 +168,7 @@
                                     </div>
                                     <div class="col-md-3">
                                         <div class="form-group" :class="{'has-danger': errors['period.worked_time']}">
-                                            <label class="control-label">Tiempo trabajado<span class="text-danger"> *</span></label>
+                                            <label class="control-label">Días trabajados<span class="text-danger"> *</span></label>
                                             <el-input-number
                                                 v-model="form.period.worked_time"
                                                 :min="0"
@@ -279,6 +279,23 @@
         },
 
         methods: {
+            // Función helper para calcular días entre fechas
+            calculateWorkedDays(admisionDate) {
+                if (!admisionDate) return 30; // Valor por defecto si no hay fecha
+                
+                const today = new Date();
+                const admissionDate = new Date(admisionDate);
+                
+                // Calcular la diferencia en milisegundos
+                const diffInMs = today - admissionDate;
+                
+                // Convertir a días
+                const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
+                
+                // Retornar al menos 1 día si la fecha de admisión es hoy o en el futuro
+                return Math.max(diffInDays, 1);
+            },
+
             cancelForm() {
                 window.location.href = '/payroll/block-payrolls';
             },
@@ -389,13 +406,13 @@
                 selectedWorkers.forEach(workerId => {
                     const periodData = this.employeePeriodData[workerId] || {};
                     const currentWorker = this.form.items.find(item => item.id === workerId);
-                    
+
                     employeePeriodData[workerId] = {
                         worker_id: workerId,
                         salary: periodData.salary || (currentWorker ? currentWorker.salary : 0),
-                        worked_days: periodData.worked_days || 30,
+                        worked_days: periodData.worked_days || 30, // Valor del formulario "Días trabajados"
                         admision_date: periodData.admision_date || '',
-                        worked_time: periodData.worked_time || 30,
+                        worked_time: this.calculateWorkedDays(periodData.admision_date || ''), // Cálculo automático entre fechas
                         payroll_period: periodData.payroll_period_id || 5,  // Siempre usar "Mensual" como defecto
                         generate_provisions: currentWorker ? currentWorker.generate_provisions : false
                     };
@@ -490,10 +507,10 @@
                     if (response.data.establishment) {
                         this.form.establishment = response.data.establishment;
                     }
-                    
+
                     // Establecer "Mensual" (ID: 5) como valor por defecto para el período de nómina
                     this.form.payroll_period_id = 5;
-                    
+
                     this.loading = false
                 }).catch((error) => {
                     this.loading = false
@@ -571,16 +588,18 @@
                 // Inicializar datos por defecto para cada empleado
                 this.form.items.forEach(worker => {
                     if (!this.employeePeriodData[worker.id]) {
+                        const admisionDate = worker.work_start_date || defaultDate;
+                        
                         this.$set(this.employeePeriodData, worker.id, {
-                            admision_date: defaultDate,
-                            worked_time: 30,
+                            admision_date: admisionDate,
+                            worked_time: this.calculateWorkedDays(admisionDate), // Cálculo automático entre fechas
                             issue_date: '',
-                            payroll_period_id: 5,  // Siempre usar "Mensual" como defecto
+                            payroll_period_id: worker.payroll_period_id || 5,  // Usar período del empleado o "Mensual" como defecto
                             // Agregar campos que espera el backend
                             salary: worker.salary || 0,
                             period_start: this.form.period_start || '',
                             period_end: this.form.period_end || '',
-                            worked_days: 30
+                            worked_days: 30 // Valor fijo por defecto para el formulario
                         });
                     }
                 });
@@ -602,35 +621,38 @@
                 // Guardar datos actuales del formulario
                 this.employeePeriodData[this.selectedWorkerId] = {
                     admision_date: this.form.period.admision_date || '',
-                    worked_time: this.form.period.worked_time || 30,
+                    worked_time: this.calculateWorkedDays(this.form.period.admision_date || ''), // Cálculo automático
                     issue_date: this.form.period.issue_date || '',
                     payroll_period_id: this.form.payroll_period_id || 5,
                     // Agregar campos que espera el backend
                     salary: currentWorker ? currentWorker.salary : 0,
                     period_start: this.form.period_start || '',
                     period_end: this.form.period_end || '',
-                    worked_days: 30
+                    worked_days: this.form.period.worked_time || 30 // Valor del control "Días trabajados"
                 };
             },
 
             loadEmployeeData(workerId) {
                 // Obtener datos del empleado o usar valores por defecto
                 const data = this.employeePeriodData[workerId];
+                const currentWorker = this.form.items.find(item => item.id === workerId);
 
                 if (data) {
                     // Cargar datos existentes haciendo copia para evitar referencias
                     this.form.period.admision_date = data.admision_date || '';
-                    this.form.period.worked_time = data.worked_time || 30;
+                    this.form.period.worked_time = data.worked_days || 30; // Mostrar worked_days en el formulario
                     this.form.period.issue_date = data.issue_date || '';
-                    this.form.payroll_period_id = data.payroll_period_id || 5;
+                    this.form.payroll_period_id = data.payroll_period_id || (currentWorker ? currentWorker.payroll_period_id : 5);
                 } else {
+                    // Usar datos del trabajador como valores por defecto
                     const currentYear = new Date().getFullYear();
                     const defaultDate = `${currentYear}-01-01`;
+                    const admisionDate = currentWorker ? currentWorker.work_start_date : defaultDate;
 
-                    this.form.period.admision_date = defaultDate;
-                    this.form.period.worked_time = 30;
+                    this.form.period.admision_date = admisionDate;
+                    this.form.period.worked_time = 30; // Valor fijo por defecto para el formulario
                     this.form.period.issue_date = '';
-                    this.form.payroll_period_id = 5;
+                    this.form.payroll_period_id = currentWorker ? currentWorker.payroll_period_id || 5 : 5;
                 }
             },
 
@@ -664,7 +686,17 @@
                         this.employeePeriodData[this.selectedWorkerId] = {};
                     }
 
+                    // Calcular automáticamente worked_time basado en la nueva fecha
+                    const calculatedWorkedTime = this.calculateWorkedDays(newValue);
+
                     this.$set(this.employeePeriodData[this.selectedWorkerId], 'admision_date', newValue);
+                    this.$set(this.employeePeriodData[this.selectedWorkerId], 'worked_time', calculatedWorkedTime); // Cálculo automático
+                    
+                    // Solo establecer worked_days si no hay valor previo
+                    if (!this.employeePeriodData[this.selectedWorkerId].worked_days) {
+                        this.$set(this.employeePeriodData[this.selectedWorkerId], 'worked_days', 30);
+                        this.form.period.worked_time = 30;
+                    }
                 }
             },
 
@@ -677,7 +709,8 @@
                         this.employeePeriodData[this.selectedWorkerId] = {};
                     }
 
-                    this.$set(this.employeePeriodData[this.selectedWorkerId], 'worked_time', newValue);
+                    // Solo actualizar worked_days (el valor del formulario), worked_time se calcula automáticamente
+                    this.$set(this.employeePeriodData[this.selectedWorkerId], 'worked_days', newValue);
                 }
             },
 

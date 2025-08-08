@@ -112,9 +112,9 @@ class BlockPayroll extends ModelTenant
     public function getRowCollection(){
         // Intentar usar columnas virtuales, si no existen usar JSON
         try {
-            $periodStartDate = $this->period_start_virtual ? $this->period_start_virtual->format('Y-m-d') : 
+            $periodStartDate = $this->period_start_virtual ? $this->period_start_virtual->format('Y-m-d') :
                                ($this->period->period_start ?? '');
-            $periodEndDate = $this->period_end_virtual ? $this->period_end_virtual->format('Y-m-d') : 
+            $periodEndDate = $this->period_end_virtual ? $this->period_end_virtual->format('Y-m-d') :
                              ($this->period->period_end ?? '');
         } catch (Exception $e) {
             // Fallback: usar datos del JSON period
@@ -146,9 +146,9 @@ class BlockPayroll extends ModelTenant
     {
         // Intentar usar columnas virtuales, si no existen usar JSON
         try {
-            $periodStartDate = $this->period_start_virtual ? $this->period_start_virtual->format('Y-m-d') : 
+            $periodStartDate = $this->period_start_virtual ? $this->period_start_virtual->format('Y-m-d') :
                                ($this->period->period_start ?? '');
-            $periodEndDate = $this->period_end_virtual ? $this->period_end_virtual->format('Y-m-d') : 
+            $periodEndDate = $this->period_end_virtual ? $this->period_end_virtual->format('Y-m-d') :
                              ($this->period->period_end ?? '');
         } catch (Exception $e) {
             // Fallback: usar datos del JSON period
