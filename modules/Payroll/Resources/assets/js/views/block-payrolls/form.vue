@@ -304,6 +304,495 @@
                                     </div>
                                 </div>
                             </el-tab-pane>
+                            <el-tab-pane label="Devengados" name="accrued">
+                                <div class="row">
+                                    <template v-if="isAdjustNote">
+                                        <div class="col-md-3">
+                                            <div class="form-group" :class="{'has-danger': errors['accrued.total_base_salary']}">
+                                                <label class="control-label">Salario base
+                                                    <span class="text-danger"> *</span>
+                                                    <el-tooltip class="item" effect="dark" content="Salario base del empleado (equivalente a 30 días), no se afecta por los días trabajados" placement="top-start">
+                                                        <i class="fa fa-info-circle"></i>
+                                                    </el-tooltip>
+                                                </label>
+                                                <el-input-number v-model="form.accrued.total_base_salary" controls-position="right" @change="changeTotalBaseSalary"></el-input-number>
+                                                <small class="form-control-feedback" v-if="errors['accrued.total_base_salary']" v-text="errors['accrued.total_base_salary'][0]"></small>
+                                            </div>
+                                        </div>
+                                    </template>
+
+                                    <div class="col-md-3">
+                                        <div class="form-group" :class="{'has-danger': errors['accrued.worked_days']}">
+                                            <label class="control-label">Días trabajados<span class="text-danger"> *</span></label>
+                                            <el-input-number v-model="form.accrued.worked_days" :min="0" :max="30" :precision="0" controls-position="right" @change="changeWorkedDays"></el-input-number>
+                                            <small class="form-control-feedback" v-if="errors['accrued.worked_days']" v-text="errors['accrued.worked_days'][0]"></small>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-3">
+                                        <div class="form-group" :class="{'has-danger': errors['accrued.salary']}">
+                                            <label class="control-label">Salario<span class="text-danger"> *</span></label>
+                                            <el-input-number v-model="form.accrued.salary" :min="0" controls-position="right" disabled></el-input-number>
+                                            <small class="form-control-feedback" v-if="errors['accrued.salary']" v-text="errors['accrued.salary'][0]"></small>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-3">
+                                        <div class="form-group" :class="{'has-danger': errors['accrued.transportation_allowance']}">
+                                            <label class="control-label">Subsidio de transporte</label>
+                                            <el-input-number v-model="form.accrued.transportation_allowance" :min="0" :disabled="form_disabled.inputs_type_worker_sena" controls-position="right" @change="changeTransportationAllowance"></el-input-number>
+                                            <small class="form-control-feedback" v-if="errors['accrued.transportation_allowance']" v-text="errors['accrued.transportation_allowance'][0]"></small>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-3">
+                                        <div class="form-group" :class="{'has-danger': errors['accrued.accrued_total']}">
+                                            <label class="control-label">Total devengados<span class="text-danger"> *</span></label>
+                                            <el-input-number v-model="form.accrued.accrued_total" :min="0" controls-position="right" disabled></el-input-number>
+                                            <small class="form-control-feedback" v-if="errors['accrued.accrued_total']" v-text="errors['accrued.accrued_total'][0]"></small>
+                                        </div>
+                                    </div>
+
+                                    <div class="col-md-12 mt-3">
+                                        <div class="form-group">
+                                            <button type="button" class="btn btn-md waves-effect waves-light btn-primary" @click.prevent="clickAddExtraHours">Agregar Horas Extras</button>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <el-tabs type="border-card" v-model="activeNameAccrued" class="mt-4">
+                                    <el-tab-pane label="Vacaciones" name="accrued-vacations">
+                                        <!-- Vacaciones disfrutadas -->
+                                        <div class="row mt-2">
+                                            <div class="col-md-12">
+                                                <div class="form-group" :class="{'has-danger': errors['accrued.common_vacation']}">
+                                                    <h4>Vacaciones disfrutadas</h4>
+                                                    <small class="form-control-feedback" v-if="errors['accrued.common_vacation']" v-text="errors['accrued.common_vacation'][0]"></small>
+                                                </div>
+                                            </div>
+
+                                            <div class="col-md-12">
+                                                <table>
+                                                    <thead>
+                                                        <tr width="100%">
+                                                            <template v-if="form.accrued.common_vacation.length > 0">
+                                                                <th class="pb-2">Fecha inicio - Fecha término</th>
+                                                                <th class="pb-2">N° de días</th>
+                                                                <th class="pb-2">Pago</th>
+                                                            </template>
+                                                            <th width="10%"><a href="#" @click.prevent="clickAddCommonVacation" class="text-center font-weight-bold text-info pb-1 mt-1">[+ Agregar]</a></th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        <tr v-for="(row, index) in form.accrued.common_vacation" :key="index">
+                                                            <td>
+                                                                <div class="form-group mb-2 mr-2">
+                                                                    <el-date-picker
+                                                                        v-model="row.start_end_date"
+                                                                        type="daterange"
+                                                                        format="yyyy-MM-dd"
+                                                                        value-format="yyyy-MM-dd"
+                                                                        range-separator="H"
+                                                                        :clearable="false"
+                                                                        @change="changeCommonVacationStartEndDate(index)"
+                                                                        >
+                                                                    </el-date-picker>
+                                                                </div>
+                                                            </td>
+                                                            <td>
+                                                                <div class="form-group" v-if="errors[`accrued.common_vacation.${index}.quantity`]"  :class="{'has-danger': errors[`accrued.common_vacation.${index}.quantity`]}">
+                                                                    <small class="form-control-feedback"  v-text="errors[`accrued.common_vacation.${index}.quantity`][0]"></small>
+                                                                </div>
+                                                                <div class="form-group mb-2 mr-2"  >
+                                                                    <el-input-number v-model="row.quantity" :min="0" controls-position="right" disabled></el-input-number>
+                                                                </div>
+                                                            </td>
+                                                            <td>
+                                                                <div class="form-group" v-if="errors[`accrued.common_vacation.${index}.payment`]"  :class="{'has-danger': errors[`accrued.common_vacation.${index}.payment`]}">
+                                                                    <small class="form-control-feedback"  v-text="errors[`accrued.common_vacation.${index}.payment`][0]"></small>
+                                                                </div>
+                                                                <div class="form-group mb-2 mr-2"  >
+                                                                    <el-input-number v-model="row.payment" :min="0" controls-position="right" @change="changePaymentCommonVacation(index)"></el-input-number>
+                                                                </div>
+                                                            </td>
+
+                                                            <td class="series-table-actions text-center">
+                                                                <button  type="button" class="btn waves-effect waves-light btn-xs btn-danger" @click.prevent="clickCancelCommonVacation(index)">
+                                                                    <i class="fa fa-trash"></i>
+                                                                </button>
+                                                            </td>
+                                                        </tr>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                        <!-- Vacaciones disfrutadas -->
+
+                                        <!-- Vacaciones compensadas -->
+                                        <div class="row mt-2">
+                                            <div class="col-md-12">
+                                                <div class="form-group" :class="{'has-danger': errors['accrued.paid_vacation']}">
+                                                    <h4>Vacaciones compensadas</h4>
+                                                    <small class="form-control-feedback" v-if="errors['accrued.paid_vacation']" v-text="errors['accrued.paid_vacation'][0]"></small>
+                                                </div>
+                                            </div>
+
+                                            <div class="col-md-12">
+                                                <table>
+                                                    <thead>
+                                                        <tr width="100%">
+                                                            <template v-if="form.accrued.paid_vacation.length > 0">
+                                                                <th class="pb-2">Fecha inicio - Fecha término</th>
+                                                                <th class="pb-2">N° de días</th>
+                                                                <th class="pb-2">Pago</th>
+                                                            </template>
+                                                            <th width="10%"><a href="#" @click.prevent="clickAddPaidVacation" class="text-center font-weight-bold text-info pb-1 mt-1">[+ Agregar]</a></th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        <tr v-for="(row, index) in form.accrued.paid_vacation" :key="index">
+                                                            <td>
+                                                                <div class="form-group mb-2 mr-2">
+                                                                    <el-date-picker
+                                                                        v-model="row.start_end_date"
+                                                                        type="daterange"
+                                                                        format="yyyy-MM-dd"
+                                                                        value-format="yyyy-MM-dd"
+                                                                        range-separator="H"
+                                                                        :clearable="false"
+                                                                        @change="changePaidVacationStartEndDate(index)"
+                                                                        >
+                                                                    </el-date-picker>
+                                                                </div>
+                                                            </td>
+                                                            <td>
+                                                                <div class="form-group" v-if="errors[`accrued.paid_vacation.${index}.quantity`]"  :class="{'has-danger': errors[`accrued.paid_vacation.${index}.quantity`]}">
+                                                                    <small class="form-control-feedback"  v-text="errors[`accrued.paid_vacation.${index}.quantity`][0]"></small>
+                                                                </div>
+                                                                <div class="form-group mb-2 mr-2"  >
+                                                                    <el-input-number v-model="row.quantity" :min="0" controls-position="right" ></el-input-number>
+                                                                </div>
+                                                            </td>
+                                                            <td>
+                                                                <div class="form-group" v-if="errors[`accrued.paid_vacation.${index}.payment`]"  :class="{'has-danger': errors[`accrued.paid_vacation.${index}.payment`]}">
+                                                                    <small class="form-control-feedback"  v-text="errors[`accrued.paid_vacation.${index}.payment`][0]"></small>
+                                                                </div>
+                                                                <div class="form-group mb-2 mr-2"  >
+                                                                    <el-input-number v-model="row.payment" :min="0" controls-position="right" @change="changePaymentPaidVacation(index)"></el-input-number>
+                                                                </div>
+                                                            </td>
+
+                                                            <td class="series-table-actions text-center">
+                                                                <button  type="button" class="btn waves-effect waves-light btn-xs btn-danger" @click.prevent="clickCancelPaidVacation(index)">
+                                                                    <i class="fa fa-trash"></i>
+                                                                </button>
+                                                            </td>
+                                                        </tr>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                        </div>
+                                        <!-- Vacaciones compensadas -->
+                                    </el-tab-pane>
+
+                                    <el-tab-pane label="Prestación social" name="accrued-social">
+                                        <div class="row mt-4">
+                                            <div class="col-md-6">
+                                                <div class="form-group" :class="{'has-danger': errors['accrued.service_bonus']}">
+                                                    <h4>Prima de servicio</h4>
+                                                    <small class="form-control-feedback" v-if="errors['accrued.service_bonus']" v-text="errors['accrued.service_bonus'][0]"></small>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="form-group" :class="{'has-danger': errors['accrued.severance']}">
+                                                    <h4>Cesantías</h4>
+                                                    <small class="form-control-feedback" v-if="errors['accrued.severance']" v-text="errors['accrued.severance'][0]"></small>
+                                                </div>
+                                            </div>
+
+                                            <!-- Prima de servicio -->
+                                            <div class="col-md-6">
+                                                <table>
+                                                    <thead>
+                                                        <tr width="100%">
+                                                            <template v-if="form.accrued.service_bonus.length>0">
+                                                                <th class="pb-2">N° de días</th>
+                                                                <th class="pb-2">Prima salarial</th>
+                                                                <th class="pb-2">Prima no salarial</th>
+                                                            </template>
+                                                            <th width="15%"><a href="#" @click.prevent="clickAddServiceBonus" class="text-center font-weight-bold text-info pb-1 mt-1">[+ Agregar]</a></th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        <tr v-for="(row, index) in form.accrued.service_bonus" :key="index">
+                                                            <td>
+                                                                <div class="form-group" v-if="errors[`accrued.service_bonus.${index}.quantity`]"  :class="{'has-danger': errors[`accrued.service_bonus.${index}.quantity`]}">
+                                                                    <small class="form-control-feedback"  v-text="errors[`accrued.service_bonus.${index}.quantity`][0]"></small>
+                                                                </div>
+                                                                <div class="form-group mb-2 mr-2"  >
+                                                                    <el-input-number v-model="row.quantity" :min="0" controls-position="right" @change="changeQuantityServiceBonus(index)"></el-input-number>
+                                                                </div>
+                                                            </td>
+                                                            <td>
+                                                                <div class="form-group" v-if="errors[`accrued.service_bonus.${index}.payment`]"  :class="{'has-danger': errors[`accrued.service_bonus.${index}.payment`]}">
+                                                                    <small class="form-control-feedback"  v-text="errors[`accrued.service_bonus.${index}.payment`][0]"></small>
+                                                                </div>
+                                                                <div class="form-group mb-2 mr-2"  >
+                                                                    <el-input-number v-model="row.payment" :min="0" controls-position="right" @change="changePaymentServiceBonus(index)"></el-input-number>
+                                                                </div>
+                                                            </td>
+                                                            <td>
+                                                                <div class="form-group" v-if="errors[`accrued.service_bonus.${index}.paymentNS`]"  :class="{'has-danger': errors[`accrued.service_bonus.${index}.paymentNS`]}">
+                                                                    <small class="form-control-feedback"  v-text="errors[`accrued.service_bonus.${index}.paymentNS`][0]"></small>
+                                                                </div>
+                                                                <div class="form-group mb-2 mr-2"  >
+                                                                    <el-input-number v-model="row.paymentNS" :min="0" controls-position="right" @change="changePaymentNSServiceBonus(index)"></el-input-number>
+                                                                </div>
+                                                            </td>
+
+                                                            <td class="series-table-actions text-center">
+                                                                <button  type="button" class="btn waves-effect waves-light btn-xs btn-danger" @click.prevent="clickCancelServiceBonus(index)">
+                                                                    <i class="fa fa-trash"></i>
+                                                                </button>
+                                                            </td>
+                                                        </tr>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                            <!-- Prima de servicio -->
+
+                                            <!-- Cesantías -->
+                                            <div class="col-md-6">
+                                                <table>
+                                                    <thead>
+                                                        <tr width="100%">
+                                                            <template v-if="form.accrued.severance.length>0">
+                                                                <th class="pb-2">N° de días</th>
+                                                                <th class="pb-2">Pago cesantías</th>
+                                                                <th class="pb-2">% Interes</th>
+                                                                <th class="pb-2">Pago intereses</th>
+                                                            </template>
+                                                            <th width="15%"><a href="#" @click.prevent="clickAddSeverance" class="text-center font-weight-bold text-info pb-1 mt-1">[+ Agregar]</a></th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        <tr v-for="(row, index) in form.accrued.severance" :key="index">
+                                                            <td>
+                                                                <div class="form-group" v-if="errors[`accrued.severance.${index}.quantity`]"  :class="{'has-danger': errors[`accrued.severance.${index}.quantity`]}">
+                                                                    <small class="form-control-feedback"  v-text="errors[`accrued.severance.${index}.quantity`][0]"></small>
+                                                                </div>
+                                                                <div class="form-group mb-2 mr-2"  >
+                                                                    <el-input-number v-model="row.quantity" :min="0" controls-position="right" @change="changeQuantitySeverance(index)"></el-input-number>
+                                                                </div>
+                                                            </td>
+                                                            <td>
+                                                                <div class="form-group" v-if="errors[`accrued.severance.${index}.payment`]"  :class="{'has-danger': errors[`accrued.severance.${index}.payment`]}">
+                                                                    <small class="form-control-feedback"  v-text="errors[`accrued.severance.${index}.payment`][0]"></small>
+                                                                </div>
+                                                                <div class="form-group mb-2 mr-2"  >
+                                                                    <el-input-number v-model="row.payment" :min="0" controls-position="right" @change="calculateInterestPayment(index)"></el-input-number>
+                                                                </div>
+                                                            </td>
+                                                            <td>
+                                                                <div class="form-group" v-if="errors[`accrued.severance.${index}.percentage`]"  :class="{'has-danger': errors[`accrued.severance.${index}.percentage`]}">
+                                                                    <small class="form-control-feedback"  v-text="errors[`accrued.severance.${index}.percentage`][0]"></small>
+                                                                </div>
+                                                                <div class="form-group mb-2 mr-2"  >
+                                                                    <el-input-number v-model="row.percentage" :min="0" controls-position="right" @change="calculateInterestPayment(index)"></el-input-number>
+                                                                </div>
+                                                            </td>
+                                                            <td>
+                                                                <div class="form-group" v-if="errors[`accrued.severance.${index}.interest_payment`]"  :class="{'has-danger': errors[`accrued.severance.${index}.interest_payment`]}">
+                                                                    <small class="form-control-feedback"  v-text="errors[`accrued.severance.${index}.interest_payment`][0]"></small>
+                                                                </div>
+                                                                <div class="form-group mb-2 mr-2"  >
+                                                                    <el-input-number v-model="row.interest_payment" :min="0" controls-position="right"></el-input-number>
+                                                                </div>
+                                                            </td>
+
+                                                            <td class="series-table-actions text-center">
+                                                                <button  type="button" class="btn waves-effect waves-light btn-xs btn-danger" @click.prevent="clickCancelSeverance(index)">
+                                                                    <i class="fa fa-trash"></i>
+                                                                </button>
+                                                            </td>
+                                                        </tr>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                            <!-- Cesantías -->
+                                        </div>
+                                    </el-tab-pane>
+
+                                    <el-tab-pane label="Otros" name="accrued-others">
+                                        <div class="row mt-2">
+                                            <div class="col-md-6">
+                                                <div class="form-group" :class="{'has-danger': errors['accrued.bonuses']}">
+                                                    <h4>Bonificaciones</h4>
+                                                    <small class="form-control-feedback" v-if="errors['accrued.bonuses']" v-text="errors['accrued.bonuses'][0]"></small>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <div class="form-group" :class="{'has-danger': errors['accrued.aid']}">
+                                                    <h4>Ayudas</h4>
+                                                    <small class="form-control-feedback" v-if="errors['accrued.aid']" v-text="errors['accrued.aid'][0]"></small>
+                                                </div>
+                                            </div>
+
+                                            <!-- Bonificaciones -->
+                                            <div class="col-md-6">
+                                                <table>
+                                                    <thead>
+                                                        <tr width="100%">
+                                                            <template v-if="form.accrued.bonuses.length>0">
+                                                                <th class="pb-2">Bonificación salarial</th>
+                                                                <th class="pb-2">Bonificación no salarial</th>
+                                                            </template>
+                                                            <th width="15%"><a href="#" @click.prevent="clickAddBonuses" class="text-center font-weight-bold text-info pb-1 mt-1">[+ Agregar]</a></th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        <tr v-for="(row, index) in form.accrued.bonuses" :key="index">
+                                                            <td>
+                                                                <div class="form-group" v-if="errors[`accrued.bonuses.${index}.salary_bonus`]"  :class="{'has-danger': errors[`accrued.bonuses.${index}.salary_bonus`]}">
+                                                                    <small class="form-control-feedback"  v-text="errors[`accrued.bonuses.${index}.salary_bonus`][0]"></small>
+                                                                </div>
+                                                                <div class="form-group mb-2 mr-2"  >
+                                                                    <el-input-number v-model="row.salary_bonus" :min="0.01" controls-position="right" @change="changeSalaryBonus(index)"></el-input-number>
+                                                                </div>
+                                                            </td>
+                                                            <td>
+                                                                <div class="form-group" v-if="errors[`accrued.bonuses.${index}.non_salary_bonus`]"  :class="{'has-danger': errors[`accrued.bonuses.${index}.non_salary_bonus`]}">
+                                                                    <small class="form-control-feedback"  v-text="errors[`accrued.bonuses.${index}.non_salary_bonus`][0]"></small>
+                                                                </div>
+                                                                <div class="form-group mb-2 mr-2"  >
+                                                                    <el-input-number v-model="row.non_salary_bonus" :min="0.01" controls-position="right" @change="changeSalaryBonus(index)"></el-input-number>
+                                                                </div>
+                                                            </td>
+
+                                                            <td class="series-table-actions text-center">
+                                                                <button  type="button" class="btn waves-effect waves-light btn-xs btn-danger" @click.prevent="clickCancelBonuses(index)">
+                                                                    <i class="fa fa-trash"></i>
+                                                                </button>
+                                                            </td>
+                                                        </tr>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                            <!-- Bonificaciones -->
+
+                                            <!-- Ayudas -->
+                                            <div class="col-md-6">
+                                                <table>
+                                                    <thead>
+                                                        <tr width="100%">
+                                                            <template v-if="form.accrued.aid.length>0">
+                                                                <th class="pb-2">Ayuda salarial</th>
+                                                                <th class="pb-2">Ayuda no salarial</th>
+                                                            </template>
+                                                            <th width="15%"><a href="#" @click.prevent="clickAddAid" class="text-center font-weight-bold text-info pb-1 mt-1">[+ Agregar]</a></th>
+                                                        </tr>
+                                                    </thead>
+                                                    <tbody>
+                                                        <tr v-for="(row, index) in form.accrued.aid" :key="index">
+                                                            <td>
+                                                                <div class="form-group" v-if="errors[`accrued.aid.${index}.salary_assistance`]"  :class="{'has-danger': errors[`accrued.aid.${index}.salary_assistance`]}">
+                                                                    <small class="form-control-feedback"  v-text="errors[`accrued.aid.${index}.salary_assistance`][0]"></small>
+                                                                </div>
+                                                                <div class="form-group mb-2 mr-2"  >
+                                                                    <el-input-number v-model="row.salary_assistance" :min="0.01" controls-position="right" @change="changeSalaryAid(index)"></el-input-number>
+                                                                </div>
+                                                            </td>
+                                                            <td>
+                                                                <div class="form-group" v-if="errors[`accrued.aid.${index}.non_salary_assistance`]"  :class="{'has-danger': errors[`accrued.aid.${index}.non_salary_assistance`]}">
+                                                                    <small class="form-control-feedback"  v-text="errors[`accrued.aid.${index}.non_salary_assistance`][0]"></small>
+                                                                </div>
+                                                                <div class="form-group mb-2 mr-2"  >
+                                                                    <el-input-number v-model="row.non_salary_assistance" :min="0.01" controls-position="right" @change="changeSalaryAid(index)"></el-input-number>
+                                                                </div>
+                                                            </td>
+
+                                                            <td class="series-table-actions text-center">
+                                                                <button  type="button" class="btn waves-effect waves-light btn-xs btn-danger" @click.prevent="clickCancelAid(index)">
+                                                                    <i class="fa fa-trash"></i>
+                                                                </button>
+                                                            </td>
+                                                        </tr>
+                                                    </tbody>
+                                                </table>
+                                            </div>
+                                            <!-- Ayudas -->
+                                        </div>
+                                    </el-tab-pane>
+
+                                    <el-tab-pane label="Opcionales" name="accrued-optional">
+                                        <div class="row mt-2 mb-4">
+                                            <div class="col-md-3">
+                                                <div class="form-group" :class="{'has-danger': errors['accrued.telecommuting']}">
+                                                    <label class="control-label">Teletrabajo</label>
+                                                    <el-input-number v-model="form.accrued.telecommuting" :min="0" controls-position="right" @change="changeOptionalInputs"></el-input-number>
+                                                    <small class="form-control-feedback" v-if="errors['accrued.telecommuting']" v-text="errors['accrued.telecommuting'][0]"></small>
+                                                </div>
+                                            </div>
+
+                                            <div class="col-md-3">
+                                                <div class="form-group" :class="{'has-danger': errors['accrued.endowment']}">
+                                                    <label class="control-label">Dotación</label>
+                                                    <el-input-number v-model="form.accrued.endowment" :min="0" controls-position="right" @change="changeOptionalInputs"></el-input-number>
+                                                    <small class="form-control-feedback" v-if="errors['accrued.endowment']" v-text="errors['accrued.endowment'][0]"></small>
+                                                </div>
+                                            </div>
+
+                                            <div class="col-md-3">
+                                                <div class="form-group" :class="{'has-danger': errors['accrued.sustenance_support']}">
+                                                    <label class="control-label">Apoyo de sustento</label>
+                                                    <el-input-number v-model="form.accrued.sustenance_support" :min="0" controls-position="right" @change="changeOptionalInputs"></el-input-number>
+                                                    <small class="form-control-feedback" v-if="errors['accrued.sustenance_support']" v-text="errors['accrued.sustenance_support'][0]"></small>
+                                                </div>
+                                            </div>
+
+                                            <div class="col-md-3">
+                                                <div class="form-group" :class="{'has-danger': errors['accrued.withdrawal_bonus']}">
+                                                    <label class="control-label">Bono de retiro</label>
+                                                    <el-input-number v-model="form.accrued.withdrawal_bonus" :min="0" controls-position="right" @change="changeOptionalInputs"></el-input-number>
+                                                    <small class="form-control-feedback" v-if="errors['accrued.withdrawal_bonus']" v-text="errors['accrued.withdrawal_bonus'][0]"></small>
+                                                </div>
+                                            </div>
+
+                                            <div class="col-md-3">
+                                                <div class="form-group" :class="{'has-danger': errors['accrued.compensation']}">
+                                                    <label class="control-label">Indemnización</label>
+                                                    <el-input-number v-model="form.accrued.compensation" :min="0" controls-position="right" @change="changeOptionalInputs"></el-input-number>
+                                                    <small class="form-control-feedback" v-if="errors['accrued.compensation']" v-text="errors['accrued.compensation'][0]"></small>
+                                                </div>
+                                            </div>
+
+                                            <div class="col-md-3">
+                                                <div class="form-group" :class="{'has-danger': errors['accrued.salary_viatics']}">
+                                                    <label class="control-label">Manutención y/o alojamiento</label>
+                                                    <el-input-number v-model="form.accrued.salary_viatics" :min="0" controls-position="right" @change="changeOptionalInputs"></el-input-number>
+                                                    <small class="form-control-feedback" v-if="errors['accrued.salary_viatics']" v-text="errors['accrued.salary_viatics'][0]"></small>
+                                                </div>
+                                            </div>
+
+                                            <div class="col-md-3">
+                                                <div class="form-group" :class="{'has-danger': errors['accrued.non_salary_viatics']}">
+                                                    <label class="control-label">Manutención y/o alojamiento no salariales</label>
+                                                    <el-input-number v-model="form.accrued.non_salary_viatics" :min="0" controls-position="right" @change="changeOptionalInputs"></el-input-number>
+                                                    <small class="form-control-feedback" v-if="errors['accrued.non_salary_viatics']" v-text="errors['accrued.non_salary_viatics'][0]"></small>
+                                                </div>
+                                            </div>
+
+                                            <div class="col-md-3">
+                                                <div class="form-group" :class="{'has-danger': errors['accrued.refund']}">
+                                                    <label class="control-label">Reintegro</label>
+                                                    <el-input-number v-model="form.accrued.refund" :min="0" controls-position="right" @change="changeOptionalInputs"></el-input-number>
+                                                    <small class="form-control-feedback" v-if="errors['accrued.refund']" v-text="errors['accrued.refund'][0]"></small>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </el-tab-pane>
+                                </el-tabs>
+                            </el-tab-pane>
                         </el-tabs>
                     </div>
                     <div class="row mt-4">
@@ -371,15 +860,45 @@
                         account_number: ''
                     },
                     payment_dates: [],
+                    accrued: {
+                        total_base_salary: 0,
+                        worked_days: 0,
+                        salary: 0,
+                        transportation_allowance: 0,
+                        accrued_total: 0,
+                        common_vacation: [],
+                        paid_vacation: [],
+                        service_bonus: [],
+                        severance: [],
+                        work_disabilities: [],
+                        bonuses: [],
+                        aid: [],
+                        telecommuting: 0,
+                        endowment: 0,
+                        sustenance_support: 0,
+                        withdrawal_bonus: 0,
+                        compensation: 0,
+                        salary_viatics: 0,
+                        non_salary_viatics: 0,
+                        refund: 0
+                    }
                 },
                 activeName: 'active-workers',
+                activeNameAccrued: 'accrued-vacations',
+                isAdjustNote: false, // Variable para controlar si es una nota de ajuste
+                form_disabled: {
+                    inputs_type_worker_sena: false
+                },
                 selectedWorkerId: null,
                 globalGenerateProvisions: false,
                 periodDateError: '',
                 employeesArray: [], // Array que contendrá un JSON por cada empleado con sus datos de periodo
                 employeePeriodData: {}, // Objeto que almacena los datos de periodo por ID de empleado
                 employeePaymentData: {}, // Objeto que almacena los datos de pago por ID de empleado
+                employeeAccruedData: {}, // Objeto que almacena los datos de devengados por ID de empleado
                 show_inputs_payment_method: false,
+                type_disabilities: [], // Array para los tipos de incapacidades
+                advancedConfiguration: null, // Configuración avanzada para salario mínimo y subsidio
             };
         },
 
@@ -393,7 +912,15 @@
             if (this.editMode) {
                 await this.loadBlockPayrollData();
             } else {
+                // Asegurar que la configuración avanzada esté disponible antes de cargar empleados
                 await this.getActiveWorkers();
+                
+                // Aplicar subsidio de transporte después de que todo esté inicializado
+                this.$nextTick(() => {
+                    if (this.selectedWorkerId && this.advancedConfiguration) {
+                        this.applyTransportationAllowance();
+                    }
+                });
             }
         },
 
@@ -490,6 +1017,8 @@
 
                 // Guardar datos del empleado actual antes de enviar
                 this.saveCurrentEmployeeData();
+                this.saveCurrentEmployeePaymentData();
+                this.saveCurrentEmployeeAccruedData();
 
                 if (action === 'save') {
                     // Guardar sin generar
@@ -505,6 +1034,7 @@
                 if (this.selectedWorkerId) {
                     this.saveCurrentEmployeeData();
                     this.saveCurrentEmployeePaymentData();
+                    this.saveCurrentEmployeeAccruedData();
                 }
 
                 // Validar unicidad del período en modo crear
@@ -570,9 +1100,40 @@
                     };
                 });
 
+                // Agregar datos de devengados de cada empleado
+                const employeeAccruedData = {};
+                selectedWorkers.forEach(workerId => {
+                    const accruedData = this.employeeAccruedData[workerId] || {};
+
+                    employeeAccruedData[workerId] = {
+                        worker_id: workerId,
+                        total_base_salary: accruedData.total_base_salary || 0,
+                        worked_days: accruedData.worked_days || 0,
+                        salary: accruedData.salary || 0,
+                        transportation_allowance: accruedData.transportation_allowance || 0,
+                        accrued_total: accruedData.accrued_total || 0,
+                        common_vacation: accruedData.common_vacation || [],
+                        paid_vacation: accruedData.paid_vacation || [],
+                        service_bonus: accruedData.service_bonus || [],
+                        severance: accruedData.severance || [],
+                        work_disabilities: accruedData.work_disabilities || [],
+                        bonuses: accruedData.bonuses || [],
+                        aid: accruedData.aid || [],
+                        telecommuting: accruedData.telecommuting || 0,
+                        endowment: accruedData.endowment || 0,
+                        sustenance_support: accruedData.sustenance_support || 0,
+                        withdrawal_bonus: accruedData.withdrawal_bonus || 0,
+                        compensation: accruedData.compensation || 0,
+                        salary_viatics: accruedData.salary_viatics || 0,
+                        non_salary_viatics: accruedData.non_salary_viatics || 0,
+                        refund: accruedData.refund || 0
+                    };
+                });
+
                 // Agregar los objetos completos al formData
                 formData.employee_period_data = employeePeriodData;
                 formData.employee_payment_data = employeePaymentData;
+                formData.employee_accrued_data = employeeAccruedData;
 
                 // Asegurar que no se incluya el campo notes
                 if (formData.hasOwnProperty('notes')) {
@@ -678,6 +1239,13 @@
                     // Inicializar el array de empleados con sus datos
                     this.initializeEmployeesArray()
 
+                    // Forzar la carga de datos del primer empleado seleccionado
+                    if (this.selectedWorkerId) {
+                        this.$nextTick(() => {
+                            this.handleWorkerSelection(this.selectedWorkerId);
+                        });
+                    }
+
                     this.loading = false
                 }).catch((error) => {
                     this.loading = false
@@ -689,6 +1257,27 @@
                 this.loading = true
                 this.$http.get(`/${this.resource}/tables`).then((response) => {
                     this.form.tables = response.data || { resolutions: [] }; // Asegurar estructura
+                    
+                    // Cargar type_disabilities si está disponible
+                    if (response.data.type_disabilities) {
+                        this.type_disabilities = response.data.type_disabilities;
+                    }
+
+                    // Cargar configuración avanzada para salario mínimo y subsidio
+                    if (response.data.advanced_configuration) {
+                        this.advancedConfiguration = response.data.advanced_configuration;
+                        
+                        // Si ya hay empleados cargados, recalcular subsidios de transporte
+                        if (this.form.items.length > 0) {
+                            this.$nextTick(() => {
+                                this.recalculateAllTransportationAllowances();
+                                if (this.selectedWorkerId) {
+                                    this.applyTransportationAllowance();
+                                }
+                            });
+                        }
+                    }
+                    
                     // Asignar establishment_id desde las tables si viene
                     if (response.data.establishment_id) {
                         this.form.establishment_id = response.data.establishment_id;
@@ -758,6 +1347,7 @@
                 if (this.selectedWorkerId && this.selectedWorkerId !== workerId) {
                     this.saveCurrentEmployeeData();
                     this.saveCurrentEmployeePaymentData();
+                    this.saveCurrentEmployeeAccruedData();
                 }
 
                 // Cambiar empleado seleccionado
@@ -766,9 +1356,12 @@
                 // Cargar datos del nuevo empleado
                 this.loadEmployeeData(workerId);
                 this.loadEmployeePaymentData(workerId);
+                this.loadEmployeeAccruedData(workerId);
 
-                // Forzar actualización completa del componente
+                // Aplicar subsidio de transporte y sincronizar datos después de cargar
                 this.$nextTick(() => {
+                    this.applyTransportationAllowance();
+                    this.syncAccruedDataWithOtherTabs();
                     this.$forceUpdate();
                 });
             },
@@ -811,15 +1404,70 @@
                             payment_dates: []
                         });
                     }
+
+                    // Inicializar datos de devengados para cada empleado
+                    if (!this.employeeAccruedData[worker.id]) {
+                        this.$set(this.employeeAccruedData, worker.id, {
+                            total_base_salary: worker.salary || 0,
+                            worked_days: 30,
+                            salary: worker.salary || 0,
+                            transportation_allowance: this.calculateTransportationAllowanceForWorker(worker.salary || 0),
+                            accrued_total: 0,
+                            common_vacation: [],
+                            paid_vacation: [],
+                            service_bonus: [],
+                            severance: [],
+                            work_disabilities: [],
+                            bonuses: [],
+                            aid: [],
+                            telecommuting: 0,
+                            endowment: 0,
+                            sustenance_support: 0,
+                            withdrawal_bonus: 0,
+                            compensation: 0,
+                            salary_viatics: 0,
+                            non_salary_viatics: 0,
+                            refund: 0
+                        });
+                    }
                 });
+
+                // Recalcular subsidios de transporte para todos los empleados (por si la configuración no estaba disponible inicialmente)
+                this.recalculateAllTransportationAllowances();
 
                 // Cargar datos del primer empleado con delay para asegurar renderizado
                 if (this.selectedWorkerId) {
                     this.$nextTick(() => {
                         this.loadEmployeeData(this.selectedWorkerId);
                         this.loadEmployeePaymentData(this.selectedWorkerId);
+                        
+                        // Cargar datos de devengados del empleado actual
+                        const currentWorkerData = this.employeeAccruedData[this.selectedWorkerId];
+                        if (currentWorkerData) {
+                            // Cargar los datos inicializados en el formulario
+                            Object.keys(this.form.accrued).forEach(key => {
+                                if (currentWorkerData.hasOwnProperty(key)) {
+                                    this.form.accrued[key] = currentWorkerData[key];
+                                }
+                            });
+                            
+                            // Asegurar que el subsidio de transporte se aplique correctamente
+                            this.applyTransportationAllowance();
+                        }
                     });
                 }
+            },
+
+            // Método para recalcular subsidios de transporte para todos los empleados
+            recalculateAllTransportationAllowances() {
+                if (!this.advancedConfiguration) return;
+
+                this.form.items.forEach(worker => {
+                    if (this.employeeAccruedData[worker.id]) {
+                        const transportationAllowance = this.calculateTransportationAllowanceForWorker(worker.salary || 0);
+                        this.employeeAccruedData[worker.id].transportation_allowance = transportationAllowance;
+                    }
+                });
             },
 
             saveCurrentEmployeeData() {
@@ -864,6 +1512,10 @@
                     this.form.period.issue_date = '';
                     this.form.payroll_period_id = currentWorker ? currentWorker.payroll_period_id || 5 : 5;
                 }
+
+                // Cargar datos de pago y devengados
+                this.loadEmployeePaymentData(workerId);
+                this.loadEmployeeAccruedData(workerId);
             },
 
             handlePayrollPeriodChange(newValue) {
@@ -921,6 +1573,13 @@
 
                     // Solo actualizar worked_days (el valor del formulario), worked_time se calcula automáticamente
                     this.$set(this.employeePeriodData[this.selectedWorkerId], 'worked_days', newValue);
+
+                    // Sincronizar con el tab de devengados
+                    if (this.form.accrued) {
+                        this.form.accrued.worked_days = newValue;
+                        this.calculateAccruedTotal();
+                        this.saveCurrentEmployeeAccruedData();
+                    }
                 }
             },
 
@@ -1076,6 +1735,11 @@
                             this.employeePaymentData = blockPayroll.payload.employee_payment_data;
                         }
 
+                        // Cargar datos de devengados de cada empleado
+                        if (blockPayroll.payload.employee_accrued_data) {
+                            this.employeeAccruedData = blockPayroll.payload.employee_accrued_data;
+                        }
+
                         // Restaurar valores de generate_provisions desde el payload
                         if (blockPayroll.payload.employee_period_data) {
                             this.form.items.forEach(worker => {
@@ -1095,6 +1759,7 @@
                             this.$nextTick(() => {
                                 this.loadEmployeeData(this.selectedWorkerId);
                                 this.loadEmployeePaymentData(this.selectedWorkerId);
+                                this.loadEmployeeAccruedData(this.selectedWorkerId);
                             });
                         }
                     }
@@ -1123,6 +1788,401 @@
                     // Fallback: cargar todos los trabajadores activos
                     await this.getActiveWorkers();
                 }
+            },
+
+            // ================== MÉTODOS PARA EL TAB DE DEVENGADOS ==================
+            
+            // Método para cambiar el salario base total
+            changeTotalBaseSalary() {
+                this.calculateSalary();
+                this.calculateAccruedTotal();
+                this.saveCurrentEmployeeAccruedData();
+            },
+
+            // Método para cambiar los días trabajados
+            changeWorkedDays() {
+                // Sincronizar con el tab de período
+                this.form.period.worked_time = this.form.accrued.worked_days;
+                
+                // Actualizar en employeePeriodData si hay un empleado seleccionado
+                if (this.selectedWorkerId) {
+                    if (!this.employeePeriodData[this.selectedWorkerId]) {
+                        this.employeePeriodData[this.selectedWorkerId] = {};
+                    }
+                    this.$set(this.employeePeriodData[this.selectedWorkerId], 'worked_days', this.form.accrued.worked_days);
+                }
+                
+                this.calculateSalary();
+                this.calculateAccruedTotal();
+                this.saveCurrentEmployeeAccruedData();
+            },
+
+            // Método para cambiar el subsidio de transporte
+            changeTransportationAllowance() {
+                this.calculateAccruedTotal();
+                this.saveCurrentEmployeeAccruedData();
+            },
+
+            // Calcular salario basado en días trabajados
+            calculateSalary() {
+                if (this.form.accrued.total_base_salary && this.form.accrued.worked_days) {
+                    this.form.accrued.salary = (this.form.accrued.total_base_salary / 30) * this.form.accrued.worked_days;
+                    // Aplicar subsidio de transporte después de calcular el salario
+                    this.applyTransportationAllowance();
+                }
+            },
+
+            // Calcular total devengados
+            calculateAccruedTotal() {
+                let total = 0;
+                total += this.form.accrued.salary || 0;
+                total += this.form.accrued.transportation_allowance || 0;
+                total += this.form.accrued.telecommuting || 0;
+                total += this.form.accrued.endowment || 0;
+                total += this.form.accrued.sustenance_support || 0;
+                total += this.form.accrued.withdrawal_bonus || 0;
+                total += this.form.accrued.compensation || 0;
+                total += this.form.accrued.salary_viatics || 0;
+                total += this.form.accrued.non_salary_viatics || 0;
+                total += this.form.accrued.refund || 0;
+
+                // Sumar vacaciones
+                this.form.accrued.common_vacation.forEach(vacation => {
+                    total += vacation.payment || 0;
+                });
+                this.form.accrued.paid_vacation.forEach(vacation => {
+                    total += vacation.payment || 0;
+                });
+
+                // Sumar bonificaciones y ayudas
+                this.form.accrued.bonuses.forEach(bonus => {
+                    total += bonus.salary_bonus || 0;
+                    total += bonus.non_salary_bonus || 0;
+                });
+                this.form.accrued.aid.forEach(aid => {
+                    total += aid.salary_assistance || 0;
+                    total += aid.non_salary_assistance || 0;
+                });
+
+                this.form.accrued.accrued_total = total;
+            },
+
+            // Guardar datos de devengados del empleado actual
+            saveCurrentEmployeeAccruedData() {
+                if (this.selectedWorkerId) {
+                    this.employeeAccruedData[this.selectedWorkerId] = {
+                        ...this.form.accrued
+                    };
+                }
+            },
+
+            // Cargar datos de devengados del empleado
+            loadEmployeeAccruedData(workerId) {
+                const currentWorker = this.form.items.find(item => item.id === workerId);
+                const periodData = this.employeePeriodData[workerId];
+
+                if (this.employeeAccruedData[workerId]) {
+                    this.form.accrued = { ...this.employeeAccruedData[workerId] };
+                } else {
+                    // Inicializar datos vacíos
+                    this.form.accrued = {
+                        total_base_salary: 0,
+                        worked_days: 0,
+                        salary: 0,
+                        transportation_allowance: 0,
+                        accrued_total: 0,
+                        common_vacation: [],
+                        paid_vacation: [],
+                        service_bonus: [],
+                        severance: [],
+                        work_disabilities: [],
+                        bonuses: [],
+                        aid: [],
+                        telecommuting: 0,
+                        endowment: 0,
+                        sustenance_support: 0,
+                        withdrawal_bonus: 0,
+                        compensation: 0,
+                        salary_viatics: 0,
+                        non_salary_viatics: 0,
+                        refund: 0
+                    };
+                }
+
+                // Sincronizar datos con otros tabs
+                this.syncAccruedDataWithOtherTabs(workerId);
+                
+                // Aplicar subsidio de transporte después de cargar los datos
+                this.$nextTick(() => {
+                    this.applyTransportationAllowance();
+                });
+            },
+
+            // Método para sincronizar datos de devengados con otros tabs
+            syncAccruedDataWithOtherTabs(workerId) {
+                const currentWorker = this.form.items.find(item => item.id === workerId);
+                const periodData = this.employeePeriodData[workerId];
+
+                if (currentWorker) {
+                    // 1. Sincronizar días trabajados desde el tab Período
+                    const workedDays = periodData ? (periodData.worked_days || 30) : (this.form.period.worked_time || 30);
+                    this.form.accrued.worked_days = workedDays;
+
+                    // 2. Cargar salario básico desde el tab Trabajadores Seleccionados
+                    const basicSalary = currentWorker.salary || 0;
+                    this.form.accrued.total_base_salary = basicSalary;
+                    
+                    // 3. Calcular el salario proporcional según días trabajados
+                    this.calculateSalary();
+                    
+                    // 4. Aplicar subsidio de transporte automáticamente
+                    this.form.accrued.transportation_allowance = this.calculateTransportationAllowanceForWorker(basicSalary);
+
+                    // 5. Calcular total devengados
+                    this.calculateAccruedTotal();
+
+                    // 6. Guardar en los datos del empleado
+                    if (this.employeeAccruedData[workerId]) {
+                        this.employeeAccruedData[workerId].transportation_allowance = this.form.accrued.transportation_allowance;
+                    }
+                }
+            },
+
+            // Método para calcular el subsidio de transporte para un trabajador específico
+            calculateTransportationAllowanceForWorker(baseSalary) {
+                if (!this.advancedConfiguration) return 0;
+
+                const minimumSalary = this.advancedConfiguration.minimum_salary || 0;
+                const transportationAllowance = this.advancedConfiguration.transportation_allowance || 0;
+
+                // Aplicar subsidio si el salario básico es menor o igual a 2 salarios mínimos
+                if (baseSalary <= (minimumSalary * 2) && baseSalary > 0) {
+                    return transportationAllowance;
+                } else {
+                    return 0;
+                }
+            },
+
+            // Método para aplicar el subsidio de transporte según las reglas
+            applyTransportationAllowance() {
+                if (!this.advancedConfiguration) return;
+
+                // Obtener el salario básico del empleado seleccionado
+                const currentWorker = this.form.items.find(item => item.id === this.selectedWorkerId);
+                const baseSalary = currentWorker ? currentWorker.salary : (this.form.accrued.salary || this.form.accrued.total_base_salary || 0);
+
+                const minimumSalary = this.advancedConfiguration.minimum_salary || 0;
+                const transportationAllowance = this.advancedConfiguration.transportation_allowance || 0;
+
+                // Aplicar subsidio si el salario básico es menor o igual a 2 salarios mínimos
+                if (baseSalary <= (minimumSalary * 2) && baseSalary > 0) {
+                    this.form.accrued.transportation_allowance = transportationAllowance;
+                } else {
+                    this.form.accrued.transportation_allowance = 0;
+                }
+
+                // Guardar en los datos del empleado
+                if (this.selectedWorkerId && this.employeeAccruedData[this.selectedWorkerId]) {
+                    this.employeeAccruedData[this.selectedWorkerId].transportation_allowance = this.form.accrued.transportation_allowance;
+                }
+            },
+
+            // Agregar horas extras (placeholder)
+            clickAddExtraHours() {
+                // Implementar funcionalidad de horas extras
+                console.log('Agregar horas extras');
+            },
+
+            // === MÉTODOS PARA VACACIONES ===
+            clickAddCommonVacation() {
+                this.form.accrued.common_vacation.push({
+                    start_end_date: [],
+                    quantity: 0,
+                    payment: 0
+                });
+            },
+
+            clickCancelCommonVacation(index) {
+                this.form.accrued.common_vacation.splice(index, 1);
+                this.calculateAccruedTotal();
+                this.saveCurrentEmployeeAccruedData();
+            },
+
+            changeCommonVacationStartEndDate(index) {
+                const vacation = this.form.accrued.common_vacation[index];
+                if (vacation.start_end_date && vacation.start_end_date.length === 2) {
+                    const startDate = new Date(vacation.start_end_date[0]);
+                    const endDate = new Date(vacation.start_end_date[1]);
+                    const diffTime = Math.abs(endDate - startDate);
+                    vacation.quantity = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+                }
+                this.saveCurrentEmployeeAccruedData();
+            },
+
+            changePaymentCommonVacation(index) {
+                this.calculateAccruedTotal();
+                this.saveCurrentEmployeeAccruedData();
+            },
+
+            clickAddPaidVacation() {
+                this.form.accrued.paid_vacation.push({
+                    start_end_date: [],
+                    quantity: 0,
+                    payment: 0
+                });
+            },
+
+            clickCancelPaidVacation(index) {
+                this.form.accrued.paid_vacation.splice(index, 1);
+                this.calculateAccruedTotal();
+                this.saveCurrentEmployeeAccruedData();
+            },
+
+            changePaidVacationStartEndDate(index) {
+                const vacation = this.form.accrued.paid_vacation[index];
+                if (vacation.start_end_date && vacation.start_end_date.length === 2) {
+                    const startDate = new Date(vacation.start_end_date[0]);
+                    const endDate = new Date(vacation.start_end_date[1]);
+                    const diffTime = Math.abs(endDate - startDate);
+                    vacation.quantity = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+                }
+                this.saveCurrentEmployeeAccruedData();
+            },
+
+            changePaymentPaidVacation(index) {
+                this.calculateAccruedTotal();
+                this.saveCurrentEmployeeAccruedData();
+            },
+
+            // === MÉTODOS PARA PRIMA DE SERVICIO ===
+            clickAddServiceBonus() {
+                this.form.accrued.service_bonus.push({
+                    quantity: 0,
+                    payment: 0,
+                    paymentNS: 0
+                });
+            },
+
+            clickCancelServiceBonus(index) {
+                this.form.accrued.service_bonus.splice(index, 1);
+                this.saveCurrentEmployeeAccruedData();
+            },
+
+            changeQuantityServiceBonus(index) {
+                this.saveCurrentEmployeeAccruedData();
+            },
+
+            changePaymentServiceBonus(index) {
+                this.saveCurrentEmployeeAccruedData();
+            },
+
+            changePaymentNSServiceBonus(index) {
+                this.saveCurrentEmployeeAccruedData();
+            },
+
+            // === MÉTODOS PARA CESANTÍAS ===
+            clickAddSeverance() {
+                this.form.accrued.severance.push({
+                    quantity: 0,
+                    payment: 0,
+                    percentage: 12, // 12% por defecto
+                    interest_payment: 0
+                });
+            },
+
+            clickCancelSeverance(index) {
+                this.form.accrued.severance.splice(index, 1);
+                this.saveCurrentEmployeeAccruedData();
+            },
+
+            changeQuantitySeverance(index) {
+                this.saveCurrentEmployeeAccruedData();
+            },
+
+            calculateInterestPayment(index) {
+                const severance = this.form.accrued.severance[index];
+                if (severance.payment && severance.percentage) {
+                    severance.interest_payment = (severance.payment * severance.percentage) / 100;
+                }
+                this.saveCurrentEmployeeAccruedData();
+            },
+
+            // === MÉTODOS PARA BONIFICACIONES ===
+            clickAddBonuses() {
+                this.form.accrued.bonuses.push({
+                    salary_bonus: 0,
+                    non_salary_bonus: 0
+                });
+            },
+
+            clickCancelBonuses(index) {
+                this.form.accrued.bonuses.splice(index, 1);
+                this.calculateAccruedTotal();
+                this.saveCurrentEmployeeAccruedData();
+            },
+
+            changeSalaryBonus(index) {
+                this.calculateAccruedTotal();
+                this.saveCurrentEmployeeAccruedData();
+            },
+
+            // === MÉTODOS PARA AYUDAS ===
+            clickAddAid() {
+                this.form.accrued.aid.push({
+                    salary_assistance: 0,
+                    non_salary_assistance: 0
+                });
+            },
+
+            clickCancelAid(index) {
+                this.form.accrued.aid.splice(index, 1);
+                this.calculateAccruedTotal();
+                this.saveCurrentEmployeeAccruedData();
+            },
+
+            changeSalaryAid(index) {
+                this.calculateAccruedTotal();
+                this.saveCurrentEmployeeAccruedData();
+            },
+
+            // === MÉTODOS PARA CAMPOS OPCIONALES ===
+            changeOptionalInputs() {
+                this.calculateAccruedTotal();
+                this.saveCurrentEmployeeAccruedData();
+            },
+
+            // === MÉTODOS PARA INCAPACIDADES ===
+            clickAddWorkDisability() {
+                if (!this.form.accrued.work_disabilities) {
+                    this.form.accrued.work_disabilities = [];
+                }
+                this.form.accrued.work_disabilities.push({
+                    start_end_date: [],
+                    type: null,
+                    quantity: 0,
+                    payment: 0,
+                    is_complete: false
+                });
+            },
+
+            clickCancelWorkDisability(index) {
+                this.form.accrued.work_disabilities.splice(index, 1);
+                this.saveCurrentEmployeeAccruedData();
+            },
+
+            changeWDisabilityStartEndDate(index) {
+                const disability = this.form.accrued.work_disabilities[index];
+                if (disability.start_end_date && disability.start_end_date.length === 2) {
+                    const startDate = new Date(disability.start_end_date[0]);
+                    const endDate = new Date(disability.start_end_date[1]);
+                    const diffTime = Math.abs(endDate - startDate);
+                    disability.quantity = Math.ceil(diffTime / (1000 * 60 * 60 * 24)) + 1;
+                }
+                this.saveCurrentEmployeeAccruedData();
+            },
+
+            changeCompleteWorkDisability(index) {
+                this.saveCurrentEmployeeAccruedData();
             },
         },
 
