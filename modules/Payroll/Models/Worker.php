@@ -146,15 +146,18 @@ class Worker extends PayrollBaseModel
             'id' => $this->id,
             'code' => $this->code,
             'payroll_type_document_identification_id' => $this->payroll_type_document_identification_id,
+            'payroll_type_document_identification_name' => $this->payroll_type_document_identification ? $this->payroll_type_document_identification->name : 'N/A',
             'cellphone' => $this->cellphone,
             'position' => $this->position,
             'search_fullname' => $this->search_fullname,
+            'fullname' => $this->search_fullname, // Alias para compatibilidad
             'salary' => $this->salary,
             'work_start_date' => $this->work_start_date,
             'payroll_period_id' => $this->payroll_period_id,
-            'payment' => $this->payment,
+            'payment' => $this->payment ?? $this->getDefaultDataPayment(),
             'is_type_worker_sena' => $this->is_type_worker_sena,
             'discount_pension' => $this->discount_pension,
+            'generate_provisions' => false, // Valor por defecto para el switch
         ];
     }
 

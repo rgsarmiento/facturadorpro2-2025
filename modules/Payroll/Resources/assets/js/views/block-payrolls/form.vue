@@ -123,8 +123,8 @@
                                                         </td>
                                                         <td>{{index + 1}}</td>
                                                         <td>{{row.code}}</td>
-                                                        <td class="text-left">{{row.fullname}}</td>
-                                                        <td class="text-right">{{row.payroll_type_document_identification_name}}</td>
+                                                        <td class="text-left">{{row.search_fullname || row.fullname}}</td>
+                                                        <td class="text-right">{{row.payroll_type_document_identification_name || 'N/A'}}</td>
                                                         <td class="text-right">{{getFormatDecimal(row.salary)}}</td>
                                                         <td class="text-right">{{row.cellphone}}</td>
                                                         <td class="text-right">{{row.position}}</td>
@@ -306,10 +306,10 @@
                                 Cancelar
                             </button>
                             <button type="button" class="btn btn-warning mr-2" @click="saveForm(false)">
-                                Guardar sin generar
+                                {{ editMode ? 'Editar sin generar' : 'Guardar sin generar' }}
                             </button>
                             <button type="button" class="btn btn-primary" @click="saveForm(true)">
-                                Guardar y generar
+                                {{ editMode ? 'Editar y generar' : 'Guardar y generar' }}
                             </button>
                         </div>
                     </div>
@@ -338,6 +338,8 @@
                 loading_form: false,
                 loading_submit: false,
                 errors: {},
+                editMode: false, // Nuevo flag para modo edición
+                blockPayrollId: null, // ID del bloque en edición
                 form: {
                     date_of_issue: '',
                     time_of_issue: '',
@@ -378,7 +380,15 @@
         async created() {
             this.setCurrentDateTime();
             await this.getTables();
-            await this.getActiveWorkers();
+            
+            // Detectar modo edición basado en la URL
+            this.detectEditMode();
+            
+            if (this.editMode) {
+                await this.loadBlockPayrollData();
+            } else {
+                await this.getActiveWorkers();
+            }
         },
 
         computed: {
@@ -445,6 +455,7 @@
                     // Guardar sin generar
                     this.submitForm('save');
                 }
+                window.location.href = '/payroll/block-payrolls';
             },
 
             submitForm(action) {
@@ -483,11 +494,19 @@
                 }
             },
 
-            saveWithoutGenerate() {
+            async saveWithoutGenerate() {
                 // Guardar datos del empleado actual antes de procesar
                 if (this.selectedWorkerId) {
                     this.saveCurrentEmployeeData();
                     this.saveCurrentEmployeePaymentData();
+                }
+
+                // Validar unicidad del período en modo crear
+                if (!this.editMode) {
+                    const isUniquePeriod = await this.validatePeriodUniqueness();
+                    if (!isUniquePeriod) {
+                        return; // No continuar si el período ya existe
+                    }
                 }
 
                 this.loading_submit = true;
@@ -534,7 +553,7 @@
                 const employeePaymentData = {};
                 selectedWorkers.forEach(workerId => {
                     const paymentData = this.employeePaymentData[workerId] || {};
-
+                    
                     employeePaymentData[workerId] = {
                         worker_id: workerId,
                         payment_method_id: paymentData.payment_method_id || null,
@@ -554,25 +573,32 @@
                     delete formData.notes;
                 }
 
+                // Determinar endpoint según modo
+                const endpoint = this.editMode 
+                    ? `/${this.resource}/update-block/${this.blockPayrollId}` 
+                    : `/${this.resource}/store-without-generate`;
+                
+                const method = this.editMode ? 'put' : 'post';
+
                 // Enviar al backend
-                this.$http.post(`/${this.resource}/store-without-generate`, formData)
+                this.$http[method](endpoint, formData)
                     .then(response => {
                         this.loading_submit = false;
                         if (response.data.success) {
                             this.$message.success(response.data.message);
-                            // Opcionalmente redirigir o limpiar formulario
-                            // this.$router.push(`/${this.resource}`);
+                            // Redirigir al listado después de guardar/editar
+                            setTimeout(() => {
+                                window.location.href = '/payroll/block-payrolls';
+                            }, 1500);
                         } else {
                             this.$message.error(response.data.message);
                         }
                     })
                     .catch(error => {
                         this.loading_submit = false;
-                        this.$message.error('Error al guardar el bloque de nómina');
+                        this.$message.error(this.editMode ? 'Error al editar el bloque de nómina' : 'Error al guardar el bloque de nómina');
                     });
-            },
-
-            saveAndGenerate() {
+            },            saveAndGenerate() {
                 // Implementar la funcionalidad original de guardar y generar
                 // Por ahora solo mostramos un mensaje
                 this.$message.info('Funcionalidad de "Guardar y generar" por implementar');
@@ -597,6 +623,36 @@
                         this.periodDateError = 'La fecha inicial no puede ser mayor que la fecha final.';
                         this.form.period_start = '';
                     }
+                }
+            },
+
+            // Validar que no exista un período duplicado (solo en modo crear)
+            async validatePeriodUniqueness() {
+                if (this.editMode) {
+                    return true; // En modo edición, no validar unicidad
+                }
+
+                if (!this.form.period_start || !this.form.period_end) {
+                    return true; // No validar si las fechas no están completas
+                }
+
+                try {
+                    const response = await this.$http.post(`/${this.resource}/check-period-exists`, {
+                        period_start: this.form.period_start,
+                        period_end: this.form.period_end
+                    });
+
+                    if (response.data.exists) {
+                        this.periodDateError = 'Ya existe un bloque de nómina registrado para este período.';
+                        return false;
+                    }
+
+                    this.periodDateError = '';
+                    return true;
+                } catch (error) {
+                    // Si hay error en la validación, permitir continuar
+                    console.warn('Error validando unicidad del período:', error);
+                    return true;
                 }
             },
 
@@ -717,6 +773,11 @@
 
                 // Inicializar datos por defecto para cada empleado
                 this.form.items.forEach(worker => {
+                    // Inicializar generate_provisions si no existe
+                    if (worker.generate_provisions === undefined) {
+                        this.$set(worker, 'generate_provisions', false);
+                    }
+                    
                     if (!this.employeePeriodData[worker.id]) {
                         const admisionDate = worker.work_start_date || defaultDate;
 
@@ -960,6 +1021,91 @@
                 this.$nextTick(() => {
                     this.$forceUpdate();
                 });
+            },
+
+            detectEditMode() {
+                // Detectar si estamos en modo edición basado en la URL
+                const currentPath = window.location.pathname;
+                const editMatch = currentPath.match(/\/payroll\/block-payrolls\/edit-block\/(\d+)/);
+                
+                if (editMatch) {
+                    this.editMode = true;
+                    this.blockPayrollId = parseInt(editMatch[1]);
+                }
+            },
+
+            async loadBlockPayrollData() {
+                this.loading = true;
+                try {
+                    const response = await this.$http.get(`/${this.resource}/edit-block/${this.blockPayrollId}`);
+                    const blockPayroll = response.data;
+                    
+                    // Cargar datos básicos del formulario
+                    this.form.date_of_issue = blockPayroll.date_of_issue;
+                    this.form.time_of_issue = blockPayroll.time_of_issue;
+                    this.form.period_start = blockPayroll.period?.period_start || '';
+                    this.form.period_end = blockPayroll.period?.period_end || '';
+                    this.form.type_document_id = blockPayroll.resolution_id;
+                    this.form.establishment_id = blockPayroll.establishment_id;
+                    this.form.establishment = blockPayroll.establishment;
+                    this.form.workers_quantity = blockPayroll.workers_quantity;
+                    this.form.accrued_total = blockPayroll.accrued_total;
+                    this.form.deductions_total = blockPayroll.deductions_total;
+                    
+                    // Cargar trabajadores desde el payload
+                    if (blockPayroll.payload && blockPayroll.payload.selected_workers) {
+                        const workerIds = blockPayroll.payload.selected_workers;
+                        await this.loadWorkersForEdit(workerIds);
+                        
+                        // Inicializar datos por defecto para todos los empleados
+                        this.initializeEmployeesArray();
+                        
+                        // Cargar datos de período de cada empleado (sobrescribir los por defecto)
+                        if (blockPayroll.payload.employee_period_data) {
+                            this.employeePeriodData = blockPayroll.payload.employee_period_data;
+                        }
+                        
+                        // Cargar datos de pago de cada empleado (sobrescribir los por defecto)
+                        if (blockPayroll.payload.employee_payment_data) {
+                            this.employeePaymentData = blockPayroll.payload.employee_payment_data;
+                        }
+                        
+                        // Seleccionar el primer trabajador
+                        this.selectedWorkerId = this.form.items.length > 0 ? this.form.items[0].id : null;
+                        
+                        // Cargar datos del primer empleado
+                        if (this.selectedWorkerId) {
+                            this.$nextTick(() => {
+                                this.loadEmployeeData(this.selectedWorkerId);
+                                this.loadEmployeePaymentData(this.selectedWorkerId);
+                            });
+                        }
+                    }
+                    
+                    this.loading = false;
+                } catch (error) {
+                    this.loading = false;
+                    this.$message.error('Error al cargar los datos del bloque de nómina');
+                    console.error('Error loading block payroll data:', error);
+                }
+            },
+
+            async loadWorkersForEdit(workerIds) {
+                try {
+                    // Obtener datos completos de los trabajadores
+                    const workersPromises = workerIds.map(id => 
+                        this.$http.get(`/payroll/workers/search-by-id/${id}`)
+                    );
+                    
+                    const workersResponses = await Promise.all(workersPromises);
+                    // El endpoint devuelve {workers: [...]} así que necesitamos extraer workers[0]
+                    this.form.items = workersResponses.map(response => response.data.workers[0]).filter(worker => worker);
+                    this.form.workers_quantity = this.form.items.length;
+                } catch (error) {
+                    console.error('Error loading workers for edit:', error);
+                    // Fallback: cargar todos los trabajadores activos
+                    await this.getActiveWorkers();
+                }
             },
         },
 

@@ -5,6 +5,7 @@ namespace Modules\Payroll\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Routing\Controller;
+use Illuminate\Support\Facades\Log;
 use Modules\Payroll\Models\{
     Worker
 };
@@ -105,11 +106,26 @@ class WorkerController extends Controller
 
     public function searchWorkerById($id)
     {
-        return [
-            'workers' => Worker::where('id', $id)->take(1)->get()->transform(function($row){
-                return $row->getSearchRowResource();
-            })
-        ];
+        try {
+            $worker = Worker::with(['payroll_type_document_identification'])
+                ->where('id', $id)
+                ->first();
+            
+            if (!$worker) {
+                return [
+                    'workers' => []
+                ];
+            }
+            
+            return [
+                'workers' => [$worker->getSearchRowResource()]
+            ];
+        } catch (\Exception $e) {
+            Log::error('Error in searchWorkerById: ' . $e->getMessage());
+            return [
+                'workers' => []
+            ];
+        }
     }
 
     public function import(Request $request)

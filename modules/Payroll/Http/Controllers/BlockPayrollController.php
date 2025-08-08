@@ -48,6 +48,27 @@ class BlockPayrollController extends Controller
         return view('payroll::block-payrolls.form');
     }
 
+    public function editBlock($id)
+    {
+        $blockPayroll = BlockPayroll::findOrFail($id);
+        
+        // Solo permitir edición si el estado es "Registrado" (state_block_id = 1)
+        if ($blockPayroll->state_block_id !== 1) {
+            if (request()->expectsJson()) {
+                return response()->json(['error' => 'Solo se pueden editar bloques de nómina en estado "Registrado"'], 403);
+            }
+            return redirect()->route('tenant.block-payrolls.index')->with('error', 'Solo se pueden editar bloques de nómina en estado "Registrado"');
+        }
+        
+        // Si es una petición AJAX, devolver datos JSON
+        if (request()->expectsJson()) {
+            return response()->json($blockPayroll);
+        }
+        
+        // Si no es AJAX, devolver vista
+        return view('payroll::block-payrolls.form', compact('blockPayroll'));
+    }
+
     public function columns()
     {
         return [
@@ -110,7 +131,7 @@ class BlockPayrollController extends Controller
 
     public function record($id)
     {
-        return new DocumentPayrollResource(DocumentPayroll::findOrFail($id));
+        return BlockPayroll::findOrFail($id);
     }
 
 
@@ -361,6 +382,185 @@ class BlockPayrollController extends Controller
     public function sendEmail(Request $request)
     {
         return (new DocumentPayrollHelper())->sendEmail($request);
+    }
+
+    /**
+     * Actualizar un bloque de nómina existente
+     * 
+     * @param Request $request
+     * @param int $id
+     * @return array
+     */
+    public function updateBlock(Request $request, $id)
+    {
+        try {
+            $blockPayroll = BlockPayroll::findOrFail($id);
+            
+            // Solo permitir actualización si el estado es "Registrado" (state_block_id = 1)
+            if ($blockPayroll->state_block_id !== 1) {
+                return [
+                    'success' => false,
+                    'message' => 'Solo se pueden editar bloques de nómina en estado "Registrado"'
+                ];
+            }
+
+            $data = DB::connection('tenant')->transaction(function () use ($request, $blockPayroll) {
+                // Preparar datos del periodo para cada empleado
+                $employeePeriodData = [];
+                $employeePaymentData = [];
+                $workers = $request->selected_workers ?? [];
+
+                // Si employee_period_data viene como objeto anidado, usarlo directamente
+                if ($request->has('employee_period_data') && is_array($request->employee_period_data)) {
+                    $employeePeriodData = $request->employee_period_data;
+                } else {
+                    // Fallback: construir desde la estructura de puntos (compatibilidad hacia atrás)
+                    foreach ($workers as $workerId) {
+                        $periodKey = "employee_period_data.{$workerId}";
+                        $employeePeriodData[$workerId] = [
+                            'worker_id' => $workerId,
+                            'period_start' => $request->input("{$periodKey}.period_start"),
+                            'period_end' => $request->input("{$periodKey}.period_end"),
+                            'salary' => $request->input("{$periodKey}.salary"),
+                            'worked_days' => $request->input("{$periodKey}.worked_days"),
+                        ];
+                    }
+                }
+
+                // Manejar datos de pago para cada empleado
+                if ($request->has('employee_payment_data') && is_array($request->employee_payment_data)) {
+                    $employeePaymentData = $request->employee_payment_data;
+                }
+
+                // Crear el payload con todos los datos del formulario
+                $payload = [
+                    'form_data' => [
+                        'establishment_id' => $request->establishment_id,
+                        'resolution_id' => $request->resolution_id,
+                        'date_of_issue' => $request->date_of_issue,
+                        'time_of_issue' => $request->time_of_issue,
+                        'notes' => $request->notes,
+                    ],
+                    'selected_workers' => $workers,
+                    'employee_period_data' => $employeePeriodData,
+                    'employee_payment_data' => $employeePaymentData,
+                    'updated_at' => now()->toDateTimeString(),
+                    'user_id' => auth()->id(),
+                ];
+
+                // Calcular totales (puedes ajustar esta lógica según tus necesidades)
+                $accruedTotal = 0;
+                $deductionsTotal = 0;
+
+                foreach ($employeePeriodData as $workerData) {
+                    $accruedTotal += $workerData['salary'] ?? 0;
+                }
+
+                // Obtener establishment_id del usuario si no se proporciona
+                $establishmentId = $request->establishment_id ?? auth()->user()->establishment_id ?? 1;
+
+                // Crear el objeto periodo simplificado
+                $periodData = [
+                    'period_start' => $request->general_period_start,
+                    'period_end' => $request->general_period_end
+                ];
+
+                // Obtener los datos del establecimiento
+                $establishmentData = $request->establishment_data;
+                if (!$establishmentData) {
+                    $establishment = \App\Models\Tenant\Establishment::where('id', $establishmentId)->first();
+                    $establishmentData = $establishment ? $establishment->toArray() : ['id' => $establishmentId, 'description' => 'Establecimiento Principal'];
+                }
+
+                // Actualizar el registro en la tabla co_block_payrolls
+                $blockPayroll->update([
+                    'date_of_issue' => $request->date_of_issue,
+                    'time_of_issue' => $request->time_of_issue ?? now()->format('H:i:s'),
+                    'establishment_id' => $establishmentId,
+                    'establishment' => $establishmentData,
+                    'period' => $periodData,
+                    'workers_quantity' => count($workers),
+                    'notes' => $request->notes,
+                    'accrued_total' => $accruedTotal,
+                    'deductions_total' => $deductionsTotal,
+                    'payload' => $payload,
+                    'resolution_id' => $request->resolution_id,
+                ]);
+
+                return [
+                    'block_payroll_id' => $blockPayroll->id,
+                    'workers_count' => count($workers),
+                    'accrued_total' => $accruedTotal,
+                ];
+            });
+
+            return [
+                'success' => true,
+                'message' => 'Bloque de nómina actualizado exitosamente',
+                'data' => $data
+            ];
+
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'message' => 'Error al actualizar el bloque de nómina: ' . $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Verificar si ya existe un período registrado
+     */
+    public function checkPeriodExists(Request $request)
+    {
+        try {
+            $periodStart = $request->get('period_start');
+            $periodEnd = $request->get('period_end');
+
+            if (!$periodStart || !$periodEnd) {
+                return response()->json([
+                    'exists' => false
+                ]);
+            }
+
+            // Buscar bloques existentes que se traslapen con el período solicitado
+            $exists = BlockPayroll::where(function ($query) use ($periodStart, $periodEnd) {
+                // Caso 1: El período solicitado está completamente dentro de un período existente
+                $query->where(function ($subQuery) use ($periodStart, $periodEnd) {
+                    $subQuery->whereRaw('JSON_UNQUOTE(JSON_EXTRACT(payload, "$.general_period_start")) <= ?', [$periodStart])
+                             ->whereRaw('JSON_UNQUOTE(JSON_EXTRACT(payload, "$.general_period_end")) >= ?', [$periodEnd]);
+                });
+                
+                // Caso 2: Un período existente está completamente dentro del período solicitado
+                $query->orWhere(function ($subQuery) use ($periodStart, $periodEnd) {
+                    $subQuery->whereRaw('JSON_UNQUOTE(JSON_EXTRACT(payload, "$.general_period_start")) >= ?', [$periodStart])
+                             ->whereRaw('JSON_UNQUOTE(JSON_EXTRACT(payload, "$.general_period_end")) <= ?', [$periodEnd]);
+                });
+                
+                // Caso 3: El período solicitado se traslapa por el inicio
+                $query->orWhere(function ($subQuery) use ($periodStart, $periodEnd) {
+                    $subQuery->whereRaw('JSON_UNQUOTE(JSON_EXTRACT(payload, "$.general_period_start")) <= ?', [$periodStart])
+                             ->whereRaw('JSON_UNQUOTE(JSON_EXTRACT(payload, "$.general_period_end")) >= ?', [$periodStart])
+                             ->whereRaw('JSON_UNQUOTE(JSON_EXTRACT(payload, "$.general_period_end")) <= ?', [$periodEnd]);
+                });
+                
+                // Caso 4: El período solicitado se traslapa por el final
+                $query->orWhere(function ($subQuery) use ($periodStart, $periodEnd) {
+                    $subQuery->whereRaw('JSON_UNQUOTE(JSON_EXTRACT(payload, "$.general_period_start")) >= ?', [$periodStart])
+                             ->whereRaw('JSON_UNQUOTE(JSON_EXTRACT(payload, "$.general_period_start")) <= ?', [$periodEnd])
+                             ->whereRaw('JSON_UNQUOTE(JSON_EXTRACT(payload, "$.general_period_end")) >= ?', [$periodEnd]);
+                });
+            })->exists();
+
+            return response()->json([
+                'exists' => $exists
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'exists' => false // En caso de error, permitir continuar
+            ]);
+        }
     }
 
 }

@@ -25,12 +25,15 @@ if($hostname) {
                 Route::prefix('block-payrolls')->group(function () {
                     Route::get('', 'BlockPayrollController@index')->name('tenant.block-payrolls.index');
                     Route::get('create', 'BlockPayrollController@create')->name('tenant.block-payrolls.create');
+                    Route::get('edit-block/{record}', 'BlockPayrollController@editBlock')->name('tenant.block-payrolls.edit-block');
                     Route::get('tables', 'BlockPayrollController@tables');
                     Route::get('columns', 'BlockPayrollController@columns');
                     Route::get('records', 'BlockPayrollController@records');
                     Route::get('table/{table}', 'BlockPayrollController@table');
                     Route::post('', 'BlockPayrollController@store');
                     Route::post('store-without-generate', 'BlockPayrollController@storeWithoutGenerate');
+                    Route::post('check-period-exists', 'BlockPayrollController@checkPeriodExists');
+                    Route::put('update-block/{record}', 'BlockPayrollController@updateBlock');
                     Route::get('record/{record}', 'BlockPayrollController@record');
                     Route::get('active-workers', 'BlockPayrollController@activeWorkers');
                     Route::get('downloadFile/{filename}', 'BlockPayrollController@downloadFile');
