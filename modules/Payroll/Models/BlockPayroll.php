@@ -10,6 +10,7 @@ use App\Models\Tenant\{
     Establishment
 };
 use App\Models\Tenant\ModelTenant;
+use Exception;
 
 class BlockPayroll extends ModelTenant
 {
@@ -36,10 +37,22 @@ class BlockPayroll extends ModelTenant
         'state_block_id',
     ];
 
+    /**
+     * Las columnas que no son mass assignable (incluye las columnas virtuales).
+     *
+     * @var array
+     */
+    protected $guarded = [
+        'period_start_virtual',
+        'period_end_virtual',
+    ];
+
     protected $casts = [
         'date_of_issue' => 'date',
         'time_of_issue' => 'time',
         'payload' => 'array',
+        'period_start_virtual' => 'date',
+        'period_end_virtual' => 'date',
     ];
 
     public function getEstablishmentAttribute($value)
@@ -97,12 +110,27 @@ class BlockPayroll extends ModelTenant
      * @return array
      */
     public function getRowCollection(){
+        // Intentar usar columnas virtuales, si no existen usar JSON
+        try {
+            $periodStartDate = $this->period_start_virtual ? $this->period_start_virtual->format('Y-m-d') : 
+                               ($this->period->period_start ?? '');
+            $periodEndDate = $this->period_end_virtual ? $this->period_end_virtual->format('Y-m-d') : 
+                             ($this->period->period_end ?? '');
+        } catch (Exception $e) {
+            // Fallback: usar datos del JSON period
+            $periodStartDate = $this->period->period_start ?? '';
+            $periodEndDate = $this->period->period_end ?? '';
+        }
+
         return [
             'id' => $this->id,
             'date_of_issue' => $this->date_of_issue->format('Y-m-d'),
             'state_block_id' => $this->state_block_id,
-            'time_of_issue' => $this->time_of_issue->format('H:i:s'),
+            'state_block_name' => optional($this->state_block)->name,
+            'time_of_issue' => $this->time_of_issue,
             'period' => $this->period,
+            'period_start_date' => $periodStartDate,
+            'period_end_date' => $periodEndDate,
             'workers_quantity' => $this->workers_quantity,
             'accrued_total' => $this->accrued_total,
             'deductions_total' => $this->deductions_total,
@@ -116,12 +144,27 @@ class BlockPayroll extends ModelTenant
      */
     public function getRowResource()
     {
+        // Intentar usar columnas virtuales, si no existen usar JSON
+        try {
+            $periodStartDate = $this->period_start_virtual ? $this->period_start_virtual->format('Y-m-d') : 
+                               ($this->period->period_start ?? '');
+            $periodEndDate = $this->period_end_virtual ? $this->period_end_virtual->format('Y-m-d') : 
+                             ($this->period->period_end ?? '');
+        } catch (Exception $e) {
+            // Fallback: usar datos del JSON period
+            $periodStartDate = $this->period->period_start ?? '';
+            $periodEndDate = $this->period->period_end ?? '';
+        }
+
         return [
             'id' => $this->id,
             'date_of_issue' => $this->date_of_issue->format('Y-m-d'),
-            'time_of_issue' => $this->time_of_issue->format('H:i:s'),
+            'time_of_issue' => $this->time_of_issue,
             'state_block_id' => $this->state_block_id,
+            'state_block_name' => optional($this->state_block)->name,
             'period' => $this->period,
+            'period_start_date' => $periodStartDate,
+            'period_end_date' => $periodEndDate,
             'workers_quantity' => $this->workers_quantity,
             'accrued_total' => $this->accrued_total,
             'deductions_total' => $this->deductions_total,
@@ -139,7 +182,7 @@ class BlockPayroll extends ModelTenant
     /**
      * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
      */
-    public function stateBlock()
+    public function state_block()
     {
         return $this->belongsTo(\Modules\Factcolombia1\Models\Tenant\StateDocument::class, 'state_block_id');
     }

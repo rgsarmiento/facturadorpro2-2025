@@ -210,22 +210,74 @@ class BlockPayrollController extends Controller
     public function storeWithoutGenerate(Request $request)
     {
         try {
+            // Validar que no exista un registro con el mismo período ANTES de la transacción
+            $existingRecord = null;
+            
+            // Log para debugging
+            \Log::info("Validando período duplicado", [
+                'period_start' => $request->general_period_start,
+                'period_end' => $request->general_period_end
+            ]);
+            
+            try {
+                // Intento 1: Usar columnas virtuales (más eficiente)
+                $existingRecord = BlockPayroll::where('period_start_virtual', $request->general_period_start)
+                    ->where('period_end_virtual', $request->general_period_end)
+                    ->first();
+                
+                \Log::info("Resultado consulta columnas virtuales", [
+                    'found' => $existingRecord ? true : false,
+                    'record_id' => $existingRecord ? $existingRecord->id : null
+                ]);
+            } catch (Exception $e) {
+                \Log::warning("Error con columnas virtuales, usando fallback", ['error' => $e->getMessage()]);
+                
+                // Intento 2: Si falla, usar consultas JSON (fallback)
+                $existingRecord = BlockPayroll::whereRaw("JSON_UNQUOTE(JSON_EXTRACT(period, '$.period_start')) = ?", [$request->general_period_start])
+                    ->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(period, '$.period_end')) = ?", [$request->general_period_end])
+                    ->first();
+                    
+                \Log::info("Resultado consulta JSON fallback", [
+                    'found' => $existingRecord ? true : false,
+                    'record_id' => $existingRecord ? $existingRecord->id : null
+                ]);
+            }
+
+            if ($existingRecord) {
+                \Log::warning("Período duplicado encontrado", [
+                    'existing_id' => $existingRecord->id,
+                    'period_start' => $request->general_period_start,
+                    'period_end' => $request->general_period_end
+                ]);
+                
+                return [
+                    'success' => false,
+                    'message' => "Ya existe un bloque de nómina para el período del {$request->general_period_start} al {$request->general_period_end}"
+                ];
+            }
+            
             $data = DB::connection('tenant')->transaction(function () use($request) {
 
                 // Preparar datos del periodo para cada empleado
                 $employeePeriodData = [];
                 $workers = $request->selected_workers ?? [];
 
-                foreach ($workers as $workerId) {
-                    $periodKey = "employee_period_data.{$workerId}";
-                    $employeePeriodData[$workerId] = [
-                        'worker_id' => $workerId,
-                        'period_start' => $request->input("{$periodKey}.period_start"),
-                        'period_end' => $request->input("{$periodKey}.period_end"),
-                        'salary' => $request->input("{$periodKey}.salary"),
-                        'worked_days' => $request->input("{$periodKey}.worked_days"),
-                        // Agregar otros campos del periodo según sea necesario
-                    ];
+                // Si employee_period_data viene como objeto anidado, usarlo directamente
+                if ($request->has('employee_period_data') && is_array($request->employee_period_data)) {
+                    $employeePeriodData = $request->employee_period_data;
+                } else {
+                    // Fallback: construir desde la estructura de puntos (compatibilidad hacia atrás)
+                    foreach ($workers as $workerId) {
+                        $periodKey = "employee_period_data.{$workerId}";
+                        $employeePeriodData[$workerId] = [
+                            'worker_id' => $workerId,
+                            'period_start' => $request->input("{$periodKey}.period_start"),
+                            'period_end' => $request->input("{$periodKey}.period_end"),
+                            'salary' => $request->input("{$periodKey}.salary"),
+                            'worked_days' => $request->input("{$periodKey}.worked_days"),
+                            // Agregar otros campos del periodo según sea necesario
+                        ];
+                    }
                 }
 
                 // Crear el payload con todos los datos del formulario
@@ -254,6 +306,12 @@ class BlockPayrollController extends Controller
                 // Obtener establishment_id del usuario si no se proporciona
                 $establishmentId = $request->establishment_id ?? auth()->user()->establishment_id ?? 1;
 
+                // Crear el objeto periodo simplificado
+                $periodData = [
+                    'period_start' => $request->general_period_start,
+                    'period_end' => $request->general_period_end
+                ];
+
                 // Obtener los datos del establecimiento
                 $establishmentData = $request->establishment_data;
                 if (!$establishmentData) {
@@ -268,11 +326,7 @@ class BlockPayrollController extends Controller
                     'time_of_issue' => $request->time_of_issue ?? now()->format('H:i:s'),
                     'establishment_id' => $establishmentId,
                     'establishment' => $establishmentData,
-                    'period' => [
-                        'general_period_start' => $request->general_period_start,
-                        'general_period_end' => $request->general_period_end,
-                        'individual_periods' => $employeePeriodData
-                    ],
+                    'period' => $periodData,
                     'workers_quantity' => count($workers),
                     'notes' => $request->notes,
                     'accrued_total' => $accruedTotal,

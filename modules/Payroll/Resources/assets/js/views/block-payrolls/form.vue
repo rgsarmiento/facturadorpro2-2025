@@ -256,8 +256,6 @@
                     tables: { resolutions: [] },
                     period: {
                         admision_date: '',
-                        settlement_start_date: '',
-                        settlement_end_date: '',
                         worked_time: 0,
                         issue_date: '',
                     },
@@ -374,7 +372,7 @@
                     return;
                 }
 
-                // Preparar datos para enviar
+                // Preparar datos para enviar (excluir explícitamente el campo notes)
                 const formData = {
                     selected_workers: selectedWorkers,
                     resolution_id: this.form.type_document_id,
@@ -382,24 +380,34 @@
                     time_of_issue: this.form.time_of_issue,
                     general_period_start: this.form.period_start,
                     general_period_end: this.form.period_end,
-                    notes: this.form.notes || '',
                     establishment_id: this.form.establishment_id,
                     establishment_data: this.form.establishment,
                 };
 
-                // Agregar datos de periodo de cada empleado
+                // Agregar datos de periodo de cada empleado usando estructura anidada
+                const employeePeriodData = {};
                 selectedWorkers.forEach(workerId => {
                     const periodData = this.employeePeriodData[workerId] || {};
-                    formData[`employee_period_data.${workerId}.period_start`] = periodData.period_start || this.form.period_start;
-                    formData[`employee_period_data.${workerId}.period_end`] = periodData.period_end || this.form.period_end;
-                    formData[`employee_period_data.${workerId}.salary`] = periodData.salary || 0;
-                    formData[`employee_period_data.${workerId}.worked_days`] = periodData.worked_days || 30;
-                    formData[`employee_period_data.${workerId}.admision_date`] = periodData.admision_date || '';
-                    formData[`employee_period_data.${workerId}.settlement_start_date`] = periodData.settlement_start_date || '';
-                    formData[`employee_period_data.${workerId}.settlement_end_date`] = periodData.settlement_end_date || '';
-                    formData[`employee_period_data.${workerId}.worked_time`] = periodData.worked_time || 0;
-                    formData[`employee_period_data.${workerId}.issue_date`] = periodData.issue_date || '';
+                    const currentWorker = this.form.items.find(item => item.id === workerId);
+                    
+                    employeePeriodData[workerId] = {
+                        worker_id: workerId,
+                        salary: periodData.salary || (currentWorker ? currentWorker.salary : 0),
+                        worked_days: periodData.worked_days || 30,
+                        admision_date: periodData.admision_date || '',
+                        worked_time: periodData.worked_time || 30,
+                        payroll_period: periodData.payroll_period_id || 5,  // Siempre usar "Mensual" como defecto
+                        generate_provisions: currentWorker ? currentWorker.generate_provisions : false
+                    };
                 });
+
+                // Agregar el objeto completo al formData
+                formData.employee_period_data = employeePeriodData;
+
+                // Asegurar que no se incluya el campo notes
+                if (formData.hasOwnProperty('notes')) {
+                    delete formData.notes;
+                }
 
                 // Enviar al backend
                 this.$http.post(`/${this.resource}/store-without-generate`, formData)
@@ -482,6 +490,10 @@
                     if (response.data.establishment) {
                         this.form.establishment = response.data.establishment;
                     }
+                    
+                    // Establecer "Mensual" (ID: 5) como valor por defecto para el período de nómina
+                    this.form.payroll_period_id = 5;
+                    
                     this.loading = false
                 }).catch((error) => {
                     this.loading = false
@@ -561,11 +573,14 @@
                     if (!this.employeePeriodData[worker.id]) {
                         this.$set(this.employeePeriodData, worker.id, {
                             admision_date: defaultDate,
-                            settlement_start_date: '',
-                            settlement_end_date: '',
                             worked_time: 30,
                             issue_date: '',
-                            payroll_period_id: 5
+                            payroll_period_id: 5,  // Siempre usar "Mensual" como defecto
+                            // Agregar campos que espera el backend
+                            salary: worker.salary || 0,
+                            period_start: this.form.period_start || '',
+                            period_end: this.form.period_end || '',
+                            worked_days: 30
                         });
                     }
                 });
@@ -581,14 +596,20 @@
             saveCurrentEmployeeData() {
                 if (!this.selectedWorkerId) return;
 
+                // Obtener datos actuales del empleado seleccionado
+                const currentWorker = this.form.items.find(item => item.id === this.selectedWorkerId);
+
                 // Guardar datos actuales del formulario
                 this.employeePeriodData[this.selectedWorkerId] = {
                     admision_date: this.form.period.admision_date || '',
-                    settlement_start_date: this.form.period.settlement_start_date || '',
-                    settlement_end_date: this.form.period.settlement_end_date || '',
                     worked_time: this.form.period.worked_time || 30,
                     issue_date: this.form.period.issue_date || '',
-                    payroll_period_id: this.form.payroll_period_id || 5
+                    payroll_period_id: this.form.payroll_period_id || 5,
+                    // Agregar campos que espera el backend
+                    salary: currentWorker ? currentWorker.salary : 0,
+                    period_start: this.form.period_start || '',
+                    period_end: this.form.period_end || '',
+                    worked_days: 30
                 };
             },
 
@@ -599,8 +620,6 @@
                 if (data) {
                     // Cargar datos existentes haciendo copia para evitar referencias
                     this.form.period.admision_date = data.admision_date || '';
-                    this.form.period.settlement_start_date = data.settlement_start_date || '';
-                    this.form.period.settlement_end_date = data.settlement_end_date || '';
                     this.form.period.worked_time = data.worked_time || 30;
                     this.form.period.issue_date = data.issue_date || '';
                     this.form.payroll_period_id = data.payroll_period_id || 5;
@@ -609,8 +628,6 @@
                     const defaultDate = `${currentYear}-01-01`;
 
                     this.form.period.admision_date = defaultDate;
-                    this.form.period.settlement_start_date = '';
-                    this.form.period.settlement_end_date = '';
                     this.form.period.worked_time = 30;
                     this.form.period.issue_date = '';
                     this.form.payroll_period_id = 5;

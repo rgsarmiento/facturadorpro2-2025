@@ -28,12 +28,16 @@
                     <tr slot-scope="{ index, row }">
                         <td>{{ index }}</td>
                         <td>{{ row.date_of_issue }}</td>
-                        <td>{{ row.state_block_id }}</td>
-                        <td>{{ row.workers_quantity }}</td>
-                        <td class="text-center">{{ row.period }}</td>
+                        <td class>
+                            <span class="badge bg-secondary text-white" :class="{'bg-secondary': (row.state_block_id === 1), 'bg-success': (row.state_block_id === 5), 'bg-danger': (row.state_block_id === 6)}">
+                                {{ row.state_block_name }}
+                            </span>
+                        </td>
+                        <td class="text-center">{{ row.workers_quantity }}</td>
+                        <td>{{ row.period_start_date }} - {{ row.period_end_date }}</td>
                         <td class="text-center">{{ row.accrued_total }}</td>
                         <td class="text-center">{{ row.deductions_total }}</td>
-                        <td class="text-right">
+                        <td class="text-center">
                             <template v-if="row.state_block_id==1">
                                 <a :href="`/${resource}/edit-block/${row.id}`" class="btn waves-effect waves-light btn-xs btn-info m-1__2">Editar</a>
                             </template>
