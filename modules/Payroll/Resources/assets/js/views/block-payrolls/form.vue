@@ -206,9 +206,9 @@
                                     <div class="col-md-3">
                                         <div class="form-group" :class="{'has-danger': errors['payment.payment_method_id']}">
                                             <label class="control-label">Métodos de pago<span class="text-danger"> *</span></label>
-                                            <el-select 
-                                                v-model="form.payment.payment_method_id" 
-                                                filterable 
+                                            <el-select
+                                                v-model="form.payment.payment_method_id"
+                                                filterable
                                                 @change="changePaymentMethod"
                                                 :key="'payment-method-' + selectedWorkerId"
                                             >
@@ -222,7 +222,7 @@
                                         <div class="col-md-3">
                                             <div class="form-group" :class="{'has-danger': errors['payment.bank_name']}">
                                                 <label class="control-label">Nombre del banco</label>
-                                                <el-input 
+                                                <el-input
                                                     v-model="form.payment.bank_name"
                                                     :key="'bank-' + selectedWorkerId"
                                                     @input="saveCurrentEmployeePaymentData"
@@ -234,7 +234,7 @@
                                         <div class="col-md-3">
                                             <div class="form-group" :class="{'has-danger': errors['payment.account_type']}">
                                                 <label class="control-label">Tipo de cuenta</label>
-                                                <el-input 
+                                                <el-input
                                                     v-model="form.payment.account_type"
                                                     :key="'account-type-' + selectedWorkerId"
                                                     @input="saveCurrentEmployeePaymentData"
@@ -246,7 +246,7 @@
                                         <div class="col-md-3">
                                             <div class="form-group" :class="{'has-danger': errors['payment.account_number']}">
                                                 <label class="control-label">Número de cuenta</label>
-                                                <el-input 
+                                                <el-input
                                                     v-model="form.payment.account_number"
                                                     :key="'account-number-' + selectedWorkerId"
                                                     @input="saveCurrentEmployeePaymentData"
@@ -257,7 +257,7 @@
                                         </div>
                                     </template>
                                 </div>
-                                
+
                                 <div class="row mt-2">
                                     <div class="col-md-12">
                                         <div class="form-group" :class="{'has-danger': errors['payment_dates']}">
@@ -277,10 +277,10 @@
                                                 <tr v-for="(row, index) in form.payment_dates" :key="index">
                                                     <td>
                                                         <div class="form-group mb-2 mr-2">
-                                                            <el-date-picker 
-                                                                v-model="row.payment_date" 
-                                                                type="date" 
-                                                                value-format="yyyy-MM-dd" 
+                                                            <el-date-picker
+                                                                v-model="row.payment_date"
+                                                                type="date"
+                                                                value-format="yyyy-MM-dd"
                                                                 :clearable="false"
                                                                 @change="handlePaymentDateChange"
                                                             ></el-date-picker>
@@ -388,16 +388,16 @@
             // Función helper para calcular días entre fechas
             calculateWorkedDays(admisionDate) {
                 if (!admisionDate) return 30; // Valor por defecto si no hay fecha
-                
+
                 const today = new Date();
                 const admissionDate = new Date(admisionDate);
-                
+
                 // Calcular la diferencia en milisegundos
                 const diffInMs = today - admissionDate;
-                
+
                 // Convertir a días
                 const diffInDays = Math.floor(diffInMs / (1000 * 60 * 60 * 24));
-                
+
                 // Retornar al menos 1 día si la fecha de admisión es hoy o en el futuro
                 return Math.max(diffInDays, 1);
             },
@@ -534,7 +534,7 @@
                 const employeePaymentData = {};
                 selectedWorkers.forEach(workerId => {
                     const paymentData = this.employeePaymentData[workerId] || {};
-                    
+
                     employeePaymentData[workerId] = {
                         worker_id: workerId,
                         payment_method_id: paymentData.payment_method_id || null,
@@ -719,7 +719,7 @@
                 this.form.items.forEach(worker => {
                     if (!this.employeePeriodData[worker.id]) {
                         const admisionDate = worker.work_start_date || defaultDate;
-                        
+
                         this.$set(this.employeePeriodData, worker.id, {
                             admision_date: admisionDate,
                             worked_time: this.calculateWorkedDays(admisionDate), // Cálculo automático entre fechas
@@ -834,7 +834,7 @@
 
                     this.$set(this.employeePeriodData[this.selectedWorkerId], 'admision_date', newValue);
                     this.$set(this.employeePeriodData[this.selectedWorkerId], 'worked_time', calculatedWorkedTime); // Cálculo automático
-                    
+
                     // Solo establecer worked_days si no hay valor previo
                     if (!this.employeePeriodData[this.selectedWorkerId].worked_days) {
                         this.$set(this.employeePeriodData[this.selectedWorkerId], 'worked_days', 30);
@@ -872,14 +872,14 @@
             // Métodos para el manejo de datos de pago
             changePaymentMethod() {
                 this.show_inputs_payment_method = [2,3,4,5,6,7,21,22,30,31,42,45,46,47].includes(this.form.payment.payment_method_id);
-                
+
                 // Guardar inmediatamente en el almacenamiento del empleado actual
                 if (this.selectedWorkerId) {
                     if (!this.employeePaymentData[this.selectedWorkerId]) {
                         this.$set(this.employeePaymentData, this.selectedWorkerId, {});
                     }
                     this.$set(this.employeePaymentData[this.selectedWorkerId], 'payment_method_id', this.form.payment.payment_method_id);
-                    
+
                     // Guardar todos los datos inmediatamente
                     this.saveCurrentEmployeePaymentData();
                 }
