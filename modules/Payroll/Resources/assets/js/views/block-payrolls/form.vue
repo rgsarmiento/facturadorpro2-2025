@@ -201,6 +201,103 @@
                                     </div>
                                 </div>
                             </el-tab-pane>
+                            <el-tab-pane label="Pagos" name="payments">
+                                <div class="row" v-show="selectedWorkerId">
+                                    <div class="col-md-3">
+                                        <div class="form-group" :class="{'has-danger': errors['payment.payment_method_id']}">
+                                            <label class="control-label">Métodos de pago<span class="text-danger"> *</span></label>
+                                            <el-select 
+                                                v-model="form.payment.payment_method_id" 
+                                                filterable 
+                                                @change="changePaymentMethod"
+                                                :key="'payment-method-' + selectedWorkerId"
+                                            >
+                                                <el-option v-for="option in form.tables.payment_methods" :key="option.id" :value="option.id" :label="option.name"></el-option>
+                                            </el-select>
+                                            <small class="form-control-feedback" v-if="errors['payment.payment_method_id']" v-text="errors['payment.payment_method_id'][0]"></small>
+                                        </div>
+                                    </div>
+
+                                    <template v-if="show_inputs_payment_method">
+                                        <div class="col-md-3">
+                                            <div class="form-group" :class="{'has-danger': errors['payment.bank_name']}">
+                                                <label class="control-label">Nombre del banco</label>
+                                                <el-input 
+                                                    v-model="form.payment.bank_name"
+                                                    :key="'bank-' + selectedWorkerId"
+                                                    @input="saveCurrentEmployeePaymentData"
+                                                    @blur="saveCurrentEmployeePaymentData"
+                                                ></el-input>
+                                                <small class="form-control-feedback" v-if="errors['payment.bank_name']" v-text="errors['payment.bank_name'][0]"></small>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="form-group" :class="{'has-danger': errors['payment.account_type']}">
+                                                <label class="control-label">Tipo de cuenta</label>
+                                                <el-input 
+                                                    v-model="form.payment.account_type"
+                                                    :key="'account-type-' + selectedWorkerId"
+                                                    @input="saveCurrentEmployeePaymentData"
+                                                    @blur="saveCurrentEmployeePaymentData"
+                                                ></el-input>
+                                                <small class="form-control-feedback" v-if="errors['payment.account_type']" v-text="errors['payment.account_type'][0]"></small>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div class="form-group" :class="{'has-danger': errors['payment.account_number']}">
+                                                <label class="control-label">Número de cuenta</label>
+                                                <el-input 
+                                                    v-model="form.payment.account_number"
+                                                    :key="'account-number-' + selectedWorkerId"
+                                                    @input="saveCurrentEmployeePaymentData"
+                                                    @blur="saveCurrentEmployeePaymentData"
+                                                ></el-input>
+                                                <small class="form-control-feedback" v-if="errors['payment.account_number']" v-text="errors['payment.account_number'][0]"></small>
+                                            </div>
+                                        </div>
+                                    </template>
+                                </div>
+                                
+                                <div class="row mt-2">
+                                    <div class="col-md-12">
+                                        <div class="form-group" :class="{'has-danger': errors['payment_dates']}">
+                                            <h4>Fechas de pago<span class="text-danger"> *</span></h4>
+                                            <small class="form-control-feedback" v-if="errors['payment_dates']" v-text="errors['payment_dates'][0]"></small>
+                                        </div>
+                                    </div>
+                                    <div class="col-md-4">
+                                        <table>
+                                            <thead>
+                                                <tr width="100%">
+                                                    <th v-if="form.payment_dates.length>0" class="pb-2">Fecha<span class="text-danger"> *</span></th>
+                                                    <th width="30%"><a href="#" @click.prevent="clickAddPaymentDate()" class="text-center font-weight-bold text-info pb-1 mt-1">[+ Agregar]</a></th>
+                                                </tr>
+                                            </thead>
+                                            <tbody>
+                                                <tr v-for="(row, index) in form.payment_dates" :key="index">
+                                                    <td>
+                                                        <div class="form-group mb-2 mr-2">
+                                                            <el-date-picker 
+                                                                v-model="row.payment_date" 
+                                                                type="date" 
+                                                                value-format="yyyy-MM-dd" 
+                                                                :clearable="false"
+                                                                @change="handlePaymentDateChange"
+                                                            ></el-date-picker>
+                                                        </div>
+                                                    </td>
+                                                    <td class="series-table-actions text-center">
+                                                        <button type="button" class="btn waves-effect waves-light btn-xs btn-danger" @click.prevent="clickCancelPaymentDate(index)">
+                                                            <i class="fa fa-trash"></i>
+                                                        </button>
+                                                    </td>
+                                                    <br>
+                                                </tr>
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+                            </el-tab-pane>
                         </el-tabs>
                     </div>
                     <div class="row mt-4">
@@ -259,6 +356,13 @@
                         worked_time: 0,
                         issue_date: '',
                     },
+                    payment: {
+                        payment_method_id: null,
+                        bank_name: '',
+                        account_type: '',
+                        account_number: ''
+                    },
+                    payment_dates: [],
                 },
                 activeName: 'active-workers',
                 selectedWorkerId: null,
@@ -266,6 +370,8 @@
                 periodDateError: '',
                 employeesArray: [], // Array que contendrá un JSON por cada empleado con sus datos de periodo
                 employeePeriodData: {}, // Objeto que almacena los datos de periodo por ID de empleado
+                employeePaymentData: {}, // Objeto que almacena los datos de pago por ID de empleado
+                show_inputs_payment_method: false,
             };
         },
 
@@ -378,6 +484,12 @@
             },
 
             saveWithoutGenerate() {
+                // Guardar datos del empleado actual antes de procesar
+                if (this.selectedWorkerId) {
+                    this.saveCurrentEmployeeData();
+                    this.saveCurrentEmployeePaymentData();
+                }
+
                 this.loading_submit = true;
 
                 // Obtener todos los trabajadores cargados (no hay selección individual, se procesan todos)
@@ -418,8 +530,24 @@
                     };
                 });
 
-                // Agregar el objeto completo al formData
+                // Agregar datos de pago de cada empleado
+                const employeePaymentData = {};
+                selectedWorkers.forEach(workerId => {
+                    const paymentData = this.employeePaymentData[workerId] || {};
+                    
+                    employeePaymentData[workerId] = {
+                        worker_id: workerId,
+                        payment_method_id: paymentData.payment_method_id || null,
+                        bank_name: paymentData.bank_name || '',
+                        account_type: paymentData.account_type || '',
+                        account_number: paymentData.account_number || '',
+                        payment_dates: paymentData.payment_dates || []
+                    };
+                });
+
+                // Agregar los objetos completos al formData
                 formData.employee_period_data = employeePeriodData;
+                formData.employee_payment_data = employeePaymentData;
 
                 // Asegurar que no se incluya el campo notes
                 if (formData.hasOwnProperty('notes')) {
@@ -567,6 +695,7 @@
                 // Guardar datos del empleado actual si existe
                 if (this.selectedWorkerId && this.selectedWorkerId !== workerId) {
                     this.saveCurrentEmployeeData();
+                    this.saveCurrentEmployeePaymentData();
                 }
 
                 // Cambiar empleado seleccionado
@@ -574,6 +703,7 @@
 
                 // Cargar datos del nuevo empleado
                 this.loadEmployeeData(workerId);
+                this.loadEmployeePaymentData(workerId);
 
                 // Forzar actualización completa del componente
                 this.$nextTick(() => {
@@ -602,12 +732,25 @@
                             worked_days: 30 // Valor fijo por defecto para el formulario
                         });
                     }
+
+                    // Inicializar datos de pago para cada empleado
+                    if (!this.employeePaymentData[worker.id]) {
+                        const workerPayment = worker.payment;
+                        this.$set(this.employeePaymentData, worker.id, {
+                            payment_method_id: workerPayment?.payment_method_id || null,
+                            bank_name: workerPayment?.bank_name || '',
+                            account_type: workerPayment?.account_type || '',
+                            account_number: workerPayment?.account_number || '',
+                            payment_dates: []
+                        });
+                    }
                 });
 
                 // Cargar datos del primer empleado con delay para asegurar renderizado
                 if (this.selectedWorkerId) {
                     this.$nextTick(() => {
                         this.loadEmployeeData(this.selectedWorkerId);
+                        this.loadEmployeePaymentData(this.selectedWorkerId);
                     });
                 }
             },
@@ -720,6 +863,117 @@
                 if (this.activeName === 'period' && tab.name !== 'period') {
                     this.saveCurrentEmployeeData();
                 }
+                // Guardar datos al salir del tab pagos
+                if (this.activeName === 'payments' && tab.name !== 'payments') {
+                    this.saveCurrentEmployeePaymentData();
+                }
+            },
+
+            // Métodos para el manejo de datos de pago
+            changePaymentMethod() {
+                this.show_inputs_payment_method = [2,3,4,5,6,7,21,22,30,31,42,45,46,47].includes(this.form.payment.payment_method_id);
+                
+                // Guardar inmediatamente en el almacenamiento del empleado actual
+                if (this.selectedWorkerId) {
+                    if (!this.employeePaymentData[this.selectedWorkerId]) {
+                        this.$set(this.employeePaymentData, this.selectedWorkerId, {});
+                    }
+                    this.$set(this.employeePaymentData[this.selectedWorkerId], 'payment_method_id', this.form.payment.payment_method_id);
+                    
+                    // Guardar todos los datos inmediatamente
+                    this.saveCurrentEmployeePaymentData();
+                }
+            },
+
+            clickAddPaymentDate() {
+                this.form.payment_dates.push({
+                    payment_date: ''
+                });
+
+                // Guardar inmediatamente en el almacenamiento del empleado actual
+                if (this.selectedWorkerId) {
+                    this.saveCurrentEmployeePaymentData();
+                }
+            },
+
+            clickCancelPaymentDate(index) {
+                this.form.payment_dates.splice(index, 1);
+
+                // Guardar inmediatamente en el almacenamiento del empleado actual
+                if (this.selectedWorkerId) {
+                    this.saveCurrentEmployeePaymentData();
+                }
+            },
+
+            handlePaymentDateChange() {
+                // Guardar automáticamente cuando se cambie una fecha de pago
+                if (this.selectedWorkerId) {
+                    this.saveCurrentEmployeePaymentData();
+                }
+            },
+
+            saveCurrentEmployeePaymentData() {
+                if (!this.selectedWorkerId) return;
+
+                // Asegurar que el objeto del empleado existe
+                if (!this.employeePaymentData[this.selectedWorkerId]) {
+                    this.$set(this.employeePaymentData, this.selectedWorkerId, {});
+                }
+
+                // Crear una copia profunda de las fechas para evitar referencias
+                const paymentDatesCopy = JSON.parse(JSON.stringify(this.form.payment_dates || []));
+
+                this.$set(this.employeePaymentData, this.selectedWorkerId, {
+                    payment_method_id: this.form.payment.payment_method_id,
+                    bank_name: this.form.payment.bank_name || '',
+                    account_type: this.form.payment.account_type || '',
+                    account_number: this.form.payment.account_number || '',
+                    payment_dates: paymentDatesCopy
+                });
+            },
+
+            loadEmployeePaymentData(workerId) {
+                const data = this.employeePaymentData[workerId];
+                const currentWorker = this.form.items.find(item => item.id === workerId);
+
+                if (data) {
+                    // Cargar datos existentes
+                    this.form.payment.payment_method_id = data.payment_method_id || null;
+                    this.form.payment.bank_name = data.bank_name || '';
+                    this.form.payment.account_type = data.account_type || '';
+                    this.form.payment.account_number = data.account_number || '';
+                    this.form.payment_dates = data.payment_dates ? JSON.parse(JSON.stringify(data.payment_dates)) : [];
+                } else {
+                    // Usar datos del trabajador desde el backend si existen
+                    const workerPayment = currentWorker?.payment;
+                    this.form.payment.payment_method_id = workerPayment?.payment_method_id || null;
+                    this.form.payment.bank_name = workerPayment?.bank_name || '';
+                    this.form.payment.account_type = workerPayment?.account_type || '';
+                    this.form.payment.account_number = workerPayment?.account_number || '';
+                    this.form.payment_dates = [];
+                }
+
+                // Actualizar visibilidad de campos adicionales
+                this.changePaymentMethod();
+
+                // Forzar actualización del DOM
+                this.$nextTick(() => {
+                    this.$forceUpdate();
+                });
+            },
+        },
+
+        watch: {
+            selectedWorkerId: {
+                handler(newWorkerId, oldWorkerId) {
+                    if (newWorkerId && newWorkerId !== oldWorkerId) {
+                        this.$nextTick(() => {
+                            this.loadEmployeeData(newWorkerId);
+                            this.loadEmployeePaymentData(newWorkerId);
+                        });
+                    }
+                },
+                immediate: false
             }
         }
     }

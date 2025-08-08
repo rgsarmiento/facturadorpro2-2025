@@ -213,43 +213,19 @@ class BlockPayrollController extends Controller
             // Validar que no exista un registro con el mismo período ANTES de la transacción
             $existingRecord = null;
 
-            // Log para debugging
-            \Log::info("Validando período duplicado", [
-                'period_start' => $request->general_period_start,
-                'period_end' => $request->general_period_end
-            ]);
-
             try {
                 // Intento 1: Usar columnas virtuales (más eficiente)
                 $existingRecord = BlockPayroll::where('period_start_virtual', $request->general_period_start)
                     ->where('period_end_virtual', $request->general_period_end)
                     ->first();
-
-                \Log::info("Resultado consulta columnas virtuales", [
-                    'found' => $existingRecord ? true : false,
-                    'record_id' => $existingRecord ? $existingRecord->id : null
-                ]);
             } catch (Exception $e) {
-                \Log::warning("Error con columnas virtuales, usando fallback", ['error' => $e->getMessage()]);
-
                 // Intento 2: Si falla, usar consultas JSON (fallback)
                 $existingRecord = BlockPayroll::whereRaw("JSON_UNQUOTE(JSON_EXTRACT(period, '$.period_start')) = ?", [$request->general_period_start])
                     ->whereRaw("JSON_UNQUOTE(JSON_EXTRACT(period, '$.period_end')) = ?", [$request->general_period_end])
                     ->first();
-
-                \Log::info("Resultado consulta JSON fallback", [
-                    'found' => $existingRecord ? true : false,
-                    'record_id' => $existingRecord ? $existingRecord->id : null
-                ]);
             }
 
             if ($existingRecord) {
-                \Log::warning("Período duplicado encontrado", [
-                    'existing_id' => $existingRecord->id,
-                    'period_start' => $request->general_period_start,
-                    'period_end' => $request->general_period_end
-                ]);
-
                 return [
                     'success' => false,
                     'message' => "Ya existe un bloque de nómina para el período del {$request->general_period_start} al {$request->general_period_end}"
@@ -260,6 +236,7 @@ class BlockPayrollController extends Controller
 
                 // Preparar datos del periodo para cada empleado
                 $employeePeriodData = [];
+                $employeePaymentData = [];
                 $workers = $request->selected_workers ?? [];
 
                 // Si employee_period_data viene como objeto anidado, usarlo directamente
@@ -280,6 +257,11 @@ class BlockPayrollController extends Controller
                     }
                 }
 
+                // Manejar datos de pago para cada empleado
+                if ($request->has('employee_payment_data') && is_array($request->employee_payment_data)) {
+                    $employeePaymentData = $request->employee_payment_data;
+                }
+
                 // Crear el payload con todos los datos del formulario
                 $payload = [
                     'form_data' => [
@@ -291,6 +273,7 @@ class BlockPayrollController extends Controller
                     ],
                     'selected_workers' => $workers,
                     'employee_period_data' => $employeePeriodData,
+                    'employee_payment_data' => $employeePaymentData,
                     'created_at' => now()->toDateTimeString(),
                     'user_id' => auth()->id(),
                 ];
