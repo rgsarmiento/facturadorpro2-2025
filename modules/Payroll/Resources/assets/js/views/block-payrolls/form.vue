@@ -41,8 +41,8 @@
                             </div>
                             <!-- Campos para period -->
                             <div class="col-md-3">
-                                <div class="form-group">
-                                    <label>Fecha de inicio de periodo</label>
+                                <div class="form-group" :class="{'has-danger': errors.period_start}">
+                                    <label>Fecha de inicio de periodo<span class="text-danger"> *</span></label>
                                     <el-date-picker
                                         v-model="form.period_start"
                                         type="date"
@@ -52,11 +52,12 @@
                                         class="w-100"
                                         @change="validatePeriodDates"
                                     ></el-date-picker>
+                                    <small class="form-control-feedback" v-if="errors.period_start" v-text="errors.period_start[0]"></small>
                                 </div>
                             </div>
                             <div class="col-md-3">
-                                <div class="form-group">
-                                    <label>Fecha de fin de periodo</label>
+                                <div class="form-group" :class="{'has-danger': errors.period_end}">
+                                    <label>Fecha de fin de periodo<span class="text-danger"> *</span></label>
                                     <el-date-picker
                                         v-model="form.period_end"
                                         type="date"
@@ -67,11 +68,12 @@
                                         @change="validatePeriodDates"
                                     ></el-date-picker>
                                     <small v-if="periodDateError" class="text-danger">{{ periodDateError }}</small>
+                                    <small class="form-control-feedback" v-if="errors.period_end" v-text="errors.period_end[0]"></small>
                                 </div>
                             </div>
                             <div class="col-md-3">
-                                <div class="form-group">
-                                    <label class="control-label">Resolución</label>
+                                <div class="form-group" :class="{'has-danger': errors.type_document_id}">
+                                    <label class="control-label">Resolución<span class="text-danger"> *</span></label>
                                     <el-select @change="changeResolution" v-model="form.type_document_id" class="border-left rounded-left border-info">
                                         <el-option v-for="option in form.tables.resolutions" :key="option.id" :value="option.id" :label="`${option.prefix} / ${option.resolution_number ? option.resolution_number : ''} / ${option.from ? option.from : ''} / ${option.to ? option.to : ''}`"></el-option>
                                     </el-select>
@@ -153,10 +155,10 @@
                                                     <i class="fa fa-info-circle"></i>
                                                 </el-tooltip>
                                             </label>
-                                            <el-date-picker 
-                                                v-model="form.period.admision_date" 
-                                                type="date" 
-                                                value-format="yyyy-MM-dd" 
+                                            <el-date-picker
+                                                v-model="form.period.admision_date"
+                                                type="date"
+                                                value-format="yyyy-MM-dd"
                                                 :clearable="false"
                                                 :key="'date-' + selectedWorkerId"
                                                 @change="handleAdmisionDateChange"
@@ -167,9 +169,9 @@
                                     <div class="col-md-3">
                                         <div class="form-group" :class="{'has-danger': errors['period.worked_time']}">
                                             <label class="control-label">Tiempo trabajado<span class="text-danger"> *</span></label>
-                                            <el-input-number 
-                                                v-model="form.period.worked_time" 
-                                                :min="0" 
+                                            <el-input-number
+                                                v-model="form.period.worked_time"
+                                                :min="0"
                                                 controls-position="right"
                                                 :key="'number-' + selectedWorkerId"
                                                 @change="handleWorkedTimeChange"
@@ -184,9 +186,9 @@
                                                     <i class="fa fa-info-circle"></i>
                                                 </el-tooltip>
                                             </label>
-                                            <el-select 
-                                                v-model="form.payroll_period_id" 
-                                                filterable 
+                                            <el-select
+                                                v-model="form.payroll_period_id"
+                                                filterable
                                                 class="border-left rounded-left border-info"
                                                 @change="handlePayrollPeriodChange"
                                                 placeholder="Seleccione periodo"
@@ -248,6 +250,8 @@
                     period_start: '',
                     period_end: '',
                     period_type: 'mensual',
+                    establishment_id: null,
+                    establishment: null,
                     items: [],
                     tables: { resolutions: [] },
                     period: {
@@ -282,6 +286,34 @@
             },
 
             saveForm(generate) {
+                // Limpiar errores previos
+                this.errors = {};
+                let hasErrors = false;
+
+                // Validar que la resolución sea obligatoria
+                if (!this.form.type_document_id) {
+                    this.errors.type_document_id = ['La resolución es obligatoria'];
+                    hasErrors = true;
+                }
+
+                // Validar que la fecha de inicio de periodo sea obligatoria
+                if (!this.form.period_start) {
+                    this.errors.period_start = ['La fecha de inicio de periodo es obligatoria'];
+                    hasErrors = true;
+                }
+
+                // Validar que la fecha de fin de periodo sea obligatoria
+                if (!this.form.period_end) {
+                    this.errors.period_end = ['La fecha de fin de periodo es obligatoria'];
+                    hasErrors = true;
+                }
+
+                // Si hay errores, mostrar mensaje y detener
+                if (hasErrors) {
+                    this.$message.error('Debe completar todos los campos obligatorios');
+                    return;
+                }
+
                 // Aquí puedes agregar la lógica para guardar el formulario
                 // generate = true para "Guardar y generar", false para "Guardar sin generar"
                 // Ejemplo:
@@ -295,15 +327,115 @@
             },
 
             submitForm(action) {
-                // Implementa la lógica de guardado según el action
-                // Puedes usar this.$http.post(...) o lo que corresponda
-                // action será 'generate' o 'save'
-                // ...
-                this.$message.success('Acción: ' + action);
+                // Validación adicional antes de enviar
+                let hasErrors = false;
+
+                if (!this.form.type_document_id) {
+                    this.errors.type_document_id = ['La resolución es obligatoria'];
+                    hasErrors = true;
+                }
+
+                if (!this.form.period_start) {
+                    this.errors.period_start = ['La fecha de inicio de periodo es obligatoria'];
+                    hasErrors = true;
+                }
+
+                if (!this.form.period_end) {
+                    this.errors.period_end = ['La fecha de fin de periodo es obligatoria'];
+                    hasErrors = true;
+                }
+
+                if (hasErrors) {
+                    this.$message.error('Debe completar todos los campos obligatorios');
+                    return;
+                }
+
+                // Guardar datos del empleado actual antes de enviar
+                this.saveCurrentEmployeeData();
+
+                if (action === 'save') {
+                    // Guardar sin generar
+                    this.saveWithoutGenerate();
+                } else if (action === 'generate') {
+                    // Guardar y generar (funcionalidad original)
+                    this.saveAndGenerate();
+                }
+            },
+
+            saveWithoutGenerate() {
+                this.loading_submit = true;
+
+                // Obtener todos los trabajadores cargados (no hay selección individual, se procesan todos)
+                const selectedWorkers = this.form.items.map(worker => worker.id);
+
+                if (selectedWorkers.length === 0) {
+                    this.$message.error('No hay trabajadores disponibles para procesar');
+                    this.loading_submit = false;
+                    return;
+                }
+
+                // Preparar datos para enviar
+                const formData = {
+                    selected_workers: selectedWorkers,
+                    resolution_id: this.form.type_document_id,
+                    date_of_issue: this.form.date_of_issue,
+                    time_of_issue: this.form.time_of_issue,
+                    general_period_start: this.form.period_start,
+                    general_period_end: this.form.period_end,
+                    notes: this.form.notes || '',
+                    establishment_id: this.form.establishment_id,
+                    establishment_data: this.form.establishment,
+                };
+
+                // Agregar datos de periodo de cada empleado
+                selectedWorkers.forEach(workerId => {
+                    const periodData = this.employeePeriodData[workerId] || {};
+                    formData[`employee_period_data.${workerId}.period_start`] = periodData.period_start || this.form.period_start;
+                    formData[`employee_period_data.${workerId}.period_end`] = periodData.period_end || this.form.period_end;
+                    formData[`employee_period_data.${workerId}.salary`] = periodData.salary || 0;
+                    formData[`employee_period_data.${workerId}.worked_days`] = periodData.worked_days || 30;
+                    formData[`employee_period_data.${workerId}.admision_date`] = periodData.admision_date || '';
+                    formData[`employee_period_data.${workerId}.settlement_start_date`] = periodData.settlement_start_date || '';
+                    formData[`employee_period_data.${workerId}.settlement_end_date`] = periodData.settlement_end_date || '';
+                    formData[`employee_period_data.${workerId}.worked_time`] = periodData.worked_time || 0;
+                    formData[`employee_period_data.${workerId}.issue_date`] = periodData.issue_date || '';
+                });
+
+                // Enviar al backend
+                this.$http.post(`/${this.resource}/store-without-generate`, formData)
+                    .then(response => {
+                        this.loading_submit = false;
+                        if (response.data.success) {
+                            this.$message.success(response.data.message);
+                            // Opcionalmente redirigir o limpiar formulario
+                            // this.$router.push(`/${this.resource}`);
+                        } else {
+                            this.$message.error(response.data.message);
+                        }
+                    })
+                    .catch(error => {
+                        this.loading_submit = false;
+                        this.$message.error('Error al guardar el bloque de nómina');
+                    });
+            },
+
+            saveAndGenerate() {
+                // Implementar la funcionalidad original de guardar y generar
+                // Por ahora solo mostramos un mensaje
+                this.$message.info('Funcionalidad de "Guardar y generar" por implementar');
             },
 
             validatePeriodDates() {
                 this.periodDateError = '';
+
+                // Limpiar errores de campos obligatorios cuando se completan
+                if (this.form.period_start && this.errors.period_start) {
+                    this.$delete(this.errors, 'period_start');
+                }
+                if (this.form.period_end && this.errors.period_end) {
+                    this.$delete(this.errors, 'period_end');
+                }
+
                 if (this.form.period_start && this.form.period_end) {
                     if (this.form.period_end < this.form.period_start) {
                         this.periodDateError = 'La fecha final no puede ser menor que la fecha inicial.';
@@ -342,8 +474,14 @@
                 this.loading = true
                 this.$http.get(`/${this.resource}/tables`).then((response) => {
                     this.form.tables = response.data || { resolutions: [] }; // Asegurar estructura
-                    console.log('Tables loaded:', this.form.tables)
-                    console.log('Payroll periods disponibles:', this.form.tables.payroll_periods)
+                    // Asignar establishment_id desde las tables si viene
+                    if (response.data.establishment_id) {
+                        this.form.establishment_id = response.data.establishment_id;
+                    }
+                    // Asignar datos del establecimiento si vienen
+                    if (response.data.establishment) {
+                        this.form.establishment = response.data.establishment;
+                    }
                     this.loading = false
                 }).catch((error) => {
                     this.loading = false
@@ -352,6 +490,11 @@
             },
 
             changeResolution() {
+                // Limpiar errores cuando se selecciona una resolución
+                if (this.form.type_document_id && this.errors.type_document_id) {
+                    this.$delete(this.errors, 'type_document_id');
+                }
+
                 if (this.form.tables && this.form.tables.resolutions) { // Verificación añadida
                     let resolution = _.find(this.form.tables.resolutions, { id: this.form.type_document_id });
                     if (resolution) {
@@ -379,8 +522,7 @@
                 // Convierte la cadena a un número (si es posible)
                 const numericPrice = parseFloat(value);
                 if (isNaN(numericPrice)) {
-                    // En caso de que la conversión no sea exitosa, maneja el error como desees
-                    console.error('No se pudo convertir la cadena a un número.');
+                    // En caso de que la conversión no sea exitosa, devolver el valor original
                     return value;
                 }
                 // Asumiendo que numericPrice es un número
@@ -393,34 +535,27 @@
             },
 
             handleWorkerSelection(workerId) {
-                console.log('=== CAMBIO DE EMPLEADO ===');
-                console.log('De empleado:', this.selectedWorkerId, 'a empleado:', workerId);
-                
                 // Guardar datos del empleado actual si existe
                 if (this.selectedWorkerId && this.selectedWorkerId !== workerId) {
                     this.saveCurrentEmployeeData();
                 }
-                
+
                 // Cambiar empleado seleccionado
                 this.selectedWorkerId = workerId;
-                
+
                 // Cargar datos del nuevo empleado
                 this.loadEmployeeData(workerId);
-                
+
                 // Forzar actualización completa del componente
                 this.$nextTick(() => {
                     this.$forceUpdate();
                 });
-                
-                console.log('=== CAMBIO COMPLETADO ===');
             },
 
             initializeEmployeesArray() {
-                console.log('=== INICIALIZANDO EMPLEADOS ===');
-                
                 const currentYear = new Date().getFullYear();
                 const defaultDate = `${currentYear}-01-01`;
-                
+
                 // Inicializar datos por defecto para cada empleado
                 this.form.items.forEach(worker => {
                     if (!this.employeePeriodData[worker.id]) {
@@ -432,27 +567,20 @@
                             issue_date: '',
                             payroll_period_id: 5
                         });
-                        console.log(`Empleado ${worker.id} inicializado con datos por defecto`);
                     }
                 });
-                
+
                 // Cargar datos del primer empleado con delay para asegurar renderizado
                 if (this.selectedWorkerId) {
                     this.$nextTick(() => {
                         this.loadEmployeeData(this.selectedWorkerId);
                     });
                 }
-                
-                console.log('Estado inicial employeePeriodData:', this.employeePeriodData);
-                console.log('=== FIN INICIALIZACIÓN ===');
             },
 
             saveCurrentEmployeeData() {
                 if (!this.selectedWorkerId) return;
-                
-                console.log('--- GUARDANDO DATOS EMPLEADO ---');
-                console.log('Empleado ID:', this.selectedWorkerId);
-                
+
                 // Guardar datos actuales del formulario
                 this.employeePeriodData[this.selectedWorkerId] = {
                     admision_date: this.form.period.admision_date || '',
@@ -462,17 +590,12 @@
                     issue_date: this.form.period.issue_date || '',
                     payroll_period_id: this.form.payroll_period_id || 5
                 };
-                
-                console.log('Datos guardados:', this.employeePeriodData[this.selectedWorkerId]);
             },
 
             loadEmployeeData(workerId) {
-                console.log('--- CARGANDO DATOS EMPLEADO ---');
-                console.log('Empleado ID:', workerId);
-                
                 // Obtener datos del empleado o usar valores por defecto
                 const data = this.employeePeriodData[workerId];
-                
+
                 if (data) {
                     // Cargar datos existentes haciendo copia para evitar referencias
                     this.form.period.admision_date = data.admision_date || '';
@@ -481,18 +604,10 @@
                     this.form.period.worked_time = data.worked_time || 30;
                     this.form.period.issue_date = data.issue_date || '';
                     this.form.payroll_period_id = data.payroll_period_id || 5;
-                    
-                    console.log('Datos cargados:', data);
-                    console.log('Formulario después de cargar:', {
-                        period: this.form.period,
-                        payroll_period_id: this.form.payroll_period_id
-                    });
                 } else {
-                    console.log('No hay datos para este empleado, usando valores por defecto');
-                    
                     const currentYear = new Date().getFullYear();
                     const defaultDate = `${currentYear}-01-01`;
-                    
+
                     this.form.period.admision_date = defaultDate;
                     this.form.period.settlement_start_date = '';
                     this.form.period.settlement_end_date = '';
@@ -503,25 +618,19 @@
             },
 
             handlePayrollPeriodChange(newValue) {
-                console.log('Cambio en periodo de nómina:', newValue);
-                
                 // Actualizar inmediatamente el formulario para mostrar el cambio
                 this.form.payroll_period_id = newValue;
-                
+
                 // Actualizar inmediatamente en el storage del empleado actual
                 if (this.selectedWorkerId) {
                     // Asegurar que el objeto existe
                     if (!this.employeePeriodData[this.selectedWorkerId]) {
                         this.employeePeriodData[this.selectedWorkerId] = {};
                     }
-                    
+
                     // Actualizar el valor usando Vue.set para reactividad
                     this.$set(this.employeePeriodData[this.selectedWorkerId], 'payroll_period_id', newValue);
-                    
-                    console.log('Periodo actualizado para empleado', this.selectedWorkerId, ':', newValue);
-                    console.log('Formulario actualizado inmediatamente:', this.form.payroll_period_id);
-                    console.log('Estado actualizado:', this.employeePeriodData[this.selectedWorkerId]);
-                    
+
                     // Forzar actualización del componente para asegurar que se muestre
                     this.$nextTick(() => {
                         this.$forceUpdate();
@@ -530,41 +639,33 @@
             },
 
             handleAdmisionDateChange(newValue) {
-                console.log('Cambio en fecha de admisión:', newValue);
-                
                 // Actualizar el formulario inmediatamente
                 this.form.period.admision_date = newValue;
-                
+
                 if (this.selectedWorkerId) {
                     if (!this.employeePeriodData[this.selectedWorkerId]) {
                         this.employeePeriodData[this.selectedWorkerId] = {};
                     }
-                    
+
                     this.$set(this.employeePeriodData[this.selectedWorkerId], 'admision_date', newValue);
-                    console.log('Fecha admisión actualizada para empleado', this.selectedWorkerId, ':', newValue);
                 }
             },
 
             handleWorkedTimeChange(newValue) {
-                console.log('Cambio en tiempo trabajado:', newValue);
-                
                 // Actualizar el formulario inmediatamente
                 this.form.period.worked_time = newValue;
-                
+
                 if (this.selectedWorkerId) {
                     if (!this.employeePeriodData[this.selectedWorkerId]) {
                         this.employeePeriodData[this.selectedWorkerId] = {};
                     }
-                    
+
                     this.$set(this.employeePeriodData[this.selectedWorkerId], 'worked_time', newValue);
-                    console.log('Tiempo trabajado actualizado para empleado', this.selectedWorkerId, ':', newValue);
                 }
             },
 
             // Método para manejar el cambio de tabs
             handleTabChange(tab) {
-                console.log('Cambio de tab de', this.activeName, 'a', tab.name);
-                
                 // Guardar datos al salir del tab periodo
                 if (this.activeName === 'period' && tab.name !== 'period') {
                     this.saveCurrentEmployeeData();

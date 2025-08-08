@@ -18,6 +18,7 @@
                     <tr slot="heading" width="100%">
                         <th>#</th>
                         <th>Fecha Emision</th>
+                        <th>Estado</th>
                         <th>Cantidad Empleados</th>
                         <th>Periodo</th>
                         <th class="text-center">T. Devengados</th>
@@ -27,11 +28,15 @@
                     <tr slot-scope="{ index, row }">
                         <td>{{ index }}</td>
                         <td>{{ row.date_of_issue }}</td>
+                        <td>{{ row.state_block_id }}</td>
                         <td>{{ row.workers_quantity }}</td>
                         <td class="text-center">{{ row.period }}</td>
                         <td class="text-center">{{ row.accrued_total }}</td>
                         <td class="text-center">{{ row.deductions_total }}</td>
                         <td class="text-right">
+                            <template v-if="row.state_block_id==1">
+                                <a :href="`/${resource}/edit-block/${row.id}`" class="btn waves-effect waves-light btn-xs btn-info m-1__2">Editar</a>
+                            </template>
                             <button type="button" class="btn waves-effect waves-light btn-xs btn-info" @click.prevent="clickOptions(row.id)">Opciones</button>
                         </td>
                     </tr>

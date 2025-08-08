@@ -30,6 +30,7 @@ if($hostname) {
                     Route::get('records', 'BlockPayrollController@records');
                     Route::get('table/{table}', 'BlockPayrollController@table');
                     Route::post('', 'BlockPayrollController@store');
+                    Route::post('store-without-generate', 'BlockPayrollController@storeWithoutGenerate');
                     Route::get('record/{record}', 'BlockPayrollController@record');
                     Route::get('active-workers', 'BlockPayrollController@activeWorkers');
                     Route::get('downloadFile/{filename}', 'BlockPayrollController@downloadFile');

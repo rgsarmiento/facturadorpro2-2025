@@ -72,7 +72,12 @@ class BlockPayrollController extends Controller
 
     public function tables()
     {
-        $ni_resolution_id = auth()->user()->ni_resolution_id;
+        $user = auth()->user();
+        $ni_resolution_id = $user->ni_resolution_id;
+
+        // Obtener datos del establecimiento
+        $establishment = \App\Models\Tenant\Establishment::where('id', $user->establishment_id ?? 1)->first();
+
         return [
             'workers' => $this->table('workers'),
             'payroll_periods' => PayrollPeriod::get(),
@@ -82,6 +87,8 @@ class BlockPayrollController extends Controller
             'advanced_configuration' => AdvancedConfiguration::first(),
             'resolutions' => TypeDocument::select('id','prefix', 'resolution_number')->where('code', 9)->get(),
             'ni_resolution_id' => $ni_resolution_id,
+            'establishment_id' => $user->establishment_id ?? 1,
+            'establishment' => $establishment, // Datos completos del establecimiento
         ];
     }
 
@@ -195,6 +202,105 @@ class BlockPayrollController extends Controller
             return $this->getErrorFromException($e->getMessage(), $e);
         }
 
+    }
+
+    /**
+     * Guardar bloque de nómina sin generar documentos
+     */
+    public function storeWithoutGenerate(Request $request)
+    {
+        try {
+            $data = DB::connection('tenant')->transaction(function () use($request) {
+
+                // Preparar datos del periodo para cada empleado
+                $employeePeriodData = [];
+                $workers = $request->selected_workers ?? [];
+
+                foreach ($workers as $workerId) {
+                    $periodKey = "employee_period_data.{$workerId}";
+                    $employeePeriodData[$workerId] = [
+                        'worker_id' => $workerId,
+                        'period_start' => $request->input("{$periodKey}.period_start"),
+                        'period_end' => $request->input("{$periodKey}.period_end"),
+                        'salary' => $request->input("{$periodKey}.salary"),
+                        'worked_days' => $request->input("{$periodKey}.worked_days"),
+                        // Agregar otros campos del periodo según sea necesario
+                    ];
+                }
+
+                // Crear el payload con todos los datos del formulario
+                $payload = [
+                    'form_data' => [
+                        'establishment_id' => $request->establishment_id,
+                        'resolution_id' => $request->resolution_id,
+                        'date_of_issue' => $request->date_of_issue,
+                        'time_of_issue' => $request->time_of_issue,
+                        'notes' => $request->notes,
+                    ],
+                    'selected_workers' => $workers,
+                    'employee_period_data' => $employeePeriodData,
+                    'created_at' => now()->toDateTimeString(),
+                    'user_id' => auth()->id(),
+                ];
+
+                // Calcular totales (puedes ajustar esta lógica según tus necesidades)
+                $accruedTotal = 0;
+                $deductionsTotal = 0;
+
+                foreach ($employeePeriodData as $workerData) {
+                    $accruedTotal += $workerData['salary'] ?? 0;
+                }
+
+                // Obtener establishment_id del usuario si no se proporciona
+                $establishmentId = $request->establishment_id ?? auth()->user()->establishment_id ?? 1;
+
+                // Obtener los datos del establecimiento
+                $establishmentData = $request->establishment_data;
+                if (!$establishmentData) {
+                    $establishment = \App\Models\Tenant\Establishment::where('id', $establishmentId)->first();
+                    $establishmentData = $establishment ? $establishment->toArray() : ['id' => $establishmentId, 'description' => 'Establecimiento Principal'];
+                }
+
+                // Crear el registro en la tabla co_block_payrolls
+                $blockPayroll = BlockPayroll::create([
+                    'user_id' => auth()->id(),
+                    'date_of_issue' => $request->date_of_issue,
+                    'time_of_issue' => $request->time_of_issue ?? now()->format('H:i:s'),
+                    'establishment_id' => $establishmentId,
+                    'establishment' => $establishmentData,
+                    'period' => [
+                        'general_period_start' => $request->general_period_start,
+                        'general_period_end' => $request->general_period_end,
+                        'individual_periods' => $employeePeriodData
+                    ],
+                    'workers_quantity' => count($workers),
+                    'notes' => $request->notes,
+                    'accrued_total' => $accruedTotal,
+                    'deductions_total' => $deductionsTotal,
+                    'payload' => $payload,
+                    'resolution_id' => $request->resolution_id,
+                    'state_block_id' => 1, // 1 = Registrado
+                ]);
+
+                return [
+                    'block_payroll_id' => $blockPayroll->id,
+                    'workers_count' => count($workers),
+                    'accrued_total' => $accruedTotal,
+                ];
+            });
+
+            return [
+                'success' => true,
+                'message' => 'Bloque de nómina guardado exitosamente sin generar documentos',
+                'data' => $data
+            ];
+
+        } catch (Exception $e) {
+            return [
+                'success' => false,
+                'message' => 'Error al guardar el bloque de nómina: ' . $e->getMessage()
+            ];
+        }
     }
 
 

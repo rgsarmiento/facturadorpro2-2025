@@ -30,8 +30,10 @@ class BlockPayroll extends ModelTenant
         'workers_quantity',
         'notes',
         'accrued_total',
-        'dedductions_total',
+        'deductions_total',
         'payload',
+        'resolution_id',
+        'state_block_id',
     ];
 
     protected $casts = [
@@ -98,6 +100,7 @@ class BlockPayroll extends ModelTenant
         return [
             'id' => $this->id,
             'date_of_issue' => $this->date_of_issue->format('Y-m-d'),
+            'state_block_id' => $this->state_block_id,
             'time_of_issue' => $this->time_of_issue->format('H:i:s'),
             'period' => $this->period,
             'workers_quantity' => $this->workers_quantity,
@@ -117,10 +120,27 @@ class BlockPayroll extends ModelTenant
             'id' => $this->id,
             'date_of_issue' => $this->date_of_issue->format('Y-m-d'),
             'time_of_issue' => $this->time_of_issue->format('H:i:s'),
+            'state_block_id' => $this->state_block_id,
             'period' => $this->period,
             'workers_quantity' => $this->workers_quantity,
             'accrued_total' => $this->accrued_total,
             'deductions_total' => $this->deductions_total,
         ];
+    }
+
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
+     */
+    public function resolution()
+    {
+        return $this->belongsTo(\App\CoreFacturalo\Models\Tenant\TypeDocument::class, 'resolution_id');
+    }
+
+    /**
+     * @return \Illuminate\Database\Eloquent\Relations\BelongsTo
+     */
+    public function stateBlock()
+    {
+        return $this->belongsTo(\Modules\Factcolombia1\Models\Tenant\StateDocument::class, 'state_block_id');
     }
 }
