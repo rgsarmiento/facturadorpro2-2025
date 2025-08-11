@@ -914,7 +914,7 @@
             } else {
                 // Asegurar que la configuración avanzada esté disponible antes de cargar empleados
                 await this.getActiveWorkers();
-                
+
                 // Aplicar subsidio de transporte después de que todo esté inicializado
                 this.$nextTick(() => {
                     if (this.selectedWorkerId && this.advancedConfiguration) {
@@ -988,7 +988,7 @@
                     // Guardar sin generar
                     this.submitForm('save');
                 }
-                window.location.href = '/payroll/block-payrolls';
+//                window.location.href = '/payroll/block-payrolls';
             },
 
             submitForm(action) {
@@ -1105,6 +1105,11 @@
                 selectedWorkers.forEach(workerId => {
                     const accruedData = this.employeeAccruedData[workerId] || {};
 
+                    // Debug: verificar datos de devengados
+                    console.log('Worker ID:', workerId);
+                    console.log('Accrued Data for Worker:', accruedData);
+                    console.log('All Employee Accrued Data:', this.employeeAccruedData);
+
                     employeeAccruedData[workerId] = {
                         worker_id: workerId,
                         total_base_salary: accruedData.total_base_salary || 0,
@@ -1130,10 +1135,16 @@
                     };
                 });
 
+                // Debug: verificar datos finales antes de enviar
+                console.log('Final Employee Accrued Data:', employeeAccruedData);
+
                 // Agregar los objetos completos al formData
                 formData.employee_period_data = employeePeriodData;
                 formData.employee_payment_data = employeePaymentData;
                 formData.employee_accrued_data = employeeAccruedData;
+
+                // Debug: verificar formData completo
+                console.log('Complete Form Data:', formData);
 
                 // Asegurar que no se incluya el campo notes
                 if (formData.hasOwnProperty('notes')) {
@@ -1257,7 +1268,7 @@
                 this.loading = true
                 this.$http.get(`/${this.resource}/tables`).then((response) => {
                     this.form.tables = response.data || { resolutions: [] }; // Asegurar estructura
-                    
+
                     // Cargar type_disabilities si está disponible
                     if (response.data.type_disabilities) {
                         this.type_disabilities = response.data.type_disabilities;
@@ -1266,7 +1277,7 @@
                     // Cargar configuración avanzada para salario mínimo y subsidio
                     if (response.data.advanced_configuration) {
                         this.advancedConfiguration = response.data.advanced_configuration;
-                        
+
                         // Si ya hay empleados cargados, recalcular subsidios de transporte
                         if (this.form.items.length > 0) {
                             this.$nextTick(() => {
@@ -1277,7 +1288,7 @@
                             });
                         }
                     }
-                    
+
                     // Asignar establishment_id desde las tables si viene
                     if (response.data.establishment_id) {
                         this.form.establishment_id = response.data.establishment_id;
@@ -1440,7 +1451,7 @@
                     this.$nextTick(() => {
                         this.loadEmployeeData(this.selectedWorkerId);
                         this.loadEmployeePaymentData(this.selectedWorkerId);
-                        
+
                         // Cargar datos de devengados del empleado actual
                         const currentWorkerData = this.employeeAccruedData[this.selectedWorkerId];
                         if (currentWorkerData) {
@@ -1450,7 +1461,7 @@
                                     this.form.accrued[key] = currentWorkerData[key];
                                 }
                             });
-                            
+
                             // Asegurar que el subsidio de transporte se aplique correctamente
                             this.applyTransportationAllowance();
                         }
@@ -1791,7 +1802,7 @@
             },
 
             // ================== MÉTODOS PARA EL TAB DE DEVENGADOS ==================
-            
+
             // Método para cambiar el salario base total
             changeTotalBaseSalary() {
                 this.calculateSalary();
@@ -1803,7 +1814,7 @@
             changeWorkedDays() {
                 // Sincronizar con el tab de período
                 this.form.period.worked_time = this.form.accrued.worked_days;
-                
+
                 // Actualizar en employeePeriodData si hay un empleado seleccionado
                 if (this.selectedWorkerId) {
                     if (!this.employeePeriodData[this.selectedWorkerId]) {
@@ -1811,7 +1822,7 @@
                     }
                     this.$set(this.employeePeriodData[this.selectedWorkerId], 'worked_days', this.form.accrued.worked_days);
                 }
-                
+
                 this.calculateSalary();
                 this.calculateAccruedTotal();
                 this.saveCurrentEmployeeAccruedData();
@@ -1869,10 +1880,17 @@
 
             // Guardar datos de devengados del empleado actual
             saveCurrentEmployeeAccruedData() {
+                console.log('saveCurrentEmployeeAccruedData called');
+                console.log('selectedWorkerId:', this.selectedWorkerId);
+                console.log('form.accrued:', this.form.accrued);
+
                 if (this.selectedWorkerId) {
                     this.employeeAccruedData[this.selectedWorkerId] = {
                         ...this.form.accrued
                     };
+
+                    console.log('Saved accrued data for worker:', this.selectedWorkerId);
+                    console.log('Updated employeeAccruedData:', this.employeeAccruedData);
                 }
             },
 
@@ -1911,7 +1929,7 @@
 
                 // Sincronizar datos con otros tabs
                 this.syncAccruedDataWithOtherTabs(workerId);
-                
+
                 // Aplicar subsidio de transporte después de cargar los datos
                 this.$nextTick(() => {
                     this.applyTransportationAllowance();
@@ -1931,10 +1949,10 @@
                     // 2. Cargar salario básico desde el tab Trabajadores Seleccionados
                     const basicSalary = currentWorker.salary || 0;
                     this.form.accrued.total_base_salary = basicSalary;
-                    
+
                     // 3. Calcular el salario proporcional según días trabajados
                     this.calculateSalary();
-                    
+
                     // 4. Aplicar subsidio de transporte automáticamente
                     this.form.accrued.transportation_allowance = this.calculateTransportationAllowanceForWorker(basicSalary);
 
