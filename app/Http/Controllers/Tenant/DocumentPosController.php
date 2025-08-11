@@ -1776,6 +1776,7 @@ class DocumentPosController extends Controller
                     }
                     $sale_note_item->fill($row);
                     $sale_note_item->document_pos_id = $this->sale_note->id;
+                    $sale_note_item->refund = true;
                     $sale_note_item->save();
                     if(isset($row['lots'])){
                         foreach($row['lots'] as $lot) {
