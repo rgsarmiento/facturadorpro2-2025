@@ -258,6 +258,7 @@ class BlockPayrollController extends Controller
                 // Preparar datos del periodo para cada empleado
                 $employeePeriodData = [];
                 $employeePaymentData = [];
+                $employeeAccruedData = [];
                 $workers = $request->selected_workers ?? [];
 
                 // Si employee_period_data viene como objeto anidado, usarlo directamente
@@ -283,6 +284,19 @@ class BlockPayrollController extends Controller
                     $employeePaymentData = $request->employee_payment_data;
                 }
 
+                // Manejar datos de devengados para cada empleado
+                if ($request->has('employee_accrued_data') && is_array($request->employee_accrued_data)) {
+                    $employeeAccruedData = $request->employee_accrued_data;
+
+                    // Debug: verificar que los datos de devengados lleguen correctamente
+                    \Log::info('=== DEBUGGING ACCRUED DATA IN storeWithoutGenerate ===');
+                    \Log::info('Employee Accrued Data received:', ['data' => $employeeAccruedData]);
+                    \Log::info('Number of workers with accrued data: ' . count($employeeAccruedData));
+                    foreach ($employeeAccruedData as $workerId => $data) {
+                        \Log::info("Worker {$workerId} accrued_total: " . ($data['accrued_total'] ?? 'not set'));
+                    }
+                }
+
                 // Crear el payload con todos los datos del formulario
                 $payload = [
                     'form_data' => [
@@ -295,16 +309,25 @@ class BlockPayrollController extends Controller
                     'selected_workers' => $workers,
                     'employee_period_data' => $employeePeriodData,
                     'employee_payment_data' => $employeePaymentData,
+                    'employee_accrued_data' => $employeeAccruedData,
                     'created_at' => now()->toDateTimeString(),
                     'user_id' => auth()->id(),
                 ];
 
-                // Calcular totales (puedes ajustar esta lógica según tus necesidades)
+                // Calcular totales usando los datos de devengados cuando estén disponibles
                 $accruedTotal = 0;
                 $deductionsTotal = 0;
 
-                foreach ($employeePeriodData as $workerData) {
-                    $accruedTotal += $workerData['salary'] ?? 0;
+                // Si hay datos de devengados, usarlos para el cálculo
+                if (!empty($employeeAccruedData)) {
+                    foreach ($employeeAccruedData as $workerId => $accruedData) {
+                        $accruedTotal += $accruedData['accrued_total'] ?? 0;
+                    }
+                } else {
+                    // Fallback: usar datos básicos del periodo
+                    foreach ($employeePeriodData as $workerData) {
+                        $accruedTotal += $workerData['salary'] ?? 0;
+                    }
                 }
 
                 // Obtener establishment_id del usuario si no se proporciona
@@ -408,6 +431,7 @@ class BlockPayrollController extends Controller
                 // Preparar datos del periodo para cada empleado
                 $employeePeriodData = [];
                 $employeePaymentData = [];
+                $employeeAccruedData = [];
                 $workers = $request->selected_workers ?? [];
 
                 // Si employee_period_data viene como objeto anidado, usarlo directamente
@@ -432,6 +456,19 @@ class BlockPayrollController extends Controller
                     $employeePaymentData = $request->employee_payment_data;
                 }
 
+                // Manejar datos de devengados para cada empleado
+                if ($request->has('employee_accrued_data') && is_array($request->employee_accrued_data)) {
+                    $employeeAccruedData = $request->employee_accrued_data;
+
+                    // Debug: verificar que los datos de devengados lleguen correctamente
+                    \Log::info('=== DEBUGGING ACCRUED DATA IN updateBlock ===');
+                    \Log::info('Employee Accrued Data received:', ['data' => $employeeAccruedData]);
+                    \Log::info('Number of workers with accrued data: ' . count($employeeAccruedData));
+                    foreach ($employeeAccruedData as $workerId => $data) {
+                        \Log::info("Worker {$workerId} accrued_total: " . ($data['accrued_total'] ?? 'not set'));
+                    }
+                }
+
                 // Crear el payload con todos los datos del formulario
                 $payload = [
                     'form_data' => [
@@ -444,16 +481,25 @@ class BlockPayrollController extends Controller
                     'selected_workers' => $workers,
                     'employee_period_data' => $employeePeriodData,
                     'employee_payment_data' => $employeePaymentData,
+                    'employee_accrued_data' => $employeeAccruedData,
                     'updated_at' => now()->toDateTimeString(),
                     'user_id' => auth()->id(),
                 ];
 
-                // Calcular totales (puedes ajustar esta lógica según tus necesidades)
+                // Calcular totales usando los datos de devengados cuando estén disponibles
                 $accruedTotal = 0;
                 $deductionsTotal = 0;
 
-                foreach ($employeePeriodData as $workerData) {
-                    $accruedTotal += $workerData['salary'] ?? 0;
+                // Si hay datos de devengados, usarlos para el cálculo
+                if (!empty($employeeAccruedData)) {
+                    foreach ($employeeAccruedData as $workerId => $accruedData) {
+                        $accruedTotal += $accruedData['accrued_total'] ?? 0;
+                    }
+                } else {
+                    // Fallback: usar datos básicos del periodo
+                    foreach ($employeePeriodData as $workerData) {
+                        $accruedTotal += $workerData['salary'] ?? 0;
+                    }
                 }
 
                 // Obtener establishment_id del usuario si no se proporciona

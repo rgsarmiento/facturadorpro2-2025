@@ -896,6 +896,7 @@
                 employeePeriodData: {}, // Objeto que almacena los datos de periodo por ID de empleado
                 employeePaymentData: {}, // Objeto que almacena los datos de pago por ID de empleado
                 employeeAccruedData: {}, // Objeto que almacena los datos de devengados por ID de empleado
+                employeeTransportationManuallyEdited: {}, // Track which employees have manually edited transportation allowance
                 show_inputs_payment_method: false,
                 type_disabilities: [], // Array para los tipos de incapacidades
                 advancedConfiguration: null, // Configuración avanzada para salario mínimo y subsidio
@@ -1103,20 +1104,64 @@
                 // Agregar datos de devengados de cada empleado
                 const employeeAccruedData = {};
                 selectedWorkers.forEach(workerId => {
+                    // Asegurar que todos los empleados tengan datos de devengados inicializados
+                    if (!this.employeeAccruedData[workerId]) {
+                        console.warn(`Worker ${workerId} doesn't have accrued data initialized. Initializing now...`);
+
+                        // Buscar el empleado
+                        const currentWorker = this.form.items.find(item => item.id === workerId);
+                        const workerSalary = parseFloat(currentWorker ? currentWorker.salary : 0) || 0;
+                        const transportationAllowance = this.calculateTransportationAllowanceForWorker(workerSalary);
+
+                        // Inicializar con datos básicos
+                        this.$set(this.employeeAccruedData, workerId, {
+                            total_base_salary: workerSalary,
+                            worked_days: 30,
+                            salary: workerSalary,
+                            transportation_allowance: transportationAllowance,
+                            accrued_total: workerSalary + transportationAllowance, // Sumar correctamente
+                            common_vacation: [],
+                            paid_vacation: [],
+                            service_bonus: [],
+                            severance: [],
+                            work_disabilities: [],
+                            bonuses: [],
+                            aid: [],
+                            telecommuting: 0,
+                            endowment: 0,
+                            sustenance_support: 0,
+                            withdrawal_bonus: 0,
+                            compensation: 0,
+                            salary_viatics: 0,
+                            non_salary_viatics: 0,
+                            refund: 0
+                        });
+                    }
+
                     const accruedData = this.employeeAccruedData[workerId] || {};
 
                     // Debug: verificar datos de devengados
+                    console.log('=== DEBUGGING ACCRUED DATA ===');
                     console.log('Worker ID:', workerId);
                     console.log('Accrued Data for Worker:', accruedData);
+                    console.log('Has transportation_allowance?', accruedData.transportation_allowance);
+                    console.log('Has accrued_total?', accruedData.accrued_total);
                     console.log('All Employee Accrued Data:', this.employeeAccruedData);
+
+                    // Función helper para convertir a número de forma segura
+                    const toNumber = (value) => {
+                        if (value === null || value === undefined || value === '') return 0;
+                        const num = parseFloat(value);
+                        return isNaN(num) ? 0 : num;
+                    };
 
                     employeeAccruedData[workerId] = {
                         worker_id: workerId,
-                        total_base_salary: accruedData.total_base_salary || 0,
-                        worked_days: accruedData.worked_days || 0,
-                        salary: accruedData.salary || 0,
-                        transportation_allowance: accruedData.transportation_allowance || 0,
-                        accrued_total: accruedData.accrued_total || 0,
+                        total_base_salary: toNumber(accruedData.total_base_salary),
+                        worked_days: parseInt(accruedData.worked_days) || 0,
+                        salary: toNumber(accruedData.salary),
+                        transportation_allowance: toNumber(accruedData.transportation_allowance),
+                        accrued_total: toNumber(accruedData.accrued_total),
                         common_vacation: accruedData.common_vacation || [],
                         paid_vacation: accruedData.paid_vacation || [],
                         service_bonus: accruedData.service_bonus || [],
@@ -1124,18 +1169,22 @@
                         work_disabilities: accruedData.work_disabilities || [],
                         bonuses: accruedData.bonuses || [],
                         aid: accruedData.aid || [],
-                        telecommuting: accruedData.telecommuting || 0,
-                        endowment: accruedData.endowment || 0,
-                        sustenance_support: accruedData.sustenance_support || 0,
-                        withdrawal_bonus: accruedData.withdrawal_bonus || 0,
-                        compensation: accruedData.compensation || 0,
-                        salary_viatics: accruedData.salary_viatics || 0,
-                        non_salary_viatics: accruedData.non_salary_viatics || 0,
-                        refund: accruedData.refund || 0
+                        telecommuting: toNumber(accruedData.telecommuting),
+                        endowment: toNumber(accruedData.endowment),
+                        sustenance_support: toNumber(accruedData.sustenance_support),
+                        withdrawal_bonus: toNumber(accruedData.withdrawal_bonus),
+                        compensation: toNumber(accruedData.compensation),
+                        salary_viatics: toNumber(accruedData.salary_viatics),
+                        non_salary_viatics: toNumber(accruedData.non_salary_viatics),
+                        refund: toNumber(accruedData.refund)
                     };
+
+                    // Debug final del objeto preparado para este empleado
+                    console.log('Final prepared accrued data for worker', workerId, ':', employeeAccruedData[workerId]);
                 });
 
                 // Debug: verificar datos finales antes de enviar
+                console.log('=== FINAL EMPLOYEE ACCRUED DATA ===');
                 console.log('Final Employee Accrued Data:', employeeAccruedData);
 
                 // Agregar los objetos completos al formData
@@ -1371,8 +1420,11 @@
 
                 // Aplicar subsidio de transporte y sincronizar datos después de cargar
                 this.$nextTick(() => {
-                    this.applyTransportationAllowance();
-                    this.syncAccruedDataWithOtherTabs();
+                    // Solo aplicar subsidio automático si no fue editado manualmente
+                    if (!this.employeeTransportationManuallyEdited[workerId]) {
+                        this.applyTransportationAllowance();
+                    }
+                    this.syncAccruedDataWithOtherTabs(workerId);
                     this.$forceUpdate();
                 });
             },
@@ -1418,12 +1470,15 @@
 
                     // Inicializar datos de devengados para cada empleado
                     if (!this.employeeAccruedData[worker.id]) {
+                        const workerSalary = parseFloat(worker.salary) || 0;
+                        const transportationAllowance = this.calculateTransportationAllowanceForWorker(workerSalary);
+
                         this.$set(this.employeeAccruedData, worker.id, {
-                            total_base_salary: worker.salary || 0,
+                            total_base_salary: workerSalary,
                             worked_days: 30,
-                            salary: worker.salary || 0,
-                            transportation_allowance: this.calculateTransportationAllowanceForWorker(worker.salary || 0),
-                            accrued_total: 0,
+                            salary: workerSalary,
+                            transportation_allowance: transportationAllowance,
+                            accrued_total: workerSalary + transportationAllowance, // Calcular el total inicial
                             common_vacation: [],
                             paid_vacation: [],
                             service_bonus: [],
@@ -1749,6 +1804,23 @@
                         // Cargar datos de devengados de cada empleado
                         if (blockPayroll.payload.employee_accrued_data) {
                             this.employeeAccruedData = blockPayroll.payload.employee_accrued_data;
+
+                            // Detectar si el subsidio de transporte fue editado manualmente
+                            // comparando con el valor automático que se calcularía
+                            Object.keys(this.employeeAccruedData).forEach(workerId => {
+                                const accruedData = this.employeeAccruedData[workerId];
+                                const currentWorker = this.form.items.find(item => item.id == workerId);
+
+                                if (currentWorker && accruedData.transportation_allowance !== undefined) {
+                                    const autoCalculatedAllowance = this.calculateTransportationAllowanceForWorker(currentWorker.salary);
+
+                                    // Si el valor guardado es diferente al calculado automáticamente, marcarlo como editado manualmente
+                                    if (parseFloat(accruedData.transportation_allowance) !== autoCalculatedAllowance) {
+                                        this.$set(this.employeeTransportationManuallyEdited, workerId, true);
+                                        console.log(`Worker ${workerId} transportation allowance was manually edited. Saved: ${accruedData.transportation_allowance}, Auto: ${autoCalculatedAllowance}`);
+                                    }
+                                }
+                            });
                         }
 
                         // Restaurar valores de generate_provisions desde el payload
@@ -1830,14 +1902,35 @@
 
             // Método para cambiar el subsidio de transporte
             changeTransportationAllowance() {
+                // Marcar que este empleado tiene subsidio editado manualmente
+                if (this.selectedWorkerId) {
+                    this.$set(this.employeeTransportationManuallyEdited, this.selectedWorkerId, true);
+                }
+
                 this.calculateAccruedTotal();
                 this.saveCurrentEmployeeAccruedData();
             },
 
+            // Método para resetear el subsidio de transporte al valor automático
+            resetTransportationAllowanceToAuto() {
+                if (this.selectedWorkerId) {
+                    // Remover la marca de edición manual
+                    this.$delete(this.employeeTransportationManuallyEdited, this.selectedWorkerId);
+
+                    // Recalcular automáticamente
+                    this.applyTransportationAllowance();
+                    this.calculateAccruedTotal();
+                    this.saveCurrentEmployeeAccruedData();
+                }
+            },
+
             // Calcular salario basado en días trabajados
             calculateSalary() {
-                if (this.form.accrued.total_base_salary && this.form.accrued.worked_days) {
-                    this.form.accrued.salary = (this.form.accrued.total_base_salary / 30) * this.form.accrued.worked_days;
+                const baseSalary = parseFloat(this.form.accrued.total_base_salary) || 0;
+                const workedDays = parseFloat(this.form.accrued.worked_days) || 0;
+
+                if (baseSalary > 0 && workedDays > 0) {
+                    this.form.accrued.salary = (baseSalary / 30) * workedDays;
                     // Aplicar subsidio de transporte después de calcular el salario
                     this.applyTransportationAllowance();
                 }
@@ -1846,36 +1939,47 @@
             // Calcular total devengados
             calculateAccruedTotal() {
                 let total = 0;
-                total += this.form.accrued.salary || 0;
-                total += this.form.accrued.transportation_allowance || 0;
-                total += this.form.accrued.telecommuting || 0;
-                total += this.form.accrued.endowment || 0;
-                total += this.form.accrued.sustenance_support || 0;
-                total += this.form.accrued.withdrawal_bonus || 0;
-                total += this.form.accrued.compensation || 0;
-                total += this.form.accrued.salary_viatics || 0;
-                total += this.form.accrued.non_salary_viatics || 0;
-                total += this.form.accrued.refund || 0;
+
+                // Función helper para convertir a número de forma segura
+                const toNumber = (value) => {
+                    if (value === null || value === undefined || value === '') return 0;
+                    const num = parseFloat(value);
+                    return isNaN(num) ? 0 : num;
+                };
+
+                total += toNumber(this.form.accrued.salary);
+                total += toNumber(this.form.accrued.transportation_allowance);
+                total += toNumber(this.form.accrued.telecommuting);
+                total += toNumber(this.form.accrued.endowment);
+                total += toNumber(this.form.accrued.sustenance_support);
+                total += toNumber(this.form.accrued.withdrawal_bonus);
+                total += toNumber(this.form.accrued.compensation);
+                total += toNumber(this.form.accrued.salary_viatics);
+                total += toNumber(this.form.accrued.non_salary_viatics);
+                total += toNumber(this.form.accrued.refund);
 
                 // Sumar vacaciones
                 this.form.accrued.common_vacation.forEach(vacation => {
-                    total += vacation.payment || 0;
+                    total += toNumber(vacation.payment);
                 });
                 this.form.accrued.paid_vacation.forEach(vacation => {
-                    total += vacation.payment || 0;
+                    total += toNumber(vacation.payment);
                 });
 
                 // Sumar bonificaciones y ayudas
                 this.form.accrued.bonuses.forEach(bonus => {
-                    total += bonus.salary_bonus || 0;
-                    total += bonus.non_salary_bonus || 0;
+                    total += toNumber(bonus.salary_bonus);
+                    total += toNumber(bonus.non_salary_bonus);
                 });
                 this.form.accrued.aid.forEach(aid => {
-                    total += aid.salary_assistance || 0;
-                    total += aid.non_salary_assistance || 0;
+                    total += toNumber(aid.salary_assistance);
+                    total += toNumber(aid.non_salary_assistance);
                 });
 
                 this.form.accrued.accrued_total = total;
+
+                // Guardar automáticamente después de calcular
+                this.saveCurrentEmployeeAccruedData();
             },
 
             // Guardar datos de devengados del empleado actual
@@ -1884,10 +1988,16 @@
                 console.log('selectedWorkerId:', this.selectedWorkerId);
                 console.log('form.accrued:', this.form.accrued);
 
-                if (this.selectedWorkerId) {
-                    this.employeeAccruedData[this.selectedWorkerId] = {
+                if (this.selectedWorkerId && this.form.accrued) {
+                    // Asegurar que el objeto del empleado existe
+                    if (!this.employeeAccruedData[this.selectedWorkerId]) {
+                        this.$set(this.employeeAccruedData, this.selectedWorkerId, {});
+                    }
+
+                    // Guardar usando Vue.set para garantizar reactividad
+                    this.$set(this.employeeAccruedData, this.selectedWorkerId, {
                         ...this.form.accrued
-                    };
+                    });
 
                     console.log('Saved accrued data for worker:', this.selectedWorkerId);
                     console.log('Updated employeeAccruedData:', this.employeeAccruedData);
@@ -1930,9 +2040,11 @@
                 // Sincronizar datos con otros tabs
                 this.syncAccruedDataWithOtherTabs(workerId);
 
-                // Aplicar subsidio de transporte después de cargar los datos
+                // Aplicar subsidio de transporte después de cargar los datos SOLO si no fue editado manualmente
                 this.$nextTick(() => {
-                    this.applyTransportationAllowance();
+                    if (!this.employeeTransportationManuallyEdited[workerId]) {
+                        this.applyTransportationAllowance();
+                    }
                 });
             },
 
@@ -1944,17 +2056,19 @@
                 if (currentWorker) {
                     // 1. Sincronizar días trabajados desde el tab Período
                     const workedDays = periodData ? (periodData.worked_days || 30) : (this.form.period.worked_time || 30);
-                    this.form.accrued.worked_days = workedDays;
+                    this.form.accrued.worked_days = parseInt(workedDays) || 30;
 
                     // 2. Cargar salario básico desde el tab Trabajadores Seleccionados
-                    const basicSalary = currentWorker.salary || 0;
+                    const basicSalary = parseFloat(currentWorker.salary) || 0;
                     this.form.accrued.total_base_salary = basicSalary;
 
                     // 3. Calcular el salario proporcional según días trabajados
                     this.calculateSalary();
 
-                    // 4. Aplicar subsidio de transporte automáticamente
-                    this.form.accrued.transportation_allowance = this.calculateTransportationAllowanceForWorker(basicSalary);
+                    // 4. Aplicar subsidio de transporte automáticamente SOLO si no fue editado manualmente
+                    if (!this.employeeTransportationManuallyEdited[workerId]) {
+                        this.form.accrued.transportation_allowance = this.calculateTransportationAllowanceForWorker(basicSalary);
+                    }
 
                     // 5. Calcular total devengados
                     this.calculateAccruedTotal();
@@ -1985,12 +2099,18 @@
             applyTransportationAllowance() {
                 if (!this.advancedConfiguration) return;
 
+                // Si el subsidio fue editado manualmente por el usuario, no sobrescribir
+                if (this.selectedWorkerId && this.employeeTransportationManuallyEdited[this.selectedWorkerId]) {
+                    console.log(`Transportation allowance for worker ${this.selectedWorkerId} was manually edited. Skipping automatic calculation.`);
+                    return;
+                }
+
                 // Obtener el salario básico del empleado seleccionado
                 const currentWorker = this.form.items.find(item => item.id === this.selectedWorkerId);
-                const baseSalary = currentWorker ? currentWorker.salary : (this.form.accrued.salary || this.form.accrued.total_base_salary || 0);
+                const baseSalary = parseFloat(currentWorker ? currentWorker.salary : (this.form.accrued.salary || this.form.accrued.total_base_salary || 0)) || 0;
 
-                const minimumSalary = this.advancedConfiguration.minimum_salary || 0;
-                const transportationAllowance = this.advancedConfiguration.transportation_allowance || 0;
+                const minimumSalary = parseFloat(this.advancedConfiguration.minimum_salary) || 0;
+                const transportationAllowance = parseFloat(this.advancedConfiguration.transportation_allowance) || 0;
 
                 // Aplicar subsidio si el salario básico es menor o igual a 2 salarios mínimos
                 if (baseSalary <= (minimumSalary * 2) && baseSalary > 0) {
