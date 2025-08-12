@@ -30,7 +30,7 @@
                             <div class="col-md-3">
                                 <div class="form-group">
                                     <label>Total devengados</label>
-                                    <input type="number" class="form-control" :value="form.accrued_total" disabled>
+                                    <input type="text" class="form-control" :value="getFormatDecimal(form.accrued_total)" disabled>
                                 </div>
                             </div>
                             <div class="col-md-3">
@@ -902,6 +902,7 @@
                 show_inputs_payment_method: false,
                 type_disabilities: [], // Array para los tipos de incapacidades
                 advancedConfiguration: null, // Configuración avanzada para salario mínimo y subsidio
+                calculatingGlobalTotal: false, // Protección contra recursión en cálculo global
             };
         },
 
@@ -1227,10 +1228,10 @@
                         this.loading_submit = false;
                         this.$message.error(this.editMode ? 'Error al editar el bloque de nómina' : 'Error al guardar el bloque de nómina');
                     });
-            },            
+            },
             saveAndGenerate() {
                 this.loading_submit = true;
-                
+
                 this.saveCurrentEmployeeAccruedData();
                 this.validate();
 
@@ -1240,7 +1241,7 @@
                     return;
                 }
 
-                const url = this.editMode 
+                const url = this.editMode
                     ? `/${this.resource}/${this.form.id}/update-and-generate`
                     : `/${this.resource}/store-and-generate`;
 
@@ -1319,6 +1320,19 @@
                 const now = new Date();
                 this.form.date_of_issue = now.toISOString().slice(0, 10);
                 this.form.time_of_issue = now.toTimeString().slice(0, 8);
+                
+                // Solo establecer fechas de periodo si no estamos en modo edición
+                if (!this.editMode) {
+                    // Obtener primer día del mes anterior
+                    const firstDayLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                    
+                    // Obtener último día del mes anterior
+                    const lastDayLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+                    
+                    // Formatear las fechas
+                    this.form.period_start = firstDayLastMonth.toISOString().slice(0, 10);
+                    this.form.period_end = lastDayLastMonth.toISOString().slice(0, 10);
+                }
             },
 
             getActiveWorkers() {
@@ -1330,6 +1344,16 @@
 
                     // Inicializar el array de empleados con sus datos
                     this.initializeEmployeesArray()
+
+                    // Inicializar datos de devengados para TODOS los empleados
+                    this.form.items.forEach(worker => {
+                        this.initializeWorkerAccruedData(worker.id);
+                    });
+
+                    // Calcular total global después de inicializar todos los empleados
+                    this.$nextTick(() => {
+                        this.calculateGlobalAccruedTotal();
+                    });
 
                     // Forzar la carga de datos del primer empleado seleccionado
                     if (this.selectedWorkerId) {
@@ -1359,6 +1383,17 @@
                     if (response.data.advanced_configuration) {
                         this.advancedConfiguration = response.data.advanced_configuration;
 
+                        // Si ya hay empleados cargados, reinicializar con subsidio de transporte
+                        if (this.form.items.length > 0) {
+                            this.form.items.forEach(worker => {
+                                this.reinitializeWorkerWithTransportation(worker.id);
+                            });
+                            
+                            this.$nextTick(() => {
+                                this.calculateGlobalAccruedTotal();
+                            });
+                        }
+
                         // Si ya hay empleados cargados, recalcular subsidios de transporte
                         if (this.form.items.length > 0) {
                             this.$nextTick(() => {
@@ -1381,6 +1416,18 @@
 
                     // Establecer "Mensual" (ID: 5) como valor por defecto para el período de nómina
                     this.form.payroll_period_id = 5;
+
+                    // Generar fechas de pago por defecto para el periodo mensual
+                    if (!this.editMode) {
+                        this.generateDefaultPaymentDates(5);
+                    }
+
+                    // Seleccionar automáticamente la primera resolución disponible si no estamos en modo edición
+                    if (!this.editMode && this.form.tables.resolutions && this.form.tables.resolutions.length > 0) {
+                        this.form.type_document_id = this.form.tables.resolutions[0].id;
+                        // Ejecutar changeResolution para establecer prefix y resolution_number
+                        this.changeResolution();
+                    }
 
                     this.loading = false
                 }).catch((error) => {
@@ -1434,6 +1481,97 @@
                 return formattedPrice;
             },
 
+            // Inicializar datos de devengados para un empleado específico
+            initializeWorkerAccruedData(workerId) {
+                const currentWorker = this.form.items.find(item => item.id === workerId);
+                if (!currentWorker) {
+                    return;
+                }
+
+                // Si ya tiene datos, no los sobrescribas - se reinicializará más tarde con subsidio
+                if (this.employeeAccruedData[workerId]) {
+                    return;
+                }
+
+                // Calcular días trabajados
+                const workedDays = this.calculateWorkedDays(currentWorker.date_of_admission) || 30;
+                
+                // Obtener salario básico
+                const basicSalary = parseFloat(currentWorker.salary) || 0;
+                
+                // Calcular salario proporcional
+                const proportionalSalary = (basicSalary * workedDays) / 30;
+                
+                // Calcular subsidio de transporte (será 0 si no hay configuración aún)
+                let transportationAllowance = 0;
+                if (this.advancedConfiguration) {
+                    transportationAllowance = this.calculateTransportationAllowanceForWorker(basicSalary);
+                }
+                
+                // Calcular total inicial (sin subsidio por ahora si no hay configuración)
+                const initialTotal = proportionalSalary + transportationAllowance;
+
+                // Crear datos iniciales
+                this.employeeAccruedData[workerId] = {
+                    total_base_salary: basicSalary,
+                    worked_days: workedDays,
+                    salary: proportionalSalary,
+                    transportation_allowance: transportationAllowance,
+                    accrued_total: initialTotal,
+                    common_vacation: [],
+                    paid_vacation: [],
+                    service_bonus: [],
+                    severance: [],
+                    work_disabilities: [],
+                    bonuses: [],
+                    aid: [],
+                    telecommuting: 0,
+                    endowment: 0,
+                    sustenance_support: 0,
+                    withdrawal_bonus: 0,
+                    compensation: 0,
+                    salary_viatics: 0,
+                    non_salary_viatics: 0,
+                    refund: 0
+                };
+            },
+
+            // Reinicializar empleado con subsidio de transporte (cuando ya tiene datos)
+            reinitializeWorkerWithTransportation(workerId) {
+                const currentWorker = this.form.items.find(item => item.id === workerId);
+                if (!currentWorker) {
+                    return;
+                }
+
+                // Obtener datos existentes o crear nuevos
+                let existingData = this.employeeAccruedData[workerId] || {};
+
+                // Calcular días trabajados
+                const workedDays = existingData.worked_days || this.calculateWorkedDays(currentWorker.date_of_admission) || 30;
+                
+                // Obtener salario básico
+                const basicSalary = parseFloat(currentWorker.salary) || 0;
+                
+                // Calcular salario proporcional
+                const proportionalSalary = (basicSalary * workedDays) / 30;
+                
+                // Calcular subsidio de transporte con configuración disponible (asegurar que sea número)
+                const transportationAllowance = parseFloat(this.calculateTransportationAllowanceForWorker(basicSalary)) || 0;
+                
+                // Suma matemática (no concatenación)
+                const initialTotal = proportionalSalary + transportationAllowance;
+
+                // Actualizar solo los campos básicos, manteniendo otros datos existentes
+                this.employeeAccruedData[workerId] = {
+                    ...existingData, // Mantener datos existentes
+                    total_base_salary: basicSalary,
+                    worked_days: workedDays,
+                    salary: proportionalSalary,
+                    transportation_allowance: transportationAllowance, // Guardar como número
+                    accrued_total: initialTotal // Guardar como número
+                };
+            },
+
             handleWorkerSelection(workerId) {
                 // Guardar datos del empleado actual si existe
                 if (this.selectedWorkerId && this.selectedWorkerId !== workerId) {
@@ -1457,6 +1595,10 @@
                         this.applyTransportationAllowance();
                     }
                     this.syncAccruedDataWithOtherTabs(workerId);
+                    
+                    // Recalcular total global después de cambiar de empleado
+                    this.calculateGlobalAccruedTotal();
+                    
                     this.$forceUpdate();
                 });
             },
@@ -1491,12 +1633,13 @@
                     // Inicializar datos de pago para cada empleado
                     if (!this.employeePaymentData[worker.id]) {
                         const workerPayment = worker.payment;
+                        
                         this.$set(this.employeePaymentData, worker.id, {
                             payment_method_id: workerPayment?.payment_method_id || null,
                             bank_name: workerPayment?.bank_name || '',
                             account_type: workerPayment?.account_type || '',
                             account_number: workerPayment?.account_number || '',
-                            payment_dates: []
+                            // No inicializar payment_dates aquí - dejar que se genere en loadEmployeePaymentData
                         });
                     }
 
@@ -1554,6 +1697,11 @@
                         }
                     });
                 }
+
+                // Calcular el total global de devengados después de inicializar todos los empleados
+                this.$nextTick(() => {
+                    this.calculateGlobalAccruedTotal();
+                });
             },
 
             // Método para recalcular subsidios de transporte para todos los empleados
@@ -1609,6 +1757,12 @@
                     this.form.period.worked_time = 30; // Valor fijo por defecto para el formulario
                     this.form.period.issue_date = '';
                     this.form.payroll_period_id = currentWorker ? currentWorker.payroll_period_id || 5 : 5;
+                    
+                    // Guardar el periodo por defecto en el storage del empleado
+                    if (!this.employeePeriodData[workerId]) {
+                        this.employeePeriodData[workerId] = {};
+                    }
+                    this.$set(this.employeePeriodData[workerId], 'payroll_period_id', this.form.payroll_period_id);
                 }
 
                 // Cargar datos de pago y devengados
@@ -1619,6 +1773,14 @@
             handlePayrollPeriodChange(newValue) {
                 // Actualizar inmediatamente el formulario para mostrar el cambio
                 this.form.payroll_period_id = newValue;
+
+                // Generar fechas de pago por defecto según el periodo seleccionado para el empleado actual
+                if (this.selectedWorkerId) {
+                    this.generateDefaultPaymentDatesForEmployee(this.selectedWorkerId);
+                } else {
+                    // Fallback al método original si no hay empleado seleccionado
+                    this.generateDefaultPaymentDates(newValue);
+                }
 
                 // Actualizar inmediatamente en el storage del empleado actual
                 if (this.selectedWorkerId) {
@@ -1677,8 +1839,110 @@
                         this.form.accrued.worked_days = newValue;
                         this.calculateAccruedTotal();
                         this.saveCurrentEmployeeAccruedData();
+                        this.calculateGlobalAccruedTotal();
                     }
                 }
+            },
+
+            // Generar fechas de pago por defecto según el periodo seleccionado
+            generateDefaultPaymentDates(payrollPeriodId) {
+                // Solo generar fechas por defecto si no estamos en modo edición
+                if (this.editMode) {
+                    return;
+                }
+
+                // Limpiar fechas de pago existentes
+                this.form.payment_dates = [];
+
+                // Obtener el nombre del periodo de nómina para determinar el tipo
+                const payrollPeriod = this.form.tables.payroll_periods ? 
+                    this.form.tables.payroll_periods.find(period => period.id === payrollPeriodId) : null;
+
+                if (!payrollPeriod) {
+                    return; // No se encontró el periodo
+                }
+
+                // Obtener fecha actual para calcular el mes anterior
+                const now = new Date();
+                const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                const lastDayOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+
+                // Generar fechas según el tipo de periodo
+                if (payrollPeriod.name.toLowerCase().includes('mensual')) {
+                    // Para periodo mensual: un pago el último día del mes anterior
+                    this.form.payment_dates.push({
+                        payment_date: lastDayOfLastMonth.toISOString().slice(0, 10)
+                    });
+                } else if (payrollPeriod.name.toLowerCase().includes('quincenal')) {
+                    // Para periodo quincenal: dos pagos (día 15 y último día del mes anterior)
+                    const fifteenthOfLastMonth = new Date(lastMonth.getFullYear(), lastMonth.getMonth(), 15);
+                    
+                    this.form.payment_dates.push({
+                        payment_date: fifteenthOfLastMonth.toISOString().slice(0, 10)
+                    });
+                    this.form.payment_dates.push({
+                        payment_date: lastDayOfLastMonth.toISOString().slice(0, 10)
+                    });
+                }
+                // Para otros tipos de periodo (semanal, diario, etc.), no agregar fechas por defecto
+
+                // Guardar las fechas en el almacenamiento del empleado actual si hay un empleado seleccionado
+                if (this.selectedWorkerId) {
+                    this.saveCurrentEmployeePaymentData();
+                }
+            },
+
+            // Generar fechas de pago por defecto para un empleado específico
+            generateDefaultPaymentDatesForEmployee(workerId) {
+                // Solo generar fechas por defecto si no estamos en modo edición
+                if (this.editMode) {
+                    return;
+                }
+
+                // Obtener el periodo de nómina del empleado específico
+                const employeePeriodData = this.employeePeriodData[workerId];
+                const payrollPeriodId = employeePeriodData ? employeePeriodData.payroll_period_id : this.form.payroll_period_id;
+
+                if (!payrollPeriodId) {
+                    return; // No hay periodo definido
+                }
+
+                // Obtener el nombre del periodo de nómina para determinar el tipo
+                const payrollPeriod = this.form.tables.payroll_periods ? 
+                    this.form.tables.payroll_periods.find(period => period.id === payrollPeriodId) : null;
+
+                if (!payrollPeriod) {
+                    return; // No se encontró el periodo
+                }
+
+                // Limpiar fechas de pago existentes
+                this.form.payment_dates = [];
+
+                // Obtener fecha actual para calcular el mes anterior
+                const now = new Date();
+                const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                const lastDayOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+
+                // Generar fechas según el tipo de periodo
+                if (payrollPeriod.name.toLowerCase().includes('mensual')) {
+                    // Para periodo mensual: un pago el último día del mes anterior
+                    this.form.payment_dates.push({
+                        payment_date: lastDayOfLastMonth.toISOString().slice(0, 10)
+                    });
+                } else if (payrollPeriod.name.toLowerCase().includes('quincenal')) {
+                    // Para periodo quincenal: dos pagos (día 15 y último día del mes anterior)
+                    const fifteenthOfLastMonth = new Date(lastMonth.getFullYear(), lastMonth.getMonth(), 15);
+                    
+                    this.form.payment_dates.push({
+                        payment_date: fifteenthOfLastMonth.toISOString().slice(0, 10)
+                    });
+                    this.form.payment_dates.push({
+                        payment_date: lastDayOfLastMonth.toISOString().slice(0, 10)
+                    });
+                }
+                // Para otros tipos de periodo (semanal, diario, etc.), no agregar fechas por defecto
+
+                console.log(`Fechas de pago generadas para empleado ${workerId}:`, this.form.payment_dates);
             },
 
             // Método para manejar el cambio de tabs
@@ -1766,7 +2030,17 @@
                     this.form.payment.bank_name = data.bank_name || '';
                     this.form.payment.account_type = data.account_type || '';
                     this.form.payment.account_number = data.account_number || '';
-                    this.form.payment_dates = data.payment_dates ? JSON.parse(JSON.stringify(data.payment_dates)) : [];
+                    
+                    // Verificar si tiene fechas de pago definidas
+                    if (data.payment_dates && data.payment_dates.length > 0) {
+                        this.form.payment_dates = JSON.parse(JSON.stringify(data.payment_dates));
+                    } else {
+                        // No tiene fechas de pago, generar por defecto
+                        this.form.payment_dates = [];
+                        if (!this.editMode) {
+                            this.generateDefaultPaymentDatesForEmployee(workerId);
+                        }
+                    }
                 } else {
                     // Usar datos del trabajador desde el backend si existen
                     const workerPayment = currentWorker?.payment;
@@ -1775,6 +2049,11 @@
                     this.form.payment.account_type = workerPayment?.account_type || '';
                     this.form.payment.account_number = workerPayment?.account_number || '';
                     this.form.payment_dates = [];
+                    
+                    // Generar fechas de pago por defecto para este empleado
+                    if (!this.editMode) {
+                        this.generateDefaultPaymentDatesForEmployee(workerId);
+                    }
                 }
 
                 // Actualizar visibilidad de campos adicionales
@@ -1912,6 +2191,7 @@
                 this.calculateSalary();
                 this.calculateAccruedTotal();
                 this.saveCurrentEmployeeAccruedData();
+                this.calculateGlobalAccruedTotal();
             },
 
             // Método para cambiar los días trabajados
@@ -1930,6 +2210,7 @@
                 this.calculateSalary();
                 this.calculateAccruedTotal();
                 this.saveCurrentEmployeeAccruedData();
+                this.calculateGlobalAccruedTotal();
             },
 
             // Método para cambiar el subsidio de transporte
@@ -1941,6 +2222,7 @@
 
                 this.calculateAccruedTotal();
                 this.saveCurrentEmployeeAccruedData();
+                this.calculateGlobalAccruedTotal();
             },
 
             // Método para resetear el subsidio de transporte al valor automático
@@ -1953,6 +2235,7 @@
                     this.applyTransportationAllowance();
                     this.calculateAccruedTotal();
                     this.saveCurrentEmployeeAccruedData();
+                    this.calculateGlobalAccruedTotal();
                 }
             },
 
@@ -2012,14 +2295,130 @@
 
                 // Guardar automáticamente después de calcular
                 this.saveCurrentEmployeeAccruedData();
+
+                // NO llamar calculateGlobalAccruedTotal() automáticamente aquí
+                // Se llamará manualmente cuando sea necesario
+            },
+
+            // Calcular el total devengados global (suma de todos los empleados)
+            calculateGlobalAccruedTotal() {
+                // Protección contra recursión
+                if (this.calculatingGlobalTotal) {
+                    return;
+                }
+                
+                this.calculatingGlobalTotal = true;
+                
+                try {
+                    let globalTotal = 0;
+                    let employeeCount = 0;
+
+                    // Función helper para convertir a número de forma segura
+                    const toNumber = (value) => {
+                        if (value === null || value === undefined || value === '') return 0;
+                        const num = parseFloat(value);
+                        return isNaN(num) ? 0 : num;
+                    };
+
+                    // Sumar los totales devengados de todos los empleados
+                    Object.keys(this.employeeAccruedData).forEach(workerId => {
+                        const employeeData = this.employeeAccruedData[workerId];
+                        
+                        if (employeeData && employeeData.accrued_total) {
+                            const employeeTotal = toNumber(employeeData.accrued_total);
+                            
+                            // Validar que el valor no sea demasiado grande (posible corrupción)
+                            if (employeeTotal > 10000000) { // Más de 10 millones parece sospechoso
+                                // Valor sospechoso, no incluir en la suma
+                            } else {
+                                globalTotal += employeeTotal;
+                                employeeCount++;
+                            }
+                        }
+                    });
+
+                    // Actualizar el total global
+                    this.form.accrued_total = globalTotal;
+                } finally {
+                    this.calculatingGlobalTotal = false;
+                }
+            },
+
+            // Método para limpiar datos corruptos y recalcular totales
+            resetAndRecalculateGlobalTotal() {
+                console.log('🔄 Limpiando y recalculando totales...');
+                
+                // Resetear total global
+                this.form.accrued_total = 0;
+                
+                // Recalcular cada empleado individualmente
+                Object.keys(this.employeeAccruedData).forEach(workerId => {
+                    console.log(`🔄 Recalculando empleado ${workerId}...`);
+                    
+                    // Seleccionar temporalmente el empleado para recalcular
+                    const currentSelected = this.selectedWorkerId;
+                    this.selectedWorkerId = workerId;
+                    
+                    // Cargar datos del empleado
+                    this.loadEmployeeAccruedData(workerId);
+                    
+                    // Recalcular su total
+                    this.calculateAccruedTotal();
+                    
+                    // Restaurar selección original
+                    this.selectedWorkerId = currentSelected;
+                    
+                    // Cargar datos del empleado original
+                    if (currentSelected) {
+                        this.loadEmployeeAccruedData(currentSelected);
+                    }
+                });
+                
+                console.log('✅ Limpieza completada');
+            },
+
+            // Método de emergencia para resetear datos corruptos (ejecutar desde consola)
+            emergencyReset() {
+                console.log('🚨 RESETEO DE EMERGENCIA');
+                
+                // 1. Resetear total global
+                this.form.accrued_total = 0;
+                
+                // 2. Limpiar datos corruptos de employeeAccruedData
+                Object.keys(this.employeeAccruedData).forEach(workerId => {
+                    const data = this.employeeAccruedData[workerId];
+                    if (data && data.accrued_total > 10000000) {
+                        console.log(`🧹 Limpiando datos corruptos del empleado ${workerId}`);
+                        data.accrued_total = 0;
+                    }
+                });
+                
+                // 3. Recalcular total del empleado actual si existe
+                if (this.selectedWorkerId) {
+                    this.calculateAccruedTotal();
+                }
+                
+                console.log('🟢 Reseteo completado');
+            },
+
+            // Método de debug para ver el estado actual
+            debugTotals() {
+                console.log('🔍 DEBUG TOTALS');
+                console.log('================');
+                console.log('📊 Total principal:', this.form.accrued_total);
+                console.log('👤 Empleado seleccionado:', this.selectedWorkerId);
+                console.log('💰 Total del empleado actual:', this.form.accrued.accrued_total);
+                console.log('📋 Todos los empleados:');
+                
+                Object.keys(this.employeeAccruedData).forEach(workerId => {
+                    const data = this.employeeAccruedData[workerId];
+                    console.log(`  - Empleado ${workerId}: ${data?.accrued_total || 'sin datos'}`);
+                });
+                
             },
 
             // Guardar datos de devengados del empleado actual
             saveCurrentEmployeeAccruedData() {
-                console.log('saveCurrentEmployeeAccruedData called');
-                console.log('selectedWorkerId:', this.selectedWorkerId);
-                console.log('form.accrued:', this.form.accrued);
-
                 if (this.selectedWorkerId && this.form.accrued) {
                     // Asegurar que el objeto del empleado existe
                     if (!this.employeeAccruedData[this.selectedWorkerId]) {
@@ -2030,9 +2429,6 @@
                     this.$set(this.employeeAccruedData, this.selectedWorkerId, {
                         ...this.form.accrued
                     });
-
-                    console.log('Saved accrued data for worker:', this.selectedWorkerId);
-                    console.log('Updated employeeAccruedData:', this.employeeAccruedData);
                 }
             },
 
@@ -2109,6 +2505,14 @@
                     if (this.employeeAccruedData[workerId]) {
                         this.employeeAccruedData[workerId].transportation_allowance = this.form.accrued.transportation_allowance;
                     }
+
+                    // 7. Asegurar que se guarden todos los datos del empleado actual
+                    this.saveCurrentEmployeeAccruedData();
+
+                    // 8. Calcular total global después de guardar todos los datos
+                    this.$nextTick(() => {
+                        this.calculateGlobalAccruedTotal();
+                    });
                 }
             },
 
@@ -2116,12 +2520,12 @@
             calculateTransportationAllowanceForWorker(baseSalary) {
                 if (!this.advancedConfiguration) return 0;
 
-                const minimumSalary = this.advancedConfiguration.minimum_salary || 0;
-                const transportationAllowance = this.advancedConfiguration.transportation_allowance || 0;
+                const minimumSalary = parseFloat(this.advancedConfiguration.minimum_salary) || 0;
+                const transportationAllowance = parseFloat(this.advancedConfiguration.transportation_allowance) || 0;
 
                 // Aplicar subsidio si el salario básico es menor o igual a 2 salarios mínimos
                 if (baseSalary <= (minimumSalary * 2) && baseSalary > 0) {
-                    return transportationAllowance;
+                    return transportationAllowance; // Asegurar que sea número
                 } else {
                     return 0;
                 }
@@ -2176,6 +2580,7 @@
                 this.form.accrued.common_vacation.splice(index, 1);
                 this.calculateAccruedTotal();
                 this.saveCurrentEmployeeAccruedData();
+                this.calculateGlobalAccruedTotal();
             },
 
             changeCommonVacationStartEndDate(index) {
@@ -2192,6 +2597,7 @@
             changePaymentCommonVacation(index) {
                 this.calculateAccruedTotal();
                 this.saveCurrentEmployeeAccruedData();
+                this.calculateGlobalAccruedTotal();
             },
 
             clickAddPaidVacation() {
@@ -2206,6 +2612,7 @@
                 this.form.accrued.paid_vacation.splice(index, 1);
                 this.calculateAccruedTotal();
                 this.saveCurrentEmployeeAccruedData();
+                this.calculateGlobalAccruedTotal();
             },
 
             changePaidVacationStartEndDate(index) {
@@ -2222,6 +2629,7 @@
             changePaymentPaidVacation(index) {
                 this.calculateAccruedTotal();
                 this.saveCurrentEmployeeAccruedData();
+                this.calculateGlobalAccruedTotal();
             },
 
             // === MÉTODOS PARA PRIMA DE SERVICIO ===
@@ -2294,6 +2702,7 @@
             changeSalaryBonus(index) {
                 this.calculateAccruedTotal();
                 this.saveCurrentEmployeeAccruedData();
+                this.calculateGlobalAccruedTotal();
             },
 
             // === MÉTODOS PARA AYUDAS ===
@@ -2308,17 +2717,20 @@
                 this.form.accrued.aid.splice(index, 1);
                 this.calculateAccruedTotal();
                 this.saveCurrentEmployeeAccruedData();
+                this.calculateGlobalAccruedTotal();
             },
 
             changeSalaryAid(index) {
                 this.calculateAccruedTotal();
                 this.saveCurrentEmployeeAccruedData();
+                this.calculateGlobalAccruedTotal();
             },
 
             // === MÉTODOS PARA CAMPOS OPCIONALES ===
             changeOptionalInputs() {
                 this.calculateAccruedTotal();
                 this.saveCurrentEmployeeAccruedData();
+                this.calculateGlobalAccruedTotal();
             },
 
             // === MÉTODOS PARA INCAPACIDADES ===
