@@ -23,6 +23,7 @@
                         <th>Periodo</th>
                         <th class="text-center">T. Devengados</th>
                         <th class="text-center">T. Deducciones</th>
+                        <th class="text-center">Total Bloque</th>
                         <th class="text-center">Opciones</th>
                     </tr>
                     <tr slot-scope="{ index, row }">
@@ -35,8 +36,9 @@
                         </td>
                         <td class="text-center">{{ row.workers_quantity }}</td>
                         <td>{{ row.period_start_date }} - {{ row.period_end_date }}</td>
-                        <td class="text-center">{{ row.accrued_total }}</td>
-                        <td class="text-center">{{ row.deductions_total }}</td>
+                        <td class="text-center">{{ getFormatDecimal(row.accrued_total) }}</td>
+                        <td class="text-center">{{ getFormatDecimal(row.deductions_total) }}</td>
+                        <td class="text-center">{{ getFormatDecimal(calculateBlockTotal(row.accrued_total, row.deductions_total)) }}</td>
                         <td class="text-center">
                             <template v-if="row.state_block_id==1">
                                 <a :href="`/${resource}/edit-block/${row.id}`" class="btn waves-effect waves-light btn-xs btn-info m-1__2">Editar</a>
@@ -77,6 +79,24 @@
             clickOptions(recordId = null) {
                 this.recordId = recordId
                 this.showDialogBlockPayrollsOptions = true
+            },
+
+            // Formatear números con separadores de miles
+            getFormatDecimal(value) {
+                if (!value || isNaN(value)) return '0.00';
+                
+                const num = parseFloat(value);
+                return num.toLocaleString('es-CO', {
+                    minimumFractionDigits: 2,
+                    maximumFractionDigits: 2
+                });
+            },
+
+            // Calcular total del bloque (devengados - deducciones)
+            calculateBlockTotal(accruedTotal, deductionsTotal) {
+                const accrued = parseFloat(accruedTotal) || 0;
+                const deductions = parseFloat(deductionsTotal) || 0;
+                return accrued - deductions;
             },
         }
     }

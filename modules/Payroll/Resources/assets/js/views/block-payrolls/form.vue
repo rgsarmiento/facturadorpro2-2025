@@ -1320,15 +1320,15 @@
                 const now = new Date();
                 this.form.date_of_issue = now.toISOString().slice(0, 10);
                 this.form.time_of_issue = now.toTimeString().slice(0, 8);
-                
+
                 // Solo establecer fechas de periodo si no estamos en modo edición
                 if (!this.editMode) {
                     // Obtener primer día del mes anterior
                     const firstDayLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-                    
+
                     // Obtener último día del mes anterior
                     const lastDayLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
-                    
+
                     // Formatear las fechas
                     this.form.period_start = firstDayLastMonth.toISOString().slice(0, 10);
                     this.form.period_end = lastDayLastMonth.toISOString().slice(0, 10);
@@ -1388,7 +1388,7 @@
                             this.form.items.forEach(worker => {
                                 this.reinitializeWorkerWithTransportation(worker.id);
                             });
-                            
+
                             this.$nextTick(() => {
                                 this.calculateGlobalAccruedTotal();
                             });
@@ -1495,19 +1495,19 @@
 
                 // Calcular días trabajados
                 const workedDays = this.calculateWorkedDays(currentWorker.date_of_admission) || 30;
-                
+
                 // Obtener salario básico
                 const basicSalary = parseFloat(currentWorker.salary) || 0;
-                
+
                 // Calcular salario proporcional
                 const proportionalSalary = (basicSalary * workedDays) / 30;
-                
+
                 // Calcular subsidio de transporte (será 0 si no hay configuración aún)
                 let transportationAllowance = 0;
                 if (this.advancedConfiguration) {
                     transportationAllowance = this.calculateTransportationAllowanceForWorker(basicSalary);
                 }
-                
+
                 // Calcular total inicial (sin subsidio por ahora si no hay configuración)
                 const initialTotal = proportionalSalary + transportationAllowance;
 
@@ -1548,16 +1548,16 @@
 
                 // Calcular días trabajados
                 const workedDays = existingData.worked_days || this.calculateWorkedDays(currentWorker.date_of_admission) || 30;
-                
+
                 // Obtener salario básico
                 const basicSalary = parseFloat(currentWorker.salary) || 0;
-                
+
                 // Calcular salario proporcional
                 const proportionalSalary = (basicSalary * workedDays) / 30;
-                
+
                 // Calcular subsidio de transporte con configuración disponible (asegurar que sea número)
                 const transportationAllowance = parseFloat(this.calculateTransportationAllowanceForWorker(basicSalary)) || 0;
-                
+
                 // Suma matemática (no concatenación)
                 const initialTotal = proportionalSalary + transportationAllowance;
 
@@ -1595,10 +1595,10 @@
                         this.applyTransportationAllowance();
                     }
                     this.syncAccruedDataWithOtherTabs(workerId);
-                    
+
                     // Recalcular total global después de cambiar de empleado
                     this.calculateGlobalAccruedTotal();
-                    
+
                     this.$forceUpdate();
                 });
             },
@@ -1633,7 +1633,7 @@
                     // Inicializar datos de pago para cada empleado
                     if (!this.employeePaymentData[worker.id]) {
                         const workerPayment = worker.payment;
-                        
+
                         this.$set(this.employeePaymentData, worker.id, {
                             payment_method_id: workerPayment?.payment_method_id || null,
                             bank_name: workerPayment?.bank_name || '',
@@ -1757,7 +1757,7 @@
                     this.form.period.worked_time = 30; // Valor fijo por defecto para el formulario
                     this.form.period.issue_date = '';
                     this.form.payroll_period_id = currentWorker ? currentWorker.payroll_period_id || 5 : 5;
-                    
+
                     // Guardar el periodo por defecto en el storage del empleado
                     if (!this.employeePeriodData[workerId]) {
                         this.employeePeriodData[workerId] = {};
@@ -1855,7 +1855,7 @@
                 this.form.payment_dates = [];
 
                 // Obtener el nombre del periodo de nómina para determinar el tipo
-                const payrollPeriod = this.form.tables.payroll_periods ? 
+                const payrollPeriod = this.form.tables.payroll_periods ?
                     this.form.tables.payroll_periods.find(period => period.id === payrollPeriodId) : null;
 
                 if (!payrollPeriod) {
@@ -1876,7 +1876,7 @@
                 } else if (payrollPeriod.name.toLowerCase().includes('quincenal')) {
                     // Para periodo quincenal: dos pagos (día 15 y último día del mes anterior)
                     const fifteenthOfLastMonth = new Date(lastMonth.getFullYear(), lastMonth.getMonth(), 15);
-                    
+
                     this.form.payment_dates.push({
                         payment_date: fifteenthOfLastMonth.toISOString().slice(0, 10)
                     });
@@ -1908,7 +1908,7 @@
                 }
 
                 // Obtener el nombre del periodo de nómina para determinar el tipo
-                const payrollPeriod = this.form.tables.payroll_periods ? 
+                const payrollPeriod = this.form.tables.payroll_periods ?
                     this.form.tables.payroll_periods.find(period => period.id === payrollPeriodId) : null;
 
                 if (!payrollPeriod) {
@@ -1932,7 +1932,7 @@
                 } else if (payrollPeriod.name.toLowerCase().includes('quincenal')) {
                     // Para periodo quincenal: dos pagos (día 15 y último día del mes anterior)
                     const fifteenthOfLastMonth = new Date(lastMonth.getFullYear(), lastMonth.getMonth(), 15);
-                    
+
                     this.form.payment_dates.push({
                         payment_date: fifteenthOfLastMonth.toISOString().slice(0, 10)
                     });
@@ -2030,7 +2030,7 @@
                     this.form.payment.bank_name = data.bank_name || '';
                     this.form.payment.account_type = data.account_type || '';
                     this.form.payment.account_number = data.account_number || '';
-                    
+
                     // Verificar si tiene fechas de pago definidas
                     if (data.payment_dates && data.payment_dates.length > 0) {
                         this.form.payment_dates = JSON.parse(JSON.stringify(data.payment_dates));
@@ -2049,7 +2049,7 @@
                     this.form.payment.account_type = workerPayment?.account_type || '';
                     this.form.payment.account_number = workerPayment?.account_number || '';
                     this.form.payment_dates = [];
-                    
+
                     // Generar fechas de pago por defecto para este empleado
                     if (!this.editMode) {
                         this.generateDefaultPaymentDatesForEmployee(workerId);
@@ -2306,9 +2306,9 @@
                 if (this.calculatingGlobalTotal) {
                     return;
                 }
-                
+
                 this.calculatingGlobalTotal = true;
-                
+
                 try {
                     let globalTotal = 0;
                     let employeeCount = 0;
@@ -2323,10 +2323,10 @@
                     // Sumar los totales devengados de todos los empleados
                     Object.keys(this.employeeAccruedData).forEach(workerId => {
                         const employeeData = this.employeeAccruedData[workerId];
-                        
+
                         if (employeeData && employeeData.accrued_total) {
                             const employeeTotal = toNumber(employeeData.accrued_total);
-                            
+
                             // Validar que el valor no sea demasiado grande (posible corrupción)
                             if (employeeTotal > 10000000) { // Más de 10 millones parece sospechoso
                                 // Valor sospechoso, no incluir en la suma
@@ -2347,43 +2347,43 @@
             // Método para limpiar datos corruptos y recalcular totales
             resetAndRecalculateGlobalTotal() {
                 console.log('🔄 Limpiando y recalculando totales...');
-                
+
                 // Resetear total global
                 this.form.accrued_total = 0;
-                
+
                 // Recalcular cada empleado individualmente
                 Object.keys(this.employeeAccruedData).forEach(workerId => {
                     console.log(`🔄 Recalculando empleado ${workerId}...`);
-                    
+
                     // Seleccionar temporalmente el empleado para recalcular
                     const currentSelected = this.selectedWorkerId;
                     this.selectedWorkerId = workerId;
-                    
+
                     // Cargar datos del empleado
                     this.loadEmployeeAccruedData(workerId);
-                    
+
                     // Recalcular su total
                     this.calculateAccruedTotal();
-                    
+
                     // Restaurar selección original
                     this.selectedWorkerId = currentSelected;
-                    
+
                     // Cargar datos del empleado original
                     if (currentSelected) {
                         this.loadEmployeeAccruedData(currentSelected);
                     }
                 });
-                
+
                 console.log('✅ Limpieza completada');
             },
 
             // Método de emergencia para resetear datos corruptos (ejecutar desde consola)
             emergencyReset() {
                 console.log('🚨 RESETEO DE EMERGENCIA');
-                
+
                 // 1. Resetear total global
                 this.form.accrued_total = 0;
-                
+
                 // 2. Limpiar datos corruptos de employeeAccruedData
                 Object.keys(this.employeeAccruedData).forEach(workerId => {
                     const data = this.employeeAccruedData[workerId];
@@ -2392,12 +2392,12 @@
                         data.accrued_total = 0;
                     }
                 });
-                
+
                 // 3. Recalcular total del empleado actual si existe
                 if (this.selectedWorkerId) {
                     this.calculateAccruedTotal();
                 }
-                
+
                 console.log('🟢 Reseteo completado');
             },
 
@@ -2409,12 +2409,12 @@
                 console.log('👤 Empleado seleccionado:', this.selectedWorkerId);
                 console.log('💰 Total del empleado actual:', this.form.accrued.accrued_total);
                 console.log('📋 Todos los empleados:');
-                
+
                 Object.keys(this.employeeAccruedData).forEach(workerId => {
                     const data = this.employeeAccruedData[workerId];
                     console.log(`  - Empleado ${workerId}: ${data?.accrued_total || 'sin datos'}`);
                 });
-                
+
             },
 
             // Guardar datos de devengados del empleado actual
