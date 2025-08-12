@@ -797,13 +797,15 @@
                     </div>
                     <div class="row mt-4">
                         <div class="col-md-12 text-right">
-                            <button type="button" class="btn btn-secondary mr-2" @click="cancelForm">
+                            <button type="button" class="btn btn-secondary mr-2" @click="cancelForm" :disabled="loading_submit">
                                 Cancelar
                             </button>
-                            <button type="button" class="btn btn-warning mr-2" @click="saveForm(false)">
+                            <button type="button" class="btn btn-warning mr-2" @click="saveForm(false)" :disabled="loading_submit">
+                                <i v-if="loading_submit" class="fa fa-spinner fa-spin mr-1"></i>
                                 {{ editMode ? 'Editar sin generar' : 'Guardar sin generar' }}
                             </button>
-                            <button type="button" class="btn btn-primary" @click="saveForm(true)">
+                            <button type="button" class="btn btn-primary" @click="saveForm(true)" :disabled="loading_submit">
+                                <i v-if="loading_submit" class="fa fa-spinner fa-spin mr-1"></i>
                                 {{ editMode ? 'Editar y generar' : 'Guardar y generar' }}
                             </button>
                         </div>
@@ -1225,10 +1227,40 @@
                         this.loading_submit = false;
                         this.$message.error(this.editMode ? 'Error al editar el bloque de nómina' : 'Error al guardar el bloque de nómina');
                     });
-            },            saveAndGenerate() {
-                // Implementar la funcionalidad original de guardar y generar
-                // Por ahora solo mostramos un mensaje
-                this.$message.info('Funcionalidad de "Guardar y generar" por implementar');
+            },            
+            saveAndGenerate() {
+                this.loading_submit = true;
+                
+                this.saveCurrentEmployeeAccruedData();
+                this.validate();
+
+                if (this.hasErrors()) {
+                    this.loading_submit = false;
+                    this.$message.error('Por favor corrige los errores antes de continuar');
+                    return;
+                }
+
+                const url = this.editMode 
+                    ? `/${this.resource}/${this.form.id}/update-and-generate`
+                    : `/${this.resource}/store-and-generate`;
+
+                const method = this.editMode ? 'PUT' : 'POST';
+
+                this.$http[method.toLowerCase()](url, this.form)
+                    .then(response => {
+                        if (response.data.success) {
+                            this.$message.success(response.data.message);
+                            setTimeout(() => {
+                                window.location.href = '/payroll/block-payrolls';
+                            }, 1500);
+                        } else {
+                            this.$message.error(response.data.message);
+                        }
+                    })
+                    .catch(error => {
+                        this.loading_submit = false;
+                        this.$message.error('Error al guardar y generar el bloque de nómina');
+                    });
             },
 
             validatePeriodDates() {
