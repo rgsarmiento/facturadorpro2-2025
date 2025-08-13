@@ -1024,6 +1024,9 @@
                 this.saveCurrentEmployeePaymentData();
                 this.saveCurrentEmployeeAccruedData();
 
+                // Calcular y actualizar el total global antes de cualquier envío
+                this.calculateGlobalAccruedTotal();
+
                 if (action === 'save') {
                     // Guardar sin generar
                     this.saveWithoutGenerate();
@@ -1034,12 +1037,12 @@
             },
 
             async saveWithoutGenerate() {
-                // Guardar datos del empleado actual antes de procesar
-                if (this.selectedWorkerId) {
-                    this.saveCurrentEmployeeData();
-                    this.saveCurrentEmployeePaymentData();
-                    this.saveCurrentEmployeeAccruedData();
-                }
+                // COMENTADO: No guardar datos del empleado actual porque pueden sobrescribir cálculos correctos
+                // if (this.selectedWorkerId) {
+                //     this.saveCurrentEmployeeData();
+                //     this.saveCurrentEmployeePaymentData();
+                //     this.saveCurrentEmployeeAccruedData();
+                // }
 
                 // Validar unicidad del período en modo crear
                 if (!this.editMode) {
@@ -1109,8 +1112,6 @@
                 selectedWorkers.forEach(workerId => {
                     // Asegurar que todos los empleados tengan datos de devengados inicializados
                     if (!this.employeeAccruedData[workerId]) {
-                        console.warn(`Worker ${workerId} doesn't have accrued data initialized. Initializing now...`);
-
                         // Buscar el empleado
                         const currentWorker = this.form.items.find(item => item.id === workerId);
                         const workerSalary = parseFloat(currentWorker ? currentWorker.salary : 0) || 0;
@@ -1143,14 +1144,6 @@
 
                     const accruedData = this.employeeAccruedData[workerId] || {};
 
-                    // Debug: verificar datos de devengados
-                    console.log('=== DEBUGGING ACCRUED DATA ===');
-                    console.log('Worker ID:', workerId);
-                    console.log('Accrued Data for Worker:', accruedData);
-                    console.log('Has transportation_allowance?', accruedData.transportation_allowance);
-                    console.log('Has accrued_total?', accruedData.accrued_total);
-                    console.log('All Employee Accrued Data:', this.employeeAccruedData);
-
                     // Función helper para convertir a número de forma segura
                     const toNumber = (value) => {
                         if (value === null || value === undefined || value === '') return 0;
@@ -1182,21 +1175,35 @@
                         refund: toNumber(accruedData.refund)
                     };
 
-                    // Debug final del objeto preparado para este empleado
-                    console.log('Final prepared accrued data for worker', workerId, ':', employeeAccruedData[workerId]);
+                    // Debug: verificar datos del empleado
+                    console.log(`🔍 Empleado ${workerId} datos construidos:`, {
+                        accrued_total: employeeAccruedData[workerId].accrued_total,
+                        salary: employeeAccruedData[workerId].salary,
+                        transportation_allowance: employeeAccruedData[workerId].transportation_allowance
+                    });
                 });
-
-                // Debug: verificar datos finales antes de enviar
-                console.log('=== FINAL EMPLOYEE ACCRUED DATA ===');
-                console.log('Final Employee Accrued Data:', employeeAccruedData);
 
                 // Agregar los objetos completos al formData
                 formData.employee_period_data = employeePeriodData;
                 formData.employee_payment_data = employeePaymentData;
                 formData.employee_accrued_data = employeeAccruedData;
 
-                // Debug: verificar formData completo
-                console.log('Complete Form Data:', formData);
+                // Calcular el total global de devengados (suma de todos los empleados)
+                let globalAccruedTotal = 0;
+                console.log('🔍 Calculando total global antes de enviar:');
+                selectedWorkers.forEach(workerId => {
+                    const employeeAccrued = employeeAccruedData[workerId];
+                    if (employeeAccrued && employeeAccrued.accrued_total) {
+                        const employeeTotal = parseFloat(employeeAccrued.accrued_total) || 0;
+                        console.log(`Employee ${workerId}: ${employeeTotal}`);
+                        globalAccruedTotal += employeeTotal;
+                    }
+                });
+
+                console.log('🎯 Total global calculado:', globalAccruedTotal);
+
+                // Agregar el total global al formData
+                formData.accrued_total = globalAccruedTotal;
 
                 // Asegurar que no se incluya el campo notes
                 if (formData.hasOwnProperty('notes')) {
@@ -1233,6 +1240,10 @@
                 this.loading_submit = true;
 
                 this.saveCurrentEmployeeAccruedData();
+
+                // Calcular y actualizar el total global antes de enviar
+                this.calculateGlobalAccruedTotal();
+
                 this.validate();
 
                 if (this.hasErrors()) {
