@@ -31,6 +31,7 @@ class Establishment extends ModelTenant
         'establishment_logo',
         'web_address',
         'aditional_information',
+        'tables',
     ];
 
     public function country() {

@@ -493,7 +493,7 @@
                             <th>Tarifa</th>
                             <th>Base Gravable</th>
                             <th>Descuento</th>
-                            <th>Valor IVA</th>
+                            <th>Valor Impuesto</th>
                             <th>Valor neto</th>
                         </tr>
                     </thead>
@@ -605,7 +605,7 @@
                             <th>Tarifa</th>
                             <th>Base Gravable</th>
                             <th>Descuento</th>
-                            <th>Valor IVA</th>
+                            <th>Valor Impuesto</th>
                             <th>Valor neto</th>
                         </tr>
                     </thead>
@@ -699,8 +699,8 @@
                         <tr>
                             <th>Tarifa</th>
                             <th>Base Gravable</th>
-                            <th>Valor IVA</th>
-                            <th>Total Incluido IVA</th>
+                            <th>Valor Impuesto</th>
+                            <th>Total Incluido Impuesto</th>
                         </tr>
                     </thead>
                     <tbody>

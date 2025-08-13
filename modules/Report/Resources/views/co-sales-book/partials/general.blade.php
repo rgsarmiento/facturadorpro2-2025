@@ -2,7 +2,7 @@
 <table class="">
     <thead>
         <tr>
-            <th colspan="7"></th>
+            <th colspan="9"></th>
 
             @foreach($taxes as $tax)
                 <th colspan="2">
@@ -14,7 +14,9 @@
         </tr>
         <tr>
             <th>F. Emisión</th>
-            <th>Nro/Doc</th>
+            <th>Doc</th>
+            <th>Nro</th>
+            <th>Nit</th>
             <th>Nombre</th>
             <th>Moneda</th>
             <th>Total/Neto</th>
@@ -42,7 +44,9 @@
             @endphp
             <tr>
                 <td class="celda">{{ $row['date_of_issue'] }}</td>
-                <td class="celda">{{$row['type_document_name']}} <br/> {{ $row['number_full'] }}</td>
+                <td class="celda">{{$row['type_document_name']}}</td>
+                <td class="celda">{{ $row['number_full'] }}</td>
+                <td class="celda">{{ $row['customer_code'] }}</td>
                 <td class="celda">{{ $row['customer_name'] }}</td>
                 <td class="celda">{{ $row['currency_code'] }}</td>
                 <td class="celda text-right-td">{{ $row['net_total'] }}</td>
@@ -62,7 +66,7 @@
             </tr>
         @endforeach
         <tr>
-            <th colspan="4" class="celda text-right-td">TOTALES</th>
+            <th colspan="6" class="celda text-right-td">TOTALES</th>
             <th>{{ $net_total }}</th>
             <th>{{ $total }}</th>
             <th>{{ $total_exempt }}</th>

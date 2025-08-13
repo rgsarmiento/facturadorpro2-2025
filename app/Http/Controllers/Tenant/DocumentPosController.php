@@ -66,6 +66,7 @@ use Modules\Factcolombia1\Models\TenantService\{
 use App\Models\Tenant\Document;
 use App\Models\Tenant\DocumentPos;
 use App\Models\Tenant\DocumentPosItem;
+use App\Models\Tenant\TableAccount;
 use App\Models\Tenant\DocumentPosPayment;
 use App\Models\Tenant\ConfigurationPos;
 use App\Http\Resources\Tenant\DocumentPosResource;
@@ -99,8 +100,8 @@ class DocumentPosController extends Controller
     {
         return [
             'date_of_issue' => 'Fecha de emisión',
-//            'number' => 'Número',
-//            'customer' => 'Cliente',
+            'number' => 'Número',
+            //'customer' => 'Cliente',
         ];
     }
 
@@ -113,8 +114,20 @@ class DocumentPosController extends Controller
 
     public function records(Request $request)
     {
-        $records = DocumentPos::where($request->column, 'like', "%{$request->value}%")->latest('id');
-        return new DocumentPosCollection($records->paginate(config('tenant.items_per_page')));
+        $query = DocumentPos::query();
+        $validColumns = ['date_of_issue', 'state_type_id', 'number', 'customer'];
+        $column = $request->get('column');
+        $value = $request->get('value');
+
+        if (in_array($column, $validColumns) && $request->filled('value')) {
+            $query->where($column, 'like', "{$value}%");
+        }
+
+        if ($request->filled('state_type_id')) {
+            $query->where('state_type_id', $request->get('state_type_id'));
+        }
+
+        return new DocumentPosCollection($query->latest('id')->paginate(config('tenant.items_per_page')));
     }
 
     public function credit_note($id){
@@ -375,6 +388,16 @@ class DocumentPosController extends Controller
 //                    }
 ///                    $tax_exclusive_amount += $tax_totals[count($tax_totals) - 1]['taxable_amount'];
                     // Sumar taxable_amount de los tax_totals de cada línea
+
+                    if($row['db_Id'] != 0){
+                        TableAccount::where('id', $row['db_Id'])
+                            ->update([
+                            'state' => 'F',
+                            'prefix' => $data['prefix'],
+                            'number' => $data['number']
+                        ]);
+                    }
+
                     if(isset($invoice_lines[count($invoice_lines) - 1]['tax_totals'])) {
                         foreach($invoice_lines[count($invoice_lines) - 1]['tax_totals'] as $tax_total) {
                             $tax_exclusive_amount += floatval($tax_total['taxable_amount']);

@@ -29,7 +29,7 @@
                                 v-model="search.value"
                                 style="width: 100%;"
                                 prefix-icon="el-icon-search"
-                                @input="getRecords">
+                                @input="debouncedGetRecords">
                             </el-input>
                         </template>
                     </div>
@@ -57,7 +57,7 @@
                 </div>
             </div>
             <div class="col-md-12">
-                <div class="table-responsive">
+                <div class="table-responsive" v-loading="loading_submit">
                     <table class="table">
                         <thead>
                         <slot name="heading"></slot>
@@ -91,11 +91,12 @@
 <script>
     import moment from 'moment'
     import queryString from 'query-string'
+    import _ from 'lodash'
 
     export default {
         props: {
             resource: String,
-            applyFilter:{
+            applyFilter: {
                 type: Boolean,
                 default: true,
                 required: false
@@ -104,10 +105,12 @@
 
         data () {
             return {
+                loading_submit: false,
                 search: {
                     column: null,
                     value: null,
-                    series: null
+                    series: null,
+                    state_type_id: null
                 },
                 totals: {
                     total_pen: 0,
@@ -129,12 +132,13 @@
             this.$eventHub.$on('reloadData', () => {
                 this.getRecords()
                 this.getTotals()
-            })
+            });
+
+            this.debouncedGetRecords = _.debounce(this.getRecords, 1300);
         },
 
         async mounted () {
             let column_resource = _.split(this.resource, '/')
-           // console.log(column_resource)
             await this.$http.get(`/${_.head(column_resource)}/columns`).then((response) => {
                 this.columns = response.data
                 this.search.column = _.head(Object.keys(this.columns))
@@ -160,11 +164,12 @@
             },
 
             getRecords() {
-                console.log(`/${this.resource}/records`)
+                this.loading_submit = true;
                 return this.$http.get(`/${this.resource}/records?${this.getQueryParameters()}`).then((response) => {
-                    this.records = response.data.data
-                    this.pagination = response.data.meta
-                    this.pagination.per_page = parseInt(response.data.meta.per_page)
+                    this.records = response.data.data;
+                    this.pagination = response.data.meta;
+                    this.pagination.per_page = parseInt(response.data.meta.per_page);
+                    this.loading_submit = false;
                 });
             },
 
@@ -173,7 +178,7 @@
                     page: this.pagination.current_page,
                     limit: this.limit,
                     ...this.search
-                })
+                });
             },
 
             changeClearInput(){

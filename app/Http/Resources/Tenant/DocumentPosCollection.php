@@ -60,7 +60,7 @@ class DocumentPosCollection extends ResourceCollection
                 'quantity_period' => $row->quantity_period,
                 'type_period' => $row->type_period,
                 'apply_concurrency' => (bool) $row->apply_concurrency,
-                'created_at' => $row->created_at,
+                'created_at' => date("h:i A", strtotime($row->created_at)),
                 'updated_at' => $row->updated_at,
                 'paid' => (bool) $row->paid,
                 'license_plate' => $row->license_plate,

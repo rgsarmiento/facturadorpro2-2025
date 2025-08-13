@@ -25,10 +25,11 @@
                         </el-dropdown-menu>
                     </el-dropdown>
                 </div>
-                <data-table :resource="resource">
+                <data-table :resource="resource" :apply-filter="true">
                     <tr slot="heading">
                         <th>#</th>
                         <th class="text-center">Fecha Emisión</th>
+                        <th class="text-center">Hora Emisión</th>
                         <th>Cliente</th>
                         <th>Nro Documento</th>
                         <th>Estado</th>
@@ -54,6 +55,7 @@
                     <tr slot-scope="{ index, row }">
                         <td>{{ index }}</td>
                         <td class="text-center">{{ row.date_of_issue }}</td>
+                        <td class="text-center">{{ row.created_at }}</td>
                         <td>{{ row.customer_name }}<br/><small v-text="row.customer_number"></small><br/></td>
                         <td>{{ row.full_number }}
                         </td>

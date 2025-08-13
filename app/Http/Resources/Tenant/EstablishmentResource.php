@@ -28,6 +28,7 @@ class EstablishmentResource extends JsonResource
             'web_address' => $this->web_address,
             'establishment_logo' => $this->establishment_logo,
             'aditional_information' => $this->aditional_information,
+            'tables' => $this->tables,
         ];
     }
 }

@@ -31,8 +31,12 @@
                         <div class="form-group" :class="{'has-danger': errors.resolution_id}" >
                             <label class="control-label">Resolución</label>
                             <el-select v-model="form.resolution_id">
-                                <el-option v-for="option in resolutions" :key="option.id + 'R'" :value="option.id"
-                                        :label="`${option.prefix} / ${option.resolution_number}`"></el-option>
+                                <el-option
+                                    v-for="option in filteredResolutions"
+                                    :key="option.id"
+                                    :value="option.id"
+                                    :label="`${option.prefix || 'Sin Prefix'} / ${option.resolution_number}`">
+                                </el-option>
                             </el-select>
                             <small class="form-control-feedback" v-if="errors.resolution_id" v-text="errors.resolution_id[0]"></small>
                         </div>
@@ -76,7 +80,8 @@
                 .then(response => {
                     this.users = response.data.users
                     this.user = response.data.user,
-                    this.resolutions = response.data.resolutions
+                    this.resolutions = response.data.resolutions,
+                    this.maxNumbersByPrefix = response.data.maxNumbersByPrefix
                     this.blindCash = response.data.blindCash
                 })
             this.initForm()
@@ -90,7 +95,30 @@
                 }
                 return true
             },
-            // Propiedad computada para manejar el saldo inicial
+            filteredResolutions() {
+                let today = new Date().toISOString().split('T')[0];
+
+                let selectedUser = this.users.find(user => user.id === this.form.user_id);
+
+                let resolutionsByDate = this.resolutions.filter(resolution =>
+                    resolution.date_from <= today && resolution.date_end >= today
+                );
+
+                let filteredResolutions = selectedUser && selectedUser.prefix
+                    ? resolutionsByDate.filter(resolution => resolution.prefix === selectedUser.prefix)
+                    : resolutionsByDate;
+
+                return filteredResolutions.filter(resolution => {
+                    let maxEntry = this.maxNumbersByPrefix.find(entry => entry.prefix === resolution.prefix);
+
+                    if (!maxEntry) return true;
+
+                    let nextNumber = (maxEntry.max_number || 0) + 1;
+
+                    return nextNumber >= Number(resolution.from) && nextNumber <= Number(resolution.to);
+                });
+            }
+        },
             formattedBeginningBalance: {
                 get() {
                     // Esto se activará cuando necesites mostrar el valor en el input
@@ -103,9 +131,12 @@
                     const value = parseFloat(newValue.replace(/[^\d.]/g, ''));
                     this.form.beginning_balance = isNaN(value) ? 0 : value;
                 }
+            },
+        watch: {
+            'form.user_id': function () {
+            this.filteredResolutions;
             }
         },
-
         methods: {
             initForm() {
                 this.errors = {}

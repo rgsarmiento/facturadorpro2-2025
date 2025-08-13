@@ -370,6 +370,9 @@
     margin-right: 0!important;
 }
 
+.card{
+    margin-bottom: 0px !important;
+}
 </style>
 
 <script>

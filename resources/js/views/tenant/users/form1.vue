@@ -92,6 +92,15 @@
                             <small class="form-control-feedback" v-if="errors.ni_resolution_id" v-text="errors.ni_resolution_id[0]"></small>
                         </div>
                     </div>
+                    <div class="col-md-4">
+                        <div class="form-group" :class="{'has-danger': errors.prefix}">
+                            <label class="control-label">Prefijo</label>
+                            <el-select v-model="form.prefix" filterable>
+                                <el-option v-for="option in prefixs" :key="option.prefix" :value="option.prefix" :label="option.prefix"></el-option>
+                            </el-select>
+                            <small class="form-control-feedback" v-if="errors.prefix" v-text="errors.prefix[0]"></small>
+                        </div>
+                    </div>
                     <div class="col-md-12" v-if="typeUser != 'integrator'">
                         <div class="form-group">
                             <label class="control-label">Módulos</label>
@@ -142,6 +151,7 @@
                 nd_resolutions: [],
                 ni_resolutions: [],
                 establishments: [],
+                prefixs : [],
                 types: [],
                 show_levels:false
             }
@@ -153,6 +163,7 @@
                     this.modules = response.data.modules
                     this.establishments = response.data.establishments
                     this.types = response.data.types
+                    this.prefixs = response.data.prefixs
                     this.fe_resolutions = response.data.fe_resolutions
                     this.nc_resolutions = response.data.nc_resolutions
                     this.nd_resolutions = response.data.nd_resolutions
@@ -178,6 +189,7 @@
                     nc_resolution_id: null,
                     nd_resolution_id: null,
                     ni_resolution_id: null,
+                    prefix: null,
                     modules: [],
                     levels: [],
                 }

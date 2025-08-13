@@ -12,7 +12,10 @@
   </div>-->
     <tenant-pos-index
      	:configuration="{{ $configuration}}"
-     	:soap-company="{{ json_encode($soap_company) }}">
+        :tables_quantity="{{ json_encode($tables_quantity) }}"
+        :cuentas="{{ json_encode($cuentas) }}"
+     	:soap-company="{{ json_encode($soap_company) }}"
+        :type="{{ json_encode($type) }}">
     </tenant-pos-index>
 @endsection
 

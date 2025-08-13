@@ -35,9 +35,10 @@
 
             </div>
             <div class="col-md-4">
-                <h2> <button type="button" @click="place = 'cat'" class="btn btn-custom btn-sm  mt-2 mr-2"><i class="fa fa-border-all"></i></button> </h2>
-                <h2> <button type="button" :disabled="place == 'cat2'" @click="setView" class="btn btn-custom btn-sm  mt-2 mr-2"><i class="fa fa-bars"></i></button> </h2>
-                <h2> <button type="button" :disabled="place== 'cat'" @click="back()" class="btn btn-custom btn-sm  mt-2 mr-2"><i class="fa fa-undo"></i></button> </h2>
+                <button v-if="tables_quantity > 0" ref="mesas" title="Cuentas" type="button" :data-quantity="tables_quantity" class="btn btn-custom btn-sm mt-2 mr-2" @click="cambiarContenido"><i class="fa fa-receipt"></i></button>
+                <button type="button" @click="place = 'cat'" class="btn btn-custom btn-sm  mt-2 mr-2"><i class="fa fa-border-all"></i></button>
+                <button type="button" :disabled="place == 'cat2'" @click="setView" class="btn btn-custom btn-sm  mt-2 mr-2"><i class="fa fa-bars"></i></button>
+                <button type="button" :disabled="place== 'cat'" @click="back()" class="btn btn-custom btn-sm  mt-2 mr-2"><i class="fa fa-undo"></i></button>
             </div>
             <div class="col-md-2">
                 <div class="right-wrapper">
@@ -50,26 +51,25 @@
 
     <div v-if="plate_number_valid">
         <div v-if="!is_payment" class="row col-lg-12 m-0 p-0" v-loading="loading">
-            <div class="col-lg-8 col-md-6 px-4 pt-3 hyo">
-
-                <template v-if="!search_item_by_barcode">
+            <div v-if="botones.length === 0" class="col-lg-8 col-md-6 px-4 pt-3 hyo">
+                <template v-if="!search_item_by_barcode && type != 'comand'">
                     <el-input v-show="place  == 'prod' || place == 'cat2'" placeholder="Buscar productos" size="medium" v-model="input_item" @input="searchItems" autofocus class="m-bottom">
                         <el-button slot="append" icon="el-icon-plus" @click.prevent="showDialogNewItem = true"></el-button>
                     </el-input>
                 </template>
-                <template v-else>
+                <template v-else-if="type != 'comand'">
                     <el-input v-show="place  == 'prod' || place == 'cat2'" placeholder="Buscar productos" size="medium" v-model="input_item" @change="searchItemsBarcode" autofocus class="m-bottom">
                         <el-button slot="append" icon="el-icon-plus" @click.prevent="showDialogNewItem = true"></el-button>
                     </el-input>
                 </template>
 
-                <div v-if="place == 'cat2'" class="container testimonial-group">
+                <div v-if="place == 'cat2' && type != 'comand'" class="container testimonial-group">
                     <div class="row text-center flex-nowrap">
                         <div v-for="(item, index) in categories" @click="filterCategorie(item.id, true)" :style="{ backgroundColor: item.color}" :key="index" class="col-sm-3 pointer">{{item.name}}</div>
                     </div>
                 </div> <br>
 
-                <div v-if="place == 'cat'" class="row no-gutters">
+                <div v-if="place == 'cat' && type != 'comand'" class="row no-gutters">
                     <div v-for="(item, index) in categories" class="col" :key="index">
                         <div @click="filterCategorie(item.id)" class="card p-0 m-0 mb-1 mr-1 text-center">
                             <div :style="{ backgroundColor: item.color}" class="card-body pointer rounded-0" style="font-weight: bold;color: white;font-size: 18px;">
@@ -79,7 +79,18 @@
                     </div>
                 </div>
 
-                <div v-if="place == 'prod' || place == 'cat2'" class="row pos-items">
+                <div v-if="type == 'comand'" class="row justify-content-center">
+                    <div class="col-md-8 col-lg-6">
+                        <div class="card border-warning">
+                            <div class="card-body text-center">
+                                <i class="fas fa-ban fa-3x text-warning mb-3"></i>
+                                <h4 class="card-title text-warning">Acceso Restringido</h4>
+                                <p class="card-text">Este usuario no tiene permisos para realizar facturación.</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div v-if="(place == 'prod' || place == 'cat2')" class="row pos-items">
                     <div v-for="(item,index) in items" v-bind:class="classObjectCol" :key="index">
                         <section class="card ">
                             <div class="card-body pointer px-2 pt-2" @click="clickAddItem(item,index)">
@@ -221,6 +232,16 @@
                         </el-pagination>
                     </div>
                 </div>
+            </div>
+            <div v-else class="col-lg-8 col-md-6 px-4 hyo d-flex flex-wrap justify-content-center" style="margin-top: 4%;">
+                <button
+                    v-for="(boton, index) in botones"
+                    :key="boton.id"
+                    @click="abrirModal(boton.db_id, boton.id)"
+                    :class="['mesa-btn', { 'mesa-activa': boton.state === 1 }]">
+                    <i class="fa fa-receipt"></i>
+                    <span class="texto-boton">{{ boton.id }}</span>
+                </button>
             </div>
             <div class="col-lg-4 col-md-6 bg-white m-0 p-0" style="height: calc(100vh - 110px)">
                 <div class="h-75 bg-light" style="overflow-y: auto">
@@ -390,11 +411,314 @@
             <i class="fas fa-chevron-circle-left fa fw h5"></i>
         </div>
     </div>
+    <div class="modal fade" id="modal_order" tabindex="-1" role="dialog"
+        data-keyboard="false">
+        <div class="modal-dialog modal-dialog-centered modal-sm" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title">Información Cuenta {{ selected_table }}</h4>
+                    <button type="button" class="btn btn-danger" data-dismiss="modal" aria-label="Cerrar">X</button>
+                </div>
+                <div class="modal-body d-flex flex-column align-items-center">
+                    <div class="d-flex flex-column" style="width: 220px;">
+                        <button class="btn btn-custom btn-lg mb-3" type="button" @click="abrirModalCategorias(selected_table, dbId)">
+                            <i class="fa fa-plus"></i> Agregar
+                        </button>
+
+                        <button class="btn btn-custom btn-lg mb-3" @click="abrirModalCuenta(selected_table, dbId)" id="btnModalCuenta">
+                            <span class="spinner-border spinner-border-sm me-2 d-none" role="status" aria-hidden="true"></span>
+                                <i class="fa fa-list"></i> Ver
+                        </button>
+
+                        <button class="btn btn-custom btn-lg mb-3" type="button" @click="abrirModalTraslado(selected_table, dbId)">
+                            <i class="fa fa-expand-arrows-alt"></i> Trasladar
+                        </button>
+
+                        <button class="btn btn-custom btn-lg mb-3" type="button" @click="abrirModalFactura(selected_table, dbId)">
+                            <i class="fa fa-receipt"></i> Estado de Cuenta
+                        </button>
+                        <button class="btn btn-custom btn-lg mb-3" type="button" @click="eliminarCuenta(dbId)" id="btnEliminarCuenta">
+                            <span class="spinner-border spinner-border-sm me-2 d-none" role="status" aria-hidden="true"></span>
+                                <i class="fa fa-trash"></i> Eliminar
+                        </button>
+                    </div>
+                </div>
+                <button id="closeModalBtn" type="button" data-dismiss="modal" style="display: none;"></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de CATEGORÍAS -->
+    <div class="modal fade" id="modal_cuenta_categorias" tabindex="-1" role="dialog" data-backdrop="static"
+        data-keyboard="false">
+        <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h4 class="modal-title">Categorías</h4>
+                    <button type="button" class="btn btn-danger" data-dismiss="modal" aria-label="Cerrar">X</button>
+                </div>
+                <div class="modal-body modal-body-scrollable">
+                    <div v-if="categories.length === 0" class="text-center">
+                        <p>No hay categorías disponibles</p>
+                    </div>
+                    <div v-else class="row p-2">
+                        <div v-for="(item, index) in categories" class="col-6 col-md-4 col-lg-3 mb-2" :key="index">
+                            <button
+                                class="btn btn-custom btn-lg w-100"
+                                type="button"
+                                :style="{ backgroundColor: item.color, color: 'white', fontWeight: 'bold', fontSize: '16px' }"
+                                @click="abrirModalProductos(item.id, selected_table)">
+                                {{ item.name }}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Productos -->
+    <div class="modal fade" id="modal_cuenta_productos" tabindex="-1" role="dialog" data-backdrop="static" data-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered modal-lg" role="document">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h4 class="modal-title">
+                    Productos
+                    <button title="Carrito" class="btn btn-custom btn-sm" @click="verCarrito(selected_table)" id="btnVerCarrito">
+                        <span class="spinner-border spinner-border-sm me-2 d-none" role="status" aria-hidden="true"></span>
+                        <i class="fa fa-shopping-cart"></i>
+                    </button>
+                </h4>
+                <button type="button" class="btn btn-danger" data-dismiss="modal" aria-label="Cerrar">X</button>
+            </div>
+
+            <div class="modal-body modal-body-scrollable">
+                <div v-if="loadingModalProductos" class="text-center">
+                    <i class="fa fa-spinner fa-spin"></i> Cargando...
+                </div>
+                <div v-else>
+                    <input
+                        type="text"
+                        v-model="searchQueryProductos"
+                        class="form-control mb-2"
+                        placeholder="Buscar productos..."
+                    >
+                    <div v-if="filteredItemsProductos.length > 0" class="mt-3">
+                        <div class="row">
+                            <div v-for="item in filteredItemsProductos" :key="item.id" class="col-6 col-md-4 col-lg-3 mb-2">
+                                <div class="card-body pointer px-1 pt-1"
+                                     @click="abrirModalAgregar(item, selected_table)"
+                                     style="cursor: pointer;">
+                                    <img :src="item.image_url" class="img-thumbnail img-custom" style="width: 80%;">
+                                    <div class="card-body p-1">
+                                        <p class="product-name">{{ item.name }}</p>
+                                        <p class="product-price">${{ item.sale_unit_price_with_tax }}</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div v-else class="mt-3">
+                        <h5>No hay productos disponibles.</h5>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+    <!-- Modal: Agregar Cantidad -->
+    <div class="modal fade" id="modal_agregar_producto" tabindex="-1" role="dialog" data-backdrop="static">
+        <div class="modal-dialog modal-sm modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Agregar Producto</h5>
+                    <button type="button" class="btn btn-danger" data-dismiss="modal" aria-label="Cerrar">X</button>
+                </div>
+                <div class="modal-body text-center modal-body-scrollable">
+                    <p><strong>{{ selectedProduct ? selectedProduct.name : '' }}</strong></p>
+
+                    <div class="d-flex justify-content-center mb-3">
+                        <div class="input-group" style="width: 140px;">
+                            <button class="btn btn-outline-secondary" type="button" @click="decrementQuantity">−</button>
+                                <input
+                                    type="number"
+                                    class="form-control text-center no-spinner"
+                                    :value="selectedQuantity"
+                                    min = 1
+                                />
+                            <button class="btn btn-outline-secondary" type="button" @click="incrementQuantity">+</button>
+                        </div>
+                    </div>
+                    <button class="btn btn-primary w-100" @click="agregarProducto(selected_table)" id="btnAgregarProducto">
+                        <span class="spinner-border spinner-border-sm me-2 d-none" role="status" aria-hidden="true"></span>
+                        Agregar
+                    </button>
+                    <button id="closeModalBtnAgregar" type="button" data-dismiss="modal" style="display: none;"></button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+     <!-- Modal: Traslado -->
+    <div class="modal fade" id="modal_traslado" tabindex="-1" role="dialog">
+        <div class="modal-dialog modal-sm modal-dialog-centered" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Traslado - Cuenta {{ mesaSeleccionada }}</h5>
+                    <button type="button" class="btn btn-danger" data-dismiss="modal" aria-label="Cerrar">X</button>
+                </div>
+                <div class="modal-body text-center modal-body-scrollable">
+                     <div class="d-flex justify-content-center mb-3">
+                        <input
+                            type="number"
+                            class="form-control text-center"
+                            placeholder="Nueva Cuenta"
+                            v-model="selectedTableChange"
+                            min="1"
+                            style="width: 150px;"
+                        />
+                    </div>
+                     <button title="Carrito" class="btn btn-primary w-100" @click="trasladarMesa(mesaSeleccionada, dbId)" id="btnTrasladarCuenta">
+                        <span class="spinner-border spinner-border-sm me-2 d-none" role="status" aria-hidden="true"></span>
+                        Trasladar
+                    </button>
+                    <button id="closeModalBtnTraslado" type="button" data-dismiss="modal" style="display: none;"></button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Cuenta -->
+    <div class="modal fade" id="modal_cuenta" tabindex="-1" role="dialog">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Productos en la Cuenta {{ selected_table }}</h5>
+                    <button type="button" class="btn btn-danger" data-dismiss="modal" aria-label="Cerrar">X</button>
+                </div>
+                <div class="modal-body modal-body-scrollable">
+                    <table class="table table-bordered table-sm text-center">
+                        <thead>
+                            <tr>
+                                <th>Producto</th>
+                                <th>Cant</th>
+                                <th>Precio</th>
+                                <th>Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="(producto, index) in productosCuenta" :key="producto.id">
+                                <td>{{ producto.item_description }}</td>
+                                <td>{{ producto.quantity }}</td>
+                                <td>{{ formatearPrecio(producto.price) }}</td>
+                                <td>
+                                    <template v-if="producto.state !== 'R'">
+                                        <button type="button" style="margin-bottom: 5px;" title="Eliminar Producto" class="btn btn-sm btn-danger" @click="eliminarProducto(producto.id, dbId)" id="btnEliminarProducto">
+                                            <span class="spinner-border spinner-border-sm me-2 d-none" role="status" aria-hidden="true"></span>
+                                            <i class="fa fa-trash"></i>
+                                        </button>
+                                        <button v-if="type !== 'comand'" type="button" style="margin-bottom: 5px;" title="Facturar Producto" class="btn btn-sm btn-success" @click="clickAddItemAccount(producto.item_id, index, producto.quantity, producto.id)" id="btnAddItemAccount">
+                                            <span class="spinner-border spinner-border-sm me-2 d-none" role="status" aria-hidden="true"></span>
+                                            <i class="fa fa-plus"></i>
+                                        </button>
+                                    </template>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="modal-footer">
+                    <button class="btn btn-danger" @click="eliminarCuenta(dbId)" id="btnEliminarCuenta">
+                        <span class="spinner-border spinner-border-sm me-2 d-none" role="status" aria-hidden="true"></span>
+                            Borrar Cuenta
+                    </button>
+                    <button v-if="type !== 'comand'" class="btn btn-success"  @click="agregarCuentaCaja(dbId)" id="btnFacturarCuenta">
+                        <span class="spinner-border spinner-border-sm me-2 d-none" role="status" aria-hidden="true"></span>
+                            Facturar Cuenta
+                    </button>
+                </div>
+                <button id="closeModalBtnCuenta" type="button" data-dismiss="modal" style="display: none;"></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Carrito de compra -->
+    <div class="modal fade" id="modal_carrito_compra" tabindex="-1" role="dialog">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Carrito Cuenta {{ selected_table }}</h5>
+                     <button type="button" class="btn btn-danger" data-dismiss="modal" aria-label="Cerrar">X</button>
+                </div>
+                <div class="modal-body modal-body-scrollable">
+                    <table class="table table-bordered table-sm text-center">
+                        <thead>
+                            <tr>
+                                <th>Producto</th>
+                                <th>Cantidad</th>
+                                <th>Precio</th>
+                                <th>Acción</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="(producto, index) in productosCuenta" :key="index">
+                                <td>{{ producto.item_description }}</td>
+                                <td>{{ producto.quantity }}</td>
+                                <td>{{ formatearPrecio(producto.price) }}</td>
+                                <td>
+                                    <button title="Eliminar Producto" class="btn btn-sm btn-danger" @click="eliminarProductoCarrito(producto.id, dbId)" id="btnEliminarProductoCarrito">
+                                        <span class="spinner-border spinner-border-sm me-2 d-none" role="status" aria-hidden="true"></span>
+                                        <i class="fa fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div class="modal-footer">
+                    <button title="Eliminar Producto" class="btn btn-danger" @click="eliminarCuentaCarrito(dbId)" id="btnEliminarCuentaCarrito">
+                        <span class="spinner-border spinner-border-sm me-2 d-none" role="status" aria-hidden="true"></span>
+                        Vaciar Carrito
+                    </button>
+                </div>
+                <button id="closeModalBtnCuentaCarrito" type="button" data-dismiss="modal" style="display: none;"></button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal: Factura Pdf -->
+    <div class="modal fade" id="modal_pdf_cuenta" tabindex="-1" role="dialog">
+        <div class="modal-dialog modal-xl" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title">Detalle de la Cuenta</h5>
+                    <button type="button" class="btn btn-danger" data-dismiss="modal" aria-label="Cerrar">X</button>
+                </div>
+                <div class="modal-body">
+                    <div v-if="!pdfLoaded" class="text-center py-4">
+                        <div class="spinner-border text-primary" role="status" style="width: 3rem; height: 3rem;">
+                            <span class="sr-only">Cargando...</span>
+                        </div>
+                        <p class="mt-2">Cargando documento...</p>
+                    </div>
+                    <iframe
+                        v-show="pdfLoaded"
+                        :src="pdfUrl"
+                        width="100%"
+                        height="600px"
+                        style="border: none;"
+                        @load="onPdfLoad"
+                    ></iframe>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 </template>
 
 <style>
-/* The heart of the matter */
 .testimonial-group>.row {
     overflow-x: auto;
     white-space: nowrap;
@@ -462,6 +786,97 @@
   white-space: nowrap;
   text-overflow: ellipsis;
 }
+
+.mesa-btn {
+  width: 80px;
+  height: 80px;
+  border-radius: 50%;
+  background-color: #67C23A;
+  border: 2px solid #67C23A;
+  color: #ffffff;
+  font-size: 14px;
+  font-weight: bold;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  box-shadow: 2px 2px 5px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s;
+  gap: 2px;
+  margin: 8px;
+  padding: 5px;
+}
+
+.mesa-btn i {
+  font-size: 20px;
+  line-height: 1;
+}
+
+.mesa-btn .texto-boton {
+  font-size: 18px;
+  font-weight: bold;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.mesa-activa {
+  background-color: #ff006c !important;
+  border-color: #ff006c;
+  color: #ffffff;
+}
+
+.modal-body{
+    text-align: center;
+}
+
+.product-card {
+    width: 100%;
+    min-height: 200px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 10px;
+}
+
+.product-img {
+    width: 80px;
+    height: 80px;
+    object-fit: contain;
+    margin-bottom: 5px;
+}
+
+.product-name {
+    font-size: 11px;
+    font-weight: bold;
+    margin: 0;
+    white-space: nowrap;
+    overflow: hidden;
+    max-width: 90%;
+    text-align: center;
+}
+
+.product-price {
+    font-size: 12px;
+    color: #007bff;
+    margin: 0;
+}
+
+.no-spinner::-webkit-outer-spin-button,
+.no-spinner::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+.no-spinner {
+  -moz-appearance: textfield;
+}
+
+.modal-body-scrollable {
+    max-height: 70vh;
+    overflow-y: auto;
+}
 </style>
 
 <script>
@@ -475,9 +890,10 @@ import WarehousesDetail from '../items/partials/warehouses.vue'
 import queryString from "query-string";
 import ExpenseForm from '../../../../../modules/Expense/Resources/assets/js/views/expenses/form.vue';
 import {functions} from '@mixins/functions'
+import { Modal } from 'bootstrap';
 
 export default {
-    props: ['configuration', 'soapCompany'],
+    props: ['configuration', 'soapCompany', 'tables_quantity', 'cuentas', 'type'],
     components: {
         PaymentForm,
         ItemForm,
@@ -496,11 +912,18 @@ export default {
             warehousesDetail: [],
             unittypeDetail: [],
             input_person: {},
+            contenidoCambiado: false,
+            botones: [],
+            mesaActiva: [],
+            selected_table: null,
+            dbId: null,
+            category_selected_productos: null,
             showDialogHistoryPurchases: false,
             showDialogHistorySales: false,
             showDialogNewPerson: false,
             showDialogNewItem: false,
             loading: false,
+            loadingModalProductos: false,
             is_payment: false, //aq
             // is_payment: true,//aq
             showWarehousesDetail: false,
@@ -528,7 +951,18 @@ export default {
             category_selected: "",
             plate_number_valid: true,
             electronic: false,
+            selectedProduct: null,
+            selectedQuantity: 1,
+            searchQueryProductos: '',
+            mesaSeleccionada: null,
+            selectedTableChange: null,
+            productosCuenta: [],
+            productosSeleccionados: [],
+            pdfUrl: null,
+            vistaCambiada: false,
             showExpenseFormModal: false,
+            pdfUrl: null,
+            pdfLoaded: false,
         };
     },
 
@@ -588,7 +1022,15 @@ export default {
             return {
                 [`col-md-${clase}`]: true
             }
+        },
+        filteredItemsProductos() {
+        if (!this.searchQueryProductos) {
+            return this.items;
         }
+        return this.items.filter(item =>
+            item.name.toLowerCase().includes(this.searchQueryProductos.toLowerCase())
+        );
+    }
     },
     methods: {
         handleCloseExpenseForm() {
@@ -609,7 +1051,425 @@ export default {
                 limit: this.limit
             });
         },
+        decrementQuantity() {
+            if (this.selectedQuantity > 1) {
+                this.selectedQuantity--;
+            }
+        },
+        incrementQuantity() {
+            this.selectedQuantity++;
+        },
+        abrirModalFactura(selected_table, dbId) {
+            this.pdfLoaded = false;
+            document.body.style.cursor = 'wait';
 
+            const mesaId = dbId;
+            const establecimiento = this.establishment.id;
+            const customerId = this.form.customer_id;
+            const timestamp = new Date().getTime();
+
+            this.pdfUrl = `/${this.resource}/record_detalle?mesaId=${mesaId}&establecimiento=${establecimiento}&customer=${customerId}&_=${timestamp}`;
+
+            const modalElement = document.getElementById('modal_pdf_cuenta');
+            const modal = new Modal(modalElement);
+            modal.show();
+
+            document.body.style.cursor = 'default';
+        },
+
+        onPdfLoad() {
+            this.pdfLoaded = true;
+        },
+        cambiarContenido() {
+            if (this.vistaCambiada || this.tables_quantity <= 0) return;
+
+                this.botones = Array.from({ length: this.tables_quantity }, (_, i) => {
+                const mesaId = i + 1;
+                const cuenta = this.cuentas.find(c => c.table_number === mesaId);
+
+                return {
+                    id: mesaId,
+                    db_id: cuenta ? cuenta.id : null,
+                    state: cuenta ? cuenta.state : 0,
+                };
+            });
+
+            this.vistaCambiada = true;
+        },
+        abrirModal(idBd,index) {
+          this.selected_table = index;
+          this.dbId = idBd;
+          const modalElement = document.getElementById('modal_order');
+          const modal = new Modal(modalElement);
+          modal.show();
+        },
+        abrirModalCategorias(selected_table, idBd) {
+            this.selected_table = selected_table;
+            this.dbId = idBd;
+            const modalElement = document.getElementById('modal_cuenta_categorias');
+            const modal = new Modal(modalElement);
+            modal.show();
+        },
+        abrirModalTraslado(table, idBd) {
+            this.mesaSeleccionada = table;
+            this.dbId = idBd;
+            const modalElement = document.getElementById('modal_traslado');
+            const modal = new Modal(modalElement);
+            modal.show();
+        },
+        abrirModalCuenta(selected_table, dbId) {
+            const btn = document.getElementById('btnModalCuenta');
+            const spinner = btn.querySelector('.spinner-border');
+
+            btn.disabled = true;
+            spinner.classList.remove('d-none');
+            let establishment = this.establishment.id;
+            this.$http.get(`/${this.resource}/account_list`, {
+                params: {
+                    mesa: selected_table,
+                    mesaId: dbId,
+                    establecimiento: establishment
+                }
+            })
+            .then(response => {
+                const productos = response.data.data;
+
+                this.productosCuenta = productos;
+                this.productosSeleccionados = [];
+                this.selected_table = selected_table;
+                this.dbId = dbId;
+                const modal = new Modal(document.getElementById('modal_cuenta'));
+                modal.show();
+                btn.disabled = false;
+                spinner.classList.add('d-none');
+            })
+            .catch(error => {
+                const errorMsg = error.response?.data?.message || 'Ocurrió un error al trasladar la cuenta.';
+                this.$message.error(errorMsg, 3);
+                btn.disabled = false;
+                spinner.classList.add('d-none');
+             })
+            .finally(() => {
+                btn.disabled = false;
+                spinner.classList.add('d-none');
+            });
+        },
+        abrirModalProductos(idCategoria, selected_table) {
+            this.getRecords2(idCategoria);
+            this.selected_table = selected_table;
+            const modalElement = document.getElementById('modal_cuenta_productos');
+            const modal = new Modal(modalElement);
+            modal.show();
+        },
+        abrirModalAgregar(producto, selected_table) {
+            this.selected_table = selected_table;
+            this.selectedProduct = producto;
+            this.selectedQuantity = 1;
+            const modal = new Modal(document.getElementById('modal_agregar_producto'));
+            modal.show();
+        },
+        agregarProducto(selected_table) {
+            const btn = document.getElementById('btnAgregarProducto');
+            const spinner = btn.querySelector('.spinner-border');
+
+            btn.disabled = true;
+            spinner.classList.remove('d-none');
+            let establishment = this.establishment.id;
+
+            const payload = {
+                id: this.selectedProduct.item_id,
+                nombre: this.selectedProduct.name,
+                precio: this.selectedProduct.sale_unit_price_with_tax,
+                cantidad: this.selectedQuantity,
+                mesa: selected_table,
+                establecimiento: establishment
+            };
+
+            return this.$http
+                .post(`/${this.resource}/account`, payload)
+                .then(response => {
+                    const mesaIndex = this.botones.findIndex(b => b.id === selected_table);
+                    if (mesaIndex !== -1) {
+                        this.botones[mesaIndex].state = 1;
+                    }
+                    btn.disabled = false;
+                    spinner.classList.add('d-none');
+                    document.getElementById('closeModalBtnAgregar').click();
+                    this.$message.success(response.data.message, 3)
+                })
+                .catch(error => {
+                    console.error('Error al agregar producto:', error);
+                    btn.disabled = false;
+                    spinner.classList.add('d-none');
+                })
+                .finally(() => {
+                    btn.disabled = false;
+                    spinner.classList.add('d-none');
+                });
+        },
+        trasladarMesa(mesa, dbId) {
+            const btn = document.getElementById('btnTrasladarCuenta');
+            const spinner = btn.querySelector('.spinner-border');
+
+            btn.disabled = true;
+            spinner.classList.remove('d-none');
+            let establishment = this.establishment.id;
+
+            const payload = {
+                mesa_nueva: this.selectedTableChange,
+                mesa: mesa,
+                mesa_id : dbId,
+                establecimiento: establishment
+            };
+
+            return this.$http
+                .post(`/${this.resource}/transfer`, payload)
+                .then(response => {
+                    const mesaIndexAnterior = this.botones.findIndex(b => b.id === payload.mesa);
+                    const mesaIndexNueva = this.botones.findIndex(b => b.id === Number(payload.mesa_nueva));
+
+                    if (mesaIndexAnterior !== -1) {
+                      this.botones[mesaIndexAnterior].state = 0;
+                    }
+
+                    if (mesaIndexNueva !== -1) {
+                        this.botones[mesaIndexNueva].state = 1;
+                    }
+                    this.$message.success(response.data.message, 3)
+                    document.getElementById('closeModalBtnTraslado').click();
+                    document.getElementById('closeModalBtn').click();
+                })
+                .catch(error => {
+                    const errorMsg = error.response?.data?.message || 'Ocurrió un error al trasladar la cuenta.';
+                    this.$message.error(errorMsg, 3);
+                })
+                .finally(() => {
+                    btn.disabled = false;
+                    spinner.classList.add('d-none');
+                });
+        },
+        eliminarProducto(id, dbId){
+            const btn = document.getElementById('btnEliminarProducto');
+            const spinner = btn.querySelector('.spinner-border');
+
+            btn.disabled = true;
+            spinner.classList.remove('d-none');
+            let establishment = this.establishment.id;
+
+            const payload = {
+                cuenta_id: id,
+                mesa_id : dbId,
+                establecimiento: establishment
+            };
+
+            return this.$http
+                .post(`/${this.resource}/delete_product`, payload)
+                .then(response => {
+                    const mesaIndexAnterior = this.botones.findIndex(b => b.id === payload.mesa);
+                    const mesaIndexNueva = this.botones.findIndex(b => b.id === Number(payload.mesa_nueva));
+
+                    if (mesaIndexAnterior !== -1) {
+                      this.botones[mesaIndexAnterior].state = 0;
+                    }
+
+                    if (mesaIndexNueva !== -1) {
+                        this.botones[mesaIndexNueva].state = 1;
+                    }
+                    this.$message.success(response.data.message, 3)
+                    document.getElementById('closeModalBtnCuenta').click();
+                })
+                .catch(error => {
+                    const errorMsg = error.response?.data?.message || 'Ocurrió un error al eliminar el producto.';
+                    this.$message.error(errorMsg, 3);
+                })
+                .finally(() => {
+                    btn.disabled = false;
+                    spinner.classList.add('d-none');
+                });
+        },
+        eliminarProductoCarrito(id, dbId){
+            const btn = document.getElementById('btnEliminarProductoCarrito');
+            const spinner = btn.querySelector('.spinner-border');
+
+            btn.disabled = true;
+            spinner.classList.remove('d-none');
+            let establishment = this.establishment.id;
+
+            const payload = {
+                cuenta_id: id,
+                mesa_id : dbId,
+                establecimiento: establishment
+            };
+
+            return this.$http
+                .post(`/${this.resource}/delete_product`, payload)
+                .then(response => {
+                    const mesaIndexAnterior = this.botones.findIndex(b => b.id === payload.mesa);
+                    const mesaIndexNueva = this.botones.findIndex(b => b.id === Number(payload.mesa_nueva));
+
+                    if (mesaIndexAnterior !== -1) {
+                      this.botones[mesaIndexAnterior].state = 0;
+                    }
+
+                    if (mesaIndexNueva !== -1) {
+                        this.botones[mesaIndexNueva].state = 1;
+                    }
+                    this.$message.success(response.data.message, 3)
+                    document.getElementById('closeModalBtnCuentaCarrito').click();
+                })
+                .catch(error => {
+                    const errorMsg = error.response?.data?.message || 'Ocurrió un error al eliminar el producto.';
+                    this.$message.error(errorMsg, 3);
+                })
+                .finally(() => {
+                    btn.disabled = false;
+                    spinner.classList.add('d-none');
+                });
+        },
+        eliminarCuenta(dbId){
+            const btn = document.getElementById('btnEliminarCuenta');
+            const spinner = btn.querySelector('.spinner-border');
+
+            btn.disabled = true;
+            spinner.classList.remove('d-none');
+            let establishment = this.establishment.id;
+
+            const payload = {
+                mesa_id : dbId,
+                establecimiento: establishment
+            };
+
+            return this.$http
+                .post(`/${this.resource}/delete_account`, payload)
+                .then(response => {
+                    const mesaIndexAnterior = this.botones.findIndex(b => b.db_id === payload.mesa_id);
+
+                    if (mesaIndexAnterior !== -1) {
+                      this.botones[mesaIndexAnterior].state = 0;
+                    }
+
+                    this.$message.success(response.data.message, 3)
+                    document.getElementById('closeModalBtnCuenta').click();
+                    document.getElementById('closeModalBtn').click();
+                })
+                .catch(error => {
+                    const errorMsg = error.response?.data?.message || 'Ocurrió un error al eliminar la cuenta.';
+                    this.$message.error(errorMsg, 3);
+                })
+                .finally(() => {
+                    btn.disabled = false;
+                    spinner.classList.add('d-none');
+                });
+        },
+        eliminarCuentaCarrito(dbId){
+            const btn = document.getElementById('btnEliminarCuentaCarrito');
+            const spinner = btn.querySelector('.spinner-border');
+
+            btn.disabled = true;
+            spinner.classList.remove('d-none');
+            let establishment = this.establishment.id;
+
+            const payload = {
+                mesa_id : dbId,
+                establecimiento: establishment
+            };
+
+            return this.$http
+                .post(`/${this.resource}/delete_account`, payload)
+                .then(response => {
+                    const mesaIndexAnterior = this.botones.findIndex(b => b.db_id === payload.mesa_id);
+
+                    if (mesaIndexAnterior !== -1) {
+                      this.botones[mesaIndexAnterior].state = 0;
+                    }
+
+                    this.$message.success(response.data.message, 3)
+                    document.getElementById('closeModalBtnCuentaCarrito').click();
+                })
+                .catch(error => {
+                    const errorMsg = error.response?.data?.message || 'Ocurrió un error al eliminar la cuenta.';
+                    this.$message.error(errorMsg, 3);
+                })
+                .finally(() => {
+                    btn.disabled = false;
+                    spinner.classList.add('d-none');
+                });
+        },
+        async agregarCuentaCaja(dbId) {
+           if (!this.productosCuenta || this.productosCuenta.length === 0) {
+                return this.$message.warning('No hay productos en la cuenta para facturar.');
+            }
+
+            const btn = document.getElementById('btnFacturarCuenta');
+            const spinner = btn.querySelector('.spinner-border');
+
+            btn.disabled = true;
+            spinner.classList.remove('d-none');
+
+            for (let i = 0; i < this.productosCuenta.length; i++) {
+                const producto = this.productosCuenta[i];
+
+                if (producto.state === 'R') continue;
+
+                await this.clickAddItemAccount2(
+                    producto.item_id,
+                    i,
+                    producto.quantity,
+                    producto.id,
+                    true
+                );
+            }
+                btn.disabled = false;
+                spinner.classList.add('d-none');
+
+            this.$notify({
+                title: '',
+                message: 'Cuenta facturada con éxito.',
+                type: 'success',
+                duration: 1000
+            });
+
+            document.getElementById('closeModalBtnCuenta').click();
+            document.getElementById('closeModalBtn').click();
+        },
+        formatearPrecio(precio) {
+            return Number(precio).toLocaleString('es-CO', { style: 'currency', currency: 'COP' });
+        },
+        verCarrito(selected_table){
+            const btn = document.getElementById('btnVerCarrito');
+            const spinner = btn.querySelector('.spinner-border');
+
+            btn.disabled = true;
+            spinner.classList.remove('d-none');
+            let establishment = this.establishment.id;
+            this.$http.get(`/${this.resource}/shopping_car`, {
+                params: {
+                    mesa: selected_table,
+                    establecimiento: establishment
+                }
+            })
+            .then(response => {
+                const productos = response.data.data;
+
+                this.productosCuenta = productos;
+                this.productosSeleccionados = [];
+                this.selected_table = selected_table;
+                const modal = new Modal(document.getElementById('modal_carrito_compra'));
+                modal.show();
+                btn.disabled = false;
+                spinner.classList.add('d-none');
+            })
+            .catch(error => {
+                const errorMsg = error.response?.data?.message || 'Ocurrió un error al mostrar el carrito.';
+                this.$message.error(errorMsg, 3);
+                btn.disabled = false;
+                spinner.classList.add('d-none');
+             })
+            .finally(() => {
+                btn.disabled = false;
+                spinner.classList.add('d-none');
+            });
+        },
         getRecords() {
             this.loading = true;
 //            console.log(`/${this.resource}/search_items?${this.getQueryParameters()}&cat=${this.category_selected}`)
@@ -642,7 +1502,39 @@ export default {
                     }
                 });
         },
+        getRecords2(id) {
+            this.category_selected = id;
 
+            if (id === undefined || id === null) {
+                id = null; // Opcional, solo para mantener claridad
+             }
+
+            this.loadingModalProductos = true;
+
+            let url = `/${this.resource}/search_items?${this.getQueryParameters()}`;
+
+            if (id !== null) {
+                url += `&cat=${id}`;
+            }
+
+            return this.$http.get(url)
+                .then(response => {
+                    this.all_items = response.data.data;
+                    this.items = response.data.data;
+                    this.filterItems();
+                    this.pagination = response.data.meta;
+                    this.pagination.per_page = parseInt(response.data.meta.per_page);
+                    this.loadingModalProductos = false;
+                    this.pagination.total = response.data.meta.total || 0;
+                })
+                .catch(error => {
+                    console.error("Error cargando productos:", error);
+                    this.loadingModalProductos = false;
+                });
+        },
+        setDefaultImage(event) {
+            event.target.src = 'http://pc.facturadorpro.test/logo/imagen-no-disponible.jpg';
+        },
         setListPriceItem(item_unit_type, index) {
 
             let list_price = 0
@@ -946,7 +1838,8 @@ export default {
                 item_unit_types: [],
                 IdLoteSelected: null,
                 sale_unit_price_with_tax: 0,
-                refund: false
+                refund: false,
+                db_Id: 0,
             };
             //this.items_refund = []
         },
@@ -1036,6 +1929,7 @@ export default {
                 this.form_item.refund = true
                 this.form_item.sale_unit_price_with_tax = -1 * item.sale_unit_price_with_tax
                 this.items_refund.push(this.form_item);
+                formItem.db_id = 0;
                 //item.aux_quantity = 1;
             } else {
 //                console.log("Aqui no devolucion...")
@@ -1182,6 +2076,193 @@ export default {
             await this.setFormPosLocalStorage()
             await this.initFormItem()
         },
+        async clickAddItemAccount(itemId, index, quantity, dbId, input = false) {
+            const btn = document.getElementById('btnAddItemAccount');
+            const spinner = btn.querySelector('.spinner-border');
+
+            btn.disabled = true;
+            spinner.classList.remove('d-none');
+            let itemResponse;
+
+            try {
+                itemResponse = await this.$http.get(`/${this.resource}/get-item/${itemId}/${dbId}`);
+            } catch (error) {
+                 btn.disabled = false;
+                    spinner.classList.add('d-none');
+                if (error.response && error.response.status === 422) {
+                    this.$message.error(error.response.data.message);
+                } else {
+                    this.$message.error('Error al obtener los datos del producto.');
+                }
+            }
+
+            const item = itemResponse.data.data;
+            const presentation = item.presentation;
+            if (this.type_refund) {
+                let formItem = JSON.parse(JSON.stringify(this.form_item));
+
+                formItem.id = itemId;
+                formItem.item = itemId;
+                formItem.unit_price_value = item.sale_unit_price;
+                formItem.unit_price = item.sale_unit_price;
+                formItem.quantity = quantity;
+                formItem.aux_quantity = quantity;
+
+                formItem.item = { ...item };
+                formItem.item.unit_price = item.sale_unit_price;
+                formItem.item.presentation = null;
+
+                formItem.item_id = item.item_id;
+                formItem.unit_type_id = item.unit_type_id;
+                formItem.tax_id = this.taxes.length > 0 ? (item.tax ? item.tax.id : null) : null;
+                formItem.tax = _.find(this.taxes, { id: formItem.tax_id });
+                formItem.unit_type = item.unit_type;
+                formItem.refund = true;
+                formItem.sale_unit_price_with_tax = -1 * item.sale_unit_price_with_tax;
+                formItem.db_Id = dbId;
+
+                this.items_refund.push(formItem);
+            } else {
+                const response = await this.getStatusStock(itemId, quantity);
+                if (!response.success) {
+                    btn.disabled = false;
+                    spinner.classList.add('d-none');
+                    return this.$message.error(response.message);
+                }
+
+                let formItem = JSON.parse(JSON.stringify(this.form_item));
+                formItem.item = { ...item };
+                formItem.id = itemId;
+                formItem.unit_price_value = item.sale_unit_price;
+                formItem.item.edit_sale_unit_price = item.sale_unit_price;
+                formItem.unit_price = item.sale_unit_price_with_tax;
+                formItem.item.unit_price = item.sale_unit_price_with_tax;
+
+                formItem.quantity = quantity;
+                formItem.aux_quantity = quantity;
+                formItem.item.aux_quantity = quantity;
+
+                formItem.item_id = item.item_id;
+                formItem.tax_id = this.taxes.length > 0 ? (item.tax ? item.tax.id : null) : null;
+                formItem.tax = _.find(this.taxes, { id: formItem.tax_id });
+                formItem.db_Id = dbId;
+
+                if (presentation) {
+                    formItem.presentation = { ...presentation };
+                    formItem.unit_type_id = presentation.unit_type_id;
+                    formItem.unit_type = presentation.unit_type;
+                } else {
+                    formItem.presentation = null;
+                    formItem.unit_type_id = item.unit_type_id;
+                    formItem.unit_type = item.unit_type;
+                }
+
+                 this.form.items.push(formItem);
+                if (!input) {
+                    this.$notify({
+                        title: "",
+                        message: "Producto añadido!",
+                        type: "success",
+                        duration: 700
+                    });
+                }
+            }
+
+            await this.calculateTotal();
+            btn.disabled = false;
+            spinner.classList.add('d-none');
+            await this.setFormPosLocalStorage();
+            await this.initFormItem();
+            document.getElementById('closeModalBtnCuenta').click();
+        },
+        async clickAddItemAccount2(itemId, index, quantity, dbId, input = false) {
+            let itemResponse;
+
+            try {
+                itemResponse = await this.$http.get(`/${this.resource}/get-item/${itemId}/${dbId}`);
+            } catch (error) {
+                if (error.response && error.response.status === 422) {
+                    this.$message.error(error.response.data.message);
+                } else {
+                    this.$message.error('Error al obtener los datos del producto.');
+                }
+            }
+
+            const item = itemResponse.data.data;
+            const presentation = item.presentation;
+            if (this.type_refund) {
+                let formItem = JSON.parse(JSON.stringify(this.form_item));
+
+                formItem.id = itemId;
+                formItem.item = itemId;
+                formItem.unit_price_value = item.sale_unit_price;
+                formItem.unit_price = item.sale_unit_price;
+                formItem.quantity = quantity;
+                formItem.aux_quantity = quantity;
+
+                formItem.item = { ...item };
+                formItem.item.unit_price = item.sale_unit_price;
+                formItem.item.presentation = null;
+
+                formItem.item_id = item.item_id;
+                formItem.unit_type_id = item.unit_type_id;
+                formItem.tax_id = this.taxes.length > 0 ? (item.tax ? item.tax.id : null) : null;
+                formItem.tax = _.find(this.taxes, { id: formItem.tax_id });
+                formItem.unit_type = item.unit_type;
+                formItem.refund = true;
+                formItem.sale_unit_price_with_tax = -1 * item.sale_unit_price_with_tax;
+                formItem.db_Id = dbId;
+
+                this.items_refund.push(formItem);
+            } else {
+                const response = await this.getStatusStock(itemId, quantity);
+                if (!response.success) {
+                    return this.$message.error(response.message);
+                }
+
+                let formItem = JSON.parse(JSON.stringify(this.form_item));
+                formItem.item = { ...item };
+                formItem.id = itemId;
+                formItem.unit_price_value = item.sale_unit_price;
+                formItem.item.edit_sale_unit_price = item.sale_unit_price;
+                formItem.unit_price = item.sale_unit_price_with_tax;
+                formItem.item.unit_price = item.sale_unit_price_with_tax;
+
+                formItem.quantity = quantity;
+                formItem.aux_quantity = quantity;
+                formItem.item.aux_quantity = quantity;
+
+                formItem.item_id = item.item_id;
+                formItem.tax_id = this.taxes.length > 0 ? (item.tax ? item.tax.id : null) : null;
+                formItem.tax = _.find(this.taxes, { id: formItem.tax_id });
+                formItem.db_Id = dbId;
+
+                if (presentation) {
+                    formItem.presentation = { ...presentation };
+                    formItem.unit_type_id = presentation.unit_type_id;
+                    formItem.unit_type = presentation.unit_type;
+                } else {
+                    formItem.presentation = null;
+                    formItem.unit_type_id = item.unit_type_id;
+                    formItem.unit_type = item.unit_type;
+                }
+
+                 this.form.items.push(formItem);
+                if (!input) {
+                    this.$notify({
+                        title: "",
+                        message: "Producto añadido!",
+                        type: "success",
+                        duration: 700
+                    });
+                }
+            }
+
+            await this.calculateTotal();
+            await this.setFormPosLocalStorage();
+            await this.initFormItem();
+            document.getElementById('closeModalBtnCuenta').click();
+        },
         async getStatusStock(item_id, quantity) {
             let data = {};
             if (!quantity) quantity = 0;
@@ -1193,11 +2274,23 @@ export default {
             return data;
         },
         async clickDeleteItem(index) {
-            this.form.items.splice(index, 1);
-
+            const item = this.form.items[index];
+            if (item.db_Id && item.db_Id !== 0) {
+                try {
+                    const response = await this.$http.post(`/${this.resource}/actualizar_estado_item/${item.db_Id}`);
+                    if (response.data.success) {
+                        this.form.items.splice(index, 1);
+                    }else{
+                        this.form.items.splice(index, 1);
+                    }
+                } catch (error) {
+                    this.$message.error('Error en la petición al servidor');
+                }
+            } else {
+                this.form.items.splice(index, 1);
+            }
             this.calculateTotal();
-
-            await this.setFormPosLocalStorage()
+            await this.setFormPosLocalStorage();
         },
         async clickDeleteItemRefund(index) {
             this.items_refund.splice(index, 1);
