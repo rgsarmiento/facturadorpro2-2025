@@ -1019,10 +1019,10 @@
                     return;
                 }
 
-                // Guardar datos del empleado actual antes de enviar
-                this.saveCurrentEmployeeData();
-                this.saveCurrentEmployeePaymentData();
-                this.saveCurrentEmployeeAccruedData();
+                // COMENTADO: No guardar datos del empleado actual porque pueden sobrescribir cálculos correctos
+                // this.saveCurrentEmployeeData();
+                // this.saveCurrentEmployeePaymentData();
+                // this.saveCurrentEmployeeAccruedData();
 
                 // Calcular y actualizar el total global antes de cualquier envío
                 this.calculateGlobalAccruedTotal();
@@ -1174,13 +1174,6 @@
                         non_salary_viatics: toNumber(accruedData.non_salary_viatics),
                         refund: toNumber(accruedData.refund)
                     };
-
-                    // Debug: verificar datos del empleado
-                    console.log(`🔍 Empleado ${workerId} datos construidos:`, {
-                        accrued_total: employeeAccruedData[workerId].accrued_total,
-                        salary: employeeAccruedData[workerId].salary,
-                        transportation_allowance: employeeAccruedData[workerId].transportation_allowance
-                    });
                 });
 
                 // Agregar los objetos completos al formData
@@ -1190,22 +1183,18 @@
 
                 // Calcular el total global de devengados (suma de todos los empleados)
                 let globalAccruedTotal = 0;
-                console.log('🔍 Calculando total global antes de enviar:');
                 selectedWorkers.forEach(workerId => {
                     const employeeAccrued = employeeAccruedData[workerId];
                     if (employeeAccrued && employeeAccrued.accrued_total) {
                         const employeeTotal = parseFloat(employeeAccrued.accrued_total) || 0;
-                        console.log(`Employee ${workerId}: ${employeeTotal}`);
                         globalAccruedTotal += employeeTotal;
                     }
                 });
 
                 console.log('🎯 Total global calculado:', globalAccruedTotal);
-
+                
                 // Agregar el total global al formData
-                formData.accrued_total = globalAccruedTotal;
-
-                // Asegurar que no se incluya el campo notes
+                formData.accrued_total = globalAccruedTotal;                // Asegurar que no se incluya el campo notes
                 if (formData.hasOwnProperty('notes')) {
                     delete formData.notes;
                 }
