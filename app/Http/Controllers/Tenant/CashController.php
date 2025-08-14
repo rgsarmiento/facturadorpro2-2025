@@ -131,6 +131,7 @@ class CashController extends Controller
     }
 
     public function close($id) {
+        ini_set('memory_limit', '-1');
         $cash = Cash::findOrFail($id);
         $cash->date_closed = date('Y-m-d');
         $cash->time_closed = date('H:i:s');

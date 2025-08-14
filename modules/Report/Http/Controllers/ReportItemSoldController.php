@@ -79,37 +79,40 @@ class ReportItemSoldController extends Controller
      * @param  Request $request
      * @return mixed
      */
-    public function pdf(Request $request)
-{
-    $records = $this->getQueryRecords($request);
-
-    $grouped = $records->groupBy(fn($record) => $record->item->id)->map(function ($items, $key) {
-        $first = $items->first();
-        $itemData = $first->item;
-        return [
-            'type_name'   => $itemData->type_name ?? '',
-            'internal_id' => $itemData->internal_id ?? '',
-            'name'        => $itemData->name ?? '',
-            'quantity'    => $items->sum(fn($item) => (float) $item->quantity),
-            'cost'        => $items->first()->cost,
-            'net_value'   => $items->first()->net_value,
-            'utility'     => $items->first()->utility,
-            'total_tax'   => $items->first()->total_tax,
-            'discount'    => $items->first()->discount,
-            'total'       => $items->sum(fn($item) => (float) ($item->total ?? 0)),
-        ];
-    })->values();
-
-    $filters = $request;
-    $company = Company::first();
-    $establishment = auth()->user()->establishment;
-
-    $pdf = PDF::loadView('report::co-items-sold.report_pdf', compact('grouped', 'company', 'establishment', 'filters'))
-        ->setPaper('a4', 'landscape');
-
-    $filename = 'Reporte_Articulos_Vendidos_' . date('YmdHis');
-    return $pdf->stream($filename . '.pdf');
-}
+    public function pdf(Request $request){
+        $records = $this->getQueryRecords($request);
+        $grouped = $records->groupBy(function ($record) {
+            return $record->item->id;
+        })->map(function ($items, $key) {
+            $first = $items->first();
+            $itemData = $first->item;
+            return [
+                'type_name'   => $itemData->type_name ?? '',
+                'internal_id' => $itemData->internal_id ?? '',
+                'name'        => $itemData->name ?? '',
+                'quantity'    => $items->sum(function ($item) {
+                    return (float) $item->quantity;
+                }),
+                'cost'        => $items->first()->cost,
+                'net_value'   => $items->first()->net_value,
+                'utility'     => $items->first()->utility,
+                'total_tax'   => $items->first()->total_tax,
+                'discount'    => $items->first()->discount,
+                'total'       => $items->sum(function ($item) {
+                    return (float) ($item->total ?? 0);
+                }),
+            ];
+        })
+        ->sortBy('name') // <-- ¡Agrega esta línea para ordenar!
+        ->values();
+        $filters = $request;
+        $company = Company::first();
+        $establishment = auth()->user()->establishment;
+        $pdf = PDF::loadView('report::co-items-sold.report_pdf', compact('grouped', 'company', 'establishment', 'filters'))
+            ->setPaper('a4', 'landscape');
+        $filename = 'Reporte_Articulos_Vendidos_' . date('YmdHis');
+        return $pdf->stream($filename . '.pdf');
+    }
 
 
     /**

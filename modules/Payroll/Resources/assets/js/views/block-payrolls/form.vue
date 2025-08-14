@@ -2664,6 +2664,1203 @@
                                     </el-tab-pane>
                                 </el-tabs>
                             </el-tab-pane>
+                            <el-tab-pane label="Deducciones" name="deduction">
+                                <template v-if="selectedWorkerId">
+                                    <div class="row">
+                                        <div class="col-md-3">
+                                            <div
+                                                class="form-group"
+                                                :class="{
+                                                    'has-danger':
+                                                        errors[
+                                                            'deduction.eps_type_law_deductions_id'
+                                                        ]
+                                                }"
+                                            >
+                                                <label class="control-label"
+                                                    >EPS - Deducciones por ley
+                                                    <span class="text-danger">
+                                                        *</span
+                                                    >
+                                                </label>
+                                                <el-select
+                                                    v-model="
+                                                        form.deduction
+                                                            .eps_type_law_deductions_id
+                                                    "
+                                                    filterable
+                                                    @change="
+                                                        changeEpsTypeLawDeduction
+                                                    "
+                                                >
+                                                    <el-option
+                                                        v-for="option in type_law_deductions"
+                                                        :key="option.id"
+                                                        :value="option.id"
+                                                        :label="option.name"
+                                                    ></el-option>
+                                                </el-select>
+                                                <small
+                                                    class="form-control-feedback"
+                                                    v-if="
+                                                        errors[
+                                                            'deduction.eps_type_law_deductions_id'
+                                                        ]
+                                                    "
+                                                    v-text="
+                                                        errors[
+                                                            'deduction.eps_type_law_deductions_id'
+                                                        ][0]
+                                                    "
+                                                ></small>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div
+                                                class="form-group"
+                                                :class="{
+                                                    'has-danger':
+                                                        errors[
+                                                            'deduction.eps_deduction'
+                                                        ]
+                                                }"
+                                            >
+                                                <label class="control-label"
+                                                    >Deducción EPS
+                                                    <span
+                                                        v-if="
+                                                            getPercentageEpsTypeLawDeduction
+                                                        "
+                                                    >
+                                                        ({{
+                                                            getPercentageEpsTypeLawDeduction.percentage
+                                                        }}%)
+                                                    </span>
+                                                    <span class="text-danger">
+                                                        *</span
+                                                    >
+                                                </label>
+                                                <el-input-number
+                                                    v-model="
+                                                        form.deduction
+                                                            .eps_deduction
+                                                    "
+                                                    :min="0"
+                                                    controls-position="right"
+                                                    @change="
+                                                        changeDeductionField
+                                                    "
+                                                ></el-input-number>
+                                                <small
+                                                    class="form-control-feedback"
+                                                    v-if="
+                                                        errors[
+                                                            'deduction.eps_deduction'
+                                                        ]
+                                                    "
+                                                    v-text="
+                                                        errors[
+                                                            'deduction.eps_deduction'
+                                                        ][0]
+                                                    "
+                                                ></small>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div
+                                                class="form-group"
+                                                :class="{
+                                                    'has-danger':
+                                                        errors[
+                                                            'deduction.pension_type_law_deductions_id'
+                                                        ]
+                                                }"
+                                            >
+                                                <label class="control-label"
+                                                    >Pensión - Deducciones por
+                                                    ley<span
+                                                        class="text-danger"
+                                                    >
+                                                        *</span
+                                                    ></label
+                                                >
+                                                <el-select
+                                                    v-model="
+                                                        form.deduction
+                                                            .pension_type_law_deductions_id
+                                                    "
+                                                    filterable
+                                                    @change="
+                                                        changePensionTypeLawDeduction
+                                                    "
+                                                >
+                                                    <el-option
+                                                        v-for="option in type_law_deductions"
+                                                        :key="option.id"
+                                                        :value="option.id"
+                                                        :label="option.name"
+                                                    ></el-option>
+                                                </el-select>
+                                                <small
+                                                    class="form-control-feedback"
+                                                    v-if="
+                                                        errors[
+                                                            'deduction.pension_type_law_deductions_id'
+                                                        ]
+                                                    "
+                                                    v-text="
+                                                        errors[
+                                                            'deduction.pension_type_law_deductions_id'
+                                                        ][0]
+                                                    "
+                                                ></small>
+                                            </div>
+                                        </div>
+                                        <div class="col-md-3">
+                                            <div
+                                                class="form-group"
+                                                :class="{
+                                                    'has-danger':
+                                                        errors[
+                                                            'deduction.pension_deduction'
+                                                        ]
+                                                }"
+                                            >
+                                                <label class="control-label"
+                                                    >Deducción de pensión
+                                                    <span
+                                                        v-if="
+                                                            getPercentagePensionTypeLawDeduction
+                                                        "
+                                                    >
+                                                        ({{
+                                                            getPercentagePensionTypeLawDeduction.percentage
+                                                        }}%)
+                                                    </span>
+                                                    <span class="text-danger">
+                                                        *</span
+                                                    >
+                                                </label>
+                                                <el-input-number
+                                                    v-model="
+                                                        form.deduction
+                                                            .pension_deduction
+                                                    "
+                                                    :min="0"
+                                                    controls-position="right"
+                                                    @change="
+                                                        changeDeductionField
+                                                    "
+                                                ></el-input-number>
+                                                <small
+                                                    class="form-control-feedback"
+                                                    v-if="
+                                                        errors[
+                                                            'deduction.pension_deduction'
+                                                        ]
+                                                    "
+                                                    v-text="
+                                                        errors[
+                                                            'deduction.pension_deduction'
+                                                        ][0]
+                                                    "
+                                                ></small>
+                                            </div>
+                                        </div>
+
+                                        <!-- fondossp -->
+                                        <template>
+                                            <div class="col-md-3">
+                                                <div
+                                                    class="form-group"
+                                                    :class="{
+                                                        'has-danger':
+                                                            errors[
+                                                                'deduction.fondossp_type_law_deductions_id'
+                                                            ]
+                                                    }"
+                                                >
+                                                    <label class="control-label"
+                                                        >Fondo de seguridad
+                                                        pensional</label
+                                                    >
+                                                    <el-select
+                                                        v-model="
+                                                            form.deduction
+                                                                .fondossp_type_law_deductions_id
+                                                        "
+                                                        clearable
+                                                        filterable
+                                                        @change="
+                                                            changeFondosspTypeLawDeduction
+                                                        "
+                                                    >
+                                                        <el-option
+                                                            v-for="option in type_law_deductions"
+                                                            :key="option.id"
+                                                            :value="option.id"
+                                                            :label="option.name"
+                                                        ></el-option>
+                                                    </el-select>
+                                                    <small
+                                                        class="form-control-feedback"
+                                                        v-if="
+                                                            errors[
+                                                                'deduction.fondossp_type_law_deductions_id'
+                                                            ]
+                                                        "
+                                                        v-text="
+                                                            errors[
+                                                                'deduction.fondossp_type_law_deductions_id'
+                                                            ][0]
+                                                        "
+                                                    ></small>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <div
+                                                    class="form-group"
+                                                    :class="{
+                                                        'has-danger':
+                                                            errors[
+                                                                'deduction.fondosp_deduction_SP'
+                                                            ]
+                                                    }"
+                                                >
+                                                    <label class="control-label"
+                                                        >Deducción de fondo SP
+                                                        <span
+                                                            v-if="
+                                                                getPercentageFondosspTypeLawDeduction
+                                                            "
+                                                        >
+                                                            ({{
+                                                                getPercentageFondosspTypeLawDeduction.percentage
+                                                            }}%)
+                                                        </span>
+                                                    </label>
+                                                    <el-input-number
+                                                        v-model="
+                                                            form.deduction
+                                                                .fondosp_deduction_SP
+                                                        "
+                                                        :min="0"
+                                                        controls-position="right"
+                                                        @change="
+                                                            changeDeductionField
+                                                        "
+                                                    ></el-input-number>
+                                                    <small
+                                                        class="form-control-feedback"
+                                                        v-if="
+                                                            errors[
+                                                                'deduction.fondosp_deduction_SP'
+                                                            ]
+                                                        "
+                                                        v-text="
+                                                            errors[
+                                                                'deduction.fondosp_deduction_SP'
+                                                            ][0]
+                                                        "
+                                                    ></small>
+                                                </div>
+                                            </div>
+
+                                            <div class="col-md-3">
+                                                <div
+                                                    class="form-group"
+                                                    :class="{
+                                                        'has-danger':
+                                                            errors[
+                                                                'deduction.fondossp_sub_type_law_deductions_id'
+                                                            ]
+                                                    }"
+                                                >
+                                                    <label class="control-label"
+                                                        >Fondo de
+                                                        subsistencia</label
+                                                    >
+                                                    <el-select
+                                                        v-model="
+                                                            form.deduction
+                                                                .fondossp_sub_type_law_deductions_id
+                                                        "
+                                                        clearable
+                                                        filterable
+                                                        @change="
+                                                            changeFondosspSubTypeLawDeduction
+                                                        "
+                                                    >
+                                                        <el-option
+                                                            v-for="option in type_law_deductions"
+                                                            :key="option.id"
+                                                            :value="option.id"
+                                                            :label="option.name"
+                                                        ></el-option>
+                                                    </el-select>
+                                                    <small
+                                                        class="form-control-feedback"
+                                                        v-if="
+                                                            errors[
+                                                                'deduction.fondossp_sub_type_law_deductions_id'
+                                                            ]
+                                                        "
+                                                        v-text="
+                                                            errors[
+                                                                'deduction.fondossp_sub_type_law_deductions_id'
+                                                            ][0]
+                                                        "
+                                                    ></small>
+                                                </div>
+                                            </div>
+                                            <div class="col-md-3">
+                                                <div
+                                                    class="form-group"
+                                                    :class="{
+                                                        'has-danger':
+                                                            errors[
+                                                                'deduction.fondosp_deduction_sub'
+                                                            ]
+                                                    }"
+                                                >
+                                                    <label class="control-label"
+                                                        >Deducción de fondo
+                                                        subsistencia
+                                                        <span
+                                                            v-if="
+                                                                getPercentageFondosspSubTypeLawDeduction
+                                                            "
+                                                        >
+                                                            ({{
+                                                                getPercentageFondosspSubTypeLawDeduction.percentage
+                                                            }}%)
+                                                        </span>
+                                                    </label>
+                                                    <el-input-number
+                                                        v-model="
+                                                            form.deduction
+                                                                .fondosp_deduction_sub
+                                                        "
+                                                        :min="0"
+                                                        controls-position="right"
+                                                        @change="
+                                                            changeDeductionField
+                                                        "
+                                                    ></el-input-number>
+                                                    <small
+                                                        class="form-control-feedback"
+                                                        v-if="
+                                                            errors[
+                                                                'deduction.fondosp_deduction_sub'
+                                                            ]
+                                                        "
+                                                        v-text="
+                                                            errors[
+                                                                'deduction.fondosp_deduction_sub'
+                                                            ][0]
+                                                        "
+                                                    ></small>
+                                                </div>
+                                            </div>
+                                        </template>
+                                        <!-- fondossp -->
+
+                                        <div class="col-md-3">
+                                            <div
+                                                class="form-group"
+                                                :class="{
+                                                    'has-danger':
+                                                        errors[
+                                                            'deduction.deductions_total'
+                                                        ]
+                                                }"
+                                            >
+                                                <label class="control-label"
+                                                    >Total deducciones<span
+                                                        class="text-danger"
+                                                    >
+                                                        *</span
+                                                    ></label
+                                                >
+                                                <el-input-number
+                                                    v-model="
+                                                        form.deduction
+                                                            .deductions_total
+                                                    "
+                                                    :min="0"
+                                                    controls-position="right"
+                                                    disabled
+                                                ></el-input-number>
+                                                <small
+                                                    class="form-control-feedback"
+                                                    v-if="
+                                                        errors[
+                                                            'deduction.deductions_total'
+                                                        ]
+                                                    "
+                                                    v-text="
+                                                        errors[
+                                                            'deduction.deductions_total'
+                                                        ][0]
+                                                    "
+                                                ></small>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <el-tabs
+                                        type="border-card"
+                                        v-model="activeNameDeduction"
+                                        class="mt-4"
+                                    >
+                                        <el-tab-pane
+                                            label="Otros"
+                                            name="deduction-others"
+                                        >
+                                            <div class="row mt-2">
+                                                <div class="col-md-6">
+                                                    <div class="form-group">
+                                                        <h4>Sindicatos</h4>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-6">
+                                                    <div class="form-group">
+                                                        <h4>Sanciones</h4>
+                                                    </div>
+                                                </div>
+
+                                                <!-- Sindicatos -->
+                                                <div class="col-md-6">
+                                                    <table>
+                                                        <thead>
+                                                            <tr width="100%">
+                                                                <template
+                                                                    v-if="
+                                                                        form
+                                                                            .deduction
+                                                                            .labor_union
+                                                                            .length >
+                                                                            0
+                                                                    "
+                                                                >
+                                                                    <th
+                                                                        class="pb-2"
+                                                                    >
+                                                                        Tipo
+                                                                        trabajador
+                                                                    </th>
+                                                                    <th
+                                                                        class="pb-2"
+                                                                    >
+                                                                        Pago
+                                                                    </th>
+                                                                </template>
+                                                                <th width="15%">
+                                                                    <a
+                                                                        href="#"
+                                                                        @click.prevent="
+                                                                            addLaborUnion
+                                                                        "
+                                                                        class="text-center font-weight-bold text-info pb-1 mt-1"
+                                                                        >[+
+                                                                        Agregar]</a
+                                                                    >
+                                                                </th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            <tr
+                                                                v-for="(row,
+                                                                index) in form
+                                                                    .deduction
+                                                                    .labor_union"
+                                                                :key="index"
+                                                            >
+                                                                <td>
+                                                                    <div
+                                                                        class="form-group"
+                                                                        v-if="
+                                                                            errors[
+                                                                                `deduction.labor_union.${index}.type_worker_id`
+                                                                            ]
+                                                                        "
+                                                                        :class="{
+                                                                            'has-danger':
+                                                                                errors[
+                                                                                    `deduction.labor_union.${index}.type_worker_id`
+                                                                                ]
+                                                                        }"
+                                                                    >
+                                                                        <small
+                                                                            class="form-control-feedback"
+                                                                            v-text="
+                                                                                errors[
+                                                                                    `deduction.labor_union.${index}.type_worker_id`
+                                                                                ][0]
+                                                                            "
+                                                                        ></small>
+                                                                    </div>
+                                                                    <div
+                                                                        class="form-group mb-2 mr-2"
+                                                                    >
+                                                                        <el-select
+                                                                            v-model="
+                                                                                row.type_worker_id
+                                                                            "
+                                                                            filterable
+                                                                            @change="
+                                                                                changeLaborUnionPayment(
+                                                                                    index
+                                                                                )
+                                                                            "
+                                                                        >
+                                                                            <el-option
+                                                                                v-for="option in labor_union_for_deduction"
+                                                                                :key="
+                                                                                    option.id
+                                                                                "
+                                                                                :value="
+                                                                                    option.id
+                                                                                "
+                                                                                :label="
+                                                                                    option.name
+                                                                                "
+                                                                            ></el-option>
+                                                                        </el-select>
+                                                                    </div>
+                                                                </td>
+                                                                <td>
+                                                                    <div
+                                                                        class="form-group"
+                                                                        v-if="
+                                                                            errors[
+                                                                                `deduction.labor_union.${index}.payment`
+                                                                            ]
+                                                                        "
+                                                                        :class="{
+                                                                            'has-danger':
+                                                                                errors[
+                                                                                    `deduction.labor_union.${index}.payment`
+                                                                                ]
+                                                                        }"
+                                                                    >
+                                                                        <small
+                                                                            class="form-control-feedback"
+                                                                            v-text="
+                                                                                errors[
+                                                                                    `deduction.labor_union.${index}.payment`
+                                                                                ][0]
+                                                                            "
+                                                                        ></small>
+                                                                    </div>
+                                                                    <div
+                                                                        class="form-group mb-2 mr-2"
+                                                                    >
+                                                                        <el-input-number
+                                                                            v-model="
+                                                                                row.payment
+                                                                            "
+                                                                            :min="
+                                                                                0
+                                                                            "
+                                                                            controls-position="right"
+                                                                            @change="
+                                                                                changeLaborUnionPayment(
+                                                                                    index
+                                                                                )
+                                                                            "
+                                                                        ></el-input-number>
+                                                                    </div>
+                                                                </td>
+                                                                <td
+                                                                    class="series-table-actions text-center"
+                                                                >
+                                                                    <button
+                                                                        type="button"
+                                                                        class="btn waves-effect waves-light btn-xs btn-danger"
+                                                                        @click.prevent="
+                                                                            removeLaborUnion(
+                                                                                index
+                                                                            )
+                                                                        "
+                                                                    >
+                                                                        <i
+                                                                            class="fa fa-trash"
+                                                                        ></i>
+                                                                    </button>
+                                                                </td>
+                                                                <br />
+                                                            </tr>
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                                <!-- Sindicatos -->
+
+                                                <!-- Sanciones -->
+                                                <div class="col-md-6">
+                                                    <table>
+                                                        <thead>
+                                                            <tr width="100%">
+                                                                <template
+                                                                    v-if="
+                                                                        form
+                                                                            .deduction
+                                                                            .sanctions
+                                                                            .length >
+                                                                            0
+                                                                    "
+                                                                >
+                                                                    <th
+                                                                        class="pb-2"
+                                                                    >
+                                                                        Tipo
+                                                                        sanción
+                                                                    </th>
+                                                                    <th
+                                                                        class="pb-2"
+                                                                    >
+                                                                        Pago
+                                                                    </th>
+                                                                </template>
+                                                                <th width="15%">
+                                                                    <a
+                                                                        href="#"
+                                                                        @click.prevent="
+                                                                            addSanction
+                                                                        "
+                                                                        class="text-center font-weight-bold text-info pb-1 mt-1"
+                                                                        >[+
+                                                                        Agregar]</a
+                                                                    >
+                                                                </th>
+                                                            </tr>
+                                                        </thead>
+                                                        <tbody>
+                                                            <tr
+                                                                v-for="(row,
+                                                                index) in form
+                                                                    .deduction
+                                                                    .sanctions"
+                                                                :key="index"
+                                                            >
+                                                                <td>
+                                                                    <div
+                                                                        class="form-group"
+                                                                        v-if="
+                                                                            errors[
+                                                                                `deduction.sanctions.${index}.type_sanction_id`
+                                                                            ]
+                                                                        "
+                                                                        :class="{
+                                                                            'has-danger':
+                                                                                errors[
+                                                                                    `deduction.sanctions.${index}.type_sanction_id`
+                                                                                ]
+                                                                        }"
+                                                                    >
+                                                                        <small
+                                                                            class="form-control-feedback"
+                                                                            v-text="
+                                                                                errors[
+                                                                                    `deduction.sanctions.${index}.type_sanction_id`
+                                                                                ][0]
+                                                                            "
+                                                                        ></small>
+                                                                    </div>
+                                                                    <div
+                                                                        class="form-group mb-2 mr-2"
+                                                                    >
+                                                                        <el-select
+                                                                            v-model="
+                                                                                row.type_sanction_id
+                                                                            "
+                                                                            filterable
+                                                                            @change="
+                                                                                changeSanctionPayment(
+                                                                                    index
+                                                                                )
+                                                                            "
+                                                                        >
+                                                                            <el-option
+                                                                                v-for="option in sanctions_for_deduction"
+                                                                                :key="
+                                                                                    option.id
+                                                                                "
+                                                                                :value="
+                                                                                    option.id
+                                                                                "
+                                                                                :label="
+                                                                                    option.name
+                                                                                "
+                                                                            ></el-option>
+                                                                        </el-select>
+                                                                    </div>
+                                                                </td>
+                                                                <td>
+                                                                    <div
+                                                                        class="form-group"
+                                                                        v-if="
+                                                                            errors[
+                                                                                `deduction.sanctions.${index}.payment`
+                                                                            ]
+                                                                        "
+                                                                        :class="{
+                                                                            'has-danger':
+                                                                                errors[
+                                                                                    `deduction.sanctions.${index}.payment`
+                                                                                ]
+                                                                        }"
+                                                                    >
+                                                                        <small
+                                                                            class="form-control-feedback"
+                                                                            v-text="
+                                                                                errors[
+                                                                                    `deduction.sanctions.${index}.payment`
+                                                                                ][0]
+                                                                            "
+                                                                        ></small>
+                                                                    </div>
+                                                                    <div
+                                                                        class="form-group mb-2 mr-2"
+                                                                    >
+                                                                        <el-input-number
+                                                                            v-model="
+                                                                                row.payment
+                                                                            "
+                                                                            :min="
+                                                                                0
+                                                                            "
+                                                                            controls-position="right"
+                                                                            @change="
+                                                                                changeSanctionPayment(
+                                                                                    index
+                                                                                )
+                                                                            "
+                                                                        ></el-input-number>
+                                                                    </div>
+                                                                </td>
+                                                                <td
+                                                                    class="series-table-actions text-center"
+                                                                >
+                                                                    <button
+                                                                        type="button"
+                                                                        class="btn waves-effect waves-light btn-xs btn-danger"
+                                                                        @click.prevent="
+                                                                            removeSanction(
+                                                                                index
+                                                                            )
+                                                                        "
+                                                                    >
+                                                                        <i
+                                                                            class="fa fa-trash"
+                                                                        ></i>
+                                                                    </button>
+                                                                </td>
+                                                                <br />
+                                                            </tr>
+                                                        </tbody>
+                                                    </table>
+                                                </div>
+                                                <!-- Sanciones -->
+                                            </div>
+                                        </el-tab-pane>
+
+                                        <el-tab-pane
+                                            label="Opcionales"
+                                            name="deduction-optionals"
+                                        >
+                                            <!-- opcionales -->
+                                            <div class="row mt-2 mb-2">
+                                                <div class="col-md-3">
+                                                    <div
+                                                        class="form-group"
+                                                        :class="{
+                                                            'has-danger':
+                                                                errors[
+                                                                    'deduction.afc'
+                                                                ]
+                                                        }"
+                                                    >
+                                                        <label
+                                                            class="control-label"
+                                                            >AFC</label
+                                                        >
+                                                        <el-input-number
+                                                            v-model="
+                                                                form.deduction
+                                                                    .afc
+                                                            "
+                                                            :min="0"
+                                                            controls-position="right"
+                                                            @change="
+                                                                changeDeductionField
+                                                            "
+                                                        ></el-input-number>
+                                                        <small
+                                                            class="form-control-feedback"
+                                                            v-if="
+                                                                errors[
+                                                                    'deduction.afc'
+                                                                ]
+                                                            "
+                                                            v-text="
+                                                                errors[
+                                                                    'deduction.afc'
+                                                                ][0]
+                                                            "
+                                                        ></small>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <div
+                                                        class="form-group"
+                                                        :class="{
+                                                            'has-danger':
+                                                                errors[
+                                                                    'deduction.refund'
+                                                                ]
+                                                        }"
+                                                    >
+                                                        <label
+                                                            class="control-label"
+                                                            >Reintegro</label
+                                                        >
+                                                        <el-input-number
+                                                            v-model="
+                                                                form.deduction
+                                                                    .refund
+                                                            "
+                                                            :min="0"
+                                                            controls-position="right"
+                                                            @change="
+                                                                changeDeductionField
+                                                            "
+                                                        ></el-input-number>
+                                                        <small
+                                                            class="form-control-feedback"
+                                                            v-if="
+                                                                errors[
+                                                                    'deduction.refund'
+                                                                ]
+                                                            "
+                                                            v-text="
+                                                                errors[
+                                                                    'deduction.refund'
+                                                                ][0]
+                                                            "
+                                                        ></small>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <div
+                                                        class="form-group"
+                                                        :class="{
+                                                            'has-danger':
+                                                                errors[
+                                                                    'deduction.debt'
+                                                                ]
+                                                        }"
+                                                    >
+                                                        <label
+                                                            class="control-label"
+                                                            >Deuda</label
+                                                        >
+                                                        <el-input-number
+                                                            v-model="
+                                                                form.deduction
+                                                                    .debt
+                                                            "
+                                                            :min="0"
+                                                            controls-position="right"
+                                                            @change="
+                                                                changeDeductionField
+                                                            "
+                                                        ></el-input-number>
+                                                        <small
+                                                            class="form-control-feedback"
+                                                            v-if="
+                                                                errors[
+                                                                    'deduction.debt'
+                                                                ]
+                                                            "
+                                                            v-text="
+                                                                errors[
+                                                                    'deduction.debt'
+                                                                ][0]
+                                                            "
+                                                        ></small>
+                                                    </div>
+                                                </div>
+                                                <div class="col-md-3">
+                                                    <div
+                                                        class="form-group"
+                                                        :class="{
+                                                            'has-danger':
+                                                                errors[
+                                                                    'deduction.education'
+                                                                ]
+                                                        }"
+                                                    >
+                                                        <label
+                                                            class="control-label"
+                                                            >Educación</label
+                                                        >
+                                                        <el-input-number
+                                                            v-model="
+                                                                form.deduction
+                                                                    .education
+                                                            "
+                                                            :min="0"
+                                                            controls-position="right"
+                                                            @change="
+                                                                changeDeductionField
+                                                            "
+                                                        ></el-input-number>
+                                                        <small
+                                                            class="form-control-feedback"
+                                                            v-if="
+                                                                errors[
+                                                                    'deduction.education'
+                                                                ]
+                                                            "
+                                                            v-text="
+                                                                errors[
+                                                                    'deduction.education'
+                                                                ][0]
+                                                            "
+                                                        ></small>
+                                                    </div>
+                                                </div>
+
+                                                <div class="col-md-3">
+                                                    <div
+                                                        class="form-group"
+                                                        :class="{
+                                                            'has-danger':
+                                                                errors[
+                                                                    'deduction.voluntary_pension'
+                                                                ]
+                                                        }"
+                                                    >
+                                                        <label
+                                                            class="control-label"
+                                                            >Pensión
+                                                            voluntaria</label
+                                                        >
+                                                        <el-input-number
+                                                            v-model="
+                                                                form.deduction
+                                                                    .voluntary_pension
+                                                            "
+                                                            :min="0"
+                                                            controls-position="right"
+                                                            @change="
+                                                                changeDeductionField
+                                                            "
+                                                        ></el-input-number>
+                                                        <small
+                                                            class="form-control-feedback"
+                                                            v-if="
+                                                                errors[
+                                                                    'deduction.voluntary_pension'
+                                                                ]
+                                                            "
+                                                            v-text="
+                                                                errors[
+                                                                    'deduction.voluntary_pension'
+                                                                ][0]
+                                                            "
+                                                        ></small>
+                                                    </div>
+                                                </div>
+
+                                                <div class="col-md-3">
+                                                    <div
+                                                        class="form-group"
+                                                        :class="{
+                                                            'has-danger':
+                                                                errors[
+                                                                    'deduction.withholding_at_source'
+                                                                ]
+                                                        }"
+                                                    >
+                                                        <label
+                                                            class="control-label"
+                                                            >Retención
+                                                            fuente</label
+                                                        >
+                                                        <el-input-number
+                                                            v-model="
+                                                                form.deduction
+                                                                    .withholding_at_source
+                                                            "
+                                                            :min="0"
+                                                            controls-position="right"
+                                                            @change="
+                                                                changeDeductionField
+                                                            "
+                                                        ></el-input-number>
+                                                        <small
+                                                            class="form-control-feedback"
+                                                            v-if="
+                                                                errors[
+                                                                    'deduction.withholding_at_source'
+                                                                ]
+                                                            "
+                                                            v-text="
+                                                                errors[
+                                                                    'deduction.withholding_at_source'
+                                                                ][0]
+                                                            "
+                                                        ></small>
+                                                    </div>
+                                                </div>
+
+                                                <div class="col-md-3">
+                                                    <div
+                                                        class="form-group"
+                                                        :class="{
+                                                            'has-danger':
+                                                                errors[
+                                                                    'deduction.cooperative'
+                                                                ]
+                                                        }"
+                                                    >
+                                                        <label
+                                                            class="control-label"
+                                                            >Cooperativa</label
+                                                        >
+                                                        <el-input-number
+                                                            v-model="
+                                                                form.deduction
+                                                                    .cooperative
+                                                            "
+                                                            :min="0"
+                                                            controls-position="right"
+                                                            @change="
+                                                                changeDeductionField
+                                                            "
+                                                        ></el-input-number>
+                                                        <small
+                                                            class="form-control-feedback"
+                                                            v-if="
+                                                                errors[
+                                                                    'deduction.cooperative'
+                                                                ]
+                                                            "
+                                                            v-text="
+                                                                errors[
+                                                                    'deduction.cooperative'
+                                                                ][0]
+                                                            "
+                                                        ></small>
+                                                    </div>
+                                                </div>
+
+                                                <div class="col-md-3">
+                                                    <div
+                                                        class="form-group"
+                                                        :class="{
+                                                            'has-danger':
+                                                                errors[
+                                                                    'deduction.tax_liens'
+                                                                ]
+                                                        }"
+                                                    >
+                                                        <label
+                                                            class="control-label"
+                                                            >Embargo
+                                                            fiscal</label
+                                                        >
+                                                        <el-input-number
+                                                            v-model="
+                                                                form.deduction
+                                                                    .tax_liens
+                                                            "
+                                                            :min="0"
+                                                            controls-position="right"
+                                                            @change="
+                                                                changeDeductionField
+                                                            "
+                                                        ></el-input-number>
+                                                        <small
+                                                            class="form-control-feedback"
+                                                            v-if="
+                                                                errors[
+                                                                    'deduction.tax_liens'
+                                                                ]
+                                                            "
+                                                            v-text="
+                                                                errors[
+                                                                    'deduction.tax_liens'
+                                                                ][0]
+                                                            "
+                                                        ></small>
+                                                    </div>
+                                                </div>
+
+                                                <div class="col-md-3">
+                                                    <div
+                                                        class="form-group"
+                                                        :class="{
+                                                            'has-danger':
+                                                                errors[
+                                                                    'deduction.supplementary_plan'
+                                                                ]
+                                                        }"
+                                                    >
+                                                        <label
+                                                            class="control-label"
+                                                            >Plan
+                                                            complementarios</label
+                                                        >
+                                                        <el-input-number
+                                                            v-model="
+                                                                form.deduction
+                                                                    .supplementary_plan
+                                                            "
+                                                            :min="0"
+                                                            controls-position="right"
+                                                            @change="
+                                                                changeDeductionField
+                                                            "
+                                                        ></el-input-number>
+                                                        <small
+                                                            class="form-control-feedback"
+                                                            v-if="
+                                                                errors[
+                                                                    'deduction.supplementary_plan'
+                                                                ]
+                                                            "
+                                                            v-text="
+                                                                errors[
+                                                                    'deduction.supplementary_plan'
+                                                                ][0]
+                                                            "
+                                                        ></small>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <!-- opcionales -->
+                                        </el-tab-pane>
+                                    </el-tabs>
+                                </template>
+                                <template v-else>
+                                    <div class="row">
+                                        <div class="col-md-12">
+                                            <div
+                                                class="alert alert-info text-center"
+                                            >
+                                                <i
+                                                    class="fa fa-info-circle"
+                                                ></i>
+                                                Selecciona un empleado para
+                                                gestionar sus deducciones
+                                            </div>
+                                        </div>
+                                    </div>
+                                </template>
+                            </el-tab-pane>
                         </el-tabs>
                     </div>
                     <div class="row mt-4">
@@ -2804,10 +4001,33 @@ export default {
                     hendfs: [], // Horas extras nocturnas dominical y festivos
                     hrndfs: [], // Horas recargo nocturno dominical y festivos
                     total_extra_hours: 0 // Total de horas extras
+                },
+                deduction: {
+                    eps_type_law_deductions_id: null,
+                    eps_deduction: 0,
+                    pension_type_law_deductions_id: null,
+                    pension_deduction: 0,
+                    fondossp_type_law_deductions_id: null,
+                    fondosp_deduction_SP: 0,
+                    fondossp_sub_type_law_deductions_id: null,
+                    fondosp_deduction_sub: 0,
+                    deductions_total: 0,
+                    labor_union: [],
+                    sanctions: [],
+                    afc: 0,
+                    refund: 0,
+                    debt: 0,
+                    education: 0,
+                    voluntary_pension: 0,
+                    withholding_at_source: 0,
+                    cooperative: 0,
+                    tax_liens: 0,
+                    supplementary_plan: 0
                 }
             },
             activeName: "active-workers",
             activeNameAccrued: "accrued-vacations",
+            activeNameDeduction: "deduction-others",
             isAdjustNote: false, // Variable para controlar si es una nota de ajuste
             form_disabled: {
                 inputs_type_worker_sena: false
@@ -2819,9 +4039,13 @@ export default {
             employeePeriodData: {}, // Objeto que almacena los datos de periodo por ID de empleado
             employeePaymentData: {}, // Objeto que almacena los datos de pago por ID de empleado
             employeeAccruedData: {}, // Objeto que almacena los datos de devengados por ID de empleado
+            employeeDeductionData: {}, // Objeto que almacena los datos de deducciones por ID de empleado
             employeeTransportationManuallyEdited: {}, // Track which employees have manually edited transportation allowance
             show_inputs_payment_method: false,
             type_disabilities: [], // Array para los tipos de incapacidades
+            type_law_deductions: [], // Array para los tipos de deducciones de ley
+            labor_union_for_deduction: [], // Array para sindicatos disponibles para deducciones
+            sanctions_for_deduction: [], // Array para sanciones disponibles para deducciones
             advancedConfiguration: null, // Configuración avanzada para salario mínimo y subsidio
             calculatingGlobalTotal: false, // Protección contra recursión en cálculo global
 
@@ -2858,6 +4082,45 @@ export default {
     computed: {
         total_base_salary() {
             return parseFloat(this.form.accrued.total_base_salary) || 0;
+        },
+
+        // Computed para obtener el porcentaje de EPS
+        getPercentageEpsTypeLawDeduction() {
+            const selectedType = this.type_law_deductions.find(
+                type =>
+                    type.id === this.form.deduction.eps_type_law_deductions_id
+            );
+            return selectedType || { percentage: 0 };
+        },
+
+        // Computed para obtener el porcentaje de Pensión
+        getPercentagePensionTypeLawDeduction() {
+            const selectedType = this.type_law_deductions.find(
+                type =>
+                    type.id ===
+                    this.form.deduction.pension_type_law_deductions_id
+            );
+            return selectedType || { percentage: 0 };
+        },
+
+        // Computed para obtener el porcentaje de Fondos SP
+        getPercentageFondosspTypeLawDeduction() {
+            const selectedType = this.type_law_deductions.find(
+                type =>
+                    type.id ===
+                    this.form.deduction.fondossp_type_law_deductions_id
+            );
+            return selectedType || { percentage: 0 };
+        },
+
+        // Computed para obtener el porcentaje de Fondos SP Sub
+        getPercentageFondosspSubTypeLawDeduction() {
+            const selectedType = this.type_law_deductions.find(
+                type =>
+                    type.id ===
+                    this.form.deduction.fondossp_sub_type_law_deductions_id
+            );
+            return selectedType || { percentage: 0 };
         }
     },
 
@@ -2880,7 +4143,11 @@ export default {
         },
 
         cancelForm() {
-            window.location.href = "/payroll/block-payrolls";
+            // TEMPORALMENTE DESACTIVADO: Redirigir al listado
+            // window.location.href = "/payroll/block-payrolls";
+            console.log(
+                "🚫 Cancelación interceptada - Redirección desactivada"
+            );
         },
 
         saveForm(generate) {
@@ -2995,6 +4262,14 @@ export default {
             }
 
             this.loading_submit = true;
+
+            // Función helper para convertir a número de forma segura
+            const toNumber = value => {
+                if (value === null || value === undefined || value === "")
+                    return 0;
+                const num = parseFloat(value);
+                return isNaN(num) ? 0 : num;
+            };
 
             // Obtener todos los trabajadores cargados (no hay selección individual, se procesan todos)
             const selectedWorkers = this.form.items.map(worker => worker.id);
@@ -3119,14 +4394,6 @@ export default {
 
                 const accruedData = this.employeeAccruedData[workerId] || {};
 
-                // Función helper para convertir a número de forma segura
-                const toNumber = value => {
-                    if (value === null || value === undefined || value === "")
-                        return 0;
-                    const num = parseFloat(value);
-                    return isNaN(num) ? 0 : num;
-                };
-
                 employeeAccruedData[workerId] = {
                     worker_id: workerId,
                     total_base_salary: toNumber(accruedData.total_base_salary),
@@ -3172,6 +4439,72 @@ export default {
             formData.employee_payment_data = employeePaymentData;
             formData.employee_accrued_data = employeeAccruedData;
 
+            // Agregar datos de deducciones de cada empleado
+            const employeeDeductionData = {};
+
+            console.log(
+                "📋 this.employeeDeductionData antes del loop:",
+                this.employeeDeductionData
+            );
+
+            selectedWorkers.forEach(workerId => {
+                const deductionData =
+                    this.employeeDeductionData[workerId] || {};
+
+                console.log(
+                    `📋 Datos de deducción para empleado ${workerId}:`,
+                    deductionData
+                );
+
+                employeeDeductionData[workerId] = {
+                    worker_id: workerId,
+                    eps_type_law_deductions_id:
+                        deductionData.eps_type_law_deductions_id || null,
+                    eps_deduction: toNumber(deductionData.eps_deduction),
+                    pension_type_law_deductions_id:
+                        deductionData.pension_type_law_deductions_id || null,
+                    pension_deduction: toNumber(
+                        deductionData.pension_deduction
+                    ),
+                    fondossp_type_law_deductions_id:
+                        deductionData.fondossp_type_law_deductions_id || null,
+                    fondosp_deduction_SP: toNumber(
+                        deductionData.fondosp_deduction_SP
+                    ),
+                    fondossp_sub_type_law_deductions_id:
+                        deductionData.fondossp_sub_type_law_deductions_id ||
+                        null,
+                    fondosp_deduction_sub: toNumber(
+                        deductionData.fondosp_deduction_sub
+                    ),
+                    deductions_total: toNumber(deductionData.deductions_total),
+                    labor_union: deductionData.labor_union || [],
+                    sanctions: deductionData.sanctions || [],
+                    afc: toNumber(deductionData.afc),
+                    refund: toNumber(deductionData.refund),
+                    debt: toNumber(deductionData.debt),
+                    education: toNumber(deductionData.education),
+                    voluntary_pension: toNumber(
+                        deductionData.voluntary_pension
+                    ),
+                    withholding_at_source: toNumber(
+                        deductionData.withholding_at_source
+                    ),
+                    cooperative: toNumber(deductionData.cooperative),
+                    tax_liens: toNumber(deductionData.tax_liens),
+                    supplementary_plan: toNumber(
+                        deductionData.supplementary_plan
+                    )
+                };
+            });
+
+            formData.employee_deduction_data = employeeDeductionData;
+
+            console.log(
+                "📋 employeeDeductionData final:",
+                employeeDeductionData
+            );
+
             // Calcular el total global de devengados (suma de todos los empleados)
             let globalAccruedTotal = 0;
             selectedWorkers.forEach(workerId => {
@@ -3185,8 +4518,25 @@ export default {
 
             console.log("🎯 Total global calculado:", globalAccruedTotal);
 
-            // Agregar el total global al formData
-            formData.accrued_total = globalAccruedTotal; // Asegurar que no se incluya el campo notes
+            // Calcular el total global de deducciones (suma de todos los empleados)
+            let globalDeductionsTotal = 0;
+            selectedWorkers.forEach(workerId => {
+                const employeeDeduction = employeeDeductionData[workerId];
+                if (employeeDeduction && employeeDeduction.deductions_total) {
+                    const employeeTotal =
+                        parseFloat(employeeDeduction.deductions_total) || 0;
+                    globalDeductionsTotal += employeeTotal;
+                }
+            });
+
+            console.log(
+                "🎯 Total global deducciones calculado:",
+                globalDeductionsTotal
+            );
+
+            // Agregar los totales globales al formData
+            formData.accrued_total = globalAccruedTotal;
+            formData.deductions_total = globalDeductionsTotal; // Asegurar que no se incluya el campo notes
             if (formData.hasOwnProperty("notes")) {
                 delete formData.notes;
             }
@@ -3198,16 +4548,28 @@ export default {
 
             const method = this.editMode ? "put" : "post";
 
+            console.log(
+                "📤 Datos completos enviados al backend:",
+                JSON.stringify(formData, null, 2)
+            );
+            console.log(
+                "📤 employee_deduction_data específicamente:",
+                formData.employee_deduction_data
+            );
+
             // Enviar al backend
             this.$http[method](endpoint, formData)
                 .then(response => {
                     this.loading_submit = false;
                     if (response.data.success) {
                         this.$message.success(response.data.message);
-                        // Redirigir al listado después de guardar/editar
-                        setTimeout(() => {
-                            window.location.href = "/payroll/block-payrolls";
-                        }, 1500);
+                        // TEMPORALMENTE DESACTIVADO: Redirigir al listado después de guardar/editar
+                        // setTimeout(() => {
+                        //     window.location.href = "/payroll/block-payrolls";
+                        // }, 1500);
+                        console.log(
+                            "✅ Guardado exitoso - Redirección desactivada para ver logs"
+                        );
                     } else {
                         this.$message.error(response.data.message);
                     }
@@ -3249,9 +4611,13 @@ export default {
                 .then(response => {
                     if (response.data.success) {
                         this.$message.success(response.data.message);
-                        setTimeout(() => {
-                            window.location.href = "/payroll/block-payrolls";
-                        }, 1500);
+                        // TEMPORALMENTE DESACTIVADO: Redirigir al listado después de guardar/editar
+                        // setTimeout(() => {
+                        //     window.location.href = "/payroll/block-payrolls";
+                        // }, 1500);
+                        console.log(
+                            "✅ Guardado y generación exitosos - Redirección desactivada para ver logs"
+                        );
                     } else {
                         this.$message.error(response.data.message);
                     }
@@ -3371,6 +4737,11 @@ export default {
                     // Inicializar datos de devengados para TODOS los empleados
                     this.form.items.forEach(worker => {
                         this.initializeWorkerAccruedData(worker.id);
+                    });
+
+                    // Inicializar datos de deducciones para TODOS los empleados
+                    this.form.items.forEach(worker => {
+                        this.initializeWorkerDeductionData(worker.id);
                     });
 
                     // Calcular total global después de inicializar todos los empleados
@@ -3796,6 +5167,24 @@ export default {
                             response.data.type_disabilities;
                     }
 
+                    // Cargar type_law_deductions si está disponible
+                    if (response.data.type_law_deductions) {
+                        this.type_law_deductions =
+                            response.data.type_law_deductions;
+                    }
+
+                    // Cargar labor_union_for_deduction si está disponible
+                    if (response.data.labor_union_for_deduction) {
+                        this.labor_union_for_deduction =
+                            response.data.labor_union_for_deduction;
+                    }
+
+                    // Cargar sanctions_for_deduction si está disponible
+                    if (response.data.sanctions_for_deduction) {
+                        this.sanctions_for_deduction =
+                            response.data.sanctions_for_deduction;
+                    }
+
                     // Cargar configuración avanzada para salario mínimo y subsidio
                     if (response.data.advanced_configuration) {
                         this.advancedConfiguration =
@@ -4065,12 +5454,52 @@ export default {
             };
         },
 
+        // Inicializar datos de deducciones para un empleado específico
+        initializeWorkerDeductionData(workerId) {
+            // No sobrescribir datos existentes
+            if (this.employeeDeductionData[workerId]) {
+                return;
+            }
+
+            // Inicializar con valores por defecto
+            const defaultDeductionData = {
+                eps_type_law_deductions_id: null,
+                eps_deduction: 0,
+                pension_type_law_deductions_id: null,
+                pension_deduction: 0,
+                fondossp_type_law_deductions_id: null,
+                fondosp_deduction_SP: 0,
+                fondossp_sub_type_law_deductions_id: null,
+                fondosp_deduction_sub: 0,
+                deductions_total: 0,
+                labor_union: [],
+                sanctions: [],
+                afc: 0,
+                refund: 0,
+                debt: 0,
+                education: 0,
+                voluntary_pension: 0,
+                withholding_at_source: 0,
+                cooperative: 0,
+                tax_liens: 0,
+                supplementary_plan: 0
+            };
+
+            this.employeeDeductionData[workerId] = { ...defaultDeductionData };
+
+            console.log(
+                `📋 Inicializado datos de deducción para empleado ${workerId}:`,
+                defaultDeductionData
+            );
+        },
+
         handleWorkerSelection(workerId) {
             // Guardar datos del empleado actual si existe
             if (this.selectedWorkerId && this.selectedWorkerId !== workerId) {
                 this.saveCurrentEmployeeData();
                 this.saveCurrentEmployeePaymentData();
                 this.saveCurrentEmployeeAccruedData();
+                this.saveCurrentEmployeeDeductionData();
             }
 
             // Cambiar empleado seleccionado
@@ -4080,6 +5509,7 @@ export default {
             this.loadEmployeeData(workerId);
             this.loadEmployeePaymentData(workerId);
             this.loadEmployeeAccruedData(workerId);
+            this.loadEmployeeDeductionData(workerId);
 
             // Aplicar subsidio de transporte y sincronizar datos después de cargar
             this.$nextTick(() => {
@@ -4289,6 +5719,7 @@ export default {
             // Cargar datos de pago y devengados
             this.loadEmployeePaymentData(workerId);
             this.loadEmployeeAccruedData(workerId);
+            this.loadEmployeeDeductionData(workerId);
         },
 
         handlePayrollPeriodChange(newValue) {
@@ -5087,6 +6518,53 @@ export default {
             }
         },
 
+        calculateGlobalDeductionsTotal() {
+            // Protección contra recursión
+            if (this.calculatingGlobalTotal) {
+                return;
+            }
+
+            this.calculatingGlobalTotal = true;
+
+            try {
+                let globalTotal = 0;
+                let employeeCount = 0;
+
+                // Función helper para convertir a número de forma segura
+                const toNumber = value => {
+                    if (value === null || value === undefined || value === "")
+                        return 0;
+                    const num = parseFloat(value);
+                    return isNaN(num) ? 0 : num;
+                };
+
+                // Sumar los totales de deducciones de todos los empleados
+                Object.keys(this.employeeDeductionData).forEach(workerId => {
+                    const employeeData = this.employeeDeductionData[workerId];
+
+                    if (employeeData && employeeData.deductions_total) {
+                        const employeeTotal = toNumber(
+                            employeeData.deductions_total
+                        );
+
+                        // Validar que el valor no sea demasiado grande (posible corrupción)
+                        if (employeeTotal > 10000000) {
+                            // Más de 10 millones parece sospechoso
+                            // Valor sospechoso, no incluir en la suma
+                        } else {
+                            globalTotal += employeeTotal;
+                            employeeCount++;
+                        }
+                    }
+                });
+
+                // Actualizar el total global
+                this.form.deductions_total = globalTotal;
+            } finally {
+                this.calculatingGlobalTotal = false;
+            }
+        },
+
         // Método para limpiar datos corruptos y recalcular totales
         resetAndRecalculateGlobalTotal() {
             console.log("🔄 Limpiando y recalculando totales...");
@@ -5670,6 +7148,256 @@ export default {
 
         changeCompleteWorkDisability(index) {
             this.saveCurrentEmployeeAccruedData();
+        },
+
+        // === MÉTODOS PARA DEDUCCIONES ===
+
+        // Método para cambio de tipo de ley de deducción EPS
+        changeEpsTypeLawDeduction() {
+            const selectedType = this.type_law_deductions.find(
+                type =>
+                    type.id === this.form.deduction.eps_type_law_deductions_id
+            );
+
+            if (selectedType && selectedType.percentage) {
+                // Calcular automáticamente el valor de la deducción EPS basado en el porcentaje
+                const baseAmount = parseFloat(this.form.accrued.salary) || 0;
+                this.form.deduction.eps_deduction = this.roundNumber(
+                    (baseAmount * parseFloat(selectedType.percentage)) / 100
+                );
+            } else {
+                this.form.deduction.eps_deduction = 0;
+            }
+
+            this.calculateDeductionsTotal();
+            this.saveCurrentEmployeeDeductionData();
+            this.calculateGlobalDeductionsTotal();
+        },
+
+        // Método para cambio de tipo de ley de deducción Pensión
+        changePensionTypeLawDeduction() {
+            const selectedType = this.type_law_deductions.find(
+                type =>
+                    type.id ===
+                    this.form.deduction.pension_type_law_deductions_id
+            );
+
+            if (selectedType && selectedType.percentage) {
+                // Calcular automáticamente el valor de la deducción de pensión basado en el porcentaje
+                const baseAmount = parseFloat(this.form.accrued.salary) || 0;
+                this.form.deduction.pension_deduction = this.roundNumber(
+                    (baseAmount * parseFloat(selectedType.percentage)) / 100
+                );
+            } else {
+                this.form.deduction.pension_deduction = 0;
+            }
+
+            this.calculateDeductionsTotal();
+            this.saveCurrentEmployeeDeductionData();
+            this.calculateGlobalDeductionsTotal();
+        },
+
+        // Método para cambio de tipo de ley de deducción Fondos SP
+        changeFondosspTypeLawDeduction() {
+            const selectedType = this.type_law_deductions.find(
+                type =>
+                    type.id ===
+                    this.form.deduction.fondossp_type_law_deductions_id
+            );
+
+            if (selectedType && selectedType.percentage) {
+                // Calcular automáticamente el valor de la deducción de fondos SP basado en el porcentaje
+                const baseAmount = parseFloat(this.form.accrued.salary) || 0;
+                this.form.deduction.fondosp_deduction_SP = this.roundNumber(
+                    (baseAmount * parseFloat(selectedType.percentage)) / 100
+                );
+            } else {
+                this.form.deduction.fondosp_deduction_SP = 0;
+            }
+
+            this.calculateDeductionsTotal();
+            this.saveCurrentEmployeeDeductionData();
+            this.calculateGlobalDeductionsTotal();
+        },
+
+        // Método para cambio de subtipo de ley de deducción Fondos SP
+        changeFondosspSubTypeLawDeduction() {
+            const selectedType = this.type_law_deductions.find(
+                type =>
+                    type.id ===
+                    this.form.deduction.fondossp_sub_type_law_deductions_id
+            );
+
+            if (selectedType && selectedType.percentage) {
+                // Calcular automáticamente el valor de la deducción de subtipo de fondos SP basado en el porcentaje
+                const baseAmount = parseFloat(this.form.accrued.salary) || 0;
+                this.form.deduction.fondosp_deduction_sub = this.roundNumber(
+                    (baseAmount * parseFloat(selectedType.percentage)) / 100
+                );
+            } else {
+                this.form.deduction.fondosp_deduction_sub = 0;
+            }
+
+            this.calculateDeductionsTotal();
+            this.saveCurrentEmployeeDeductionData();
+            this.calculateGlobalDeductionsTotal();
+        },
+
+        // Calcular el total de deducciones
+        calculateDeductionsTotal() {
+            const deduction = this.form.deduction;
+            let total = 0;
+
+            // Sumar deducciones básicas
+            total += parseFloat(deduction.eps_deduction) || 0;
+            total += parseFloat(deduction.pension_deduction) || 0;
+            total += parseFloat(deduction.fondosp_deduction_SP) || 0;
+            total += parseFloat(deduction.fondosp_deduction_sub) || 0;
+
+            // Sumar otras deducciones
+            total += parseFloat(deduction.afc) || 0;
+            total += parseFloat(deduction.refund) || 0;
+            total += parseFloat(deduction.debt) || 0;
+            total += parseFloat(deduction.education) || 0;
+            total += parseFloat(deduction.voluntary_pension) || 0;
+            total += parseFloat(deduction.withholding_at_source) || 0;
+            total += parseFloat(deduction.cooperative) || 0;
+            total += parseFloat(deduction.tax_liens) || 0;
+            total += parseFloat(deduction.supplementary_plan) || 0;
+
+            // Sumar deducciones de sindicatos
+            if (deduction.labor_union && Array.isArray(deduction.labor_union)) {
+                deduction.labor_union.forEach(union => {
+                    total += parseFloat(union.payment) || 0;
+                });
+            }
+
+            // Sumar sanciones
+            if (deduction.sanctions && Array.isArray(deduction.sanctions)) {
+                deduction.sanctions.forEach(sanction => {
+                    total += parseFloat(sanction.payment) || 0;
+                });
+            }
+
+            this.form.deduction.deductions_total = this.roundNumber(total);
+            this.form.deductions_total = this.roundNumber(total);
+        },
+
+        // Agregar sindicato laboral
+        addLaborUnion() {
+            if (!this.form.deduction.labor_union) {
+                this.form.deduction.labor_union = [];
+            }
+
+            this.form.deduction.labor_union.push({
+                type_worker_id: null,
+                payment: 0
+            });
+            this.saveCurrentEmployeeDeductionData();
+        },
+
+        // Eliminar sindicato laboral
+        removeLaborUnion(index) {
+            this.form.deduction.labor_union.splice(index, 1);
+            this.calculateDeductionsTotal();
+            this.saveCurrentEmployeeDeductionData();
+            this.calculateGlobalDeductionsTotal();
+        },
+
+        // Cambio en pago de sindicato laboral
+        changeLaborUnionPayment(index) {
+            this.calculateDeductionsTotal();
+            this.saveCurrentEmployeeDeductionData();
+            this.calculateGlobalDeductionsTotal();
+        },
+
+        // Agregar sanción
+        addSanction() {
+            if (!this.form.deduction.sanctions) {
+                this.form.deduction.sanctions = [];
+            }
+
+            this.form.deduction.sanctions.push({
+                type_sanction_id: null,
+                payment: 0
+            });
+            this.saveCurrentEmployeeDeductionData();
+        },
+
+        // Eliminar sanción
+        removeSanction(index) {
+            this.form.deduction.sanctions.splice(index, 1);
+            this.calculateDeductionsTotal();
+            this.saveCurrentEmployeeDeductionData();
+            this.calculateGlobalDeductionsTotal();
+        },
+
+        // Cambio en pago de sanción
+        changeSanctionPayment(index) {
+            this.calculateDeductionsTotal();
+            this.saveCurrentEmployeeDeductionData();
+            this.calculateGlobalDeductionsTotal();
+        },
+
+        // Cambio en cualquier campo de deducción manual
+        changeDeductionField() {
+            this.calculateDeductionsTotal();
+            this.saveCurrentEmployeeDeductionData();
+            this.calculateGlobalDeductionsTotal();
+        },
+
+        // Guardar datos de deducciones del empleado actual
+        saveCurrentEmployeeDeductionData() {
+            if (this.selectedWorkerId) {
+                this.employeeDeductionData[this.selectedWorkerId] = {
+                    ...this.form.deduction
+                };
+            }
+        },
+
+        // Cargar datos de deducciones del empleado seleccionado
+        loadEmployeeDeductionData(workerId) {
+            if (this.employeeDeductionData[workerId]) {
+                this.form.deduction = {
+                    ...this.employeeDeductionData[workerId]
+                };
+            } else {
+                // Restablecer valores por defecto para deducciones
+                const defaultDeductionData = {
+                    eps_type_law_deductions_id: null,
+                    eps_deduction: 0,
+                    pension_type_law_deductions_id: null,
+                    pension_deduction: 0,
+                    fondossp_type_law_deductions_id: null,
+                    fondosp_deduction_SP: 0,
+                    fondossp_sub_type_law_deductions_id: null,
+                    fondosp_deduction_sub: 0,
+                    deductions_total: 0,
+                    labor_union: [],
+                    sanctions: [],
+                    afc: 0,
+                    refund: 0,
+                    debt: 0,
+                    education: 0,
+                    voluntary_pension: 0,
+                    withholding_at_source: 0,
+                    cooperative: 0,
+                    tax_liens: 0,
+                    supplementary_plan: 0
+                };
+
+                this.form.deduction = { ...defaultDeductionData };
+
+                // Guardar los valores por defecto en employeeDeductionData para este trabajador
+                this.employeeDeductionData[workerId] = {
+                    ...defaultDeductionData
+                };
+            }
+
+            // Calcular el total de deducciones después de cargar los datos
+            this.$nextTick(() => {
+                this.calculateDeductionsTotal();
+            });
         }
     },
 
@@ -5680,6 +7408,7 @@ export default {
                     this.$nextTick(() => {
                         this.loadEmployeeData(newWorkerId);
                         this.loadEmployeePaymentData(newWorkerId);
+                        this.loadEmployeeDeductionData(newWorkerId);
                     });
                 }
             },
