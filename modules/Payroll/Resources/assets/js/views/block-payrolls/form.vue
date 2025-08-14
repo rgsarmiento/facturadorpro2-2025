@@ -3499,7 +3499,9 @@ export default {
 
                 // Calcular intereses sobre cesantías (12% directo del pago de cesantías)
                 const interestRate = 0.12; // 12%
-                const interestAmount = this.roundNumber(severanceAmount * interestRate);
+                const interestAmount = this.roundNumber(
+                    severanceAmount * interestRate
+                );
 
                 // Agregar la cesantía
                 this.form.accrued.severance.push({
@@ -3648,7 +3650,9 @@ export default {
 
                     // Calcular intereses sobre cesantías (12% directo del pago de cesantías)
                     const interestRate = 0.12; // 12%
-                    const interestAmount = this.roundNumber(severanceAmount * interestRate);
+                    const interestAmount = this.roundNumber(
+                        severanceAmount * interestRate
+                    );
 
                     // Inicializar severance si no existe
                     if (!accruedData.severance) {
