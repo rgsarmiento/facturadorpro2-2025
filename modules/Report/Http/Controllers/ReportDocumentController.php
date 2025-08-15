@@ -3,6 +3,7 @@
 namespace Modules\Report\Http\Controllers;
 
 use App\Models\Tenant\Catalogs\DocumentType;
+use Modules\Factcolombia1\Models\Tenant\TypeDocument;
 use App\Http\Controllers\Controller;
 use Barryvdh\DomPDF\Facade as PDF;
 use Modules\Report\Exports\DocumentExport;
@@ -13,9 +14,6 @@ use App\Models\Tenant\Document;
 use App\Models\Tenant\Company;
 use Carbon\Carbon;
 use Modules\Report\Http\Resources\DocumentCollection;
-use Modules\Factcolombia1\Models\Tenant\{
-    TypeDocument,
-};
 
 
 class ReportDocumentController extends Controller
@@ -25,21 +23,17 @@ class ReportDocumentController extends Controller
 
     public function filter() {
 
-        $document_types = TypeDocument::query()
-                            ->get()
-                            ->each(function($typeDocument) {
-                                $typeDocument->alert_range = (($typeDocument->to - 100) < (Document::query()
-                                    ->hasPrefix($typeDocument->prefix)
-                                    ->whereBetween('number', [$typeDocument->from, $typeDocument->to])
-                                    ->max('number') ?? $typeDocument->from));
-
-                                $typeDocument->alert_date = ($typeDocument->resolution_date_end == null) ? false : Carbon::parse($typeDocument->resolution_date_end)->subMonth(1)->lt(Carbon::now());
-                            })->transform(function($row) {
-                                return [
-                                    'id' => $row->id,
-                                    'description' => $row->name
-                                ];
-                            });
+        $document_types = TypeDocument::all()->transform(function($row) {
+            return [
+                'id' => $row->id,
+                'description' => $row->name,  // Nombre del tipo de documento
+                'prefix' => $row->prefix,     // Prefijo de la resolución
+                'resolution_number' => $row->resolution_number, // Número de resolución
+                'from' => $row->from,         // Numeración desde
+                'to' => $row->to,            // Numeración hasta
+                'code' => $row->code         // Código SUNAT (opcional)
+            ];
+        });
 
         $persons = $this->getPersons('customers');
         $sellers = $this->getSellers();

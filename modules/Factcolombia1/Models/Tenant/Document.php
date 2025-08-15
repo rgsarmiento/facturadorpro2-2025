@@ -252,4 +252,13 @@ class Document extends Model
         return $this->prefix.'-'.$this->number;
     }
 
+    /**
+     * Scope to filter by user type (sellers can only see their own documents)
+     */
+    public function scopeWhereTypeUser($query)
+    {
+        $user = auth()->user();
+        return ($user->type == 'seller') ? $query->where('user_id', $user->id) : null;
+    }
+
 }

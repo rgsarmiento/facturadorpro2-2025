@@ -68,10 +68,16 @@ trait ReportDocumentTrait
 
     private function data($document_type_id, $establishment_id, $date_start, $date_end, $person_id, $type_person, $model, $seller_id, $state_type_id)
     {
+        // Debug: Log básico de parámetros
+        \Log::info('ReportDocumentTrait - Search params:', [
+            'document_type_id' => $document_type_id,
+            'establishment_id' => $establishment_id,
+            'date_range' => "{$date_start} to {$date_end}"
+        ]);
 
         if($document_type_id && $establishment_id){
 
-            $data = $model::where([['establishment_id', $establishment_id],['document_type_id', $document_type_id]])
+            $data = $model::where([['establishment_id', $establishment_id],['type_document_id', $document_type_id]])
                                 ->whereBetween('date_of_issue', [$date_start, $date_end])->latest()->whereTypeUser();
 
         }elseif($document_type_id){
@@ -104,6 +110,13 @@ trait ReportDocumentTrait
         if($state_type_id){
             $data =  $data->where('state_type_id', $state_type_id);
         }
+
+        // Debug: Log del query SQL y conteo
+        \Log::info('ReportDocumentTrait - Query SQL:', [
+            'sql' => $data->toSql(),
+            'bindings' => $data->getBindings(),
+            'count' => $data->count()
+        ]);
 
         return $data;
 
