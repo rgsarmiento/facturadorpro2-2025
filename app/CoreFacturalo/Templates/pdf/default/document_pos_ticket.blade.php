@@ -147,7 +147,7 @@ $balance = ($document->total - $total_payment) - $document->payments->sum('chang
                     @endif
                 </td>
                 <td class="text-left desc-9 align-top">{{ number_format($row->unit_price, 2)}}</td>
-                <td class="text-left desc-9 align-top">{{ number_format($row->total_tax, 2)}}</td>
+                <td class="text-right desc-9 align-top">{{ number_format($row->total_tax, 2)}}</td>
                 <td class="text-right desc-9 align-top">{{ number_format($row->subtotal, 2)}}</td>
             </tr>
             <tr>
