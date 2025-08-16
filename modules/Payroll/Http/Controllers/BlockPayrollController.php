@@ -259,6 +259,7 @@ class BlockPayrollController extends Controller
                 $employeePeriodData = [];
                 $employeePaymentData = [];
                 $employeeAccruedData = [];
+                $employeeDeductionData = [];
                 $workers = $request->selected_workers ?? [];
 
                 // Si employee_period_data viene como objeto anidado, usarlo directamente
@@ -297,6 +298,21 @@ class BlockPayrollController extends Controller
                     }
                 }
 
+                // Manejar datos de deducciones para cada empleado
+                if ($request->has('employee_deduction_data') && is_array($request->employee_deduction_data)) {
+                    $employeeDeductionData = $request->employee_deduction_data;
+
+                    // Debug: verificar que los datos de deducciones lleguen correctamente
+                    \Log::info('=== DEBUGGING DEDUCTION DATA IN storeWithoutGenerate ===');
+                    \Log::info('Employee Deduction Data received:', ['data' => $employeeDeductionData]);
+                    \Log::info('Number of workers with deduction data: ' . count($employeeDeductionData));
+                    foreach ($employeeDeductionData as $workerId => $data) {
+                        \Log::info("Worker {$workerId} deductions_total: " . ($data['deductions_total'] ?? 'not set'));
+                    }
+                } else {
+                    $employeeDeductionData = [];
+                }
+
                 // Crear el payload con todos los datos del formulario
                 $payload = [
                     'form_data' => [
@@ -310,6 +326,7 @@ class BlockPayrollController extends Controller
                     'employee_period_data' => $employeePeriodData,
                     'employee_payment_data' => $employeePaymentData,
                     'employee_accrued_data' => $employeeAccruedData,
+                    'employee_deduction_data' => $employeeDeductionData,
                     'created_at' => now()->toDateTimeString(),
                     'user_id' => auth()->id(),
                 ];
@@ -327,6 +344,13 @@ class BlockPayrollController extends Controller
                     // Fallback: usar datos básicos del periodo
                     foreach ($employeePeriodData as $workerData) {
                         $accruedTotal += $workerData['salary'] ?? 0;
+                    }
+                }
+
+                // Si hay datos de deducciones, usarlos para el cálculo
+                if (!empty($employeeDeductionData)) {
+                    foreach ($employeeDeductionData as $workerId => $deductionData) {
+                        $deductionsTotal += $deductionData['deductions_total'] ?? 0;
                     }
                 }
 

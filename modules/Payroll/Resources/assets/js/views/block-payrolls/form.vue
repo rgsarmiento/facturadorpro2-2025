@@ -1,7 +1,13 @@
 <template>
     <div class="card mb-0 pt-2 pt-md-0">
         <div class="card-header bg-info">
-            <h3 class="my-0 text-white">Generar Bloque de Nominas</h3>
+            <h3 class="my-0 text-white">
+                {{
+                    editMode
+                        ? "Editar Bloque de Nominas"
+                        : "Generar Bloque de Nominas"
+                }}
+            </h3>
         </div>
         <div class="card-body">
             <div class="invoice">
@@ -59,9 +65,13 @@
                                 <div class="form-group">
                                     <label>Total deducciones</label>
                                     <input
-                                        type="number"
+                                        type="text"
                                         class="form-control"
-                                        :value="form.deductions_total"
+                                        :value="
+                                            getFormatDecimal(
+                                                form.deductions_total
+                                            )
+                                        "
                                         disabled
                                     />
                                 </div>
@@ -4442,6 +4452,24 @@ export default {
             // Agregar datos de deducciones de cada empleado
             const employeeDeductionData = {};
 
+            // Función helper para obtener el nombre de una entidad por ID
+            const getEntityNameById = entityId => {
+                if (!entityId) return null;
+                const entity = this.type_law_deductions.find(
+                    item => item.id === entityId
+                );
+                return entity ? entity.description : null;
+            };
+
+            // Función helper para obtener el porcentaje de una entidad por ID
+            const getEntityPercentageById = entityId => {
+                if (!entityId) return null;
+                const entity = this.type_law_deductions.find(
+                    item => item.id === entityId
+                );
+                return entity ? entity.percentage : null;
+            };
+
             console.log(
                 "📋 this.employeeDeductionData antes del loop:",
                 this.employeeDeductionData
@@ -4460,20 +4488,44 @@ export default {
                     worker_id: workerId,
                     eps_type_law_deductions_id:
                         deductionData.eps_type_law_deductions_id || null,
+                    eps_type_law_deductions_name: getEntityNameById(
+                        deductionData.eps_type_law_deductions_id
+                    ),
+                    eps_type_law_deductions_percentage: getEntityPercentageById(
+                        deductionData.eps_type_law_deductions_id
+                    ),
                     eps_deduction: toNumber(deductionData.eps_deduction),
                     pension_type_law_deductions_id:
                         deductionData.pension_type_law_deductions_id || null,
+                    pension_type_law_deductions_name: getEntityNameById(
+                        deductionData.pension_type_law_deductions_id
+                    ),
+                    pension_type_law_deductions_percentage: getEntityPercentageById(
+                        deductionData.pension_type_law_deductions_id
+                    ),
                     pension_deduction: toNumber(
                         deductionData.pension_deduction
                     ),
                     fondossp_type_law_deductions_id:
                         deductionData.fondossp_type_law_deductions_id || null,
+                    fondossp_type_law_deductions_name: getEntityNameById(
+                        deductionData.fondossp_type_law_deductions_id
+                    ),
+                    fondossp_type_law_deductions_percentage: getEntityPercentageById(
+                        deductionData.fondossp_type_law_deductions_id
+                    ),
                     fondosp_deduction_SP: toNumber(
                         deductionData.fondosp_deduction_SP
                     ),
                     fondossp_sub_type_law_deductions_id:
                         deductionData.fondossp_sub_type_law_deductions_id ||
                         null,
+                    fondossp_sub_type_law_deductions_name: getEntityNameById(
+                        deductionData.fondossp_sub_type_law_deductions_id
+                    ),
+                    fondossp_sub_type_law_deductions_percentage: getEntityPercentageById(
+                        deductionData.fondossp_sub_type_law_deductions_id
+                    ),
                     fondosp_deduction_sub: toNumber(
                         deductionData.fondosp_deduction_sub
                     ),
@@ -4563,13 +4615,11 @@ export default {
                     this.loading_submit = false;
                     if (response.data.success) {
                         this.$message.success(response.data.message);
-                        // TEMPORALMENTE DESACTIVADO: Redirigir al listado después de guardar/editar
-                        // setTimeout(() => {
-                        //     window.location.href = "/payroll/block-payrolls";
-                        // }, 1500);
-                        console.log(
-                            "✅ Guardado exitoso - Redirección desactivada para ver logs"
-                        );
+                        // Redirigir al listado después de guardar/editar
+                        setTimeout(() => {
+                            window.location.href = "/payroll/block-payrolls";
+                        }, 1500);
+                        console.log("✅ Guardado exitoso");
                     } else {
                         this.$message.error(response.data.message);
                     }
@@ -4611,13 +4661,11 @@ export default {
                 .then(response => {
                     if (response.data.success) {
                         this.$message.success(response.data.message);
-                        // TEMPORALMENTE DESACTIVADO: Redirigir al listado después de guardar/editar
-                        // setTimeout(() => {
-                        //     window.location.href = "/payroll/block-payrolls";
-                        // }, 1500);
-                        console.log(
-                            "✅ Guardado y generación exitosos - Redirección desactivada para ver logs"
-                        );
+                        // Redirigir al listado después de guardar/editar
+                        setTimeout(() => {
+                            window.location.href = "/payroll/block-payrolls";
+                        }, 1500);
+                        console.log("✅ Guardado y generación exitosos");
                     } else {
                         this.$message.error(response.data.message);
                     }
@@ -4747,6 +4795,8 @@ export default {
                     // Calcular total global después de inicializar todos los empleados
                     this.$nextTick(() => {
                         this.calculateGlobalAccruedTotal();
+                        // Actualizar switch global de provisiones basado en estado inicial de empleados
+                        this.updateGlobalGenerateProvisionsSwitch();
                     });
 
                     // Forzar la carga de datos del primer empleado seleccionado
@@ -4786,21 +4836,30 @@ export default {
                 isEnabled
             );
 
-            // Si el empleado seleccionado actualmente es el que cambió, actualizar la prima de servicios
+            // Si el empleado seleccionado actualmente es el que cambió, actualizar la prima de servicios y deducciones
             if (this.selectedWorkerId == workerId) {
                 if (isEnabled) {
                     this.generateServiceBonusProvision();
+                    this.enableAutomaticDeductions();
                 } else {
                     this.removeServiceBonusProvision();
+                    this.disableAutomaticDeductions();
                 }
             } else {
                 // Si no es el empleado actual, trabajar con los datos guardados
                 if (isEnabled) {
                     this.generateServiceBonusProvisionForWorker(workerId);
+                    this.enableAutomaticDeductionsForWorker(workerId);
                 } else {
                     this.removeServiceBonusProvisionForWorker(workerId);
+                    this.disableAutomaticDeductionsForWorker(workerId);
                 }
             }
+
+            // Actualizar el switch global después del cambio individual
+            this.$nextTick(() => {
+                this.updateGlobalGenerateProvisionsSwitch();
+            });
         },
 
         // Generar prima de servicios para el empleado actual
@@ -5287,15 +5346,17 @@ export default {
                 this.form.items.forEach(item => {
                     item.generate_provisions = true;
 
-                    // Si es el empleado actualmente seleccionado, generar su prima directamente
+                    // Si es el empleado actualmente seleccionado, generar su prima directamente y habilitar deducciones
                     if (
                         this.selectedWorkerId &&
                         this.selectedWorkerId == item.id
                     ) {
                         this.generateServiceBonusProvision();
+                        this.enableAutomaticDeductions();
                     } else {
                         // Para otros empleados, generar en sus datos guardados
                         this.generateServiceBonusProvisionForWorker(item.id);
+                        this.enableAutomaticDeductionsForWorker(item.id);
                     }
                 });
             } else {
@@ -5303,15 +5364,17 @@ export default {
                 this.form.items.forEach(item => {
                     item.generate_provisions = false;
 
-                    // Si es el empleado actualmente seleccionado, eliminar su prima directamente
+                    // Si es el empleado actualmente seleccionado, eliminar su prima directamente y deshabilitar deducciones
                     if (
                         this.selectedWorkerId &&
                         this.selectedWorkerId == item.id
                     ) {
                         this.removeServiceBonusProvision();
+                        this.disableAutomaticDeductions();
                     } else {
                         // Para otros empleados, eliminar de sus datos guardados
                         this.removeServiceBonusProvisionForWorker(item.id);
+                        this.disableAutomaticDeductionsForWorker(item.id);
                     }
                 });
             }
@@ -5332,6 +5395,264 @@ export default {
             this.$nextTick(() => {
                 this.calculateGlobalAccruedTotal();
             });
+        },
+
+        // Actualizar el switch global de generar provisiones basado en el estado de todos los empleados
+        updateGlobalGenerateProvisionsSwitch() {
+            if (this.form.items.length === 0) {
+                this.globalGenerateProvisions = false;
+                return;
+            }
+
+            // Verificar si TODOS los empleados tienen generate_provisions activo
+            const allEmployeesHaveProvisions = this.form.items.every(
+                worker => worker.generate_provisions === true
+            );
+
+            this.globalGenerateProvisions = allEmployeesHaveProvisions;
+
+            console.log(
+                `🔄 Actualizando switch global de provisiones: ${this.globalGenerateProvisions}`,
+                `(${
+                    this.form.items.filter(w => w.generate_provisions).length
+                }/${this.form.items.length} empleados con provisiones activas)`
+            );
+        },
+
+        // Habilitar deducciones automáticas para el empleado actual
+        enableAutomaticDeductions() {
+            if (
+                this.type_law_deductions &&
+                this.type_law_deductions.length > 0
+            ) {
+                // Seleccionar la primera opción para EPS
+                this.form.deduction.eps_type_law_deductions_id = this.type_law_deductions[0].id;
+
+                // Seleccionar la primera opción para Pensión
+                this.form.deduction.pension_type_law_deductions_id = this.type_law_deductions[0].id;
+
+                // Calcular valores automáticamente
+                this.$nextTick(() => {
+                    this.calculateAutomaticDeductions();
+                    this.saveCurrentEmployeeDeductionData();
+                    this.calculateGlobalDeductionsTotal();
+                });
+
+                console.log(
+                    `✅ Deducciones automáticas habilitadas para empleado actual`
+                );
+            }
+        },
+
+        // Deshabilitar deducciones automáticas para el empleado actual
+        disableAutomaticDeductions() {
+            // Limpiar selecciones
+            this.form.deduction.eps_type_law_deductions_id = null;
+            this.form.deduction.pension_type_law_deductions_id = null;
+
+            // Limpiar valores calculados
+            this.form.deduction.eps_deduction = 0;
+            this.form.deduction.pension_deduction = 0;
+
+            // Recalcular total
+            this.$nextTick(() => {
+                this.calculateDeductionsTotal();
+                this.saveCurrentEmployeeDeductionData();
+                this.calculateGlobalDeductionsTotal();
+            });
+
+            console.log(
+                `❌ Deducciones automáticas deshabilitadas para empleado actual`
+            );
+        },
+
+        // Habilitar deducciones automáticas para un empleado específico
+        enableAutomaticDeductionsForWorker(workerId) {
+            if (
+                this.type_law_deductions &&
+                this.type_law_deductions.length > 0
+            ) {
+                // Inicializar datos de deducción si no existen
+                if (!this.employeeDeductionData[workerId]) {
+                    this.employeeDeductionData[workerId] = {};
+                }
+
+                // Seleccionar la primera opción para EPS y Pensión
+                this.$set(
+                    this.employeeDeductionData[workerId],
+                    "eps_type_law_deductions_id",
+                    this.type_law_deductions[0].id
+                );
+                this.$set(
+                    this.employeeDeductionData[workerId],
+                    "pension_type_law_deductions_id",
+                    this.type_law_deductions[0].id
+                );
+
+                // Calcular valores automáticamente
+                this.calculateDeductionsForWorker(workerId);
+
+                // Actualizar total global
+                this.$nextTick(() => {
+                    this.calculateGlobalDeductionsTotal();
+                });
+
+                console.log(
+                    `✅ Deducciones automáticas habilitadas para worker ${workerId}`
+                );
+            }
+        },
+
+        // Deshabilitar deducciones automáticas para un empleado específico
+        disableAutomaticDeductionsForWorker(workerId) {
+            if (!this.employeeDeductionData[workerId]) {
+                this.employeeDeductionData[workerId] = {};
+            }
+
+            // Limpiar selecciones
+            this.$set(
+                this.employeeDeductionData[workerId],
+                "eps_type_law_deductions_id",
+                null
+            );
+            this.$set(
+                this.employeeDeductionData[workerId],
+                "pension_type_law_deductions_id",
+                null
+            );
+
+            // Limpiar valores calculados
+            this.$set(this.employeeDeductionData[workerId], "eps_deduction", 0);
+            this.$set(
+                this.employeeDeductionData[workerId],
+                "pension_deduction",
+                0
+            );
+            this.$set(
+                this.employeeDeductionData[workerId],
+                "deductions_total",
+                0
+            );
+
+            // Actualizar total global
+            this.$nextTick(() => {
+                this.calculateGlobalDeductionsTotal();
+            });
+
+            console.log(
+                `❌ Deducciones automáticas deshabilitadas para worker ${workerId}`
+            );
+        },
+
+        // Calcular deducciones para un empleado específico (no actual)
+        calculateDeductionsForWorker(workerId) {
+            const deductionData = this.employeeDeductionData[workerId];
+            if (!deductionData) return;
+
+            // Obtener datos del empleado para el cálculo
+            const currentWorker = this.form.items.find(
+                item => item.id == workerId
+            );
+            if (!currentWorker) return;
+
+            const salary = parseFloat(currentWorker.salary) || 0;
+            let epsDeduction = 0;
+            let pensionDeduction = 0;
+
+            // Calcular EPS si está seleccionado
+            if (
+                deductionData.eps_type_law_deductions_id &&
+                this.type_law_deductions
+            ) {
+                const epsType = this.type_law_deductions.find(
+                    type => type.id === deductionData.eps_type_law_deductions_id
+                );
+                if (epsType) {
+                    epsDeduction = (salary * epsType.percentage) / 100;
+                }
+            }
+
+            // Calcular Pensión si está seleccionado
+            if (
+                deductionData.pension_type_law_deductions_id &&
+                this.type_law_deductions
+            ) {
+                const pensionType = this.type_law_deductions.find(
+                    type =>
+                        type.id === deductionData.pension_type_law_deductions_id
+                );
+                if (pensionType) {
+                    pensionDeduction = (salary * pensionType.percentage) / 100;
+                }
+            }
+
+            // Actualizar valores
+            this.$set(
+                this.employeeDeductionData[workerId],
+                "eps_deduction",
+                epsDeduction
+            );
+            this.$set(
+                this.employeeDeductionData[workerId],
+                "pension_deduction",
+                pensionDeduction
+            );
+            this.$set(
+                this.employeeDeductionData[workerId],
+                "deductions_total",
+                epsDeduction + pensionDeduction
+            );
+        },
+
+        // Calcular deducciones automáticas para el empleado actualmente seleccionado
+        calculateAutomaticDeductions() {
+            if (!this.selectedWorkerId) return;
+
+            const currentWorker = this.form.items.find(
+                item => item.id == this.selectedWorkerId
+            );
+            if (!currentWorker) return;
+
+            const salary = parseFloat(currentWorker.salary) || 0;
+            let epsDeduction = 0;
+            let pensionDeduction = 0;
+
+            // Calcular EPS si está seleccionado
+            if (
+                this.form.deduction.eps_type_law_deductions_id &&
+                this.type_law_deductions
+            ) {
+                const epsType = this.type_law_deductions.find(
+                    type =>
+                        type.id ===
+                        this.form.deduction.eps_type_law_deductions_id
+                );
+                if (epsType) {
+                    epsDeduction = (salary * epsType.percentage) / 100;
+                }
+            }
+
+            // Calcular Pensión si está seleccionado
+            if (
+                this.form.deduction.pension_type_law_deductions_id &&
+                this.type_law_deductions
+            ) {
+                const pensionType = this.type_law_deductions.find(
+                    type =>
+                        type.id ===
+                        this.form.deduction.pension_type_law_deductions_id
+                );
+                if (pensionType) {
+                    pensionDeduction = (salary * pensionType.percentage) / 100;
+                }
+            }
+
+            // Actualizar valores en el formulario
+            this.form.deduction.eps_deduction = epsDeduction;
+            this.form.deduction.pension_deduction = pensionDeduction;
+
+            // Recalcular total del empleado actual
+            this.calculateDeductionsTotal();
         },
 
         getFormatDecimal(value) {
@@ -6240,6 +6561,16 @@ export default {
                         );
                     }
 
+                    // Cargar datos de deducciones de cada empleado
+                    if (blockPayroll.payload.employee_deduction_data) {
+                        this.employeeDeductionData =
+                            blockPayroll.payload.employee_deduction_data;
+                        console.log(
+                            "📋 Datos de deducciones cargados desde payload:",
+                            this.employeeDeductionData
+                        );
+                    }
+
                     // Restaurar valores de generate_provisions desde el payload
                     if (blockPayroll.payload.employee_period_data) {
                         this.form.items.forEach(worker => {
@@ -6262,6 +6593,11 @@ export default {
                                 );
                             }
                         });
+
+                        // Verificar si todos los empleados tienen generate_provisions activo
+                        this.$nextTick(() => {
+                            this.updateGlobalGenerateProvisionsSwitch();
+                        });
                     }
 
                     // Seleccionar el primer trabajador
@@ -6276,6 +6612,9 @@ export default {
                             this.loadEmployeeData(this.selectedWorkerId);
                             this.loadEmployeePaymentData(this.selectedWorkerId);
                             this.loadEmployeeAccruedData(this.selectedWorkerId);
+                            this.loadEmployeeDeductionData(
+                                this.selectedWorkerId
+                            );
                         });
                     }
                 }
@@ -7280,7 +7619,7 @@ export default {
             }
 
             this.form.deduction.deductions_total = this.roundNumber(total);
-            this.form.deductions_total = this.roundNumber(total);
+            // No actualizar this.form.deductions_total aquí, eso es responsabilidad de calculateGlobalDeductionsTotal
         },
 
         // Agregar sindicato laboral
@@ -7392,11 +7731,29 @@ export default {
                 this.employeeDeductionData[workerId] = {
                     ...defaultDeductionData
                 };
+
+                // Si el empleado tiene provisiones activas, aplicar deducciones automáticas
+                const currentWorker = this.form.items.find(
+                    item => item.id == workerId
+                );
+                if (currentWorker && currentWorker.generate_provisions) {
+                    console.log(
+                        `🔄 Aplicando deducciones automáticas para worker ${workerId} (provisiones activas)`
+                    );
+                    this.$nextTick(() => {
+                        if (this.selectedWorkerId == workerId) {
+                            this.enableAutomaticDeductions();
+                        } else {
+                            this.enableAutomaticDeductionsForWorker(workerId);
+                        }
+                    });
+                }
             }
 
             // Calcular el total de deducciones después de cargar los datos
             this.$nextTick(() => {
                 this.calculateDeductionsTotal();
+                this.calculateGlobalDeductionsTotal();
             });
         }
     },
