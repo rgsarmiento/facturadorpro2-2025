@@ -291,7 +291,7 @@ class PurchaseQuotationController extends Controller
                                              DIRECTORY_SEPARATOR.'style.css');
 
         $stylesheet = file_get_contents($path_css);
-
+        ini_set('pcre.backtrack_limit', '10000000');
         $pdf->WriteHTML($stylesheet, HTMLParserMode::HEADER_CSS);
         $pdf->WriteHTML($html, HTMLParserMode::HTML_BODY);
 

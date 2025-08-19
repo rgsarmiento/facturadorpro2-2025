@@ -43,6 +43,12 @@ class SearchEmailController extends Controller
      */
     public function searchImapEmails(Request $request)
     {
+        // Configurar límites para operaciones largas
+        ini_set('max_execution_time', 0); // Sin límite de tiempo
+        ini_set('memory_limit', '2048M'); // Aumentar memoria
+        
+        \Log::info("Iniciando búsqueda de emails IMAP para fechas: {$request->search_start_date} - {$request->search_end_date}");
+        
         $init_time = Carbon::now();
 
         $emails = $this->getEmails($request);
@@ -65,11 +71,22 @@ class SearchEmailController extends Controller
 
                 $all_emails_id = $emails['emails'];
                 $mailbox = $emails['mailbox'];
+                $total_emails = count($all_emails_id);
+                $processed_count = 0;
+
+                \Log::info("Iniciando procesamiento de {$total_emails} emails encontrados");
 
                 $selected_emails = [];
 
                 foreach ($all_emails_id as $key => $email_id)
                 {
+                    $processed_count++;
+                    
+                    // Log cada 10 emails procesados para hacer seguimiento
+                    if ($processed_count % 10 == 0) {
+                        \Log::info("Progreso: {$processed_count}/{$total_emails} emails procesados");
+                    }
+
                     $mail = $mailbox->getMail($email_id);
 
                     // validar si el correo cumple las condiciones
@@ -99,20 +116,11 @@ class SearchEmailController extends Controller
 
                             if(count($extract_zip) === 2) // se valida si tiene 2 archivos, xml y pdf
                             {
-                                if(str_contains($extract_zip[0]['filename'], '.xml')) {
+                                $xml_filename = $extract_zip[0]['filename'];
+                                $xml_content = $extract_zip[0]['content'];
 
-                                    $xml_filename = $extract_zip[0]['filename'];
-                                    $xml_content = $extract_zip[0]['content'];
-
-                                    $pdf_filename = $extract_zip[1]['filename'];
-                                    $pdf_content = $extract_zip[1]['content'];
-                                } else {
-                                    $xml_filename = $extract_zip[1]['filename'];
-                                    $xml_content = $extract_zip[1]['content'];
-
-                                    $pdf_filename = $extract_zip[0]['filename'];
-                                    $pdf_content = $extract_zip[0]['content'];
-                                }
+                                $pdf_filename = $extract_zip[1]['filename'];
+                                $pdf_content = $extract_zip[1]['content'];
 
                                 if(str_contains($xml_filename, '.xml') && str_contains($pdf_filename, '.pdf'))
                                 {
@@ -171,12 +179,18 @@ class SearchEmailController extends Controller
 
                 $end_time = Carbon::now();
                 $diff_in_seconds = $end_time->diffInSeconds($init_time);
+                $processed_emails = $email_reading->details()->count();
+
+                \Log::info("Procesamiento completado: {$processed_emails} correos registrados en {$diff_in_seconds} segundos");
 
                 return [
                     'success' => true,
-                    'message' => "Proceso realizado correctamente: {$email_reading->details()->count()} correos fueron registrados.",
+                    'message' => "Proceso realizado correctamente: {$processed_emails} correos fueron registrados de {$total_emails} emails procesados en " . gmdate("H:i:s", $diff_in_seconds),
                     'data' => [
                         'diff_in_seconds' => $diff_in_seconds,
+                        'total_emails_found' => $total_emails,
+                        'emails_processed' => $processed_emails,
+                        'execution_time' => gmdate("H:i:s", $diff_in_seconds),
                     ],
                 ];
 
@@ -190,6 +204,47 @@ class SearchEmailController extends Controller
             return $this->getErrorFromException($e->getMessage(), $e);
         }
 
+    }
+
+
+    /**
+     * Obtener el estado del último procesamiento de emails
+     *
+     * @return array
+     */
+    public function getLastProcessingStatus()
+    {
+        try {
+            $lastEmailReading = EmailReading::with('details')
+                ->orderBy('created_at', 'desc')
+                ->first();
+
+            if (!$lastEmailReading) {
+                return $this->getGeneralResponse(false, 'No se encontraron registros de procesamiento de emails');
+            }
+
+            $totalDetails = $lastEmailReading->details()->count();
+            $successfulDetails = $lastEmailReading->details()->where('success', true)->count();
+
+            return [
+                'success' => true,
+                'data' => [
+                    'last_processing' => $lastEmailReading,
+                    'total_emails_processed' => $totalDetails,
+                    'successful_emails' => $successfulDetails,
+                    'failed_emails' => $totalDetails - $successfulDetails,
+                    'processing_date' => $lastEmailReading->start_date,
+                    'processing_time' => $lastEmailReading->start_time,
+                    'is_completed' => $lastEmailReading->success,
+                    'search_range' => [
+                        'start' => $lastEmailReading->search_start_date,
+                        'end' => $lastEmailReading->search_end_date
+                    ]
+                ]
+            ];
+        } catch (Exception $e) {
+            return $this->getErrorFromException('Error obteniendo estado del procesamiento', $e);
+        }
     }
 
 
@@ -375,7 +430,7 @@ class SearchEmailController extends Controller
                 $type_document_code = trim($parse_subject[3]);
                 $exist_type_document = TypeDocument::where('code', $type_document_code)->select('id')->first();
 
-                if($quantity_items >= 5 && is_numeric($parse_subject[0]) && $exist_type_document && $mail->hasAttachments())
+                if($quantity_items === 5 && is_numeric($parse_subject[0]) && $exist_type_document && $mail->hasAttachments())
                 {
                     if(count($mail->getAttachments()) > 0)
                     {

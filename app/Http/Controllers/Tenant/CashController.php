@@ -85,7 +85,8 @@ class CashController extends Controller
         ->orWhere('id', $currentResolutionId)
         ->get();
 
-        $maxNumbersByPrefix = DocumentPos::selectRaw('prefix, MAX(number) as max_number')
+
+        $maxNumbersByPrefix = DocumentPos::selectRaw('prefix, MAX(CAST(number AS INTEGER)) as max_number')
             ->groupBy('prefix')
             ->get();
 

@@ -6,7 +6,7 @@ if($current_hostname) {
     Route::domain($current_hostname->fqdn)->group(function () {
 
         Route::middleware(['auth', 'locked.tenant'])->group(function () {
-            
+
             Route::prefix('co-radian-events')->group(function () {
 
                 Route::get('reception', 'RadianEventController@reception')->name('tenant.co-radian-events-reception.index');
@@ -18,7 +18,7 @@ if($current_hostname) {
 
                 Route::get('columns', 'RadianEventController@columns');
                 Route::get('records', 'RadianEventController@records');
-                
+
                 Route::post('send-radian-event', 'RadianEventController@sendRadianEvent')->name('tenant.send-radian-event');
 
                 Route::post('run-event', 'RadianEventController@runEvent');
@@ -26,9 +26,7 @@ if($current_hostname) {
 
                 // filtrar correos
                 Route::get('search-imap-emails', 'SearchEmailController@searchImapEmails');
-
-
-
+                Route::get('search-imap-emails-status', 'SearchEmailController@getLastProcessingStatus');
             });
 
             Route::prefix('co-email-reading')->group(function () {
