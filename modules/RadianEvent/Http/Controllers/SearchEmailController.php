@@ -215,7 +215,7 @@ class SearchEmailController extends Controller
     public function getLastProcessingStatus()
     {
         try {
-            $lastEmailReading = EmailReading::with('details')
+            $lastEmailReading = EmailReading::with(['details.received_document'])
                 ->orderBy('created_at', 'desc')
                 ->first();
 
@@ -224,7 +224,11 @@ class SearchEmailController extends Controller
             }
 
             $totalDetails = $lastEmailReading->details()->count();
-            $successfulDetails = $lastEmailReading->details()->where('success', true)->count();
+            
+            // Contar emails exitosos basándose en si tienen documento recibido asociado
+            $successfulDetails = $lastEmailReading->details()
+                ->whereHas('received_document')
+                ->count();
 
             return [
                 'success' => true,
