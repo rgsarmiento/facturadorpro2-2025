@@ -20,17 +20,19 @@
                             <ul style="margin-bottom: 0; margin-top: 10px;">
                                 <li>
                                     El procesamiento de emails puede tardar
-                                    varios minutos dependiendo de la cantidad de
-                                    correos en el rango de fechas.
+                                    varios minutos (hasta 30 minutos)
+                                    dependiendo de la cantidad de correos en el
+                                    rango de fechas.
                                 </li>
                                 <li>
                                     Si aparece un error de timeout (504), el
                                     proceso puede estar ejecutándose en segundo
-                                    plano.
+                                    plano y se mostrará el progreso
+                                    automáticamente.
                                 </li>
                                 <li>
-                                    Recomendamos usar rangos de fechas pequeños
-                                    (1-7 días) para mejor rendimiento.
+                                    Para rangos grandes (más de 7 días), el
+                                    sistema mostrará el progreso en tiempo real.
                                 </li>
                             </ul>
                         </div>
@@ -78,6 +80,38 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Área de progreso -->
+                <div class="row" v-if="showProgress">
+                    <div class="col-md-12">
+                        <div class="alert alert-warning">
+                            <h5>
+                                <i class="el-icon-loading"></i> Procesamiento en
+                                curso
+                            </h5>
+                            <p><strong>Estado:</strong> {{ progressStatus }}</p>
+                            <p v-if="lastProcessingData">
+                                <strong>Rango de fechas:</strong>
+                                {{ lastProcessingData.search_range.start }} -
+                                {{ lastProcessingData.search_range.end }}<br />
+                                <strong>Emails procesados:</strong>
+                                {{ lastProcessingData.total_emails_processed
+                                }}<br />
+                                <strong>Exitosos:</strong>
+                                {{ lastProcessingData.successful_emails }}<br />
+                                <strong>Fallidos:</strong>
+                                {{ lastProcessingData.failed_emails }}<br />
+                                <strong>Duración:</strong> {{ elapsedTime }}
+                            </p>
+                            <el-button
+                                type="info"
+                                size="small"
+                                @click="checkStatus"
+                                >Actualizar estado</el-button
+                            >
+                        </div>
+                    </div>
+                </div>
             </div>
             <div class="form-actions text-right mt-4">
                 <el-button @click.prevent="close()">Cerrar</el-button>
@@ -105,6 +139,11 @@ export default {
             resource: "co-email-reading",
             form: {},
             errors: {},
+            showProgress: false,
+            progressStatus: "",
+            lastProcessingData: null,
+            elapsedTime: "",
+            statusInterval: null,
             pickerOptions: {
                 disabledDate: time => {
                     time = moment(time).format("YYYY-MM-DD");
@@ -115,6 +154,9 @@ export default {
     },
     created() {
         this.initForm();
+    },
+    beforeDestroy() {
+        this.stopStatusPolling();
     },
     methods: {
         changeDisabledDates() {
@@ -134,7 +176,7 @@ export default {
             // Configurar timeout más largo para esta operación específica
             const axios = this.$http;
             const originalTimeout = axios.defaults.timeout;
-            axios.defaults.timeout = 600000; // 10 minutos
+            axios.defaults.timeout = 1800000; // 30 minutos
 
             try {
                 const response = await axios.get(
@@ -181,10 +223,89 @@ export default {
                         "Error de conexión. Verifique su conexión a internet."
                     );
                 }
+
+                // En caso de timeout, iniciar polling para verificar estado
+                if (error.response && error.response.status === 504) {
+                    this.startStatusPolling();
+                }
             } finally {
                 // Restaurar timeout original
                 axios.defaults.timeout = originalTimeout;
                 this.loading_submit = false;
+            }
+        },
+
+        async checkStatus() {
+            try {
+                const response = await this.$http.get(
+                    "/co-radian-events/search-imap-emails-status"
+                );
+
+                if (response.data.success) {
+                    this.lastProcessingData = response.data.data;
+                    this.progressStatus = response.data.message;
+
+                    // Calcular tiempo transcurrido
+                    if (this.lastProcessingData.last_processing) {
+                        const startTime = moment(
+                            this.lastProcessingData.processing_date +
+                                " " +
+                                this.lastProcessingData.processing_time
+                        );
+                        const now = moment();
+                        const duration = moment.duration(now.diff(startTime));
+                        this.elapsedTime = this.formatDuration(duration);
+                    }
+
+                    // Si está completado, detener polling
+                    if (this.lastProcessingData.is_completed) {
+                        this.stopStatusPolling();
+                        this.$message.success("Procesamiento completado");
+                        this.$eventHub.$emit("reloadData");
+                    }
+                } else {
+                    this.$message.error(response.data.message);
+                }
+            } catch (error) {
+                console.error("Error verificando estado:", error);
+                this.$message.error(
+                    "Error al verificar el estado del procesamiento"
+                );
+            }
+        },
+
+        startStatusPolling() {
+            this.showProgress = true;
+            this.progressStatus = "Verificando estado del procesamiento...";
+
+            // Verificar estado inmediatamente
+            this.checkStatus();
+
+            // Configurar polling cada 10 segundos
+            this.statusInterval = setInterval(() => {
+                this.checkStatus();
+            }, 10000);
+        },
+
+        stopStatusPolling() {
+            if (this.statusInterval) {
+                clearInterval(this.statusInterval);
+                this.statusInterval = null;
+            }
+            this.showProgress = false;
+        },
+
+        formatDuration(duration) {
+            const hours = Math.floor(duration.asHours());
+            const minutes = duration.minutes();
+            const seconds = duration.seconds();
+
+            if (hours > 0) {
+                return `${hours}h ${minutes}m ${seconds}s`;
+            } else if (minutes > 0) {
+                return `${minutes}m ${seconds}s`;
+            } else {
+                return `${seconds}s`;
             }
         },
         getQueryParameters() {
@@ -194,9 +315,12 @@ export default {
         },
         create() {
             this.titleDialog = `Procesar correos por intervalo de fechas`;
+            // Verificar si hay un procesamiento en curso al abrir el diálogo
+            this.checkStatus();
         },
         close() {
             this.$emit("update:showDialog", false);
+            this.stopStatusPolling();
             this.initForm();
         }
     }

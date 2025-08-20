@@ -46,9 +46,9 @@ class SearchEmailController extends Controller
         // Configurar límites para operaciones largas
         ini_set('max_execution_time', 0); // Sin límite de tiempo
         ini_set('memory_limit', '2048M'); // Aumentar memoria
-        
+
         \Log::info("Iniciando búsqueda de emails IMAP para fechas: {$request->search_start_date} - {$request->search_end_date}");
-        
+
         $init_time = Carbon::now();
 
         $emails = $this->getEmails($request);
@@ -81,7 +81,7 @@ class SearchEmailController extends Controller
                 foreach ($all_emails_id as $key => $email_id)
                 {
                     $processed_count++;
-                    
+
                     // Log cada 10 emails procesados para hacer seguimiento
                     if ($processed_count % 10 == 0) {
                         \Log::info("Progreso: {$processed_count}/{$total_emails} emails procesados");
