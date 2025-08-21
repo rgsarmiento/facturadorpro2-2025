@@ -4449,6 +4449,19 @@ export default {
             formData.employee_payment_data = employeePaymentData;
             formData.employee_accrued_data = employeeAccruedData;
 
+            // Log para verificar que las vacaciones automáticas se incluyen en el payload
+            console.log("=== DATOS DE DEVENGADOS ANTES DEL ENVÍO ===");
+            Object.keys(employeeAccruedData).forEach(workerId => {
+                const accrued = employeeAccruedData[workerId];
+                const automaticVacations = accrued.paid_vacation.filter(vac => vac.is_automatic_provision);
+                console.log(`Empleado ${workerId}:`, {
+                    total_paid_vacations: accrued.paid_vacation.length,
+                    automatic_vacations: automaticVacations.length,
+                    automatic_vacation_data: automaticVacations
+                });
+            });
+            console.log("=== FIN DATOS DE DEVENGADOS ===");
+
             // Agregar datos de deducciones de cada empleado
             const employeeDeductionData = {};
 
@@ -4836,22 +4849,27 @@ export default {
                 isEnabled
             );
 
-            // Si el empleado seleccionado actualmente es el que cambió, actualizar la prima de servicios y deducciones
+
+            // Si el empleado seleccionado actualmente es el que cambió, actualizar la prima de servicios, vacaciones y deducciones
             if (this.selectedWorkerId == workerId) {
                 if (isEnabled) {
                     this.generateServiceBonusProvision();
+                    this.generateAutomaticVacationProvision();
                     this.enableAutomaticDeductions();
                 } else {
                     this.removeServiceBonusProvision();
+                    this.removeAutomaticVacationProvision();
                     this.disableAutomaticDeductions();
                 }
             } else {
                 // Si no es el empleado actual, trabajar con los datos guardados
                 if (isEnabled) {
                     this.generateServiceBonusProvisionForWorker(workerId);
+                    this.generateAutomaticVacationProvisionForWorker(workerId);
                     this.enableAutomaticDeductionsForWorker(workerId);
                 } else {
                     this.removeServiceBonusProvisionForWorker(workerId);
+                    this.removeAutomaticVacationProvisionForWorker(workerId);
                     this.disableAutomaticDeductionsForWorker(workerId);
                 }
             }
@@ -4860,6 +4878,100 @@ export default {
             this.$nextTick(() => {
                 this.updateGlobalGenerateProvisionsSwitch();
             });
+        },
+
+        // Generar vacaciones automáticas para el empleado actual
+        generateAutomaticVacationProvision() {
+            // Verificar si ya existe una vacación generada automáticamente
+            const existingIndex = this.form.accrued.paid_vacation.findIndex(
+                vac => vac.is_automatic_provision === true
+            );
+            if (existingIndex !== -1) {
+                return;
+            }
+
+            // Calcular fechas y valores
+            const start = this.form.period_start;
+            const end = this.form.period_end;
+            const salary = parseFloat(this.form.accrued.salary) || 0;
+            const days = 1.25;
+            // Pago proporcional: salario mensual / 30 * 1.25
+            const payment = this.roundNumber((salary / 30) * days);
+
+            const newVacation = {
+                start_end_date: [start, end],
+                quantity: days,
+                payment: payment,
+                is_automatic_provision: true
+            };
+
+            this.form.accrued.paid_vacation.push(newVacation);
+            this.calculateAccruedTotal();
+            this.saveCurrentEmployeeAccruedData();
+            this.calculateGlobalAccruedTotal();
+        },
+
+        // Remover vacaciones automáticas para el empleado actual
+        removeAutomaticVacationProvision() {
+            // Cargar datos actuales del empleado desde employeeAccruedData
+            if (this.employeeAccruedData[this.selectedWorkerId]) {
+                this.form.accrued = { ...this.employeeAccruedData[this.selectedWorkerId] };
+            }
+            
+            const idx = this.form.accrued.paid_vacation.findIndex(
+                vac => vac.is_automatic_provision === true
+            );
+            if (idx !== -1) {
+                this.form.accrued.paid_vacation.splice(idx, 1);
+                this.calculateAccruedTotal();
+                this.saveCurrentEmployeeAccruedData();
+                this.calculateGlobalAccruedTotal();
+            }
+        },
+
+        // Generar vacaciones automáticas para un empleado específico (no actual)
+        generateAutomaticVacationProvisionForWorker(workerId) {
+            const accruedData = this.employeeAccruedData[workerId] || {};
+            if (!accruedData.paid_vacation) {
+                this.$set(accruedData, 'paid_vacation', []);
+            }
+            const exists = accruedData.paid_vacation.findIndex(vac => vac.is_automatic_provision === true);
+            if (exists !== -1) {
+                return;
+            }
+
+            const start = this.employeePeriodData[workerId]?.period_start || this.form.period_start;
+            const end = this.employeePeriodData[workerId]?.period_end || this.form.period_end;
+            const salary = parseFloat(accruedData.salary) || 0;
+            const days = 1.25;
+            const payment = this.roundNumber((salary / 30) * days);
+
+            const newVacation = {
+                start_end_date: [start, end],
+                quantity: days,
+                payment: payment,
+                is_automatic_provision: true
+            };
+
+            accruedData.paid_vacation.push(newVacation);
+            
+            // Forzar reactividad completa
+            this.$set(this.employeeAccruedData, workerId, { ...accruedData });
+        },
+
+        // Remover vacaciones automáticas para un empleado específico (no actual)
+        removeAutomaticVacationProvisionForWorker(workerId) {
+            const accruedData = this.employeeAccruedData[workerId] || {};
+            if (!accruedData.paid_vacation) {
+                return;
+            }
+
+            const idx = accruedData.paid_vacation.findIndex(vac => vac.is_automatic_provision === true);
+            
+            if (idx !== -1) {
+                accruedData.paid_vacation.splice(idx, 1);
+                this.$set(this.employeeAccruedData, workerId, accruedData);
+            }
         },
 
         // Generar prima de servicios para el empleado actual
@@ -5146,7 +5258,9 @@ export default {
         // Calcular total devengado para un empleado específico
         calculateAccruedTotalForWorker(workerId) {
             const accruedData = this.employeeAccruedData[workerId];
-            if (!accruedData) return;
+            if (!accruedData) {
+                return 0;
+            }
 
             let total = 0;
 
@@ -5172,45 +5286,60 @@ export default {
 
             // Sumar vacaciones
             if (accruedData.common_vacation) {
+                let vacationTotal = 0;
                 accruedData.common_vacation.forEach(vacation => {
-                    total += toNumber(vacation.payment);
+                    vacationTotal += toNumber(vacation.payment);
                 });
+                total += vacationTotal;
             }
             if (accruedData.paid_vacation) {
+                let paidVacationTotal = 0;
                 accruedData.paid_vacation.forEach(vacation => {
-                    total += toNumber(vacation.payment);
+                    paidVacationTotal += toNumber(vacation.payment);
                 });
+                total += paidVacationTotal;
             }
 
             // Sumar bonificaciones y ayudas
             if (accruedData.bonuses) {
+                let bonusTotal = 0;
                 accruedData.bonuses.forEach(bonus => {
-                    total += toNumber(bonus.salary_bonus);
-                    total += toNumber(bonus.non_salary_bonus);
+                    bonusTotal += toNumber(bonus.salary_bonus);
+                    bonusTotal += toNumber(bonus.non_salary_bonus);
                 });
+                total += bonusTotal;
             }
             if (accruedData.aid) {
+                let aidTotal = 0;
                 accruedData.aid.forEach(aid => {
-                    total += toNumber(aid.salary_assistance);
-                    total += toNumber(aid.non_salary_assistance);
+                    aidTotal += toNumber(aid.salary_assistance);
+                    aidTotal += toNumber(aid.non_salary_assistance);
                 });
+                total += aidTotal;
             }
 
             // Sumar prestaciones sociales
             if (accruedData.service_bonus) {
+                let serviceBonusTotal = 0;
                 accruedData.service_bonus.forEach(serviceBonus => {
-                    total += toNumber(serviceBonus.payment);
-                    total += toNumber(serviceBonus.paymentNS);
+                    serviceBonusTotal += toNumber(serviceBonus.payment);
+                    serviceBonusTotal += toNumber(serviceBonus.paymentNS);
                 });
+                total += serviceBonusTotal;
             }
             if (accruedData.severance) {
+                let severanceTotal = 0;
                 accruedData.severance.forEach(severance => {
-                    total += toNumber(severance.payment);
-                    total += toNumber(severance.interest_payment);
+                    severanceTotal += toNumber(severance.payment);
+                    severanceTotal += toNumber(severance.interest_payment);
                 });
+                total += severanceTotal;
             }
 
             accruedData.accrued_total = total;
+            
+            // ✅ IMPORTANTE: Retornar el valor calculado
+            return total;
         },
 
         getTables() {
@@ -5339,41 +5468,43 @@ export default {
         },
 
         handleGlobalSwitch(value) {
-            console.log("Global switch changed to:", value);
-
             if (value) {
-                // ON: todos los switches en true y generar prima de servicios para todos
+                // ON: todos los switches en true y generar prima de servicios y vacaciones para todos
                 this.form.items.forEach(item => {
                     item.generate_provisions = true;
 
-                    // Si es el empleado actualmente seleccionado, generar su prima directamente y habilitar deducciones
+                    // Si es el empleado actualmente seleccionado, generar directamente
                     if (
                         this.selectedWorkerId &&
                         this.selectedWorkerId == item.id
                     ) {
                         this.generateServiceBonusProvision();
+                        this.generateAutomaticVacationProvision();
                         this.enableAutomaticDeductions();
                     } else {
                         // Para otros empleados, generar en sus datos guardados
                         this.generateServiceBonusProvisionForWorker(item.id);
+                        this.generateAutomaticVacationProvisionForWorker(item.id);
                         this.enableAutomaticDeductionsForWorker(item.id);
                     }
                 });
             } else {
-                // OFF: todos los switches en false y eliminar prima de servicios para todos
+                // OFF: todos los switches en false y eliminar prima de servicios y vacaciones para todos
                 this.form.items.forEach(item => {
                     item.generate_provisions = false;
 
-                    // Si es el empleado actualmente seleccionado, eliminar su prima directamente y deshabilitar deducciones
+                    // Si es el empleado actualmente seleccionado, eliminar directamente
                     if (
                         this.selectedWorkerId &&
                         this.selectedWorkerId == item.id
                     ) {
                         this.removeServiceBonusProvision();
+                        this.removeAutomaticVacationProvision();
                         this.disableAutomaticDeductions();
                     } else {
                         // Para otros empleados, eliminar de sus datos guardados
                         this.removeServiceBonusProvisionForWorker(item.id);
+                        this.removeAutomaticVacationProvisionForWorker(item.id);
                         this.disableAutomaticDeductionsForWorker(item.id);
                     }
                 });
@@ -5410,13 +5541,6 @@ export default {
             );
 
             this.globalGenerateProvisions = allEmployeesHaveProvisions;
-
-            console.log(
-                `🔄 Actualizando switch global de provisiones: ${this.globalGenerateProvisions}`,
-                `(${
-                    this.form.items.filter(w => w.generate_provisions).length
-                }/${this.form.items.length} empleados con provisiones activas)`
-            );
         },
 
         // Habilitar deducciones automáticas para el empleado actual
@@ -5437,10 +5561,6 @@ export default {
                     this.saveCurrentEmployeeDeductionData();
                     this.calculateGlobalDeductionsTotal();
                 });
-
-                console.log(
-                    `✅ Deducciones automáticas habilitadas para empleado actual`
-                );
             }
         },
 
@@ -5460,10 +5580,6 @@ export default {
                 this.saveCurrentEmployeeDeductionData();
                 this.calculateGlobalDeductionsTotal();
             });
-
-            console.log(
-                `❌ Deducciones automáticas deshabilitadas para empleado actual`
-            );
         },
 
         // Habilitar deducciones automáticas para un empleado específico
@@ -5496,10 +5612,6 @@ export default {
                 this.$nextTick(() => {
                     this.calculateGlobalDeductionsTotal();
                 });
-
-                console.log(
-                    `✅ Deducciones automáticas habilitadas para worker ${workerId}`
-                );
             }
         },
 
@@ -5538,10 +5650,6 @@ export default {
             this.$nextTick(() => {
                 this.calculateGlobalDeductionsTotal();
             });
-
-            console.log(
-                `❌ Deducciones automáticas deshabilitadas para worker ${workerId}`
-            );
         },
 
         // Calcular deducciones para un empleado específico (no actual)
@@ -5807,11 +5915,6 @@ export default {
             };
 
             this.employeeDeductionData[workerId] = { ...defaultDeductionData };
-
-            console.log(
-                `📋 Inicializado datos de deducción para empleado ${workerId}:`,
-                defaultDeductionData
-            );
         },
 
         handleWorkerSelection(workerId) {
@@ -6276,11 +6379,6 @@ export default {
                 });
             }
             // Para otros tipos de periodo (semanal, diario, etc.), no agregar fechas por defecto
-
-            console.log(
-                `Fechas de pago generadas para empleado ${workerId}:`,
-                generatedDates
-            );
 
             // También actualizar this.form.payment_dates si es el empleado actual para mantener compatibilidad
             if (workerId === this.selectedWorkerId) {
@@ -6822,27 +6920,20 @@ export default {
                 let globalTotal = 0;
                 let employeeCount = 0;
 
-                // Función helper para convertir a número de forma segura
-                const toNumber = value => {
-                    if (value === null || value === undefined || value === "")
-                        return 0;
-                    const num = parseFloat(value);
-                    return isNaN(num) ? 0 : num;
-                };
-
                 // Sumar los totales devengados de todos los empleados
                 Object.keys(this.employeeAccruedData).forEach(workerId => {
                     const employeeData = this.employeeAccruedData[workerId];
 
-                    if (employeeData && employeeData.accrued_total) {
-                        const employeeTotal = toNumber(
-                            employeeData.accrued_total
-                        );
+                    if (employeeData) {
+                        // Recalcular el total en tiempo real
+                        // en lugar de usar el valor almacenado que puede estar desactualizado
+                        const employeeTotal = this.calculateAccruedTotalForWorker(workerId);
 
-                        // Validar que el valor no sea demasiado grande (posible corrupción)
-                        if (employeeTotal > 10000000) {
-                            // Más de 10 millones parece sospechoso
-                            // Valor sospechoso, no incluir en la suma
+                        // Validar que el valor sea un número válido
+                        if (isNaN(employeeTotal) || employeeTotal === null || employeeTotal === undefined) {
+                            // Valor inválido, usar 0
+                        } else if (employeeTotal > 10000000) {
+                            // Más de 10 millones parece sospechoso, omitir
                         } else {
                             globalTotal += employeeTotal;
                             employeeCount++;
