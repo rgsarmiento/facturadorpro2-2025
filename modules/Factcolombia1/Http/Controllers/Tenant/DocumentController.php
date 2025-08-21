@@ -114,10 +114,12 @@ class DocumentController extends Controller
                 // Si no hay item_id, buscar por código interno
                 if (!$item_id && isset($item['code'])) {
                     \Log::info("Buscando item por código: " . $item['code']);
-                    $item_record = Item::where('internal_id', $item['code'])->first();
+                    $item_record = ItemP::where('internal_id', $item['code'])->first();
                     if ($item_record) {
                         $item_id = $item_record->id;
                         \Log::info("Item encontrado por código - ID: " . $item_id);
+                    } else {
+                        \Log::warning("Item no encontrado por código: " . $item['code']);
                     }
                 }
 
@@ -136,7 +138,7 @@ class DocumentController extends Controller
 
                 // Verificar si hay stock suficiente
                 if ($current_stock < $quantity) {
-                    $item_record = Item::find($item_id);
+                    $item_record = ItemP::find($item_id);
                     $item_name = $item_record ? $item_record->description : "Item ID: {$item_id}";
 
                     \Log::error("STOCK INSUFICIENTE - Producto: {$item_name}, Stock: {$current_stock}, Solicitado: {$quantity}");
