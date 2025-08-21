@@ -49,6 +49,8 @@ use App\Models\Tenant\Item as ItemP;
 use App\Models\Tenant\Person;
 use App\Models\Tenant\Document; //replace model Document of module factcolombia1
 use Modules\Inventory\Models\Warehouse as ModuleWarehouse;
+use Modules\Inventory\Models\InventoryConfiguration;
+use Modules\Inventory\Models\ItemWarehouse;
 use Modules\Document\Traits\SearchTrait;
 use Modules\Factcolombia1\Http\Resources\Tenant\DocumentCollection;
 use Modules\Factcolombia1\Http\Resources\Tenant\DocumentResource;
@@ -67,6 +69,66 @@ class DocumentController extends Controller
     const REGISTERED = 1;
     const ACCEPTED = 5;
     const REJECTED = 6;
+
+    /**
+     * Valida el stock disponible antes de procesar el documento
+     * 
+     * @param array $items Lista de items del documento
+     * @param int $establishment_id ID del establecimiento
+     * @return array|null Retorna error si no hay stock suficiente, null si todo está bien
+     */
+    private function validateStockBeforeProcessing($items, $establishment_id)
+    {
+        try {
+            // Verificar si el control de stock está habilitado
+            $inventory_configuration = InventoryConfiguration::first();
+            
+            if (!$inventory_configuration || !$inventory_configuration->stock_control) {
+                return null; // Control de stock deshabilitado
+            }
+
+            // Buscar el almacén del establecimiento
+            $warehouse = ModuleWarehouse::where('establishment_id', $establishment_id)->first();
+            
+            if (!$warehouse) {
+                return null; // No hay almacén configurado
+            }
+
+            // Validar stock para cada item
+            foreach ($items as $item) {
+                $item_id = isset($item['item_id']) ? $item['item_id'] : null;
+                $quantity = isset($item['quantity']) ? $item['quantity'] : (isset($item['invoiced_quantity']) ? $item['invoiced_quantity'] : 0);
+                
+                if (!$item_id) {
+                    continue; // Skip si no tiene item_id
+                }
+
+                // Buscar el stock actual del item en el almacén
+                $item_warehouse = ItemWarehouse::where('item_id', $item_id)
+                                                ->where('warehouse_id', $warehouse->id)
+                                                ->first();
+
+                $current_stock = $item_warehouse ? $item_warehouse->stock : 0;
+                
+                // Verificar si hay stock suficiente
+                if ($current_stock < $quantity) {
+                    $item_record = Item::find($item_id);
+                    $item_name = $item_record ? $item_record->description : "Item ID: {$item_id}";
+                    
+                    return [
+                        'success' => false,
+                        'message' => "No hay stock suficiente para el producto: {$item_name}. Stock disponible: {$current_stock}, cantidad solicitada: {$quantity}"
+                    ];
+                }
+            }
+
+            return null; // Todo bien, stock suficiente
+            
+        } catch (\Exception $e) {
+            \Log::error('Error validando stock: ' . $e->getMessage());
+            return null; // En caso de error, permitir continuar
+        }
+    }
 
     /**
      * Display a listing of the resource.
@@ -595,6 +657,22 @@ class DocumentController extends Controller
 //        \Log::debug($request->all());
         DB::connection('tenant')->beginTransaction();
         try {
+            
+            // **VALIDACIÓN DE STOCK ANTES DE ENVIAR A DIAN**
+            // Validar stock disponible antes de procesar el documento en DIAN
+            if($invoice_json === NULL && isset($request->service_invoice['invoice_lines'])) {
+                $stock_validation_error = $this->validateStockBeforeProcessing(
+                    $request->service_invoice['invoice_lines'], 
+                    auth()->user()->establishment_id
+                );
+                
+                if ($stock_validation_error) {
+                    DB::connection('tenant')->rollBack();
+                    return $stock_validation_error;
+                }
+            }
+            // **FIN VALIDACIÓN DE STOCK**
+            
             if($invoice_json !== NULL)
                 $invoice_json_decoded = json_decode($invoice_json, true);
             if(!$request->customer_id && $invoice_json === NULL){
