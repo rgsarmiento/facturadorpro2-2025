@@ -4453,7 +4453,9 @@ export default {
             console.log("=== DATOS DE DEVENGADOS ANTES DEL ENVÍO ===");
             Object.keys(employeeAccruedData).forEach(workerId => {
                 const accrued = employeeAccruedData[workerId];
-                const automaticVacations = accrued.paid_vacation.filter(vac => vac.is_automatic_provision);
+                const automaticVacations = accrued.paid_vacation.filter(
+                    vac => vac.is_automatic_provision
+                );
                 console.log(`Empleado ${workerId}:`, {
                     total_paid_vacations: accrued.paid_vacation.length,
                     automatic_vacations: automaticVacations.length,
@@ -4849,7 +4851,6 @@ export default {
                 isEnabled
             );
 
-
             // Si el empleado seleccionado actualmente es el que cambió, actualizar la prima de servicios, vacaciones y deducciones
             if (this.selectedWorkerId == workerId) {
                 if (isEnabled) {
@@ -4915,9 +4916,11 @@ export default {
         removeAutomaticVacationProvision() {
             // Cargar datos actuales del empleado desde employeeAccruedData
             if (this.employeeAccruedData[this.selectedWorkerId]) {
-                this.form.accrued = { ...this.employeeAccruedData[this.selectedWorkerId] };
+                this.form.accrued = {
+                    ...this.employeeAccruedData[this.selectedWorkerId]
+                };
             }
-            
+
             const idx = this.form.accrued.paid_vacation.findIndex(
                 vac => vac.is_automatic_provision === true
             );
@@ -4933,15 +4936,21 @@ export default {
         generateAutomaticVacationProvisionForWorker(workerId) {
             const accruedData = this.employeeAccruedData[workerId] || {};
             if (!accruedData.paid_vacation) {
-                this.$set(accruedData, 'paid_vacation', []);
+                this.$set(accruedData, "paid_vacation", []);
             }
-            const exists = accruedData.paid_vacation.findIndex(vac => vac.is_automatic_provision === true);
+            const exists = accruedData.paid_vacation.findIndex(
+                vac => vac.is_automatic_provision === true
+            );
             if (exists !== -1) {
                 return;
             }
 
-            const start = this.employeePeriodData[workerId]?.period_start || this.form.period_start;
-            const end = this.employeePeriodData[workerId]?.period_end || this.form.period_end;
+            const start =
+                this.employeePeriodData[workerId]?.period_start ||
+                this.form.period_start;
+            const end =
+                this.employeePeriodData[workerId]?.period_end ||
+                this.form.period_end;
             const salary = parseFloat(accruedData.salary) || 0;
             const days = 1.25;
             const payment = this.roundNumber((salary / 30) * days);
@@ -4954,7 +4963,7 @@ export default {
             };
 
             accruedData.paid_vacation.push(newVacation);
-            
+
             // Forzar reactividad completa
             this.$set(this.employeeAccruedData, workerId, { ...accruedData });
         },
@@ -4966,8 +4975,10 @@ export default {
                 return;
             }
 
-            const idx = accruedData.paid_vacation.findIndex(vac => vac.is_automatic_provision === true);
-            
+            const idx = accruedData.paid_vacation.findIndex(
+                vac => vac.is_automatic_provision === true
+            );
+
             if (idx !== -1) {
                 accruedData.paid_vacation.splice(idx, 1);
                 this.$set(this.employeeAccruedData, workerId, accruedData);
@@ -5337,7 +5348,7 @@ export default {
             }
 
             accruedData.accrued_total = total;
-            
+
             // ✅ IMPORTANTE: Retornar el valor calculado
             return total;
         },
@@ -5484,7 +5495,9 @@ export default {
                     } else {
                         // Para otros empleados, generar en sus datos guardados
                         this.generateServiceBonusProvisionForWorker(item.id);
-                        this.generateAutomaticVacationProvisionForWorker(item.id);
+                        this.generateAutomaticVacationProvisionForWorker(
+                            item.id
+                        );
                         this.enableAutomaticDeductionsForWorker(item.id);
                     }
                 });
@@ -6927,10 +6940,16 @@ export default {
                     if (employeeData) {
                         // Recalcular el total en tiempo real
                         // en lugar de usar el valor almacenado que puede estar desactualizado
-                        const employeeTotal = this.calculateAccruedTotalForWorker(workerId);
+                        const employeeTotal = this.calculateAccruedTotalForWorker(
+                            workerId
+                        );
 
                         // Validar que el valor sea un número válido
-                        if (isNaN(employeeTotal) || employeeTotal === null || employeeTotal === undefined) {
+                        if (
+                            isNaN(employeeTotal) ||
+                            employeeTotal === null ||
+                            employeeTotal === undefined
+                        ) {
                             // Valor inválido, usar 0
                         } else if (employeeTotal > 10000000) {
                             // Más de 10 millones parece sospechoso, omitir
