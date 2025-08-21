@@ -80,51 +80,34 @@ class DocumentController extends Controller
     private function validateStockBeforeProcessing($items, $establishment_id)
     {
         try {
-            \Log::info("=== INICIANDO VALIDACIÓN DE STOCK ===");
-            \Log::info("Establishment ID: " . $establishment_id);
-            \Log::info("Items recibidos: " . json_encode($items));
-
             // Verificar si el control de stock está habilitado
             $inventory_configuration = InventoryConfiguration::first();
-            \Log::info("Configuración inventario: " . json_encode($inventory_configuration));
 
             if (!$inventory_configuration || !$inventory_configuration->stock_control) {
-                \Log::info("Control de stock DESHABILITADO - no validando");
                 return null; // Control de stock deshabilitado
             }
 
-            \Log::info("Control de stock HABILITADO - validando...");
-
             // Buscar el almacén del establecimiento
             $warehouse = ModuleWarehouse::where('establishment_id', $establishment_id)->first();
-            \Log::info("Almacén encontrado: " . json_encode($warehouse));
 
             if (!$warehouse) {
-                \Log::warning("No hay almacén configurado para establishment_id: " . $establishment_id);
                 return null; // No hay almacén configurado
             }
 
             // Validar stock para cada item
             foreach ($items as $index => $item) {
-                \Log::info("Validando item #" . $index . ": " . json_encode($item));
-
                 $item_id = isset($item['item_id']) ? $item['item_id'] : null;
                 $quantity = isset($item['quantity']) ? $item['quantity'] : (isset($item['invoiced_quantity']) ? $item['invoiced_quantity'] : 0);
 
                 // Si no hay item_id, buscar por código interno
                 if (!$item_id && isset($item['code'])) {
-                    \Log::info("Buscando item por código: " . $item['code']);
                     $item_record = ItemP::where('internal_id', $item['code'])->first();
                     if ($item_record) {
                         $item_id = $item_record->id;
-                        \Log::info("Item encontrado por código - ID: " . $item_id);
-                    } else {
-                        \Log::warning("Item no encontrado por código: " . $item['code']);
                     }
                 }
 
                 if (!$item_id) {
-                    \Log::warning("Item sin ID válido, saltando validación");
                     continue; // Skip si no tiene item_id
                 }
 
@@ -134,14 +117,11 @@ class DocumentController extends Controller
                                                 ->first();
 
                 $current_stock = $item_warehouse ? $item_warehouse->stock : 0;
-                \Log::info("Item ID: {$item_id}, Stock actual: {$current_stock}, Cantidad solicitada: {$quantity}");
 
                 // Verificar si hay stock suficiente
                 if ($current_stock < $quantity) {
                     $item_record = ItemP::find($item_id);
                     $item_name = $item_record ? $item_record->description : "Item ID: {$item_id}";
-
-                    \Log::error("STOCK INSUFICIENTE - Producto: {$item_name}, Stock: {$current_stock}, Solicitado: {$quantity}");
 
                     return [
                         'success' => false,
@@ -151,12 +131,9 @@ class DocumentController extends Controller
                 }
             }
 
-            \Log::info("=== VALIDACIÓN DE STOCK COMPLETADA - TODO OK ===");
             return null; // Todo bien, stock suficiente
 
         } catch (\Exception $e) {
-            \Log::error('Error validando stock: ' . $e->getMessage());
-            \Log::error('Stack trace: ' . $e->getTraceAsString());
             return null; // En caso de error, permitir continuar
         }
     }
@@ -691,26 +668,16 @@ class DocumentController extends Controller
 
             // **VALIDACIÓN DE STOCK ANTES DE ENVIAR A DIAN**
             // Validar stock disponible antes de procesar el documento en DIAN
-            \Log::info("=== VERIFICANDO SI VALIDAR STOCK ===");
-            \Log::info("invoice_json: " . ($invoice_json === NULL ? 'NULL' : 'NO ES NULL'));
-            \Log::info("request->service_invoice existe: " . (isset($request->service_invoice) ? 'SI' : 'NO'));
-            \Log::info("invoice_lines existe: " . (isset($request->service_invoice['invoice_lines']) ? 'SI' : 'NO'));
-
             if($invoice_json === NULL && isset($request->service_invoice['invoice_lines'])) {
-                \Log::info("=== EJECUTANDO VALIDACIÓN DE STOCK ===");
                 $stock_validation_error = $this->validateStockBeforeProcessing(
                     $request->service_invoice['invoice_lines'],
                     auth()->user()->establishment_id
                 );
 
                 if ($stock_validation_error) {
-                    \Log::error("=== VALIDACIÓN DE STOCK FALLÓ - RETORNANDO ERROR ===");
                     DB::connection('tenant')->rollBack();
                     return $stock_validation_error;
                 }
-                \Log::info("=== VALIDACIÓN DE STOCK EXITOSA - CONTINUANDO ===");
-            } else {
-                \Log::info("=== NO SE EJECUTA VALIDACIÓN DE STOCK (condiciones no cumplidas) ===");
             }
             // **FIN VALIDACIÓN DE STOCK**
 
