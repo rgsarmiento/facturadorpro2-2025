@@ -70,23 +70,23 @@ class CashController extends Controller
         // Obtiene el ID de la resolución actual desde la solicitud, si existe
         $currentResolutionId = request()->input('current_resolution_id');
 
-        // Obtiene todas las resoluciones, pero asegura que la actualmente en uso por el registro editado esté incluida
+        // Obtiene todas las resoluciones que están siendo usadas por cajas abiertas (excluyendo la actual si existe)
         $resolutionsInUse = Cash::where('state', true)->pluck('resolution_id')->unique();
 
+        // Si hay una resolución actual, la excluimos de las "en uso" para que esté disponible
+        if ($currentResolutionId) {
+            $resolutionsInUse = $resolutionsInUse->reject(function ($id) use ($currentResolutionId) {
+                return $id == $currentResolutionId;
+            });
+        }
+
+        // Obtiene las resoluciones disponibles (no en uso) más la resolución actual si existe
         $resolutions = ConfigurationPos::select('id', 'prefix', 'resolution_number', 'date_from','date_end', 'from', 'to')
-            ->where(function ($query) use ($currentResolutionId, $resolutionsInUse) {
-            $query->whereNotIn(
-                'id',
-                $resolutionsInUse->reject(function ($id) use ($currentResolutionId) {
-                    return $id == $currentResolutionId;
-                })
-            );
-            })
-        ->orWhere('id', $currentResolutionId)
-        ->get();
+            ->whereNotIn('id', $resolutionsInUse)
+            ->orWhere('id', $currentResolutionId)
+            ->get();
 
-
-        $maxNumbersByPrefix = DocumentPos::selectRaw('prefix, MAX(CAST(number AS INTEGER)) as max_number')
+        $maxNumbersByPrefix = DocumentPos::selectRaw('prefix, MAX(CAST(number AS SIGNED)) as max_number')
             ->groupBy('prefix')
             ->get();
 

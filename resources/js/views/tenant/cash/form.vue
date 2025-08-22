@@ -60,15 +60,104 @@
                             :class="{ 'has-danger': errors.resolution_id }"
                         >
                             <label class="control-label">Resolución</label>
-                            <el-select v-model="form.resolution_id">
+                            <el-select 
+                                v-model="form.resolution_id" 
+                                placeholder="Seleccione una resolución"
+                                filterable
+                                @change="onResolutionChange"
+                            >
                                 <el-option
                                     v-for="option in resolutions"
-                                    :key="option.id + 'R'"
+                                    :key="`res-${option.id}`"
                                     :value="option.id"
-                                    :label="
-                                        `${option.prefix} / ${option.resolution_number}`
-                                    "
+                                    :label="getDisplayLabel(option)"
+                                >
+                                    {{ getDisplayLabel(option) }}
+                                </el-option>
+                            </el-select>
+                            <small
+                                class="form-control-feedback"
+                                v-if="errors.resolution_id"
+                                v-text="errors.resolution_id[0]"
+                            ></small>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="form-actions text-right mt-4">
+                <el-button @click.prevent="close()">Cancelar</el-button>
+                <el-button
+                    type="primary"
+                    native-type="submit"
+                    :loading="loading_submit"
+                    >Guardar</el-button
+                >
+            </div>
+        </form>
+    </el-dialog>
+</template>
+                            <el-select
+                                :disabled="disableUser"
+                                v-model="form.user_id"
+                            >
+                                <el-option
+                                    v-for="option in users"
+                                    :key="option.id"
+                                    :value="option.id"
+                                    :label="option.name"
                                 ></el-option>
+                            </el-select>
+                            <small
+                                class="form-control-feedback"
+                                v-if="errors.user"
+                                v-text="errors.user[0]"
+                            ></small>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div
+                            class="form-group"
+                            :class="{ 'has-danger': errors.beginning_balance }"
+                        >
+                            <label class="control-label">Saldo inicial</label>
+                            <el-input
+                                v-model="formattedBeginningBalance"
+                            ></el-input>
+                            <small
+                                class="form-control-feedback"
+                                v-if="errors.beginning_balance"
+                                v-text="errors.beginning_balance[0]"
+                            ></small>
+                        </div>
+                    </div>
+                    <!--<div class="col-md-6">
+                        <div class="form-group" :class="{'has-danger': errors.reference_number}">
+                            <label class="control-label">Número de Referencia</label>
+                            <el-input :maxlength="10" v-model="form.reference_number"></el-input>
+                            <small class="form-control-feedback" v-if="errors.reference_number" v-text="errors.reference_number[0]"></small>
+                        </div>
+                    </div>-->
+                    <div class="col-md-6" v-if="!blindCash">
+                        <!-- Solo muestra esto si no se especifico caja ciega -->
+                        <div
+                            class="form-group"
+                            :class="{ 'has-danger': errors.resolution_id }"
+                        >
+                            <label class="control-label">Resolución</label>
+                            <el-select 
+                                v-model="form.resolution_id" 
+                                placeholder="Seleccione una resolución"
+                                filterable
+                                @change="onResolutionChange"
+                            >
+                                <el-option
+                                    v-for="option in resolutions"
+                                    :key="`res-${option.id}`"
+                                    :value="option.id"
+                                    :label="getDisplayLabel(option)"
+                                >
+                                    {{ getDisplayLabel(option) }}
+                                </el-option>
                             </el-select>
                             <small
                                 class="form-control-feedback"
@@ -164,7 +253,8 @@ export default {
                 final_balance: 0,
                 income: 0,
                 state: true,
-                reference_number: null
+                reference_number: null,
+                resolution_id: null
             };
         },
 
@@ -172,29 +262,71 @@ export default {
             this.titleDialog = this.recordId
                 ? "Editar Caja chica"
                 : "Aperturar Caja chica";
+
             if (this.recordId) {
                 this.$http
                     .get(`/${this.resource}/record/${this.recordId}`)
                     .then(response => {
                         this.form = response.data.data;
+                        // Asegurar que resolution_id sea un número
+                        if (this.form.resolution_id) {
+                            this.form.resolution_id = parseInt(
+                                this.form.resolution_id
+                            );
+                        }
+
+                        // Después de cargar los datos del formulario, actualizar las resoluciones
+                        // para incluir la resolución actual en la lista
+                        this.updateResolutions();
                     });
             } else {
                 this.form.user_id = this.user.id; // Sesión
+                // Para nuevos registros, cargar resoluciones normalmente
+                this.updateResolutions();
             }
-
-            // Aquí agregamos la actualización de las resoluciones cada vez que el diálogo se abre
-            this.updateResolutions();
         },
 
         // Método para actualizar las resoluciones
         updateResolutions() {
+            // Construir la URL con el parámetro current_resolution_id si estamos editando
+            let url = `/${this.resource}/tables`;
+            if (this.recordId && this.form && this.form.resolution_id) {
+                url += `?current_resolution_id=${this.form.resolution_id}`;
+            }
+
             this.$http
-                .get(`/${this.resource}/tables`)
+                .get(url)
                 .then(response => {
-                    this.resolutions = response.data.resolutions;
-                    // Asegúrate de que el usuario actual y las opciones estén también actualizadas si es necesario
+                    this.resolutions = response.data.resolutions.map(res => ({
+                        ...res,
+                        id: parseInt(res.id)
+                    }));
+
+                    // Asegurar que el usuario actual y las opciones estén también actualizadas si es necesario
                     this.users = response.data.users;
                     this.user = response.data.user;
+
+                    // Forzar actualización del select después de cargar las resoluciones
+                    this.$nextTick(() => {
+                        if (this.form && this.form.resolution_id) {
+                            const currentResolutionId = this.form.resolution_id;
+                            const foundResolution = this.resolutions.find(
+                                res => res.id === currentResolutionId
+                            );
+                            if (foundResolution) {
+                                // Limpiar y reasignar para forzar actualización
+                                this.form.resolution_id = null;
+                                this.$nextTick(() => {
+                                    this.form.resolution_id = currentResolutionId;
+                                });
+                            } else {
+                                // Si la resolución no existe, seleccionar la primera disponible
+                                if (this.resolutions.length > 0) {
+                                    this.form.resolution_id = this.resolutions[0].id;
+                                }
+                            }
+                        }
+                    });
                 })
                 .catch(error => {
                     console.error("Error al cargar las resoluciones:", error);
@@ -257,6 +389,17 @@ export default {
         close() {
             this.$emit("update:showDialog", false);
             this.initForm();
+        },
+
+        // Método para obtener el texto de visualización de las resoluciones
+        getDisplayLabel(resolution) {
+            return `${resolution.prefix ||
+                "N/A"} / ${resolution.resolution_number || "N/A"}`;
+        },
+
+        // Método para manejar cambios en la selección de resolución
+        onResolutionChange(value) {
+            // Manejo de cambios en la selección de resolución si es necesario
         }
     }
 };
