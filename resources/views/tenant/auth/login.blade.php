@@ -15,8 +15,6 @@
                     <div class="logo-container">
                         @if ($vc_company->logo ?? false)
                             <img src="{{ asset('storage/uploads/logos/'.$vc_company->logo) }}" alt="Logo" class="company-logo" />
-                        @else
-                            <img src="{{ asset('images/backgrounds/corporate-real.jpg') }}" alt="Logo" class="company-logo" />
                         @endif
                         <h1 class="company-name">{{ $vc_company->trade_name ?? 'FacturadorPRO' }}</h1>
                         <p class="company-subtitle">Sistema de Facturación Empresarial</p>
