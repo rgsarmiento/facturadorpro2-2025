@@ -1,0 +1,9 @@
+/* 
+Esta es una imagen de fondo corporativa real en formato base64.
+Se está utilizando un placeholder de texto aquí, pero deberás reemplazarlo con una imagen real.
+
+Para implementar una imagen real:
+1. Obtén una imagen corporativa con licencia o de stock
+2. Colócala en la carpeta public/images/backgrounds/
+3. Usa el nombre 'corporate-background-real.jpg'
+*/

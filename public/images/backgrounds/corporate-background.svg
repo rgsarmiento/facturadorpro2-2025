@@ -1,0 +1,167 @@
+<!-- Generated corporate background image with SVG -->
+<svg width="3840" height="2160" viewBox="0 0 3840 2160" xmlns="http://www.w3.org/2000/svg">
+  <!-- Gradient background -->
+  <defs>
+    <linearGradient id="bgGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#1a237e" />
+      <stop offset="100%" stop-color="#283593" />
+    </linearGradient>
+    
+    <!-- Abstract pattern -->
+    <pattern id="grid" width="120" height="120" patternUnits="userSpaceOnUse">
+      <path d="M 120 0 L 0 0 0 120" fill="none" stroke="rgba(255,255,255,0.05)" stroke-width="1"/>
+    </pattern>
+    
+    <!-- Light effect -->
+    <radialGradient id="spotlight" cx="30%" cy="30%" r="70%" fx="30%" fy="30%">
+      <stop offset="0%" stop-color="rgba(255,255,255,0.15)" />
+      <stop offset="100%" stop-color="rgba(255,255,255,0)" />
+    </radialGradient>
+  </defs>
+  
+  <!-- Base background -->
+  <rect width="100%" height="100%" fill="url(#bgGradient)" />
+  
+  <!-- Grid pattern overlay -->
+  <rect width="100%" height="100%" fill="url(#grid)" />
+  
+  <!-- Light effect -->
+  <rect width="100%" height="100%" fill="url(#spotlight)" />
+  
+  <!-- Abstract geometric shapes -->
+  <g opacity="0.1" fill="#ffffff">
+    <!-- Large hexagon -->
+    <polygon points="2600,1500 2800,1800 2600,2100 2200,2100 2000,1800 2200,1500" />
+    
+    <!-- Triangles -->
+    <polygon points="800,300 1100,800 500,800" />
+    <polygon points="1800,1900 2100,1400 2400,1900" />
+    
+    <!-- Circles -->
+    <circle cx="400" cy="1700" r="300" />
+    <circle cx="3400" cy="400" r="250" />
+    
+    <!-- Lines -->
+    <g stroke="#ffffff" stroke-width="4" fill="none">
+      <line x1="0" y1="1080" x2="800" y2="1080" />
+      <line x1="3040" y1="1080" x2="3840" y2="1080" />
+      
+      <!-- Abstract circuit-like patterns -->
+      <path d="M 1200 600 L 1400 600 L 1400 800 L 1600 800 L 1600 1000 L 1800 1000" />
+      <path d="M 2600 1200 L 2400 1200 L 2400 1000 L 2200 1000 L 2200 800 L 2000 800" />
+    </g>
+    
+    <!-- Connected dots -->
+    <g>
+      <circle cx="1000" cy="1500" r="8" />
+      <circle cx="1200" cy="1600" r="8" />
+      <circle cx="1100" cy="1800" r="8" />
+      <circle cx="900" cy="1700" r="8" />
+      
+      <line x1="1000" y1="1500" x2="1200" y2="1600" stroke="#ffffff" stroke-width="2" />
+      <line x1="1200" y1="1600" x2="1100" y2="1800" stroke="#ffffff" stroke-width="2" />
+      <line x1="1100" y1="1800" x2="900" y2="1700" stroke="#ffffff" stroke-width="2" />
+      <line x1="900" y1="1700" x2="1000" y2="1500" stroke="#ffffff" stroke-width="2" />
+    </g>
+    
+    <!-- Dots pattern -->
+    <g>
+      <circle cx="2800" cy="600" r="5" />
+      <circle cx="2850" cy="600" r="5" />
+      <circle cx="2900" cy="600" r="5" />
+      <circle cx="2800" cy="650" r="5" />
+      <circle cx="2850" cy="650" r="5" />
+      <circle cx="2900" cy="650" r="5" />
+      <circle cx="2800" cy="700" r="5" />
+      <circle cx="2850" cy="700" r="5" />
+      <circle cx="2900" cy="700" r="5" />
+    </g>
+  </g>
+  
+  <!-- Subtle world map silhouette -->
+  <path d="M1920,1080 L1930,1090 L1940,1080 L1950,1085 L1960,1075 L1970,1080 L1980,1070 L1990,1080 L2000,1070 L2010,1075 L2020,1065 L2030,1070 L2040,1060 L2050,1065 L2060,1055 L2070,1060 L2080,1050 L2090,1055 L2100,1045 L2110,1050 L2120,1040 L2130,1045 L2140,1035 L2150,1040 L2160,1030 L2170,1035 L2180,1025 L2190,1030 L2200,1020 L2210,1025 L2220,1015 L2230,1020 L2240,1010 L2250,1015 L2260,1005 L2270,1010 L2280,1000 L2290,1005 L2300,995 L2310,1000 L2320,990 L2330,995 L2340,985 L2350,990 L2360,980 L2370,985 L2380,975 L2390,980 L2400,970 L2410,975 L2420,965 L2430,970 L2440,960 L2450,965 L2460,955 L2470,960 L2480,950 L2490,955 L2500,945 L2510,950 L2520,940 L2530,945 L2540,935 L2550,940 L2560,930 L2570,935 L2580,925 L2590,930 L2600,920 L2610,925 L2620,915 L2630,920 L2640,910 L2650,915 L2660,905 L2670,910 L2680,900 L2690,905 L2700,895 L2710,900 L2720,890 L2730,895 L2740,885 L2750,890 L2760,880 L2770,885 L2780,875 L2790,880 L2800,870 L2810,875 L2820,865 L2830,870 L2840,860 L2850,865 L2860,855 L2870,860 L2880,850 L2890,855 L2900,845 L2910,850 L2920,840 L2930,845 L2940,835 L2950,840 L2960,830 L2970,835 L2980,825 L2990,830 L3000,820 L3010,825 L3020,815 L3030,820 L3040,810 L3050,815 L3060,805 L3070,810 L3080,800 L3090,805 L3100,795 L3110,800 L3120,790 L3130,795 L3140,785 L3150,790 L3160,780 L3170,785 L3180,775 L3190,780 L3200,770 L3210,775 L3220,765 L3230,770 L3240,760 L3250,765 L3260,755 L3270,760 L3280,750 L3290,755 L3300,745 L3310,750 L3320,740 L3330,745 L3340,735 L3350,740 L3360,730 L3370,735 L3380,725 L3390,730 L3400,720 L3410,725 L3420,715 L3430,720 L3440,710 L3450,715 L3460,705 L3470,710 L3480,700 L3490,705 L3500,695 L3510,700 L3520,690 L3530,695 L3540,685 L3550,690 L3560,680 L3570,685 L3580,675 L3590,680 L3600,670 L3610,675 L3620,665 L3630,670 L3640,660 L3650,665 L3660,655 L3670,660 L3680,650 L3690,655 L3700,645 L3710,650 L3720,640 L3730,645 L3740,635 L3750,640 L3760,630 L3770,635 L3780,625 L3790,630 L3800,620 L3810,625 L3820,615 L3830,620 L3840,610" 
+        stroke="rgba(255,255,255,0.05)" 
+        stroke-width="10" 
+        fill="none" 
+        transform="translate(-1000, 100) scale(1.2)" />
+  
+  <!-- Corporate building silhouette -->
+  <g transform="translate(2000, 1400) scale(0.5)" opacity="0.07">
+    <rect x="-100" y="0" width="200" height="600" />
+    <rect x="-300" y="150" width="600" height="450" />
+    <rect x="-500" y="300" width="1000" height="300" />
+    <!-- Windows -->
+    <g fill="white">
+      <rect x="-80" y="50" width="40" height="40" />
+      <rect x="-20" y="50" width="40" height="40" />
+      <rect x="40" y="50" width="40" height="40" />
+      
+      <rect x="-80" y="110" width="40" height="40" />
+      <rect x="-20" y="110" width="40" height="40" />
+      <rect x="40" y="110" width="40" height="40" />
+      
+      <!-- Windows on wider sections -->
+      <rect x="-280" y="170" width="40" height="40" />
+      <rect x="-220" y="170" width="40" height="40" />
+      <rect x="-160" y="170" width="40" height="40" />
+      <rect x="-100" y="170" width="40" height="40" />
+      <rect x="-40" y="170" width="40" height="40" />
+      <rect x="20" y="170" width="40" height="40" />
+      <rect x="80" y="170" width="40" height="40" />
+      <rect x="140" y="170" width="40" height="40" />
+      <rect x="200" y="170" width="40" height="40" />
+      <rect x="260" y="170" width="40" height="40" />
+      
+      <!-- More windows -->
+      <rect x="-280" y="230" width="40" height="40" />
+      <rect x="-220" y="230" width="40" height="40" />
+      <rect x="-160" y="230" width="40" height="40" />
+      <rect x="-100" y="230" width="40" height="40" />
+      <rect x="-40" y="230" width="40" height="40" />
+      <rect x="20" y="230" width="40" height="40" />
+      <rect x="80" y="230" width="40" height="40" />
+      <rect x="140" y="230" width="40" height="40" />
+      <rect x="200" y="230" width="40" height="40" />
+      <rect x="260" y="230" width="40" height="40" />
+      
+      <!-- Bottom floor windows -->
+      <rect x="-480" y="320" width="40" height="40" />
+      <rect x="-420" y="320" width="40" height="40" />
+      <rect x="-360" y="320" width="40" height="40" />
+      <rect x="-300" y="320" width="40" height="40" />
+      <rect x="-240" y="320" width="40" height="40" />
+      <rect x="-180" y="320" width="40" height="40" />
+      <rect x="-120" y="320" width="40" height="40" />
+      <rect x="-60" y="320" width="40" height="40" />
+      <rect x="0" y="320" width="40" height="40" />
+      <rect x="60" y="320" width="40" height="40" />
+      <rect x="120" y="320" width="40" height="40" />
+      <rect x="180" y="320" width="40" height="40" />
+      <rect x="240" y="320" width="40" height="40" />
+      <rect x="300" y="320" width="40" height="40" />
+      <rect x="360" y="320" width="40" height="40" />
+      <rect x="420" y="320" width="40" height="40" />
+      
+      <!-- More bottom windows -->
+      <rect x="-480" y="380" width="40" height="40" />
+      <rect x="-420" y="380" width="40" height="40" />
+      <rect x="-360" y="380" width="40" height="40" />
+      <rect x="-300" y="380" width="40" height="40" />
+      <rect x="-240" y="380" width="40" height="40" />
+      <rect x="-180" y="380" width="40" height="40" />
+      <rect x="-120" y="380" width="40" height="40" />
+      <rect x="-60" y="380" width="40" height="40" />
+      <rect x="0" y="380" width="40" height="40" />
+      <rect x="60" y="380" width="40" height="40" />
+      <rect x="120" y="380" width="40" height="40" />
+      <rect x="180" y="380" width="40" height="40" />
+      <rect x="240" y="380" width="40" height="40" />
+      <rect x="300" y="380" width="40" height="40" />
+      <rect x="360" y="380" width="40" height="40" />
+      <rect x="420" y="380" width="40" height="40" />
+      
+      <!-- Entrance -->
+      <rect x="-60" y="500" width="120" height="100" />
+    </g>
+  </g>
+</svg>
