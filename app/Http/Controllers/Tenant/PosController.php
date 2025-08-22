@@ -178,6 +178,15 @@ class PosController extends Controller
 
         $customer = Person::where('id', $customerId)->first();
 
+        // Si no hay customer, crear uno por defecto
+        if (!$customer) {
+            $customer = (object) [
+                'name' => 'Cliente General',
+                'address' => '',
+                'city_id' => null
+            ];
+        }
+
         $company = Company::active();
         $date_of_issue = Carbon::now()->toDateString();
         $created_at = Carbon::now()->format('H:i:s');
@@ -189,9 +198,24 @@ class PosController extends Controller
             $total_linea_impuesto = 0;
 
             $item = Item::find($product->item_id);
+
+            // Asegurar que siempre hay un objeto item, incluso si no se encuentra en la base de datos
+            if (!$item) {
+                $item = (object) [
+                    'internal_id' => 'N/A',
+                    'name' => $product->item_description ?? 'Producto no encontrado',
+                    'sale_unit_price' => $product->price ?? 0,
+                    'tax_id' => null,
+                    'presentation' => null
+                ];
+            }
+
+            // Asignar el item al producto siempre
+            $product->item = $item;
+
             $taxes = Tax::select('id','rate', 'name', 'is_retention')->where('id', $item->tax_id)->first();
 
-            if ($item && $taxes) {
+            if ($item && $taxes && isset($item->tax_id)) {
                 $total_unidad = ($item->sale_unit_price * $taxes->rate) / 100;
                 $total_linea = $total_unidad * $product->quantity;
                 $total_linea_impuesto = ($total_unidad + $item->sale_unit_price) * $product->quantity;
@@ -200,16 +224,20 @@ class PosController extends Controller
                     $impuesto[$taxes->id] = [
                         'name' => $taxes->name,
                         'total' => 0,
-                        'is_retention' => $tax->is_retention ?? false,
+                        'is_retention' => $taxes->is_retention ?? false,
                     ];
                 }
 
                 $impuesto[$taxes->id]['total'] += $total_linea;
 
-                $product->item = $item;
                 $product->total_tax = $total_linea;
                 $product->subtotal = $total_linea_impuesto;
+            } else {
+                // Si no hay taxes o hay algún problema, usar valores por defecto
+                $product->total_tax = 0;
+                $product->subtotal = $item->sale_unit_price * $product->quantity;
             }
+
             $subtotal += $item->sale_unit_price * $product->quantity;
             $total_impuestos += $total_linea;
         }
@@ -750,15 +778,9 @@ class PosController extends Controller
             }
 
         }
-
-
-
         return [
             'success' => true,
             'message' => ''
         ];
-
-
     }
-
 }
