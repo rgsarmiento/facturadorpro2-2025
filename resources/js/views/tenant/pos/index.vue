@@ -55,10 +55,19 @@
                         title="Cuentas"
                         type="button"
                         :data-quantity="tables_quantity"
-                        class="btn btn-custom btn-sm mt-2 mr-2"
+                        :class="[
+                            'btn',
+                            'btn-sm',
+                            'mt-2',
+                            'mr-2',
+                            modoMesasActivo ? 'btn-success' : 'btn-custom'
+                        ]"
                         @click="cambiarContenido"
                     >
                         <i class="fa fa-receipt"></i>
+                        {{
+                            modoMesasActivo ? "Ocultar Mesas" : "Mostrar Mesas"
+                        }}
                     </button>
                     <button
                         type="button"
@@ -100,7 +109,7 @@
                 v-loading="loading"
             >
                 <div
-                    v-if="botones.length === 0"
+                    v-if="!modoMesasActivo || botones.length === 0"
                     class="col-lg-8 col-md-6 px-4 pt-3 hyo"
                 >
                     <template
@@ -543,7 +552,7 @@
                     </div>
                 </div>
                 <div
-                    v-else
+                    v-if="modoMesasActivo && botones.length > 0"
                     class="col-lg-8 col-md-6 px-4 hyo d-flex flex-wrap justify-content-center"
                     style="margin-top: 4%;"
                 >
@@ -1073,15 +1082,33 @@
             >
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h4 class="modal-title">Categorías</h4>
-                        <button
-                            type="button"
-                            class="btn btn-danger"
-                            @click="cerrarModal('modal_cuenta_categorias')"
-                            aria-label="Cerrar"
-                        >
-                            X
-                        </button>
+                        <h4 class="modal-title">
+                            Categorías
+                            <span
+                                v-if="selected_table"
+                                class="badge bg-primary ms-2"
+                            >
+                                Mesa {{ selected_table }}
+                            </span>
+                        </h4>
+                        <div class="d-flex">
+                            <button
+                                type="button"
+                                class="btn btn-secondary me-2"
+                                @click="regresarAModalOperaciones()"
+                                title="Volver al Modal de Operaciones"
+                            >
+                                <i class="fa fa-arrow-left"></i> Atrás
+                            </button>
+                            <button
+                                type="button"
+                                class="btn btn-danger"
+                                @click="regresarAModalOperaciones()"
+                                aria-label="Cerrar"
+                            >
+                                X
+                            </button>
+                        </div>
                     </div>
                     <div class="modal-body modal-body-scrollable">
                         <div v-if="categories.length === 0" class="text-center">
@@ -1135,9 +1162,15 @@
                     <div class="modal-header">
                         <h4 class="modal-title">
                             Productos
+                            <span
+                                v-if="selected_table"
+                                class="badge bg-primary ms-2"
+                            >
+                                Mesa {{ selected_table }}
+                            </span>
                             <button
                                 title="Carrito"
-                                class="btn btn-custom btn-sm"
+                                class="btn btn-custom btn-sm ms-2"
                                 @click="verCarrito(selected_table)"
                                 id="btnVerCarrito"
                             >
@@ -1149,14 +1182,24 @@
                                 <i class="fa fa-shopping-cart"></i>
                             </button>
                         </h4>
-                        <button
-                            type="button"
-                            class="btn btn-danger"
-                            @click="cerrarModal('modal_cuenta_productos')"
-                            aria-label="Cerrar"
-                        >
-                            X
-                        </button>
+                        <div class="d-flex">
+                            <button
+                                type="button"
+                                class="btn btn-secondary me-2"
+                                @click="regresarAModalCategorias()"
+                                title="Volver a Categorías"
+                            >
+                                <i class="fa fa-arrow-left"></i> Atrás
+                            </button>
+                            <button
+                                type="button"
+                                class="btn btn-danger"
+                                @click="regresarAModalCategorias()"
+                                aria-label="Cerrar"
+                            >
+                                X
+                            </button>
+                        </div>
                     </div>
 
                     <div class="modal-body modal-body-scrollable">
@@ -1232,15 +1275,33 @@
             >
                 <div class="modal-content">
                     <div class="modal-header">
-                        <h5 class="modal-title">Agregar Producto</h5>
-                        <button
-                            type="button"
-                            class="btn btn-danger"
-                            @click="cerrarModal('modal_agregar_producto')"
-                            aria-label="Cerrar"
-                        >
-                            X
-                        </button>
+                        <h5 class="modal-title">
+                            Agregar Producto
+                            <span
+                                v-if="selected_table"
+                                class="badge bg-primary ms-2"
+                            >
+                                Mesa {{ selected_table }}
+                            </span>
+                        </h5>
+                        <div class="d-flex">
+                            <button
+                                type="button"
+                                class="btn btn-secondary me-2"
+                                @click="regresarAModalProductos()"
+                                title="Volver a Productos"
+                            >
+                                <i class="fa fa-arrow-left"></i> Atrás
+                            </button>
+                            <button
+                                type="button"
+                                class="btn btn-danger"
+                                @click="regresarAModalProductos()"
+                                aria-label="Cerrar"
+                            >
+                                X
+                            </button>
+                        </div>
                     </div>
                     <div class="modal-body text-center modal-body-scrollable">
                         <p>
@@ -1494,7 +1555,7 @@
                         <button
                             type="button"
                             class="btn btn-danger"
-                            @click="cerrarModal('modal_carrito_compra')"
+                            @click="regresarDesdeCarritoAProductos()"
                             aria-label="Cerrar"
                         >
                             X
@@ -1770,11 +1831,56 @@
 
 .no-spinner {
     -moz-appearance: textfield;
+    appearance: textfield;
 }
 
 .modal-body-scrollable {
     max-height: 70vh;
     overflow-y: auto;
+}
+
+/* Z-index para modales superpuestos con mejor gestión */
+#modal_cuenta_categorias {
+    z-index: 1050;
+}
+
+#modal_cuenta_productos {
+    z-index: 1055;
+}
+
+#modal_agregar_producto {
+    z-index: 1060;
+}
+
+/* Backdrop específico para cada modal */
+.modal-backdrop.categorias {
+    z-index: 1049;
+}
+
+.modal-backdrop.productos {
+    z-index: 1054;
+}
+
+.modal-backdrop.agregar {
+    z-index: 1059;
+}
+
+/* Mejorar la transición entre modales */
+.modal.fade {
+    transition: opacity 0.2s linear;
+}
+
+/* Estilo para botones de navegación */
+.btn-regresar {
+    background-color: #6c757d;
+    border-color: #6c757d;
+    color: white;
+}
+
+.btn-regresar:hover {
+    background-color: #545b62;
+    border-color: #4e555b;
+    color: white;
 }
 
 /* Solución para problemas de z-index en modales */
@@ -1905,6 +2011,7 @@ export default {
             mesaActiva: [],
             selected_table: null,
             dbId: null,
+            categorias_modal_origen: null, // 'mesas' o 'modal_principal'
             category_selected_productos: null,
             showDialogHistoryPurchases: false,
             showDialogHistorySales: false,
@@ -1948,6 +2055,8 @@ export default {
             productosSeleccionados: [],
             pdfUrl: null,
             vistaCambiada: false,
+            modoMesasActivo: false, // Nueva variable para controlar el modo de mesas
+            categoriaSeleccionadaMesa: null, // Para recordar la categoría al navegar
             showExpenseFormModal: false,
             pdfUrl: null,
             pdfLoaded: false
@@ -1957,10 +2066,8 @@ export default {
     mounted() {
         // Verificar que jQuery y Bootstrap estén disponibles
         this.$nextTick(() => {
-            // Generar los botones de mesas automáticamente si hay tables_quantity
-            if (this.tables_quantity > 0) {
-                this.cambiarContenido();
-            }
+            // NO generar las mesas automáticamente al cargar
+            // Las mesas solo se mostrarán cuando se presione el botón "Cuentas"
         });
     },
 
@@ -2191,25 +2298,36 @@ export default {
             this.pdfLoaded = true;
         },
         cambiarContenido() {
-            if (this.vistaCambiada || this.tables_quantity <= 0) return;
+            if (this.tables_quantity <= 0) return;
 
-            this.botones = Array.from(
-                { length: this.tables_quantity },
-                (_, i) => {
-                    const mesaId = i + 1;
-                    const cuenta = this.cuentas.find(
-                        c => c.table_number === mesaId
-                    );
+            // Toggle del modo de mesas
+            this.modoMesasActivo = !this.modoMesasActivo;
 
-                    return {
-                        id: mesaId,
-                        db_id: cuenta ? cuenta.id : null,
-                        state: cuenta ? cuenta.state : 0
-                    };
-                }
-            );
+            if (this.modoMesasActivo) {
+                // Activar modo mesas: generar botones
+                this.botones = Array.from(
+                    { length: this.tables_quantity },
+                    (_, i) => {
+                        const mesaId = i + 1;
+                        const cuenta = this.cuentas.find(
+                            c => c.table_number === mesaId
+                        );
 
-            this.vistaCambiada = true;
+                        return {
+                            id: mesaId,
+                            db_id: cuenta ? cuenta.id : null,
+                            state: cuenta ? cuenta.state : 0
+                        };
+                    }
+                );
+                this.vistaCambiada = true;
+            } else {
+                // Desactivar modo mesas: limpiar botones
+                this.botones = [];
+                this.vistaCambiada = false;
+                // Regresar a la vista normal de categorías
+                this.place = "cat";
+            }
         },
         abrirModal(idBd, index) {
             try {
@@ -2278,6 +2396,7 @@ export default {
         abrirModalCategorias(selected_table, idBd) {
             this.selected_table = selected_table;
             this.dbId = idBd;
+            this.categorias_modal_origen = "mesas"; // Viene desde selector de mesas
 
             // Verificar si hay categorías
             if (!this.categories || this.categories.length === 0) {
@@ -2490,6 +2609,7 @@ export default {
             try {
                 this.getRecords2(idCategoria);
                 this.selected_table = selected_table;
+                this.categoriaSeleccionadaMesa = idCategoria; // Guardar categoría para navegación
 
                 const modalElement = document.getElementById(
                     "modal_cuenta_productos"
@@ -2617,6 +2737,309 @@ export default {
                 );
             }
         },
+        regresarAModalProductos() {
+            console.log("Ejecutando regresarAModalProductos");
+
+            // Usar eventos nativos en lugar de jQuery
+            try {
+                // Cerrar modal actual
+                const modalAgregar = document.getElementById(
+                    "modal_agregar_producto"
+                );
+                const modalProductos = document.getElementById(
+                    "modal_cuenta_productos"
+                );
+
+                if (modalAgregar && modalProductos) {
+                    // Ocultar modal actual
+                    modalAgregar.style.display = "none";
+                    modalAgregar.classList.remove("show");
+
+                    // Remover backdrop
+                    const backdrop = document.querySelector(".modal-backdrop");
+                    if (backdrop) {
+                        backdrop.remove();
+                    }
+
+                    // Mostrar modal anterior
+                    setTimeout(() => {
+                        modalProductos.style.display = "block";
+                        modalProductos.classList.add("show");
+                        document.body.classList.add("modal-open");
+
+                        // Agregar backdrop nuevo
+                        const newBackdrop = document.createElement("div");
+                        newBackdrop.className = "modal-backdrop fade show";
+                        document.body.appendChild(newBackdrop);
+                    }, 100);
+                } else {
+                    console.error("No se encontraron los modales");
+                }
+            } catch (error) {
+                console.error("Error en regresarAModalProductos:", error);
+            }
+        },
+        regresarAModalCategorias() {
+            console.log("Ejecutando regresarAModalCategorias");
+
+            // Usar eventos nativos en lugar de jQuery
+            try {
+                // Cerrar modal actual
+                const modalProductos = document.getElementById(
+                    "modal_cuenta_productos"
+                );
+                const modalCategorias = document.getElementById(
+                    "modal_cuenta_categorias"
+                );
+
+                if (modalProductos && modalCategorias) {
+                    // Ocultar modal actual
+                    modalProductos.style.display = "none";
+                    modalProductos.classList.remove("show");
+
+                    // Remover backdrop
+                    const backdrop = document.querySelector(".modal-backdrop");
+                    if (backdrop) {
+                        backdrop.remove();
+                    }
+
+                    // Mostrar modal anterior
+                    setTimeout(() => {
+                        modalCategorias.style.display = "block";
+                        modalCategorias.classList.add("show");
+                        document.body.classList.add("modal-open");
+
+                        // Agregar backdrop nuevo
+                        const newBackdrop = document.createElement("div");
+                        newBackdrop.className = "modal-backdrop fade show";
+                        document.body.appendChild(newBackdrop);
+                    }, 100);
+                } else {
+                    console.error("No se encontraron los modales");
+                }
+            } catch (error) {
+                console.error("Error en regresarAModalCategorias:", error);
+            }
+        },
+        cerrarTodosLosModales() {
+            // Función auxiliar para cerrar todos los modales
+            const modales = [
+                "modal_agregar_producto",
+                "modal_cuenta_productos",
+                "modal_cuenta_categorias"
+            ];
+
+            modales.forEach(modalId => {
+                const modal = document.getElementById(modalId);
+                if (modal) {
+                    modal.style.display = "none";
+                    modal.classList.remove("show");
+                }
+            });
+
+            // Remover todos los backdrops
+            const backdrops = document.querySelectorAll(".modal-backdrop");
+            backdrops.forEach(backdrop => backdrop.remove());
+
+            // Remover clase modal-open del body
+            document.body.classList.remove("modal-open");
+        },
+        regresarAMesas() {
+            console.log("Ejecutando regresarAMesas");
+
+            // Cerrar modal de categorías y regresar a vista de mesas
+            try {
+                const modalCategorias = document.getElementById(
+                    "modal_cuenta_categorias"
+                );
+
+                if (modalCategorias) {
+                    // Ocultar modal actual
+                    modalCategorias.style.display = "none";
+                    modalCategorias.classList.remove("show");
+
+                    // Remover backdrop
+                    const backdrop = document.querySelector(".modal-backdrop");
+                    if (backdrop) {
+                        backdrop.remove();
+                    }
+
+                    // Remover clase modal-open del body
+                    document.body.classList.remove("modal-open");
+
+                    // Resetear variables de estado
+                    this.selected_table = null;
+                    this.categoriaSeleccionadaMesa = null;
+                } else {
+                    console.error("No se encontró el modal de categorías");
+                }
+            } catch (error) {
+                console.error("Error en regresarAMesas:", error);
+            }
+        },
+        regresarAModalPrincipal() {
+            console.log("Ejecutando regresarAModalPrincipal");
+            console.log(
+                "Intentando abrir modal_cuenta (Productos en la Cuenta)"
+            );
+
+            // Cerrar modal de categorías y regresar al modal principal (cuenta)
+            try {
+                const modalCategorias = document.getElementById(
+                    "modal_cuenta_categorias"
+                );
+                const modalPrincipal = document.getElementById("modal_cuenta");
+
+                console.log(
+                    "Modal categorías encontrado:",
+                    modalCategorias ? "SÍ" : "NO"
+                );
+                console.log(
+                    "Modal principal encontrado:",
+                    modalPrincipal ? "SÍ" : "NO"
+                );
+
+                if (modalCategorias && modalPrincipal) {
+                    // Ocultar modal actual
+                    modalCategorias.style.display = "none";
+                    modalCategorias.classList.remove("show");
+
+                    // Remover backdrop
+                    const backdrop = document.querySelector(".modal-backdrop");
+                    if (backdrop) {
+                        backdrop.remove();
+                    }
+
+                    // Mostrar modal principal con un pequeño delay
+                    setTimeout(() => {
+                        console.log("Abriendo modal principal (modal_cuenta)");
+                        modalPrincipal.style.display = "block";
+                        modalPrincipal.classList.add("show");
+                        document.body.classList.add("modal-open");
+
+                        // Agregar backdrop nuevo
+                        const newBackdrop = document.createElement("div");
+                        newBackdrop.className = "modal-backdrop fade show";
+                        document.body.appendChild(newBackdrop);
+                    }, 100);
+                } else {
+                    console.error("No se encontraron los modales necesarios");
+                }
+            } catch (error) {
+                console.error("Error en regresarAModalPrincipal:", error);
+            }
+        },
+        regresarAModalOperaciones() {
+            console.log("Ejecutando regresarAModalOperaciones");
+            console.log(
+                "Regresando al modal de operaciones de mesa (modal_order)"
+            );
+
+            // Cerrar modal de categorías y regresar al modal de operaciones de mesa
+            try {
+                const modalCategorias = document.getElementById(
+                    "modal_cuenta_categorias"
+                );
+                const modalOperaciones = document.getElementById("modal_order");
+
+                console.log(
+                    "Modal categorías encontrado:",
+                    modalCategorias ? "SÍ" : "NO"
+                );
+                console.log(
+                    "Modal operaciones encontrado:",
+                    modalOperaciones ? "SÍ" : "NO"
+                );
+
+                if (modalCategorias && modalOperaciones) {
+                    // Ocultar modal actual
+                    modalCategorias.style.display = "none";
+                    modalCategorias.classList.remove("show");
+
+                    // Remover backdrop
+                    const backdrop = document.querySelector(".modal-backdrop");
+                    if (backdrop) {
+                        backdrop.remove();
+                    }
+
+                    // Mostrar modal de operaciones con un pequeño delay
+                    setTimeout(() => {
+                        console.log(
+                            "Abriendo modal de operaciones (modal_order)"
+                        );
+                        modalOperaciones.style.display = "block";
+                        modalOperaciones.classList.add("show");
+                        document.body.classList.add("modal-open");
+
+                        // Agregar backdrop nuevo
+                        const newBackdrop = document.createElement("div");
+                        newBackdrop.className = "modal-backdrop fade show";
+                        document.body.appendChild(newBackdrop);
+                    }, 100);
+                } else {
+                    console.error("No se encontraron los modales necesarios");
+                }
+            } catch (error) {
+                console.error("Error en regresarAModalOperaciones:", error);
+            }
+        },
+        regresarDesdeCarritoAProductos() {
+            console.log("Ejecutando regresarDesdeCarritoAProductos");
+            console.log("Regresando del carrito al modal de productos");
+
+            // Cerrar modal carrito y regresar al modal de productos
+            try {
+                const modalCarrito = document.getElementById(
+                    "modal_carrito_compra"
+                );
+                const modalProductos = document.getElementById(
+                    "modal_cuenta_productos"
+                );
+
+                console.log(
+                    "Modal carrito encontrado:",
+                    modalCarrito ? "SÍ" : "NO"
+                );
+                console.log(
+                    "Modal productos encontrado:",
+                    modalProductos ? "SÍ" : "NO"
+                );
+
+                if (modalCarrito && modalProductos) {
+                    // Ocultar modal actual
+                    modalCarrito.style.display = "none";
+                    modalCarrito.classList.remove("show");
+
+                    // Remover backdrop
+                    const backdrop = document.querySelector(".modal-backdrop");
+                    if (backdrop) {
+                        backdrop.remove();
+                    }
+
+                    // Mostrar modal de productos con un pequeño delay
+                    setTimeout(() => {
+                        console.log(
+                            "Abriendo modal de productos (modal_cuenta_productos)"
+                        );
+                        modalProductos.style.display = "block";
+                        modalProductos.classList.add("show");
+                        document.body.classList.add("modal-open");
+
+                        // Agregar backdrop nuevo
+                        const newBackdrop = document.createElement("div");
+                        newBackdrop.className = "modal-backdrop fade show";
+                        document.body.appendChild(newBackdrop);
+                    }, 100);
+                } else {
+                    console.error("No se encontraron los modales necesarios");
+                }
+            } catch (error) {
+                console.error(
+                    "Error en regresarDesdeCarritoAProductos:",
+                    error
+                );
+            }
+        },
         agregarProducto(selected_table) {
             const btn = document.getElementById("btnAgregarProducto");
             const spinner = btn.querySelector(".spinner-border");
@@ -2643,14 +3066,13 @@ export default {
                     if (mesaIndex !== -1) {
                         this.botones[mesaIndex].state = 1;
                     }
-                    btn.disabled = false;
-                    spinner.classList.add("d-none");
-                    this.cerrarModal("modal_agregar_producto");
                     this.$message.success(response.data.message, 3);
+                    // Regresar al modal de productos después del éxito
+                    this.regresarAModalProductos();
                 })
                 .catch(error => {
-                    btn.disabled = false;
-                    spinner.classList.add("d-none");
+                    console.error("Error al agregar producto:", error);
+                    this.$message.error("Error al agregar el producto");
                 })
                 .finally(() => {
                     btn.disabled = false;
