@@ -60,8 +60,8 @@
                             :class="{ 'has-danger': errors.resolution_id }"
                         >
                             <label class="control-label">Resolución</label>
-                            <el-select 
-                                v-model="form.resolution_id" 
+                            <el-select
+                                v-model="form.resolution_id"
                                 placeholder="Seleccione una resolución"
                                 filterable
                                 @change="onResolutionChange"

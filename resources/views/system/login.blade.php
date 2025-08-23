@@ -5,8 +5,8 @@
     <section class="body-sign">
         <div class="center-sign">
             <div class="card">
-                <div class="card card-header card-primary" style="background:#0088CC">
-                    <p class="card-title text-center">Acceso al Sistema</p>
+                <div class="carder card-primary" style="background:#0088CC">
+                    <p class="card-title text-center mb-0">Acceso al Sistema XXXX</p>
                 </div>
                 <div class="card-body">
                     <form method="POST" action="{{ route('login') }}">
@@ -44,20 +44,21 @@
                             @endif
                         </div>
                         <div class="row">
-                            <div class="col-sm-8">
+                            <div class="col-sm-8 col-12">
                                 <div class="checkbox-custom checkbox-default">
                                     <input name="remember" id="RememberMe" type="checkbox" {{ old('remember') ? 'checked' : '' }}>
                                     <label for="RememberMe">Recordarme</label>
                                 </div>
                             </div>
-                            <div class="col-sm-4 text-right">
-                                <button type="submit" class="btn btn-primary mt-2">Iniciar sesión</button>
+                            <div class="col-sm-4 col-12 text-right">
+                                <button type="submit" class="btn btn-primary mt-2 w-100 w-sm-auto">Iniciar sesión</button>
                             </div>
                         </div>
                     </form>
                 </div>
+            </div>
             <p class="text-center text-muted mt-3 mb-3">&copy; Copyright {{ date('Y') }}. Todos los derechos reservados</p>
         </div>
     </section>
 
-@endsection
+    <style

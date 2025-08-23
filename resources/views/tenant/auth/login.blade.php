@@ -109,11 +109,12 @@
     <style>
         .login-container {
             min-height: 100vh;
-            height: 100vh;
+            height: auto; /* Cambiado de 100vh a auto */
             display: flex;
             position: relative;
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            overflow: hidden;
+            overflow-y: auto; /* Permitir scroll vertical */
+            overflow-x: hidden;
         }
 
         .login-background {
@@ -374,14 +375,186 @@
         }
 
         /* Responsive */
+        @media (max-width: 1024px) and (max-height: 768px) {
+            .login-container {
+                height: auto;
+                min-height: 100vh;
+                overflow-y: auto;
+            }
+
+            .login-panel {
+                padding: 0.5rem;
+                min-height: auto;
+                align-items: flex-start;
+                padding-top: 1rem;
+            }
+
+            .login-content {
+                padding: 1.5rem 1.25rem;
+                margin: 0 auto;
+                max-width: 380px;
+            }
+
+            .login-header {
+                margin-bottom: 1.5rem;
+            }
+
+            .company-logo {
+                max-width: 80px;
+                max-height: 50px;
+                margin-bottom: 0.5rem;
+            }
+
+            .company-name {
+                font-size: 1.6rem;
+                margin-bottom: 0.25rem;
+            }
+
+            .company-subtitle {
+                font-size: 0.8rem;
+                margin-bottom: 0;
+            }
+
+            .form-title {
+                font-size: 1.3rem;
+                margin-bottom: 0.25rem;
+            }
+
+            .form-subtitle {
+                font-size: 0.85rem;
+                margin-bottom: 1.5rem;
+            }
+
+            .form-group {
+                margin-bottom: 1rem;
+            }
+
+            .form-options {
+                margin: 1rem 0 1.5rem 0;
+            }
+
+            .login-footer {
+                margin-top: 1rem;
+                padding-top: 1rem;
+            }
+        }
+
+        @media (max-width: 800px) and (max-height: 600px) {
+            .login-container {
+                height: auto;
+                min-height: 100vh;
+                overflow-y: auto;
+                padding: 0.5rem 0;
+            }
+
+            .login-panel {
+                padding: 0.25rem;
+                min-height: auto;
+                align-items: flex-start;
+                justify-content: flex-start;
+                padding-top: 0.5rem;
+            }
+
+            .login-content {
+                padding: 1rem 1rem;
+                margin: 0 auto;
+                max-width: 350px;
+                border-radius: 12px;
+            }
+
+            .login-header {
+                margin-bottom: 1rem;
+            }
+
+            .company-logo {
+                max-width: 60px;
+                max-height: 40px;
+                margin-bottom: 0.3rem;
+            }
+
+            .company-name {
+                font-size: 1.4rem;
+                margin-bottom: 0.1rem;
+            }
+
+            .company-subtitle {
+                font-size: 0.75rem;
+                margin: 0;
+            }
+
+            .form-title {
+                font-size: 1.2rem;
+                margin-bottom: 0.1rem;
+            }
+
+            .form-subtitle {
+                font-size: 0.8rem;
+                margin-bottom: 1rem;
+            }
+
+            .form-group {
+                margin-bottom: 0.8rem;
+            }
+
+            .form-label {
+                font-size: 0.8rem;
+                margin-bottom: 0.3rem;
+            }
+
+            .form-control {
+                padding: 0.6rem 0.8rem 0.6rem 2.2rem;
+                font-size: 0.9rem;
+            }
+
+            .input-icon {
+                font-size: 0.8rem;
+                left: 0.7rem;
+            }
+
+            .form-options {
+                margin: 0.8rem 0 1rem 0;
+                font-size: 0.8rem;
+            }
+
+            .btn-login {
+                padding: 0.7rem 1rem;
+                font-size: 0.9rem;
+            }
+
+            .login-footer {
+                margin-top: 0.8rem;
+                padding-top: 0.8rem;
+            }
+
+            .login-footer p {
+                font-size: 0.7rem;
+            }
+        }
+
         @media (max-width: 768px) {
+            .login-container {
+                height: auto;
+                min-height: 100vh;
+                padding: 1rem 0;
+            }
+
             .login-panel {
                 padding: 1rem;
+                max-width: 100%;
+                width: 100%;
+                margin: 0;
+                min-height: 100vh;
+                display: flex;
+                align-items: center;
+                justify-content: center;
             }
 
             .login-content {
                 padding: 2rem 1.5rem;
                 border-radius: 15px;
+                margin: auto;
+                max-width: 400px;
+                width: 100%;
             }
 
             .company-name {
@@ -391,21 +564,128 @@
             .form-title {
                 font-size: 1.5rem;
             }
+
+            .login-background {
+                background-attachment: scroll;
+            }
         }
 
         @media (max-width: 480px) {
+            .login-container {
+                overflow-y: auto;
+                height: auto;
+                min-height: 100vh;
+            }
+
+            .login-panel {
+                padding: 0.5rem;
+                min-height: 100vh;
+                max-width: 100%;
+            }
+
             .login-content {
                 padding: 1.5rem 1rem;
+                max-width: 100%;
+                margin: 1rem auto;
+                min-height: auto;
             }
 
             .company-name {
                 font-size: 1.6rem;
+                line-height: 1.2;
+            }
+
+            .company-subtitle {
+                font-size: 0.85rem;
+            }
+
+            .form-title {
+                font-size: 1.3rem;
+            }
+
+            .form-subtitle {
+                font-size: 0.85rem;
+            }
+
+            .form-control {
+                padding: 0.75rem 1rem 0.75rem 2.5rem;
+                font-size: 0.95rem;
+            }
+
+            .input-icon {
+                font-size: 0.85rem;
+                left: 0.875rem;
             }
 
             .form-options {
                 flex-direction: column;
                 gap: 1rem;
                 align-items: flex-start;
+            }
+
+            .btn-login {
+                padding: 0.875rem 1.25rem;
+                font-size: 0.95rem;
+            }
+        }
+
+        @media (max-width: 360px) {
+            .login-content {
+                padding: 1rem 0.75rem;
+                margin: 0.5rem auto;
+            }
+
+            .company-name {
+                font-size: 1.4rem;
+            }
+
+            .form-title {
+                font-size: 1.2rem;
+            }
+        }
+
+        /* Asegurar que no haya scroll horizontal */
+        @media (max-width: 768px) {
+            html, body {
+                overflow-x: hidden;
+            }
+            
+            .login-container {
+                overflow-x: hidden;
+                width: 100%;
+            }
+        }
+
+        /* Mejorar altura mínima en dispositivos móviles */
+        @media (max-height: 600px) and (max-width: 768px) {
+            .login-panel {
+                min-height: auto;
+                padding: 0.5rem;
+            }
+
+            .login-content {
+                padding: 1.5rem 1rem;
+            }
+
+            .login-header {
+                margin-bottom: 1.5rem;
+            }
+
+            .form-options {
+                margin: 1rem 0 1.5rem 0;
+            }
+        }
+
+        /* Ajuste específico para resoluciones problemáticas */
+        @media (min-width: 800px) and (max-width: 1024px) and (max-height: 768px) {
+            .login-panel {
+                align-items: flex-start;
+                padding-top: 2rem;
+            }
+            
+            .login-content {
+                max-height: 90vh;
+                overflow-y: auto;
             }
         }
 
