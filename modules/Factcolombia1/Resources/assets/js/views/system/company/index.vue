@@ -537,12 +537,12 @@ export default {
                         user_id: serviceCompany ? serviceCompany.user_id : null
                     };
                 });
-                
+
                 // Procesamos los datos para convertir valores de switches a booleanos
                 this.records = this.processRecordsData(rawRecords);
-                
+
                 // Debug: Verificar los valores de los switches
-                console.log('🔍 Valores de switches después del procesamiento:', 
+                console.log('🔍 Valores de switches después del procesamiento:',
                     this.records.slice(0, 3).map(r => ({
                         id: r.id,
                         locked_user: r.locked_user,
