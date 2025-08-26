@@ -13,7 +13,8 @@ const mix = require('laravel-mix');
 
 mix.js('resources/js/app.js', 'public/js')
    .sass('resources/sass/style.scss', 'public/css/app.css')
-   .sass('resources/sass/auth.scss', 'public/css/auth.css');
+   .sass('resources/sass/auth.scss', 'public/css/auth.css')
+   .sass('modules/Factcolombia1/Resources/assets/sass/app.scss', 'public/css/factcolombia1.css');
 
 mix.webpackConfig({
     resolve: {
