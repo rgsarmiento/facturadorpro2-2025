@@ -174,40 +174,40 @@
 
                             <td class="td-modern text-center" v-if="currentUserId === 1 || currentUserId === 2">
                                 <el-switch
-                                    v-model="row.locked_user"
-                                    @change="changeLockedUser(row)"
+                                    :value="!!row.locked_user"
+                                    @change="(val) => { row.locked_user = val; changeLockedUser(row); }"
                                     active-color="#ff4949"
-                                    inactive-color="#13ce66">
+                                    inactive-color="#dcdfe6">
                                 </el-switch>
                             </td>
 
                             <td class="td-modern text-center" v-if="currentUserId === 1 || currentUserId === 2">
                                 <template v-if="!row.locked">
                                     <el-switch
-                                        v-model="row.locked"
-                                        @change="changeLockedTenant(row)"
+                                        :value="!!row.locked"
+                                        @change="(val) => { row.locked = val; changeLockedTenant(row); }"
                                         active-color="#ff4949"
-                                        inactive-color="#13ce66">
+                                        inactive-color="#dcdfe6">
                                     </el-switch>
                                 </template>
                             </td>
 
                             <td class="td-modern text-center" v-if="currentUserId === 1 || currentUserId === 2">
                                 <el-switch
-                                    v-model="row.locked_emission"
-                                    @change="changeLockedEmission(row)"
+                                    :value="!!row.locked_emission"
+                                    @change="(val) => { row.locked_emission = val; changeLockedEmission(row); }"
                                     active-color="#ff4949"
-                                    inactive-color="#13ce66">
+                                    inactive-color="#dcdfe6">
                                 </el-switch>
                             </td>
 
                             <td class="td-modern text-center" v-if="currentUserId === 1 || currentUserId === 2">
                                 <template v-if="!row.locked">
                                     <el-switch
-                                        v-model="row.allow_seller_login"
-                                        @change="changeAllowSellerLoginTenant(row)"
+                                        :value="!!row.allow_seller_login"
+                                        @change="(val) => { row.allow_seller_login = val; changeAllowSellerLoginTenant(row); }"
                                         active-color="#13ce66"
-                                        inactive-color="#ff4949">
+                                        inactive-color="#dcdfe6">
                                     </el-switch>
                                 </template>
                             </td>
@@ -340,6 +340,25 @@ export default {
 //    },
 
     methods: {
+        // Convertir valores a booleanos para los switches
+        convertToBoolean(value) {
+            if (typeof value === 'boolean') return value;
+            if (typeof value === 'string') return value === '1' || value.toLowerCase() === 'true';
+            if (typeof value === 'number') return value === 1;
+            return false;
+        },
+
+        // Procesar datos para convertir valores de switches a booleanos
+        processRecordsData(records) {
+            return records.map(record => ({
+                ...record,
+                locked_user: this.convertToBoolean(record.locked_user),
+                locked: this.convertToBoolean(record.locked),
+                locked_emission: this.convertToBoolean(record.locked_emission),
+                allow_seller_login: this.convertToBoolean(record.allow_seller_login)
+            }));
+        },
+
         //obtener el id del ususario de la session activa
         getCurrentUser() {
             axios.get(`/${this.resource}/current-user`)
@@ -511,13 +530,33 @@ export default {
                         return map;
                     }, {});
                     // Construimos el array de records usando el mapa
-                    this.records = response.data.data.map(company => {
+                    const rawRecords = response.data.data.map(company => {
                     const serviceCompany = serviceMap[String(company.identification_number)];
                     return {
                         ...company,
                         user_id: serviceCompany ? serviceCompany.user_id : null
                     };
                 });
+                
+                // Procesamos los datos para convertir valores de switches a booleanos
+                this.records = this.processRecordsData(rawRecords);
+                
+                // Debug: Verificar los valores de los switches
+                console.log('🔍 Valores de switches después del procesamiento:', 
+                    this.records.slice(0, 3).map(r => ({
+                        id: r.id,
+                        locked_user: r.locked_user,
+                        locked: r.locked,
+                        locked_emission: r.locked_emission,
+                        allow_seller_login: r.allow_seller_login,
+                        tipos: {
+                            locked_user: typeof r.locked_user,
+                            locked: typeof r.locked,
+                            locked_emission: typeof r.locked_emission,
+                            allow_seller_login: typeof r.allow_seller_login
+                        }
+                    }))
+                );
             });
 //            console.log(this.records)
         },
