@@ -33,6 +33,7 @@ class BlockPayroll extends ModelTenant
         'accrued_total',
         'deductions_total',
         'payload',
+        'block_payroll_json',
         'resolution_id',
         'state_block_id',
     ];
@@ -51,6 +52,7 @@ class BlockPayroll extends ModelTenant
         'date_of_issue' => 'date',
         'time_of_issue' => 'time',
         'payload' => 'array',
+        'block_payroll_json' => 'array',
         'period_start_virtual' => 'date',
         'period_end_virtual' => 'date',
     ];

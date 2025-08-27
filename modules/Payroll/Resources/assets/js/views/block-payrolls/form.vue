@@ -3930,6 +3930,58 @@
             ref="componentDocumentPayrollExtraHours"
         >
         </document-payroll-extra-hours>
+
+        <!-- Modal de progreso para generación de documentos -->
+        <el-dialog
+            title="Generando Documentos de Nómina"
+            :visible.sync="showProgressModal"
+            width="50%"
+            :close-on-click-modal="false"
+            :close-on-press-escape="false"
+            :show-close="false"
+        >
+            <div class="progress-container">
+                <div class="text-center mb-3">
+                    <h4>Procesando empleados...</h4>
+                    <p v-if="progressData.currentEmployee">
+                        <strong>Empleado actual:</strong> {{ progressData.currentEmployee }}
+                    </p>
+                </div>
+
+                <div class="progress-stats mb-3">
+                    <div class="row">
+                        <div class="col-md-4 text-center">
+                            <strong>{{ progressData.current }}</strong> de <strong>{{ progressData.total }}</strong>
+                            <br><small>Empleados procesados</small>
+                        </div>
+                        <div class="col-md-4 text-center">
+                            <strong>{{ progressData.percentage }}%</strong>
+                            <br><small>Progreso</small>
+                        </div>
+                        <div class="col-md-4 text-center">
+                            <i class="fa fa-spinner fa-spin" v-if="progressData.isProcessing"></i>
+                            <strong v-if="progressData.isProcessing">Procesando...</strong>
+                            <strong v-else class="text-success">Completado</strong>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Barra de progreso -->
+                <el-progress
+                    :percentage="progressData.percentage"
+                    :show-text="false"
+                    :stroke-width="20"
+                    status="success"
+                ></el-progress>
+
+                <div class="text-center mt-3" v-if="!progressData.isProcessing">
+                    <p class="text-success">
+                        <i class="fa fa-check-circle"></i>
+                        ¡Proceso completado exitosamente!
+                    </p>
+                </div>
+            </div>
+        </el-dialog>
     </div>
 </template>
 
@@ -4063,7 +4115,17 @@ export default {
             quantity_days_year: 360, // Días del año para cálculos laborales (360 días comerciales)
 
             // Dialog para horas extras
-            showDialogDocumentPayrollExtraHours: false
+            showDialogDocumentPayrollExtraHours: false,
+
+            // Variables para indicador de progreso
+            showProgressModal: false,
+            progressData: {
+                current: 0,
+                total: 0,
+                percentage: 0,
+                currentEmployee: '',
+                isProcessing: false
+            }
         };
     },
 
@@ -4648,49 +4710,300 @@ export default {
                     );
                 });
         },
-        saveAndGenerate() {
+
+        async saveAndGenerate() {
+            // Validar unicidad del período en modo crear
+            if (!this.editMode) {
+                const isUniquePeriod = await this.validatePeriodUniqueness();
+                if (!isUniquePeriod) {
+                    return; // No continuar si el período ya existe
+                }
+            }
+
             this.loading_submit = true;
 
-            this.saveCurrentEmployeeAccruedData();
+            // Función helper para convertir a número de forma segura
+            const toNumber = value => {
+                if (value === null || value === undefined || value === "")
+                    return 0;
+                const num = parseFloat(value);
+                return isNaN(num) ? 0 : num;
+            };
 
-            // Calcular y actualizar el total global antes de enviar
-            this.calculateGlobalAccruedTotal();
+            // Obtener todos los trabajadores cargados
+            const selectedWorkers = this.form.items.map(worker => worker.id);
 
-            this.validate();
-
-            if (this.hasErrors()) {
-                this.loading_submit = false;
+            if (selectedWorkers.length === 0) {
                 this.$message.error(
-                    "Por favor corrige los errores antes de continuar"
+                    "No hay trabajadores disponibles para procesar"
                 );
+                this.loading_submit = false;
                 return;
             }
 
-            const url = this.editMode
-                ? `/${this.resource}/${this.form.id}/update-and-generate`
-                : `/${this.resource}/store-and-generate`;
+            // Inicializar modal de progreso
+            this.progressData = {
+                current: 0,
+                total: selectedWorkers.length,
+                percentage: 0,
+                currentEmployee: '',
+                isProcessing: true
+            };
+            this.showProgressModal = true;
 
-            const method = this.editMode ? "PUT" : "POST";
+            // Simular progreso visual empleado por empleado
+            this.simulateEmployeeProgress(selectedWorkers);
 
-            this.$http[method.toLowerCase()](url, this.form)
-                .then(response => {
-                    if (response.data.success) {
-                        this.$message.success(response.data.message);
-                        // Redirigir al listado después de guardar/editar
-                        setTimeout(() => {
-                            window.location.href = "/payroll/block-payrolls";
-                        }, 1500);
-                        console.log("✅ Guardado y generación exitosos");
-                    } else {
-                        this.$message.error(response.data.message);
-                    }
-                })
-                .catch(error => {
-                    this.loading_submit = false;
-                    this.$message.error(
-                        "Error al guardar y generar el bloque de nómina"
+            // Preparar datos para enviar (igual que saveWithoutGenerate pero para generar documentos)
+            const formData = {
+                selected_workers: selectedWorkers,
+                resolution_id: this.form.type_document_id,
+                date_of_issue: this.form.date_of_issue,
+                time_of_issue: this.form.time_of_issue,
+                general_period_start: this.form.period_start,
+                general_period_end: this.form.period_end,
+                establishment_id: this.form.establishment_id,
+                establishment_data: this.form.establishment,
+                notes: this.form.notes || '',
+                head_note: this.form.head_note || '',
+                foot_note: this.form.foot_note || ''
+            };
+
+            // Agregar datos de periodo de cada empleado
+            const employeePeriodData = {};
+            selectedWorkers.forEach(workerId => {
+                const periodData = this.employeePeriodData[workerId] || {};
+                const currentWorker = this.form.items.find(
+                    item => item.id === workerId
+                );
+
+                employeePeriodData[workerId] = {
+                    worker_id: workerId,
+                    salary:
+                        periodData.salary ||
+                        (currentWorker ? currentWorker.salary : 0),
+                    worked_days: periodData.worked_days || 30,
+                    admision_date: periodData.admision_date || "",
+                    worked_time: this.calculateWorkedDays(
+                        periodData.admision_date || ""
+                    ),
+                    payroll_period: periodData.payroll_period_id || 5,
+                    generate_provisions: currentWorker
+                        ? currentWorker.generate_provisions
+                        : false
+                };
+            });
+
+            // Agregar datos de pago de cada empleado
+            const employeePaymentData = {};
+            selectedWorkers.forEach(workerId => {
+                const paymentData = this.employeePaymentData[workerId] || {};
+
+                let paymentDates = paymentData.payment_dates || [];
+                if (paymentDates.length === 0 && !this.editMode) {
+                    paymentDates = this.generateDefaultPaymentDatesForEmployee(
+                        workerId
                     );
-                });
+                }
+
+                employeePaymentData[workerId] = {
+                    worker_id: workerId,
+                    payment_method_id: paymentData.payment_method_id || null,
+                    bank_name: paymentData.bank_name || "",
+                    account_type: paymentData.account_type || "",
+                    account_number: paymentData.account_number || "",
+                    payment_dates: paymentDates
+                };
+            });
+
+            // Agregar datos de devengados de cada empleado
+            const employeeAccruedData = {};
+            selectedWorkers.forEach(workerId => {
+                if (!this.employeeAccruedData[workerId]) {
+                    const currentWorker = this.form.items.find(
+                        item => item.id === workerId
+                    );
+                    const workerSalary =
+                        parseFloat(currentWorker ? currentWorker.salary : 0) ||
+                        0;
+                    const transportationAllowance = this.calculateTransportationAllowanceForWorker(
+                        workerSalary
+                    );
+
+                    this.$set(this.employeeAccruedData, workerId, {
+                        total_base_salary: workerSalary,
+                        worked_days: 30,
+                        salary: workerSalary,
+                        transportation_allowance: transportationAllowance,
+                        accrued_total: workerSalary + transportationAllowance,
+                        common_vacation: [],
+                        paid_vacation: [],
+                        service_bonus: [],
+                        severance: [],
+                        work_disabilities: [],
+                        bonuses: [],
+                        aid: [],
+                        telecommuting: 0,
+                        endowment: 0,
+                        sustenance_support: 0,
+                        withdrawal_bonus: 0,
+                        compensation: 0,
+                        salary_viatics: 0,
+                        non_salary_viatics: 0,
+                        refund: 0,
+                        heds: [],
+                        hens: [],
+                        hrns: [],
+                        heddfs: [],
+                        hrddfs: [],
+                        hendfs: [],
+                        hrndfs: [],
+                        total_extra_hours: 0
+                    });
+                }
+
+                const accruedData = this.employeeAccruedData[workerId] || {};
+
+                employeeAccruedData[workerId] = {
+                    worker_id: workerId,
+                    total_base_salary: toNumber(accruedData.total_base_salary),
+                    worked_days: parseInt(accruedData.worked_days) || 0,
+                    salary: toNumber(accruedData.salary),
+                    transportation_allowance: toNumber(
+                        accruedData.transportation_allowance
+                    ),
+                    accrued_total: toNumber(accruedData.accrued_total),
+                    common_vacation: accruedData.common_vacation || [],
+                    paid_vacation: accruedData.paid_vacation || [],
+                    service_bonus: accruedData.service_bonus || [],
+                    severance: accruedData.severance || [],
+                    work_disabilities: accruedData.work_disabilities || [],
+                    bonuses: accruedData.bonuses || [],
+                    aid: accruedData.aid || [],
+                    telecommuting: toNumber(accruedData.telecommuting),
+                    endowment: toNumber(accruedData.endowment),
+                    sustenance_support: toNumber(
+                        accruedData.sustenance_support
+                    ),
+                    withdrawal_bonus: toNumber(accruedData.withdrawal_bonus),
+                    compensation: toNumber(accruedData.compensation),
+                    salary_viatics: toNumber(accruedData.salary_viatics),
+                    non_salary_viatics: toNumber(
+                        accruedData.non_salary_viatics
+                    ),
+                    refund: toNumber(accruedData.refund),
+                    heds: accruedData.heds || [],
+                    hens: accruedData.hens || [],
+                    hrns: accruedData.hrns || [],
+                    heddfs: accruedData.heddfs || [],
+                    hrddfs: accruedData.hrddfs || [],
+                    hendfs: accruedData.hendfs || [],
+                    hrndfs: accruedData.hrndfs || [],
+                    total_extra_hours: toNumber(accruedData.total_extra_hours)
+                };
+            });
+
+            // Agregar datos de deducciones de cada empleado
+            const employeeDeductionData = {};
+            selectedWorkers.forEach(workerId => {
+                const deductionData =
+                    this.employeeDeductionData[workerId] || {};
+
+                employeeDeductionData[workerId] = {
+                    worker_id: workerId,
+                    eps_type_law_deductions_id:
+                        deductionData.eps_type_law_deductions_id || null,
+                    eps_deduction: toNumber(deductionData.eps_deduction),
+                    pension_type_law_deductions_id:
+                        deductionData.pension_type_law_deductions_id || null,
+                    pension_deduction: toNumber(deductionData.pension_deduction),
+                    fondossp_type_law_deductions_id:
+                        deductionData.fondossp_type_law_deductions_id || null,
+                    fondosp_deduction_SP: toNumber(
+                        deductionData.fondosp_deduction_SP
+                    ),
+                    fondossp_sub_type_law_deductions_id:
+                        deductionData.fondossp_sub_type_law_deductions_id || null,
+                    fondosp_deduction_sub: toNumber(
+                        deductionData.fondosp_deduction_sub
+                    ),
+                    deductions_total: toNumber(deductionData.deductions_total),
+                    labor_union: deductionData.labor_union || [],
+                    sanctions: deductionData.sanctions || [],
+                    afc: toNumber(deductionData.afc),
+                    refund: toNumber(deductionData.refund),
+                    debt: toNumber(deductionData.debt),
+                    education: toNumber(deductionData.education),
+                    voluntary_pension: toNumber(
+                        deductionData.voluntary_pension
+                    ),
+                    withholding_at_source: toNumber(
+                        deductionData.withholding_at_source
+                    ),
+                    cooperative: toNumber(deductionData.cooperative),
+                    tax_liens: toNumber(deductionData.tax_liens),
+                    supplementary_plan: toNumber(
+                        deductionData.supplementary_plan
+                    )
+                };
+            });
+
+            // Agregar los objetos completos al formData
+            formData.employee_period_data = employeePeriodData;
+            formData.employee_payment_data = employeePaymentData;
+            formData.employee_accrued_data = employeeAccruedData;
+            formData.employee_deduction_data = employeeDeductionData;
+
+            try {
+                // Determinar URL según modo
+                const url = this.editMode
+                    ? `/${this.resource}/${this.blockPayrollId}/save-and-generate`
+                    : `/${this.resource}/save-and-generate`;
+
+                const response = await this.$http.post(url, formData);
+
+                if (response.data.success) {
+                    const data = response.data.data;
+                    const errors = response.data.errors || [];
+
+                    let message = `Bloque guardado exitosamente. `;
+                    message += `Documentos generados: ${data.successful_documents}/${data.total_workers}`;
+
+                    if (errors.length > 0) {
+                        message += `. Errores: ${errors.length}`;
+                        this.$message.warning(message);
+
+                        // Mostrar errores específicos
+                        errors.forEach(error => {
+                            this.$message.error(error);
+                        });
+                    } else {
+                        this.$message.success(message);
+                    }
+
+                    // Cerrar el modal de progreso
+                    this.showProgressModal = false;
+
+                    // Redirigir al listado después de un breve delay
+                    setTimeout(() => {
+                        window.location.href = "/payroll/block-payrolls";
+                    }, 2000);
+
+                } else {
+                    this.$message.error(
+                        response.data.message ||
+                            "Error al guardar y generar el bloque de nómina"
+                    );
+                }
+            } catch (error) {
+                console.error("Error en saveAndGenerate:", error);
+                this.$message.error(
+                    "Error al procesar la solicitud de guardar y generar"
+                );
+            } finally {
+                this.loading_submit = false;
+                this.showProgressModal = false; // Cerrar modal en caso de error
+            }
         },
 
         validatePeriodDates() {
@@ -7865,6 +8178,45 @@ export default {
                 this.calculateDeductionsTotal();
                 this.calculateGlobalDeductionsTotal();
             });
+        },
+
+        // Simular progreso visual por empleado
+        simulateEmployeeProgress(selectedWorkers) {
+            let currentIndex = 0;
+            const updateProgress = () => {
+                if (currentIndex < selectedWorkers.length) {
+                    // Encontrar el empleado actual
+                    const currentWorker = this.form.items.find(
+                        item => item.id === selectedWorkers[currentIndex]
+                    );
+
+                    // Actualizar progreso
+                    this.progressData.current = currentIndex + 1;
+                    this.progressData.percentage = Math.round(((currentIndex + 1) / selectedWorkers.length) * 100);
+                    this.progressData.currentEmployee = currentWorker ?
+                        (currentWorker.search_fullname || currentWorker.fullname) :
+                        `Empleado ID: ${selectedWorkers[currentIndex]}`;
+
+                    currentIndex++;
+
+                    // Simular tiempo de procesamiento por empleado (1-2 segundos)
+                    const processingTime = Math.random() * 1000 + 1000; // Entre 1 y 2 segundos
+                    setTimeout(updateProgress, processingTime);
+                } else {
+                    // Completar progreso
+                    this.progressData.isProcessing = false;
+                    this.progressData.percentage = 100;
+                    this.progressData.currentEmployee = '';
+
+                    // Cerrar modal después de 2 segundos
+                    setTimeout(() => {
+                        this.showProgressModal = false;
+                    }, 2000);
+                }
+            };
+
+            // Iniciar simulación
+            setTimeout(updateProgress, 300);
         }
     },
 
@@ -7892,5 +8244,44 @@ input[type="radio"] {
     width: 16px !important;
     height: 16px !important;
     position: static !important;
+}
+
+/* Estilos para el modal de progreso */
+.progress-container {
+    padding: 20px 0;
+}
+
+.progress-stats {
+    background-color: #f8f9fa;
+    padding: 15px;
+    border-radius: 8px;
+    border: 1px solid #e9ecef;
+}
+
+.progress-stats .col-md-4 {
+    border-right: 1px solid #dee2e6;
+}
+
+.progress-stats .col-md-4:last-child {
+    border-right: none;
+}
+
+.progress-stats strong {
+    font-size: 1.2em;
+    color: #495057;
+}
+
+.progress-stats small {
+    color: #6c757d;
+    font-size: 0.85em;
+}
+
+.fa-spinner {
+    color: #007bff;
+    font-size: 1.2em;
+}
+
+.text-success strong {
+    color: #28a745 !important;
 }
 </style>

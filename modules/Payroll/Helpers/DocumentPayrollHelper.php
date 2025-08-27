@@ -3,6 +3,7 @@
 namespace Modules\Payroll\Helpers;
 
 use App\CoreFacturalo\Requests\Inputs\Common\EstablishmentInput;
+use Modules\Payroll\Helpers\WorkerInput;
 use Illuminate\Support\Str;
 use Modules\Factcolombia1\Helpers\HttpConnectionApi;
 use Modules\Factcolombia1\Models\TenantService\{

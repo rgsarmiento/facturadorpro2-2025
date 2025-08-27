@@ -32,9 +32,13 @@ if($hostname) {
                     Route::get('table/{table}', 'BlockPayrollController@table');
                     Route::post('', 'BlockPayrollController@store');
                     Route::post('store-without-generate', 'BlockPayrollController@storeWithoutGenerate');
+                    Route::post('save-and-generate', 'BlockPayrollController@saveAndGenerate');
+                    Route::post('{record}/save-and-generate', 'BlockPayrollController@saveAndGenerate');
                     Route::post('check-period-exists', 'BlockPayrollController@checkPeriodExists');
                     Route::put('update-block/{record}', 'BlockPayrollController@updateBlock');
                     Route::get('record/{record}', 'BlockPayrollController@record');
+                    Route::get('{record}', 'BlockPayrollController@show');
+                    Route::get('generate-pdf/{record}', 'BlockPayrollController@generatePDF');
                     Route::get('active-workers', 'BlockPayrollController@activeWorkers');
                     Route::get('downloadFile/{filename}', 'BlockPayrollController@downloadFile');
                     Route::post('send-email', 'BlockPayrollController@sendEmail');

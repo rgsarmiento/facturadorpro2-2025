@@ -77,12 +77,12 @@
                             <th class="th-modern">Empresa</th>
                             <th class="th-modern">Correo</th>
                             <th class="th-modern">Subdominio</th>
-                            <th class="th-modern">Plan</th>
+<!--                            <th class="th-modern">Plan</th> -->
                             <th class="th-modern text-center">Lim. docs</th>
                             <th class="th-modern text-center">Lim. usr</th>
                             <th class="th-modern text-center">Docs</th>
                             <th class="th-modern text-center" v-if="currentUserId === 1 || currentUserId === 2">Acciones</th>
-                            <th class="th-modern text-center" v-if="currentUserId === 1 || currentUserId === 2">Usuario</th>
+<!--                            <th class="th-modern text-center" v-if="currentUserId === 1 || currentUserId === 2">Usuario</th>    -->
                             <th class="th-modern text-center" v-if="currentUserId === 1 || currentUserId === 2">Limitar Docs.</th>
                             <th class="th-modern text-center" v-if="currentUserId === 1 || currentUserId === 2">Bloquear cuenta</th>
                             <th class="th-modern text-center" v-if="currentUserId === 1 || currentUserId === 2">Emis bloq</th>
@@ -100,7 +100,7 @@
                                 <span class="identification-text">{{ row.identification_number }}</span>
                             </td>
                             <td class="td-modern">
-                                <strong class="company-name">{{ row.name }}</strong>
+                                <span class="company-name">{{ row.name }}</span>
                             </td>
                             <td class="td-modern">
                                 <span class="email-text">{{ row.email }}</span>
@@ -108,9 +108,9 @@
                             <td class="td-modern">
                                 <span class="subdomain-text">{{ row.hostname }}</span>
                             </td>
-                            <td class="td-modern">
+<!--                            <td class="td-modern">
                                 <span class="plan-text">{{ row.plan }}</span>
-                            </td>
+                            </td>   -->
                             <td class="td-modern text-center">
                                 <span class="limit-text">{{ row.limit_documents }}</span>
                             </td>
@@ -161,7 +161,7 @@
                                 </div>
                             </td>
 
-                            <td class="td-modern text-center" v-if="currentUserId === 1 || currentUserId === 2">
+<!--                            <td class="td-modern text-center" v-if="currentUserId === 1 || currentUserId === 2">
                                 <el-select v-model="row.user_id" @change="assignUser(row)" size="mini" placeholder="Usuario" style="width: 120px;">
                                     <el-option
                                         v-for="user in users"
@@ -170,7 +170,7 @@
                                         :value="user.id">
                                     </el-option>
                                 </el-select>
-                            </td>
+                            </td>   -->
 
                             <td class="td-modern text-center" v-if="currentUserId === 1 || currentUserId === 2">
                                 <el-switch

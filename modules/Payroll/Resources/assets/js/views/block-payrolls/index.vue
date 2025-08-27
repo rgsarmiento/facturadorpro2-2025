@@ -88,17 +88,27 @@
                 </data-table>
             </div>
         </div>
+
+        <!-- Dialog de opciones -->
+        <block-payroll-options
+            :showDialog.sync="showDialogBlockPayrollsOptions"
+            :recordId="recordId"
+        />
     </div>
 </template>
 
 <script>
 import DataTable from "@components/DataTableResource.vue";
+import BlockPayrollOptions from "./partials/options.vue";
 import { deletable } from "@mixins/deletable";
 
 export default {
     mixins: [deletable],
 
-    components: { DataTable },
+    components: {
+        DataTable,
+        BlockPayrollOptions
+    },
 
     data() {
         return {
