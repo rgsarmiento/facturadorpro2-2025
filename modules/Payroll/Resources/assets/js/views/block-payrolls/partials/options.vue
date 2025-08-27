@@ -1,9 +1,9 @@
 <template>
-    <el-dialog 
-        :title="titleDialog" 
-        :visible="showDialog" 
-        @open="loadData" 
-        width="40%" 
+    <el-dialog
+        :title="titleDialog"
+        :visible="showDialog"
+        @open="loadData"
+        width="40%"
         append-to-body
         :close-on-click-modal="false"
         :close-on-press-escape="false"
@@ -18,8 +18,8 @@
                             <strong>Fecha de Emisión:</strong> {{ blockData.date_of_issue }}
                         </div>
                         <div class="col-md-6">
-                            <strong>Estado:</strong> 
-                            <span 
+                            <strong>Estado:</strong>
+                            <span
                                 class="badge ml-2"
                                 :class="{
                                     'bg-secondary text-white': blockData.state_block_id === 1,
@@ -36,7 +36,7 @@
                             <strong>Cantidad Empleados:</strong> {{ blockData.workers_quantity }}
                         </div>
                         <div class="col-md-6">
-                            <strong>Período:</strong> 
+                            <strong>Período:</strong>
                             {{ formatPeriod(blockData.period_start_date, blockData.period_end_date) }}
                         </div>
                     </div>
@@ -54,23 +54,82 @@
                             ${{ getFormatDecimal(calculateBlockTotal(blockData.accrued_total, blockData.deductions_total)) }}
                         </div>
                     </div>
+
+                    <!-- Sección de validaciones de empleados -->
+                    <div v-if="blockData.block_payroll_json_responses && Object.keys(blockData.block_payroll_json_responses).length > 0" class="mt-4">
+                        <h5 class="mb-3">Estado de Validación por Empleado</h5>
+                        <div class="validation-summary mb-3">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <span class="badge bg-success">{{ getValidCount() }} Válidos</span>
+                                </div>
+                                <div class="col-md-4">
+                                    <span class="badge bg-danger">{{ getInvalidCount() }} Inválidos</span>
+                                </div>
+                                <div class="col-md-4">
+                                    <span class="badge bg-warning">{{ getPendingCount() }} Pendientes</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="validation-details" style="max-height: 200px; overflow-y: auto;">
+                            <table class="table table-sm table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Empleado</th>
+                                        <th>Estado</th>
+                                        <th>Método</th>
+                                        <th>Procesado</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr v-for="(response, workerId) in blockData.block_payroll_json_responses" :key="workerId">
+                                        <td>{{ response.worker_name }}</td>
+                                        <td>
+                                            <span
+                                                class="badge"
+                                                :class="{
+                                                    'bg-success': response.is_valid === true,
+                                                    'bg-danger': response.is_valid === false,
+                                                    'bg-warning': response.is_valid === null || response.is_valid === undefined
+                                                }"
+                                            >
+                                                {{ response.is_valid === true ? 'Válido' : response.is_valid === false ? 'Inválido' : 'Pendiente' }}
+                                            </span>
+                                        </td>
+                                        <td>
+                                            <small class="text-muted">
+                                                {{ response.validation_method === 'direct_isValid' ? 'Directo' :
+                                                   response.validation_method === 'zipkey_query' ? 'ZipKey' :
+                                                   'Sin método' }}
+                                            </small>
+                                        </td>
+                                        <td>
+                                            <small class="text-muted">
+                                                {{ formatDateTime(response.processed_at) }}
+                                            </small>
+                                        </td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
 
         <span slot="footer" class="dialog-footer">
             <el-button @click="clickClose">Cerrar</el-button>
-            <el-button 
+            <el-button
                 v-if="blockData && blockData.state_block_id !== 5"
-                type="warning" 
+                type="warning"
                 icon="el-icon-upload"
                 @click="sendPending"
                 :loading="sendingPending"
             >
                 Enviar faltantes
             </el-button>
-            <el-button 
-                type="primary" 
+            <el-button
+                type="primary"
                 icon="el-icon-download"
                 @click="generatePDF"
                 :loading="generatingPDF"
@@ -84,7 +143,7 @@
 <script>
 export default {
     props: ['showDialog', 'recordId'],
-    
+
     data() {
         return {
             titleDialog: 'Opciones del Bloque de Nómina',
@@ -96,11 +155,11 @@ export default {
             errors: {}
         }
     },
-    
+
     methods: {
         loadData() {
             if (!this.recordId) return;
-            
+
             this.loading = true;
             this.$http.get(`/${this.resource}/${this.recordId}`)
                 .then(response => {
@@ -123,27 +182,27 @@ export default {
             }
 
             this.generatingPDF = true;
-            
+
             this.$http.get(`/${this.resource}/generate-pdf/${this.recordId}`, {
                 responseType: 'blob'
             })
             .then(response => {
                 // Crear un blob con la respuesta
                 const blob = new Blob([response.data], { type: 'application/pdf' });
-                
+
                 // Crear un enlace temporal para descargar
                 const link = document.createElement('a');
                 link.href = window.URL.createObjectURL(blob);
                 link.download = `bloque_nomina_${this.recordId}.pdf`;
-                
+
                 // Agregar al DOM, hacer click y remover
                 document.body.appendChild(link);
                 link.click();
                 document.body.removeChild(link);
-                
+
                 // Limpiar el objeto URL
                 window.URL.revokeObjectURL(link.href);
-                
+
                 this.$message.success('PDF generado exitosamente');
             })
             .catch(error => {
@@ -177,7 +236,7 @@ export default {
 
             // Placeholder para la funcionalidad futura
             this.$message.info('Funcionalidad "Enviar faltantes" será implementada próximamente');
-            
+
             // TODO: Implementar la lógica para enviar documentos faltantes
             // this.sendingPending = true;
             // this.$http.post(`/${this.resource}/send-pending/${this.recordId}`)
@@ -223,6 +282,46 @@ export default {
             return `${startDate} - ${endDate}`;
         },
 
+        getValidCount() {
+            if (!this.blockData || !this.blockData.block_payroll_json_responses) {
+                return 0;
+            }
+            return Object.values(this.blockData.block_payroll_json_responses)
+                .filter(response => response.is_valid === true).length;
+        },
+
+        getInvalidCount() {
+            if (!this.blockData || !this.blockData.block_payroll_json_responses) {
+                return 0;
+            }
+            return Object.values(this.blockData.block_payroll_json_responses)
+                .filter(response => response.is_valid === false).length;
+        },
+
+        getPendingCount() {
+            if (!this.blockData || !this.blockData.block_payroll_json_responses) {
+                return 0;
+            }
+            return Object.values(this.blockData.block_payroll_json_responses)
+                .filter(response => response.is_valid === null || response.is_valid === undefined).length;
+        },
+
+        formatDateTime(dateTimeString) {
+            if (!dateTimeString) return 'N/A';
+            try {
+                const date = new Date(dateTimeString);
+                return date.toLocaleString('es-CO', {
+                    year: 'numeric',
+                    month: '2-digit',
+                    day: '2-digit',
+                    hour: '2-digit',
+                    minute: '2-digit'
+                });
+            } catch (e) {
+                return 'N/A';
+            }
+        },
+
         clickClose() {
             this.$emit('update:showDialog', false);
             this.blockData = null;
@@ -248,5 +347,23 @@ export default {
 
 .bg-danger {
     background-color: #dc3545 !important;
+}
+
+.bg-warning {
+    background-color: #ffc107 !important;
+    color: #212529 !important;
+}
+
+.validation-summary .badge {
+    margin-right: 10px;
+}
+
+.validation-details {
+    border: 1px solid #dee2e6;
+    border-radius: 0.375rem;
+}
+
+.table-sm td, .table-sm th {
+    padding: 0.3rem;
 }
 </style>

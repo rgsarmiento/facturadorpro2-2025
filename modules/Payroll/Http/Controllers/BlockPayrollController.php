@@ -772,12 +772,13 @@ class BlockPayrollController extends Controller
 
             // Preparar los JSONs individuales para cada empleado
             $employeeJsons = [];
+            $apiResponses = [];
             $generatedDocuments = [];
             $errors = [];
             $processedCount = 0;
 
             $data = DB::connection('tenant')->transaction(function () use (
-                $request, $blockPayroll, &$employeeJsons, &$generatedDocuments,
+                $request, $blockPayroll, &$employeeJsons, &$apiResponses, &$generatedDocuments,
                 &$errors, &$processedCount, $totalWorkers
             ) {
                 Log::info("Iniciando transacción DB");
@@ -823,8 +824,26 @@ class BlockPayrollController extends Controller
 
                         if ($documentResult['success']) {
                             $generatedDocuments[] = $documentResult['document_id'];
+
+                            // Procesar respuesta de la API para obtener validación
+                            $responseValidation = $this->processApiResponse(
+                                $documentResult['document'],
+                                $workerId
+                            );
+
+                            $apiResponses[$workerId] = $responseValidation;
                         } else {
                             $errors[] = "Error generando documento para {$worker->fullname}: " . $documentResult['message'];
+
+                            // Guardar error en respuestas
+                            $apiResponses[$workerId] = [
+                                'worker_id' => $workerId,
+                                'worker_name' => $worker->fullname,
+                                'document_id' => null,
+                                'is_valid' => false,
+                                'error' => $documentResult['message'],
+                                'processed_at' => now()->toDateTimeString()
+                            ];
                         }
 
                         $processedCount++;
@@ -838,10 +857,47 @@ class BlockPayrollController extends Controller
                     }
                 }
 
-                // Actualizar el bloque con los JSONs generados y cambiar estado
+                // Determinar el estado del bloque basado en las validaciones individuales
+                $allValid = true;
+                $hasProcessingErrors = count($errors) > 0;
+                $validCount = 0;
+                $invalidCount = 0;
+                $pendingCount = 0;
+
+                // Analizar las respuestas de validación
+                foreach ($apiResponses as $response) {
+                    if (isset($response['is_valid'])) {
+                        if ($response['is_valid'] === true) {
+                            $validCount++;
+                        } elseif ($response['is_valid'] === false) {
+                            $invalidCount++;
+                            $allValid = false;
+                        } else {
+                            $pendingCount++;
+                            $allValid = false;
+                        }
+                    } else {
+                        $pendingCount++;
+                        $allValid = false;
+                    }
+                }
+
+                // Determinar estado del bloque:
+                // 5 = Aceptado: Solo si NO hay errores de procesamiento Y TODAS las validaciones son válidas
+                // 1 = Registrado: Si hay errores de procesamiento O alguna validación es inválida/pendiente
+                $blockState = ($hasProcessingErrors || !$allValid) ? 1 : 5;
+
+                Log::info("Determinando estado del bloque:");
+                Log::info("- Errores de procesamiento: " . ($hasProcessingErrors ? 'SÍ' : 'NO'));
+                Log::info("- Todas las validaciones válidas: " . ($allValid ? 'SÍ' : 'NO'));
+                Log::info("- Válidos: {$validCount}, Inválidos: {$invalidCount}, Pendientes: {$pendingCount}");
+                Log::info("- Estado resultante: " . ($blockState === 5 ? 'Aceptado' : 'Registrado'));
+
+                // Actualizar el bloque con los JSONs generados, respuestas y cambiar estado
                 $blockPayroll->update([
                     'block_payroll_json' => $employeeJsons,
-                    'state_block_id' => count($errors) > 0 ? 1 : 5, // 1 = Registrado (con errores), 5 = Procesado (exitoso)
+                    'block_payroll_json_responses' => $apiResponses,
+                    'state_block_id' => $blockState,
                 ]);
 
                 return [
@@ -849,14 +905,27 @@ class BlockPayrollController extends Controller
                     'generated_documents' => $generatedDocuments,
                     'total_workers' => $totalWorkers,
                     'successful_documents' => count($generatedDocuments),
+                    'valid_documents' => $validCount,
+                    'invalid_documents' => $invalidCount,
+                    'pending_documents' => $pendingCount,
                     'errors' => $errors,
-                    'processed_count' => $processedCount
+                    'processed_count' => $processedCount,
+                    'all_valid' => $allValid,
+                    'block_state' => $blockState === 5 ? 'Aceptado' : 'Registrado'
                 ];
             });
 
-            $message = count($errors) > 0
-                ? "Bloque guardado con {$data['successful_documents']} documentos generados exitosamente y " . count($errors) . " errores"
-                : "Bloque guardado y todos los documentos generados exitosamente";
+            // Crear mensaje descriptivo basado en los resultados
+            $message = '';
+            if (count($errors) > 0) {
+                $message = "Bloque guardado con {$data['successful_documents']} documentos generados y " . count($errors) . " errores de procesamiento.";
+            } elseif (!$data['all_valid']) {
+                $message = "Bloque guardado. Documentos: {$data['valid_documents']} válidos, {$data['invalid_documents']} inválidos, {$data['pending_documents']} pendientes.";
+            } else {
+                $message = "Bloque guardado y ACEPTADO. Todos los {$data['valid_documents']} documentos fueron procesados y validados exitosamente.";
+            }
+
+            $message .= " Estado: {$data['block_state']}.";
 
             return [
                 'success' => true,
@@ -874,6 +943,91 @@ class BlockPayrollController extends Controller
             return [
                 'success' => false,
                 'message' => 'Error al guardar y generar el bloque de nómina: ' . $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Recalcular y actualizar el estado de un bloque basado en las validaciones individuales
+     */
+    public function recalculateBlockState($blockId)
+    {
+        try {
+            $blockPayroll = BlockPayroll::findOrFail($blockId);
+            $responses = $blockPayroll->block_payroll_json_responses;
+
+            if (!$responses || empty($responses)) {
+                return [
+                    'success' => false,
+                    'message' => 'No hay respuestas de validación para analizar'
+                ];
+            }
+
+            $validCount = 0;
+            $invalidCount = 0;
+            $pendingCount = 0;
+            $allValid = true;
+
+            // Analizar las respuestas de validación
+            foreach ($responses as $response) {
+                if (isset($response['is_valid'])) {
+                    if ($response['is_valid'] === true) {
+                        $validCount++;
+                    } elseif ($response['is_valid'] === false) {
+                        $invalidCount++;
+                        $allValid = false;
+                    } else {
+                        $pendingCount++;
+                        $allValid = false;
+                    }
+                } else {
+                    $pendingCount++;
+                    $allValid = false;
+                }
+            }
+
+            // Determinar nuevo estado: Solo Aceptado si TODAS las validaciones son válidas
+            $newState = $allValid ? 5 : 1;
+            $currentState = $blockPayroll->state_block_id;
+
+            // Actualizar solo si hay cambio de estado
+            if ($currentState !== $newState) {
+                $blockPayroll->update(['state_block_id' => $newState]);
+
+                Log::info("Estado del bloque {$blockId} actualizado de {$currentState} a {$newState}");
+
+                return [
+                    'success' => true,
+                    'message' => 'Estado del bloque actualizado exitosamente',
+                    'data' => [
+                        'previous_state' => $currentState,
+                        'new_state' => $newState,
+                        'state_name' => $newState === 5 ? 'Aceptado' : 'Registrado',
+                        'valid_count' => $validCount,
+                        'invalid_count' => $invalidCount,
+                        'pending_count' => $pendingCount,
+                        'all_valid' => $allValid
+                    ]
+                ];
+            } else {
+                return [
+                    'success' => true,
+                    'message' => 'El estado del bloque no requiere actualización',
+                    'data' => [
+                        'current_state' => $currentState,
+                        'state_name' => $currentState === 5 ? 'Aceptado' : 'Registrado',
+                        'valid_count' => $validCount,
+                        'invalid_count' => $invalidCount,
+                        'pending_count' => $pendingCount,
+                        'all_valid' => $allValid
+                    ]
+                ];
+            }
+
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'message' => 'Error al recalcular el estado del bloque: ' . $e->getMessage()
             ];
         }
     }
@@ -1232,6 +1386,9 @@ class BlockPayrollController extends Controller
                 'response_api' => $response
             ]);
 
+            // Recargar el documento para obtener la respuesta actualizada
+            $document->refresh();
+
             return [
                 'success' => true,
                 'document_id' => $document->id,
@@ -1268,6 +1425,302 @@ class BlockPayrollController extends Controller
             // Si falla el parseo, devolver fecha actual
             return date('Y-m-d');
         }
+    }
+
+    /**
+     * Procesar respuesta de la API para determinar validez del documento
+     */
+    private function processApiResponse($document, $workerId)
+    {
+        try {
+            $worker = Worker::find($workerId);
+            $response = $document->response_api;
+
+            Log::info("Procesando respuesta API para worker {$workerId}");
+            Log::info("Response API: " . json_encode($response));
+
+            $responseData = [
+                'worker_id' => $workerId,
+                'worker_name' => $worker ? $worker->fullname : "Worker #{$workerId}",
+                'document_id' => $document->id,
+                'is_valid' => false,
+                'original_api_response' => $response, // Siempre guardar la respuesta original
+                'processed_at' => now()->toDateTimeString()
+            ];
+
+            // Convertir a array si es objeto para facilitar la búsqueda
+            if (is_object($response)) {
+                $response = json_decode(json_encode($response), true);
+            }
+
+            // Caso 1: La respuesta contiene directamente isValid
+            $isValidFound = $this->searchIsValidInResponse($response);
+            if ($isValidFound !== null) {
+                $responseData['is_valid'] = $isValidFound;
+                $responseData['validation_method'] = 'direct_isValid';
+                Log::info("IsValid encontrado directamente: " . ($isValidFound ? 'true' : 'false'));
+                return $responseData;
+            }
+
+            // Caso 2: La respuesta contiene ZipKey, necesita consulta adicional
+            $zipKey = $this->searchZipKeyInResponse($response);
+            if ($zipKey) {
+                Log::info("ZipKey encontrado: {$zipKey}");
+                $responseData['zip_key'] = $zipKey;
+
+                // Realizar consulta al método queryZipkey
+                $zipKeyValidation = $this->queryZipKeyValidation($document->id, $zipKey);
+
+                if ($zipKeyValidation && isset($zipKeyValidation['success']) && $zipKeyValidation['success']) {
+                    // Guardar también la respuesta de la consulta ZipKey
+                    $responseData['zipkey_query_response'] = $zipKeyValidation;
+
+                    $zipKeyIsValid = $this->searchIsValidInResponse($zipKeyValidation);
+                    if ($zipKeyIsValid !== null) {
+                        $responseData['is_valid'] = $zipKeyIsValid;
+                        $responseData['validation_method'] = 'zipkey_query_isvalid';
+                        Log::info("IsValid de ZipKey encontrado: " . ($zipKeyIsValid ? 'true' : 'false'));
+                        return $responseData;
+                    } else {
+                        // Si no se encuentra isValid, analizar el mensaje para determinar autorización
+                        $isValidFromMessage = $this->analyzeAuthorizationMessage($zipKeyValidation, $document);
+                        $responseData['is_valid'] = $isValidFromMessage;
+                        $responseData['validation_method'] = 'zipkey_query_message';
+
+                        if ($isValidFromMessage) {
+                            Log::info("Nómina autorizada según mensaje para worker {$workerId}");
+                        } else {
+                            Log::info("Nómina NO autorizada según mensaje para worker {$workerId}");
+                        }
+
+                        return $responseData;
+                    }
+                } else {
+                    $responseData['error'] = 'Error al consultar ZipKey';
+                    $responseData['validation_method'] = 'zipkey_query_error';
+                    $responseData['zipkey_query_response'] = $zipKeyValidation;
+                    Log::error("Error consultando ZipKey para worker {$workerId}: " . json_encode($zipKeyValidation));
+                    return $responseData;
+                }
+            }
+
+            // Caso 3: No se encontró ni isValid ni ZipKey
+            $responseData['error'] = 'No se encontró isValid ni ZipKey en la respuesta';
+            $responseData['validation_method'] = 'no_validation_found';
+            Log::warning("No se encontró validación para worker {$workerId}");
+            Log::warning("Respuesta completa analizada: " . json_encode($response));
+            return $responseData;
+
+        } catch (\Exception $e) {
+            Log::error("Error procesando respuesta API para worker {$workerId}: " . $e->getMessage());
+            return [
+                'worker_id' => $workerId,
+                'worker_name' => $worker ? $worker->fullname : "Worker #{$workerId}",
+                'document_id' => $document->id,
+                'is_valid' => false,
+                'original_api_response' => $document->response_api ?? null,
+                'error' => 'Error procesando respuesta: ' . $e->getMessage(),
+                'validation_method' => 'processing_error',
+                'processed_at' => now()->toDateTimeString()
+            ];
+        }
+    }
+
+    /**
+     * Buscar el campo isValid en cualquier nivel de la respuesta
+     */
+    private function searchIsValidInResponse($response, $maxDepth = 15, $currentDepth = 0, $path = '')
+    {
+        if ($currentDepth >= $maxDepth) {
+            return null;
+        }
+
+        if (is_array($response) || is_object($response)) {
+            foreach ($response as $key => $value) {
+                $currentPath = $path ? $path . '.' . $key : $key;
+
+                // Verificar múltiples variaciones de isValid
+                $keyLower = strtolower($key);
+                if (in_array($keyLower, ['isvalid', 'is_valid', 'valid', 'esvalido', 'valido'])) {
+                    Log::info("Campo isValid encontrado en ruta: {$currentPath} con valor: " . json_encode($value));
+                    return (bool) $value;
+                }
+
+                // Búsqueda recursiva en objetos/arrays anidados
+                if (is_array($value) || is_object($value)) {
+                    $result = $this->searchIsValidInResponse($value, $maxDepth, $currentDepth + 1, $currentPath);
+                    if ($result !== null) {
+                        return $result;
+                    }
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Buscar el campo ZipKey en cualquier nivel de la respuesta
+     */
+    private function searchZipKeyInResponse($response, $maxDepth = 15, $currentDepth = 0, $path = '')
+    {
+        if ($currentDepth >= $maxDepth) {
+            return null;
+        }
+
+        if (is_array($response) || is_object($response)) {
+            foreach ($response as $key => $value) {
+                $currentPath = $path ? $path . '.' . $key : $key;
+
+                // Verificar múltiples variaciones de ZipKey
+                $keyLower = strtolower($key);
+                if (in_array($keyLower, ['zipkey', 'zip_key', 'zipcode', 'zip'])) {
+                    Log::info("Campo ZipKey encontrado en ruta: {$currentPath} con valor: " . json_encode($value));
+                    return $value;
+                }
+
+                // Búsqueda recursiva en objetos/arrays anidados
+                if (is_array($value) || is_object($value)) {
+                    $result = $this->searchZipKeyInResponse($value, $maxDepth, $currentDepth + 1, $currentPath);
+                    if ($result !== null) {
+                        return $result;
+                    }
+                }
+            }
+        }
+
+        return null;
+    }
+
+    /**
+     * Realizar consulta de validación usando ZipKey
+     */
+    private function queryZipKeyValidation($documentId, $zipKey)
+    {
+        try {
+            // Crear una instancia del controlador de documentos
+            $documentController = app(\Modules\Payroll\Http\Controllers\DocumentPayrollController::class);
+
+            // Crear un request simulado para el método queryZipkey
+            $request = new Request(['id' => $documentId]);
+
+            // Llamar al método queryZipkey
+            $result = $documentController->queryZipkey($request);
+
+            Log::info("Resultado de queryZipkey para documento {$documentId}: " . json_encode($result));
+
+            return $result;
+
+        } catch (\Exception $e) {
+            Log::error("Error en queryZipKeyValidation: " . $e->getMessage());
+            return [
+                'success' => false,
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Analizar mensaje de autorización para determinar si la nómina fue autorizada
+     */
+    private function analyzeAuthorizationMessage($zipKeyResponse, $document)
+    {
+        try {
+            // Buscar el campo message en la respuesta
+            $message = $this->searchFieldInResponse($zipKeyResponse, ['message', 'mensaje', 'msg']);
+
+            if (!$message) {
+                Log::warning("No se encontró mensaje en la respuesta ZipKey para documento {$document->id}");
+                return false;
+            }
+
+            Log::info("Analizando mensaje de autorización: {$message}");
+
+            // Obtener información del documento para construir el patrón esperado
+            $documentPayroll = DocumentPayroll::find($document->id);
+            if (!$documentPayroll) {
+                Log::error("No se encontró el documento de nómina {$document->id}");
+                return false;
+            }
+
+            // Construir el patrón de mensaje de autorización
+            $prefix = $documentPayroll->prefix ?? 'NI';
+            $consecutive = $documentPayroll->consecutive;
+
+            // Patrones de mensajes de autorización exitosa
+            $authorizationPatterns = [
+                "/00\s*-\s*Procesado\s+Correctamente\.\s*-\s*La\s+Nomina\s+Individual\s+{$prefix}-{$consecutive},\s+ha\s+sido\s+autorizada\./i",
+                "/00\s*-\s*Procesado\s+Correctamente\.\s*-\s*La\s+Nómina\s+Individual\s+{$prefix}-{$consecutive},\s+ha\s+sido\s+autorizada\./i",
+                "/Procesado\s+Correctamente.*{$prefix}-{$consecutive}.*autorizada/i",
+                "/autorizada.*{$prefix}-{$consecutive}/i",
+                "/00.*Procesado.*Correctamente/i"
+            ];
+
+            // Verificar si el mensaje coincide con algún patrón de autorización
+            foreach ($authorizationPatterns as $pattern) {
+                if (preg_match($pattern, $message)) {
+                    Log::info("Mensaje de autorización coincide con patrón: {$pattern}");
+                    return true;
+                }
+            }
+
+            // Verificar patrones de error comunes
+            $errorPatterns = [
+                "/error/i",
+                "/rechazada/i",
+                "/no\s+autorizada/i",
+                "/fallida/i",
+                "/inválida/i",
+                "/no\s+válida/i"
+            ];
+
+            foreach ($errorPatterns as $pattern) {
+                if (preg_match($pattern, $message)) {
+                    Log::info("Mensaje indica error/rechazo con patrón: {$pattern}");
+                    return false;
+                }
+            }
+
+            // Si no coincide con ningún patrón conocido, loggear para análisis
+            Log::warning("Mensaje no coincide con patrones conocidos: {$message}");
+            return false;
+
+        } catch (\Exception $e) {
+            Log::error("Error analizando mensaje de autorización: " . $e->getMessage());
+            return false;
+        }
+    }
+
+    /**
+     * Buscar un campo específico en cualquier nivel de la respuesta
+     */
+    private function searchFieldInResponse($response, $fieldNames, $maxDepth = 10, $currentDepth = 0)
+    {
+        if ($currentDepth >= $maxDepth) {
+            return null;
+        }
+
+        if (is_array($response) || is_object($response)) {
+            foreach ($response as $key => $value) {
+                // Verificar si la clave actual coincide con algún nombre de campo
+                $keyLower = strtolower($key);
+                foreach ($fieldNames as $fieldName) {
+                    if ($keyLower === strtolower($fieldName)) {
+                        return $value;
+                    }
+                }
+
+                // Búsqueda recursiva en objetos/arrays anidados
+                if (is_array($value) || is_object($value)) {
+                    $result = $this->searchFieldInResponse($value, $fieldNames, $maxDepth, $currentDepth + 1);
+                    if ($result !== null) {
+                        return $result;
+                    }
+                }
+            }
+        }
+
+        return null;
     }
 
     /**
