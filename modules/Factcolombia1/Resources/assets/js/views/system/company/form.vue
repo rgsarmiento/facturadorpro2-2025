@@ -29,7 +29,7 @@
                     <div class="col-md-6">
                         <div class="form-group" :class="{'has-danger': errors.name}">
                             <label class="control-label">Nombre de la Empresa</label>
-                            <el-input  v-model="form.name" :disabled="form.is_update"></el-input>
+                            <el-input  v-model="form.name" :maxlength="120" :disabled="form.is_update"></el-input>
                             <small class="form-control-feedback" v-if="errors.name" v-text="errors.name[0]"></small>
                         </div>
                     </div>

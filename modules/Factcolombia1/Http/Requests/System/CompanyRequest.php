@@ -23,7 +23,7 @@ class CompanyRequest extends FormRequest
     public function rules() {
         return [
             'identification_number' => 'required|numeric|digits_between:1,15|unique:co_companies,identification_number',
-            'name' => 'required|max:50',
+            'name' => 'required|max:120',
             'email' => 'required|email|max:50|unique:co_companies,email',
             // 'subdomain' => 'required|alpha|max:10|unique:co_companies,subdomain',
             'subdomain' => 'required|max:10|unique:co_companies,subdomain',
