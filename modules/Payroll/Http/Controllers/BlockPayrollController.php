@@ -33,6 +33,7 @@ use Illuminate\Support\Facades\Log;
 use Exception;
 use Modules\Payroll\Helpers\DocumentPayrollHelper;
 use Modules\Factcolombia1\Http\Controllers\Tenant\DocumentController;
+use Modules\Factcolombia1\Helpers\HttpConnectionApi;
 use PDF;
 use Modules\Factcolombia1\Models\TenantService\Company;
 use Modules\Payroll\Traits\UtilityTrait;
@@ -247,6 +248,230 @@ class BlockPayrollController extends Controller
             return $this->getErrorFromException($e->getMessage(), $e);
         }
 
+    }
+
+    /**
+     * Consulta individual de ZipKey para obtener consecutivo desde datos almacenados
+     * @param Request $request
+     * @return \Illuminate\Http\JsonResponse
+     */
+    public function queryIndividualZipkey(Request $request)
+    {
+        try {
+            $block_payroll_id = $request->input('block_payroll_id');
+            $worker_id = $request->input('worker_id');
+            
+            // Log para debugging
+            Log::info("queryIndividualZipkey called", [
+                'block_payroll_id' => $block_payroll_id,
+                'worker_id' => $worker_id
+            ]);
+            
+            $blockPayroll = BlockPayroll::find($block_payroll_id);
+            if (!$blockPayroll) {
+                return response()->json(['success' => false, 'message' => 'Bloque de nómina no encontrado'], 404);
+            }
+
+            // Obtener las respuestas JSON del bloque
+            $jsonResponses = $blockPayroll->block_payroll_json_responses;
+            if (!$jsonResponses) {
+                return response()->json(['success' => false, 'message' => 'No hay respuestas JSON disponibles'], 404);
+            }
+
+            // Log de la estructura de datos
+            Log::info("JSON Responses structure", [
+                'keys' => array_keys($jsonResponses),
+                'worker_ids_available' => array_keys($jsonResponses)
+            ]);
+
+            // Buscar la respuesta para el worker_id específico
+            $workerResponse = null;
+            foreach ($jsonResponses as $workerId => $response) {
+                if ($workerId == $worker_id) {
+                    $workerResponse = $response;
+                    break;
+                }
+            }
+
+            if (!$workerResponse) {
+                Log::info("Worker response not found", [
+                    'looking_for_worker_id' => $worker_id,
+                    'available_worker_ids' => array_keys($jsonResponses)
+                ]);
+                return response()->json(['success' => false, 'message' => 'Respuesta no encontrada para este trabajador'], 404);
+            }
+
+            // Log de la respuesta del trabajador
+            Log::info("Worker response found", $workerResponse);
+
+            // Extraer información directamente de la respuesta almacenada
+            $zipKey = $workerResponse['zip_key'] ?? '';
+            $isValid = $workerResponse['is_valid'] ?? false;
+            $consecutiveNumber = '';
+            $statusMessage = '';
+
+            // Intentar extraer el consecutivo de múltiples fuentes disponibles
+            // 1. Del mensaje de zipkey_query_response
+            if (isset($workerResponse['zipkey_query_response']['message'])) {
+                $statusMessage = $workerResponse['zipkey_query_response']['message'];
+                if (preg_match('/NI-?(\d+)/', $statusMessage, $matches)) {
+                    $consecutiveNumber = $matches[1];
+                    Log::info("Consecutive found in zipkey_query_response message", ['consecutive' => $consecutiveNumber]);
+                }
+            }
+
+            // 2. Del campo urlpayrollpdf si no se encontró en el mensaje
+            if (empty($consecutiveNumber) && isset($workerResponse['urlpayrollpdf'])) {
+                $pdfUrl = $workerResponse['urlpayrollpdf'];
+                if (preg_match('/NI(\d+)\.pdf/', $pdfUrl, $matches)) {
+                    $consecutiveNumber = $matches[1];
+                }
+            }
+
+            // 3. Del campo message si no se encontró anteriormente
+            if (empty($consecutiveNumber) && isset($workerResponse['message'])) {
+                $message = $workerResponse['message'];
+                if (preg_match('/NI(\d+)/', $message, $matches)) {
+                    $consecutiveNumber = $matches[1];
+                }
+            }
+
+            // 4. Buscar en la respuesta DIAN original si está disponible
+            if (empty($consecutiveNumber) && isset($workerResponse['original_api_response']['ResponseDian'])) {
+                $dianResponse = $workerResponse['original_api_response']['ResponseDian'];
+                // Buscar en diferentes niveles de la respuesta DIAN
+                $this->extractConsecutiveFromDianResponse($dianResponse, $consecutiveNumber);
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'zip_key' => $zipKey,
+                    'is_valid' => $isValid,
+                    'status_message' => $statusMessage,
+                    'consecutive_number' => $consecutiveNumber,
+                    'worker_id' => $worker_id,
+                    'worker_name' => $workerResponse['worker_name'] ?? '',
+                    'processed_at' => $workerResponse['processed_at'] ?? ''
+                ]
+            ]);
+
+        } catch (Exception $e) {
+            Log::error('Error in queryIndividualZipkey: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Error interno del servidor: ' . $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Obtener todos los consecutivos de un bloque de nómina de una vez
+     */
+    public function queryAllConsecutives(Request $request)
+    {
+        try {
+            $block_payroll_id = $request->input('block_payroll_id');
+            
+            $blockPayroll = BlockPayroll::find($block_payroll_id);
+            if (!$blockPayroll) {
+                return response()->json(['success' => false, 'message' => 'Bloque de nómina no encontrado'], 404);
+            }
+
+            // Obtener las respuestas JSON del bloque
+            $jsonResponses = $blockPayroll->block_payroll_json_responses;
+            if (!$jsonResponses) {
+                return response()->json(['success' => false, 'message' => 'No hay respuestas JSON disponibles'], 404);
+            }
+
+            $results = [];
+            $processed = 0;
+            $found = 0;
+
+            foreach ($jsonResponses as $workerId => $workerResponse) {
+                $consecutiveNumber = '';
+                $zipKey = $workerResponse['zip_key'] ?? '';
+                $isValid = $workerResponse['is_valid'] ?? false;
+                $statusMessage = '';
+
+                // Aplicar la misma lógica de extracción que en queryIndividualZipkey
+                // 1. Del mensaje de zipkey_query_response
+                if (isset($workerResponse['zipkey_query_response']['message'])) {
+                    $statusMessage = $workerResponse['zipkey_query_response']['message'];
+                    if (preg_match('/NI-?(\d+)/', $statusMessage, $matches)) {
+                        $consecutiveNumber = $matches[1];
+                    }
+                }
+
+                // 2. Del campo urlpayrollpdf si no se encontró en el mensaje
+                if (empty($consecutiveNumber) && isset($workerResponse['urlpayrollpdf'])) {
+                    $pdfUrl = $workerResponse['urlpayrollpdf'];
+                    if (preg_match('/NI(\d+)\.pdf/', $pdfUrl, $matches)) {
+                        $consecutiveNumber = $matches[1];
+                    }
+                }
+
+                // 3. Del campo message si no se encontró anteriormente
+                if (empty($consecutiveNumber) && isset($workerResponse['message'])) {
+                    $message = $workerResponse['message'];
+                    if (preg_match('/NI(\d+)/', $message, $matches)) {
+                        $consecutiveNumber = $matches[1];
+                    }
+                }
+
+                // 4. Buscar en la respuesta DIAN original si está disponible
+                if (empty($consecutiveNumber) && isset($workerResponse['original_api_response']['ResponseDian'])) {
+                    $dianResponse = $workerResponse['original_api_response']['ResponseDian'];
+                    $this->extractConsecutiveFromDianResponse($dianResponse, $consecutiveNumber);
+                }
+
+                $results[$workerId] = [
+                    'worker_id' => $workerId,
+                    'consecutive_number' => $consecutiveNumber ?: 'N/A',
+                    'zip_key' => $zipKey,
+                    'is_valid' => $isValid,
+                    'status_message' => $statusMessage,
+                    'worker_name' => $workerResponse['worker_name'] ?? ''
+                ];
+
+                $processed++;
+                if (!empty($consecutiveNumber)) {
+                    $found++;
+                }
+            }
+
+            return response()->json([
+                'success' => true,
+                'data' => $results,
+                'meta' => [
+                    'total_workers' => count($jsonResponses),
+                    'processed' => $processed,
+                    'found' => $found
+                ]
+            ]);
+
+        } catch (Exception $e) {
+            Log::error('Error in queryAllConsecutives: ' . $e->getMessage());
+            return response()->json(['success' => false, 'message' => 'Error interno del servidor: ' . $e->getMessage()], 500);
+        }
+    }
+
+    /**
+     * Función auxiliar para extraer consecutivo de respuesta DIAN
+     */
+    private function extractConsecutiveFromDianResponse($dianResponse, &$consecutiveNumber)
+    {
+        if (is_array($dianResponse)) {
+            foreach ($dianResponse as $key => $value) {
+                if (is_string($value) && preg_match('/NI-?(\d+)/', $value, $matches)) {
+                    $consecutiveNumber = $matches[1];
+                    return;
+                }
+                if (is_array($value)) {
+                    $this->extractConsecutiveFromDianResponse($value, $consecutiveNumber);
+                    if (!empty($consecutiveNumber)) {
+                        return;
+                    }
+                }
+            }
+        }
     }
 
     public function store(DocumentPayrollRequest $request)

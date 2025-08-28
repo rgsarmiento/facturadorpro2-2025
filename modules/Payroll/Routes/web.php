@@ -42,6 +42,8 @@ if($hostname) {
                     Route::get('{record}', 'BlockPayrollController@show');
                     Route::get('generate-pdf/{record}', 'BlockPayrollController@generatePDF');
                     Route::get('downloadFile/{filename}', 'BlockPayrollController@downloadFile');
+                    Route::post('query-individual-zipkey', 'BlockPayrollController@queryIndividualZipkey');
+                    Route::post('query-all-consecutives', 'BlockPayrollController@queryAllConsecutives');
                     Route::post('send-email', 'BlockPayrollController@sendEmail');
                     Route::post('query-zipkey', 'BlockPayrollController@queryZipkey');
                 });

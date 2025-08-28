@@ -172,6 +172,8 @@ class BlockPayroll extends ModelTenant
             'workers_quantity' => $this->workers_quantity,
             'accrued_total' => $this->accrued_total,
             'deductions_total' => $this->deductions_total,
+            'block_payroll_json' => $this->block_payroll_json,
+            'block_payroll_json_responses' => $this->block_payroll_json_responses,
         ];
     }
 
