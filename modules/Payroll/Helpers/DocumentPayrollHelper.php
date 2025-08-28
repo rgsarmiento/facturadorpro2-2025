@@ -232,7 +232,7 @@ class DocumentPayrollHelper
                 {
                     $unknown_error = $send_request_to_api['ResponseDian']['Envelope']['Body']['Fault']['Reason']['Text']['_value'] ?? null;
                     if(!is_null($unknown_error)) $this->throwException('Error desconocido: '.$unknown_error);
-                    
+
                     // Si no hay respuesta de test set, verificar si hay respuesta de producción
                     $send_bill_sync_result = $send_request_to_api['ResponseDian']['Envelope']['Body']['SendNominaSyncResponse']['SendNominaSyncResult'] ?? null;
                     if (!is_null($send_bill_sync_result)) {
@@ -246,7 +246,7 @@ class DocumentPayrollHelper
                         }
                         return $send_request_to_api;
                     }
-                    
+
                     $this->throwException('Respuesta de API no válida para entorno de pruebas');
                 }
                 //error desconocido - certificado
@@ -255,7 +255,7 @@ class DocumentPayrollHelper
                 if (is_null($send_test_set_async_result)) {
                     $this->throwException('SendTestSetAsyncResult no encontrado en la respuesta');
                 }
-                
+
                 $zip_key = $send_test_set_async_result['ZipKey'] ?? null;
 
                 if(!is_string($zip_key))

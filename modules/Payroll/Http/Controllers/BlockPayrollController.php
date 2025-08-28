@@ -261,12 +261,6 @@ class BlockPayrollController extends Controller
             $block_payroll_id = $request->input('block_payroll_id');
             $worker_id = $request->input('worker_id');
 
-            // Log para debugging
-            Log::info("queryIndividualZipkey called", [
-                'block_payroll_id' => $block_payroll_id,
-                'worker_id' => $worker_id
-            ]);
-
             $blockPayroll = BlockPayroll::find($block_payroll_id);
             if (!$blockPayroll) {
                 return response()->json(['success' => false, 'message' => 'Bloque de nómina no encontrado'], 404);
@@ -278,12 +272,6 @@ class BlockPayrollController extends Controller
                 return response()->json(['success' => false, 'message' => 'No hay respuestas JSON disponibles'], 404);
             }
 
-            // Log de la estructura de datos
-            Log::info("JSON Responses structure", [
-                'keys' => array_keys($jsonResponses),
-                'worker_ids_available' => array_keys($jsonResponses)
-            ]);
-
             // Buscar la respuesta para el worker_id específico
             $workerResponse = null;
             foreach ($jsonResponses as $workerId => $response) {
@@ -294,15 +282,8 @@ class BlockPayrollController extends Controller
             }
 
             if (!$workerResponse) {
-                Log::info("Worker response not found", [
-                    'looking_for_worker_id' => $worker_id,
-                    'available_worker_ids' => array_keys($jsonResponses)
-                ]);
                 return response()->json(['success' => false, 'message' => 'Respuesta no encontrada para este trabajador'], 404);
             }
-
-            // Log de la respuesta del trabajador
-            Log::info("Worker response found", $workerResponse);
 
             // Extraer información directamente de la respuesta almacenada
             $zipKey = $workerResponse['zip_key'] ?? '';
@@ -316,7 +297,6 @@ class BlockPayrollController extends Controller
                 $statusMessage = $workerResponse['zipkey_query_response']['message'];
                 if (preg_match('/NI-?(\d+)/', $statusMessage, $matches)) {
                     $consecutiveNumber = $matches[1];
-                    Log::info("Consecutive found in zipkey_query_response message", ['consecutive' => $consecutiveNumber]);
                 }
             }
 
@@ -448,7 +428,6 @@ class BlockPayrollController extends Controller
             ]);
 
         } catch (Exception $e) {
-            Log::error('Error in queryAllConsecutives: ' . $e->getMessage());
             return response()->json(['success' => false, 'message' => 'Error interno del servidor: ' . $e->getMessage()], 500);
         }
     }
@@ -596,12 +575,6 @@ class BlockPayrollController extends Controller
                     $employeeAccruedData = $request->employee_accrued_data;
 
                     // Debug: verificar que los datos de devengados lleguen correctamente
-                    \Log::info('=== DEBUGGING ACCRUED DATA IN storeWithoutGenerate ===');
-                    \Log::info('Employee Accrued Data received:', ['data' => $employeeAccruedData]);
-                    \Log::info('Number of workers with accrued data: ' . count($employeeAccruedData));
-                    foreach ($employeeAccruedData as $workerId => $data) {
-                        \Log::info("Worker {$workerId} accrued_total: " . ($data['accrued_total'] ?? 'not set'));
-                    }
                 }
 
                 // Manejar datos de deducciones para cada empleado
@@ -609,12 +582,6 @@ class BlockPayrollController extends Controller
                     $employeeDeductionData = $request->employee_deduction_data;
 
                     // Debug: verificar que los datos de deducciones lleguen correctamente
-                    \Log::info('=== DEBUGGING DEDUCTION DATA IN storeWithoutGenerate ===');
-                    \Log::info('Employee Deduction Data received:', ['data' => $employeeDeductionData]);
-                    \Log::info('Number of workers with deduction data: ' . count($employeeDeductionData));
-                    foreach ($employeeDeductionData as $workerId => $data) {
-                        \Log::info("Worker {$workerId} deductions_total: " . ($data['deductions_total'] ?? 'not set'));
-                    }
                 } else {
                     $employeeDeductionData = [];
                 }
@@ -791,20 +758,12 @@ class BlockPayrollController extends Controller
                     $employeeAccruedData = $request->employee_accrued_data;
 
                     // Debug: verificar que los datos de devengados lleguen correctamente
-                    \Log::info('=== DEBUGGING ACCRUED DATA IN updateBlock ===');
-                    \Log::info('Employee Accrued Data received:', ['data' => $employeeAccruedData]);
-                    \Log::info('Number of workers with accrued data: ' . count($employeeAccruedData));
-                    foreach ($employeeAccruedData as $workerId => $data) {
-                        \Log::info("Worker {$workerId} accrued_total: " . ($data['accrued_total'] ?? 'not set'));
-                    }
                 }
 
                 // Manejar datos de deducciones para cada empleado
                 $employeeDeductionData = [];
                 if ($request->has('employee_deduction_data') && is_array($request->employee_deduction_data)) {
                     $employeeDeductionData = $request->employee_deduction_data;
-                    \Log::info('=== DEBUGGING DEDUCTION DATA IN updateBlock ===');
-                    \Log::info('Employee Deduction Data received:', ['data' => $employeeDeductionData]);
                 }
 
                 // Crear el payload con todos los datos del formulario
@@ -961,17 +920,11 @@ class BlockPayrollController extends Controller
     public function saveAndGenerate(Request $request, $id = null)
     {
         try {
-            Log::info("Iniciando saveAndGenerate - ID: " . ($id ?? 'nuevo'));
-
             // Determinar si es modo edición
             $editMode = !is_null($id);
 
-            Log::info("Modo edición: " . ($editMode ? 'true' : 'false'));
-
             // Primero guardar el bloque sin generar (reutilizar lógica existente)
             $saveResult = $editMode ? $this->updateBlock($request, $id) : $this->storeWithoutGenerate($request);
-
-            Log::info("Resultado del save: " . json_encode($saveResult));
 
             if (!$saveResult['success']) {
                 return $saveResult;
@@ -980,13 +933,9 @@ class BlockPayrollController extends Controller
             $blockPayrollId = $saveResult['data']['block_payroll_id'];
             $blockPayroll = BlockPayroll::findOrFail($blockPayrollId);
 
-            Log::info("Block Payroll cargado: ID " . $blockPayrollId);
-
             // Obtener datos para el procesamiento
             $selectedWorkers = $request->selected_workers ?? [];
             $totalWorkers = count($selectedWorkers);
-
-            Log::info("Total workers seleccionados: " . $totalWorkers);
 
             if ($totalWorkers === 0) {
                 return [
@@ -1006,8 +955,6 @@ class BlockPayrollController extends Controller
                 $request, $blockPayroll, &$employeeJsons, &$apiResponses, &$generatedDocuments,
                 &$errors, &$processedCount, $totalWorkers
             ) {
-                Log::info("Iniciando transacción DB");
-
                 $selectedWorkers = $request->selected_workers ?? [];
                 $employeePeriodData = $request->employee_period_data ?? [];
                 $employeePaymentData = $request->employee_payment_data ?? [];
@@ -1016,8 +963,6 @@ class BlockPayrollController extends Controller
 
                 // Obtener datos del establecimiento
                 $establishment = $blockPayroll->establishment;
-
-                Log::info("Establishment obtenido: " . json_encode($establishment));
 
                 foreach ($selectedWorkers as $index => $workerId) {
                     try {
@@ -1073,9 +1018,6 @@ class BlockPayrollController extends Controller
 
                         $processedCount++;
 
-                        // Log del progreso para debug
-                        Log::info("Procesado empleado {$processedCount}/{$totalWorkers}: {$worker->fullname}");
-
                     } catch (\Exception $e) {
                         $errors[] = "Error procesando empleado ID {$workerId}: " . $e->getMessage();
                         $processedCount++;
@@ -1111,12 +1053,6 @@ class BlockPayrollController extends Controller
                 // 5 = Aceptado: Solo si NO hay errores de procesamiento Y TODAS las validaciones son válidas
                 // 1 = Registrado: Si hay errores de procesamiento O alguna validación es inválida/pendiente
                 $blockState = ($hasProcessingErrors || !$allValid) ? 1 : 5;
-
-                Log::info("Determinando estado del bloque:");
-                Log::info("- Errores de procesamiento: " . ($hasProcessingErrors ? 'SÍ' : 'NO'));
-                Log::info("- Todas las validaciones válidas: " . ($allValid ? 'SÍ' : 'NO'));
-                Log::info("- Válidos: {$validCount}, Inválidos: {$invalidCount}, Pendientes: {$pendingCount}");
-                Log::info("- Estado resultante: " . ($blockState === 5 ? 'Aceptado' : 'Registrado'));
 
                 // Actualizar el bloque con los JSONs generados, respuestas y cambiar estado
                 $blockPayroll->update([
@@ -1219,8 +1155,6 @@ class BlockPayrollController extends Controller
             if ($currentState !== $newState) {
                 $blockPayroll->update(['state_block_id' => $newState]);
 
-                Log::info("Estado del bloque {$blockId} actualizado de {$currentState} a {$newState}");
-
                 return [
                     'success' => true,
                     'message' => 'Estado del bloque actualizado exitosamente',
@@ -1280,12 +1214,8 @@ class BlockPayrollController extends Controller
             // Obtener resolución seleccionada
             $resolution = \Modules\Factcolombia1\Models\Tenant\TypeDocument::find($request->resolution_id);
 
-            Log::info("Resolution encontrada: " . json_encode($resolution));
-            Log::info("Deduction data para worker {$worker->id}: " . json_encode($deductionData));
-
             // Verificar que la resolución exista
             if (!$resolution) {
-                Log::error("No se encontró resolución con ID: " . $request->resolution_id);
                 throw new \Exception("No se encontró la resolución especificada");
             }
 
@@ -1341,7 +1271,6 @@ class BlockPayrollController extends Controller
                 "deductions" => $this->formatDeductionData($deductionData)
             ];
         } catch (\Exception $e) {
-            Log::error("Error en buildEmployeePayrollJson para worker {$worker->id}: " . $e->getMessage());
             throw $e; // Re-lanzar la excepción para que sea manejada en el nivel superior
         }
     }
@@ -1659,10 +1588,6 @@ class BlockPayrollController extends Controller
             ];
 
         } catch (\Exception $e) {
-            Log::error("Error en createIndividualPayrollDocument para worker {$worker->id}: " . $e->getMessage());
-            Log::error("Stack trace: " . $e->getTraceAsString());
-            Log::error("EmployeeJson data: " . json_encode($employeeJson));
-            
             return [
                 'success' => false,
                 'message' => $e->getMessage()
@@ -1703,9 +1628,6 @@ class BlockPayrollController extends Controller
             $worker = Worker::find($workerId);
             $response = $document->response_api;
 
-            Log::info("Procesando respuesta API para worker {$workerId}");
-            Log::info("Response API: " . json_encode($response));
-
             $responseData = [
                 'worker_id' => $workerId,
                 'worker_name' => $worker ? $worker->fullname : "Worker #{$workerId}",
@@ -1725,14 +1647,12 @@ class BlockPayrollController extends Controller
             if ($isValidFound !== null) {
                 $responseData['is_valid'] = $isValidFound;
                 $responseData['validation_method'] = 'direct_isValid';
-                Log::info("IsValid encontrado directamente: " . ($isValidFound ? 'true' : 'false'));
                 return $responseData;
             }
 
             // Caso 2: La respuesta contiene ZipKey, necesita consulta adicional
             $zipKey = $this->searchZipKeyInResponse($response);
             if ($zipKey) {
-                Log::info("ZipKey encontrado: {$zipKey}");
                 $responseData['zip_key'] = $zipKey;
 
                 // Realizar consulta al método queryZipkey
@@ -1746,19 +1666,12 @@ class BlockPayrollController extends Controller
                     if ($zipKeyIsValid !== null) {
                         $responseData['is_valid'] = $zipKeyIsValid;
                         $responseData['validation_method'] = 'zipkey_query_isvalid';
-                        Log::info("IsValid de ZipKey encontrado: " . ($zipKeyIsValid ? 'true' : 'false'));
                         return $responseData;
                     } else {
                         // Si no se encuentra isValid, analizar el mensaje para determinar autorización
                         $isValidFromMessage = $this->analyzeAuthorizationMessage($zipKeyValidation, $document);
                         $responseData['is_valid'] = $isValidFromMessage;
                         $responseData['validation_method'] = 'zipkey_query_message';
-
-                        if ($isValidFromMessage) {
-                            Log::info("Nómina autorizada según mensaje para worker {$workerId}");
-                        } else {
-                            Log::info("Nómina NO autorizada según mensaje para worker {$workerId}");
-                        }
 
                         return $responseData;
                     }
@@ -1774,8 +1687,6 @@ class BlockPayrollController extends Controller
             // Caso 3: No se encontró ni isValid ni ZipKey
             $responseData['error'] = 'No se encontró isValid ni ZipKey en la respuesta';
             $responseData['validation_method'] = 'no_validation_found';
-            Log::warning("No se encontró validación para worker {$workerId}");
-            Log::warning("Respuesta completa analizada: " . json_encode($response));
             return $responseData;
 
         } catch (\Exception $e) {
@@ -1809,8 +1720,6 @@ class BlockPayrollController extends Controller
                 // Verificar múltiples variaciones de isValid
                 $keyLower = strtolower($key);
                 if (in_array($keyLower, ['isvalid', 'is_valid', 'valid', 'esvalido', 'valido'])) {
-                    Log::info("Campo isValid encontrado en ruta: {$currentPath} con valor: " . json_encode($value));
-                    
                     // Manejar tanto strings como booleans
                     if (is_string($value)) {
                         $valueLower = strtolower(trim($value));
@@ -1849,7 +1758,6 @@ class BlockPayrollController extends Controller
                 // Verificar múltiples variaciones de ZipKey
                 $keyLower = strtolower($key);
                 if (in_array($keyLower, ['zipkey', 'zip_key', 'zipcode', 'zip'])) {
-                    Log::info("Campo ZipKey encontrado en ruta: {$currentPath} con valor: " . json_encode($value));
                     return $value;
                 }
 
@@ -1885,8 +1793,6 @@ class BlockPayrollController extends Controller
             // Llamar al método queryZipkey
             $result = $documentController->queryZipkey($request);
 
-            Log::info("Resultado de queryZipkey para documento {$documentId}: " . json_encode($result));
-
             return $result;
 
         } catch (\Exception $e) {
@@ -1912,8 +1818,6 @@ class BlockPayrollController extends Controller
                 return false;
             }
 
-            Log::info("Analizando mensaje de autorización: {$message}");
-
             // Obtener información del documento para construir el patrón esperado
             $documentPayroll = DocumentPayroll::find($document->id);
             if (!$documentPayroll) {
@@ -1937,7 +1841,6 @@ class BlockPayrollController extends Controller
             // Verificar si el mensaje coincide con algún patrón de autorización
             foreach ($authorizationPatterns as $pattern) {
                 if (preg_match($pattern, $message)) {
-                    Log::info("Mensaje de autorización coincide con patrón: {$pattern}");
                     return true;
                 }
             }
@@ -1954,13 +1857,11 @@ class BlockPayrollController extends Controller
 
             foreach ($errorPatterns as $pattern) {
                 if (preg_match($pattern, $message)) {
-                    Log::info("Mensaje indica error/rechazo con patrón: {$pattern}");
                     return false;
                 }
             }
 
-            // Si no coincide con ningún patrón conocido, loggear para análisis
-            Log::warning("Mensaje no coincide con patrones conocidos: {$message}");
+            // Si no coincide con ningún patrón conocido, devolver false por defecto
             return false;
 
         } catch (\Exception $e) {

@@ -4217,9 +4217,6 @@ export default {
         cancelForm() {
             // TEMPORALMENTE DESACTIVADO: Redirigir al listado
             // window.location.href = "/payroll/block-payrolls";
-            console.log(
-                "🚫 Cancelación interceptada - Redirección desactivada"
-            );
         },
 
         saveForm(generate) {
@@ -4511,21 +4508,6 @@ export default {
             formData.employee_payment_data = employeePaymentData;
             formData.employee_accrued_data = employeeAccruedData;
 
-            // Log para verificar que las vacaciones automáticas se incluyen en el payload
-            console.log("=== DATOS DE DEVENGADOS ANTES DEL ENVÍO ===");
-            Object.keys(employeeAccruedData).forEach(workerId => {
-                const accrued = employeeAccruedData[workerId];
-                const automaticVacations = accrued.paid_vacation.filter(
-                    vac => vac.is_automatic_provision
-                );
-                console.log(`Empleado ${workerId}:`, {
-                    total_paid_vacations: accrued.paid_vacation.length,
-                    automatic_vacations: automaticVacations.length,
-                    automatic_vacation_data: automaticVacations
-                });
-            });
-            console.log("=== FIN DATOS DE DEVENGADOS ===");
-
             // Agregar datos de deducciones de cada empleado
             const employeeDeductionData = {};
 
@@ -4547,19 +4529,9 @@ export default {
                 return entity ? entity.percentage : null;
             };
 
-            console.log(
-                "📋 this.employeeDeductionData antes del loop:",
-                this.employeeDeductionData
-            );
-
             selectedWorkers.forEach(workerId => {
                 const deductionData =
                     this.employeeDeductionData[workerId] || {};
-
-                console.log(
-                    `📋 Datos de deducción para empleado ${workerId}:`,
-                    deductionData
-                );
 
                 employeeDeductionData[workerId] = {
                     worker_id: workerId,
@@ -4629,11 +4601,6 @@ export default {
 
             formData.employee_deduction_data = employeeDeductionData;
 
-            console.log(
-                "📋 employeeDeductionData final:",
-                employeeDeductionData
-            );
-
             // Calcular el total global de devengados (suma de todos los empleados)
             let globalAccruedTotal = 0;
             selectedWorkers.forEach(workerId => {
@@ -4645,8 +4612,6 @@ export default {
                 }
             });
 
-            console.log("🎯 Total global calculado:", globalAccruedTotal);
-
             // Calcular el total global de deducciones (suma de todos los empleados)
             let globalDeductionsTotal = 0;
             selectedWorkers.forEach(workerId => {
@@ -4657,11 +4622,6 @@ export default {
                     globalDeductionsTotal += employeeTotal;
                 }
             });
-
-            console.log(
-                "🎯 Total global deducciones calculado:",
-                globalDeductionsTotal
-            );
 
             // Agregar los totales globales al formData
             formData.accrued_total = globalAccruedTotal;
@@ -4677,15 +4637,6 @@ export default {
 
             const method = this.editMode ? "put" : "post";
 
-            console.log(
-                "📤 Datos completos enviados al backend:",
-                JSON.stringify(formData, null, 2)
-            );
-            console.log(
-                "📤 employee_deduction_data específicamente:",
-                formData.employee_deduction_data
-            );
-
             // Enviar al backend
             this.$http[method](endpoint, formData)
                 .then(response => {
@@ -4696,7 +4647,6 @@ export default {
                         setTimeout(() => {
                             window.location.href = "/payroll/block-payrolls";
                         }, 1500);
-                        console.log("✅ Guardado exitoso");
                     } else {
                         this.$message({
                             message: response.data.message,
@@ -5229,11 +5179,6 @@ export default {
 
         // Método para manejar cambios en el switch de "Generar Provisiones"
         onGenerateProvisionsChange(workerId, isEnabled) {
-            console.log(
-                `Cambio generar provisiones para worker ${workerId}:`,
-                isEnabled
-            );
-
             // Guardar el estado en employeePeriodData
             if (!this.employeePeriodData[workerId]) {
                 this.employeePeriodData[workerId] = {};
@@ -7056,9 +7001,6 @@ export default {
                                             workerId,
                                             true
                                         );
-                                        console.log(
-                                            `Worker ${workerId} transportation allowance was manually edited. Saved: ${accruedData.transportation_allowance}, Auto: ${autoCalculatedAllowance}`
-                                        );
                                     }
                                 }
                             }
@@ -7069,10 +7011,6 @@ export default {
                     if (blockPayroll.payload.employee_deduction_data) {
                         this.employeeDeductionData =
                             blockPayroll.payload.employee_deduction_data;
-                        console.log(
-                            "📋 Datos de deducciones cargados desde payload:",
-                            this.employeeDeductionData
-                        );
                     }
 
                     // Restaurar valores de generate_provisions desde el payload
@@ -7086,10 +7024,6 @@ export default {
                                 periodData &&
                                 periodData.generate_provisions !== undefined
                             ) {
-                                console.log(
-                                    `Restaurando generate_provisions para worker ${worker.id}:`,
-                                    periodData.generate_provisions
-                                );
                                 this.$set(
                                     worker,
                                     "generate_provisions",
@@ -7409,15 +7343,11 @@ export default {
 
         // Método para limpiar datos corruptos y recalcular totales
         resetAndRecalculateGlobalTotal() {
-            console.log("🔄 Limpiando y recalculando totales...");
-
             // Resetear total global
             this.form.accrued_total = 0;
 
             // Recalcular cada empleado individualmente
             Object.keys(this.employeeAccruedData).forEach(workerId => {
-                console.log(`🔄 Recalculando empleado ${workerId}...`);
-
                 // Seleccionar temporalmente el empleado para recalcular
                 const currentSelected = this.selectedWorkerId;
                 this.selectedWorkerId = workerId;
@@ -7436,14 +7366,10 @@ export default {
                     this.loadEmployeeAccruedData(currentSelected);
                 }
             });
-
-            console.log("✅ Limpieza completada");
         },
 
         // Método de emergencia para resetear datos corruptos (ejecutar desde consola)
         emergencyReset() {
-            console.log("🚨 RESETEO DE EMERGENCIA");
-
             // 1. Resetear total global
             this.form.accrued_total = 0;
 
@@ -7451,9 +7377,6 @@ export default {
             Object.keys(this.employeeAccruedData).forEach(workerId => {
                 const data = this.employeeAccruedData[workerId];
                 if (data && data.accrued_total > 10000000) {
-                    console.log(
-                        `🧹 Limpiando datos corruptos del empleado ${workerId}`
-                    );
                     data.accrued_total = 0;
                 }
             });
@@ -7462,29 +7385,11 @@ export default {
             if (this.selectedWorkerId) {
                 this.calculateAccruedTotal();
             }
-
-            console.log("🟢 Reseteo completado");
         },
 
         // Método de debug para ver el estado actual
         debugTotals() {
-            console.log("🔍 DEBUG TOTALS");
-            console.log("================");
-            console.log("📊 Total principal:", this.form.accrued_total);
-            console.log("👤 Empleado seleccionado:", this.selectedWorkerId);
-            console.log(
-                "💰 Total del empleado actual:",
-                this.form.accrued.accrued_total
-            );
-            console.log("📋 Todos los empleados:");
-
-            Object.keys(this.employeeAccruedData).forEach(workerId => {
-                const data = this.employeeAccruedData[workerId];
-                console.log(
-                    `  - Empleado ${workerId}: ${data?.accrued_total ||
-                        "sin datos"}`
-                );
-            });
+            // Debug method for development use
         },
 
         // Guardar datos de devengados del empleado actual
@@ -7658,9 +7563,6 @@ export default {
                 this.selectedWorkerId &&
                 this.employeeTransportationManuallyEdited[this.selectedWorkerId]
             ) {
-                console.log(
-                    `Transportation allowance for worker ${this.selectedWorkerId} was manually edited. Skipping automatic calculation.`
-                );
                 return;
             }
 
@@ -8240,9 +8142,6 @@ export default {
                     item => item.id == workerId
                 );
                 if (currentWorker && currentWorker.generate_provisions) {
-                    console.log(
-                        `🔄 Aplicando deducciones automáticas para worker ${workerId} (provisiones activas)`
-                    );
                     this.$nextTick(() => {
                         if (this.selectedWorkerId == workerId) {
                             this.enableAutomaticDeductions();
