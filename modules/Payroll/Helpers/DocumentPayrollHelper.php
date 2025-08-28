@@ -232,19 +232,41 @@ class DocumentPayrollHelper
                 {
                     $unknown_error = $send_request_to_api['ResponseDian']['Envelope']['Body']['Fault']['Reason']['Text']['_value'] ?? null;
                     if(!is_null($unknown_error)) $this->throwException('Error desconocido: '.$unknown_error);
+                    
+                    // Si no hay respuesta de test set, verificar si hay respuesta de producción
+                    $send_bill_sync_result = $send_request_to_api['ResponseDian']['Envelope']['Body']['SendNominaSyncResponse']['SendNominaSyncResult'] ?? null;
+                    if (!is_null($send_bill_sync_result)) {
+                        // Es una respuesta de producción, manejarla como tal
+                        if($send_bill_sync_result['IsValid'] == "true") {
+                            $this->updateStateDocument(self::ACCEPTED, $document);
+                        } else {
+                            $extract_error_response = $send_bill_sync_result['ErrorMessage']['string'] ?? $send_bill_sync_result['StatusDescription'];
+                            $this->updateStateDocument(self::REJECTED, $document);
+                            $this->throwException(is_array($extract_error_response) ? implode(' | ', $extract_error_response) : $extract_error_response);
+                        }
+                        return $send_request_to_api;
+                    }
+                    
+                    $this->throwException('Respuesta de API no válida para entorno de pruebas');
                 }
                 //error desconocido - certificado
 
-                $send_test_set_async_result = $send_test_set_async_response['SendTestSetAsyncResult'];
-                $zip_key = $send_test_set_async_result['ZipKey'];
+                $send_test_set_async_result = $send_test_set_async_response['SendTestSetAsyncResult'] ?? null;
+                if (is_null($send_test_set_async_result)) {
+                    $this->throwException('SendTestSetAsyncResult no encontrado en la respuesta');
+                }
+                
+                $zip_key = $send_test_set_async_result['ZipKey'] ?? null;
 
                 if(!is_string($zip_key))
                 {
-                    if(is_string($send_test_set_async_result['ErrorMessageList']['XmlParamsResponseTrackId']['Success']))
-                    {
-                        if($send_test_set_async_result['ErrorMessageList']['XmlParamsResponseTrackId']['Success'] == 'false')
-                        {
-                            $this->throwException($send_test_set_async_result['ErrorMessageList']['XmlParamsResponseTrackId']['ProcessedMessage']);
+                    $error_message_list = $send_test_set_async_result['ErrorMessageList'] ?? null;
+                    if (!is_null($error_message_list)) {
+                        $xml_params_response = $error_message_list['XmlParamsResponseTrackId'] ?? null;
+                        if (!is_null($xml_params_response) && is_string($xml_params_response['Success'] ?? null)) {
+                            if($xml_params_response['Success'] == 'false') {
+                                $this->throwException($xml_params_response['ProcessedMessage'] ?? 'Error no especificado');
+                            }
                         }
                     }
                 }

@@ -4698,16 +4698,24 @@ export default {
                         }, 1500);
                         console.log("✅ Guardado exitoso");
                     } else {
-                        this.$message.error(response.data.message);
+                        this.$message({
+                            message: response.data.message,
+                            type: 'error',
+                            duration: 6000,
+                            showClose: true
+                        });
                     }
                 })
                 .catch(error => {
                     this.loading_submit = false;
-                    this.$message.error(
-                        this.editMode
+                    this.$message({
+                        message: this.editMode
                             ? "Error al editar el bloque de nómina"
-                            : "Error al guardar el bloque de nómina"
-                    );
+                            : "Error al guardar el bloque de nómina",
+                        type: 'error',
+                        duration: 6000,
+                        showClose: true
+                    });
                 });
         },
 
@@ -5025,9 +5033,14 @@ export default {
                         message += `. Errores: ${errors.length}`;
                         this.$message.warning(message);
 
-                        // Mostrar errores específicos
+                        // Mostrar errores específicos con duración extendida
                         errors.forEach(error => {
-                            this.$message.error(error);
+                            this.$message({
+                                message: error,
+                                type: 'error',
+                                duration: 8000,  // 8 segundos para poder leer el error
+                                showClose: true   // Permitir cerrar manualmente
+                            });
                         });
                     } else {
                         this.$message.success(message);
@@ -5044,16 +5057,21 @@ export default {
                     }, 4000); // Ajusté el tiempo total
 
                 } else {
-                    this.$message.error(
-                        response.data.message ||
-                            "Error al guardar y generar el bloque de nómina"
-                    );
+                    this.$message({
+                        message: response.data.message || "Error al guardar y generar el bloque de nómina",
+                        type: 'error',
+                        duration: 8000,
+                        showClose: true
+                    });
                 }
             } catch (error) {
                 console.error("Error en saveAndGenerate:", error);
-                this.$message.error(
-                    "Error al procesar la solicitud de guardar y generar"
-                );
+                this.$message({
+                    message: "Error al procesar la solicitud de guardar y generar",
+                    type: 'error',
+                    duration: 8000,
+                    showClose: true
+                });
             } finally {
                 // Limpiar el intervalo si aún existe
                 if (progressInterval) {

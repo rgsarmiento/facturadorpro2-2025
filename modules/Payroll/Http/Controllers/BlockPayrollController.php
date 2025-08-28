@@ -1262,69 +1262,88 @@ class BlockPayrollController extends Controller
      */
     private function buildEmployeePayrollJson($worker, $establishment, $periodData, $paymentData, $accruedData, $deductionData, $request, $blockPayroll)
     {
-        // Obtener resolución seleccionada
-        $resolution = \Modules\Factcolombia1\Models\Tenant\TypeDocument::find($request->resolution_id);
+        try {
+            // Validar parámetros de entrada
+            if (!$worker) {
+                throw new \Exception("Worker es null");
+            }
+            if (!$establishment) {
+                throw new \Exception("Establishment es null");
+            }
+            if (!$request) {
+                throw new \Exception("Request es null");
+            }
+            if (!$blockPayroll) {
+                throw new \Exception("BlockPayroll es null");
+            }
 
-        Log::info("Resolution encontrada: " . json_encode($resolution));
-        Log::info("Deduction data para worker {$worker->id}: " . json_encode($deductionData));
+            // Obtener resolución seleccionada
+            $resolution = \Modules\Factcolombia1\Models\Tenant\TypeDocument::find($request->resolution_id);
 
-        // Verificar que la resolución exista
-        if (!$resolution) {
-            Log::error("No se encontró resolución con ID: " . $request->resolution_id);
-            throw new \Exception("No se encontró la resolución especificada");
+            Log::info("Resolution encontrada: " . json_encode($resolution));
+            Log::info("Deduction data para worker {$worker->id}: " . json_encode($deductionData));
+
+            // Verificar que la resolución exista
+            if (!$resolution) {
+                Log::error("No se encontró resolución con ID: " . $request->resolution_id);
+                throw new \Exception("No se encontró la resolución especificada");
+            }
+
+            return [
+                "type_document_id" => $request->resolution_id, // Usar resolution_id directamente
+                "resolution_number" => $resolution->resolution_number ?? $resolution->name ?? '',
+                "establishment_name" => $establishment->description ?? 'ESTABLECIMIENTO',
+                "establishment_address" => $establishment->address ?? '',
+                "establishment_phone" => $establishment->telephone ?? '',
+                "establishment_municipality" => $establishment->department_id ?? 600,
+                "establishment_email" => $establishment->email ?? '',
+                "head_note" => $request->head_note ?? '',
+                "foot_note" => $request->foot_note ?? '',
+                "novelty" => [
+                    "novelty" => false,
+                    "uuidnov" => ""
+                ],
+                "period" => [
+                    "admision_date" => $this->formatDateOnly($periodData['admision_date'] ?? $worker->admision_date ?? date('Y-m-d')),
+                    "settlement_start_date" => $this->formatDateOnly($request->general_period_start),
+                    "settlement_end_date" => $this->formatDateOnly($request->general_period_end),
+                    "worked_time" => $periodData['worked_time'] ?? 30,
+                    "issue_date" => $this->formatDateOnly($request->date_of_issue)
+                ],
+                "worker_code" => $worker->code,
+                "prefix" => $resolution->prefix ?? 'NI',
+                "consecutive" => 0, // Se calculará en el backend
+                "payroll_period_id" => $periodData['payroll_period'] ?? 5,
+                "notes" => $request->notes ?? '',
+                "worker" => [
+                    "type_worker_id" => $worker->type_worker_id ?? 1,
+                    "sub_type_worker_id" => $worker->sub_type_worker_id ?? 1,
+                    "payroll_type_document_identification_id" => $worker->payroll_type_document_identification_id ?? 1,
+                    "municipality_id" => $worker->municipality_id ?? 822,
+                    "type_contract_id" => $worker->type_contract_id ?? 1,
+                    "high_risk_pension" => $worker->high_risk_pension ?? false,
+                    "identification_number" => $worker->identification_number,
+                    "surname" => $worker->surname ?? '',
+                    "second_surname" => $worker->second_surname ?? '',
+                    "first_name" => $worker->first_name ?? '',
+                    "address" => $worker->address ?? '',
+                    "integral_salarary" => $worker->integral_salarary ?? false,
+                    "salary" => number_format($worker->salary, 2, '.', '')
+                ],
+                "payment" => [
+                    "payment_method_id" => $paymentData['payment_method_id'] ?? 10,
+                    "bank_name" => $paymentData['bank_name'] ?? '',
+                    "account_type" => $paymentData['account_type'] ?? '',
+                    "account_number" => $paymentData['account_number'] ?? ''
+                ],
+                "payment_dates" => $this->formatPaymentDates($paymentData['payment_dates'] ?? []),
+                "accrued" => $this->formatAccruedData($accruedData),
+                "deductions" => $this->formatDeductionData($deductionData)
+            ];
+        } catch (\Exception $e) {
+            Log::error("Error en buildEmployeePayrollJson para worker {$worker->id}: " . $e->getMessage());
+            throw $e; // Re-lanzar la excepción para que sea manejada en el nivel superior
         }
-
-        return [
-            "type_document_id" => $request->resolution_id, // Usar resolution_id directamente
-            "resolution_number" => $resolution->resolution_number ?? $resolution->name ?? '',
-            "establishment_name" => $establishment->description ?? 'ESTABLECIMIENTO',
-            "establishment_address" => $establishment->address ?? '',
-            "establishment_phone" => $establishment->telephone ?? '',
-            "establishment_municipality" => $establishment->department_id ?? 600,
-            "establishment_email" => $establishment->email ?? '',
-            "head_note" => $request->head_note ?? '',
-            "foot_note" => $request->foot_note ?? '',
-            "novelty" => [
-                "novelty" => false,
-                "uuidnov" => ""
-            ],
-            "period" => [
-                "admision_date" => $this->formatDateOnly($periodData['admision_date'] ?? $worker->admision_date ?? date('Y-m-d')),
-                "settlement_start_date" => $this->formatDateOnly($request->general_period_start),
-                "settlement_end_date" => $this->formatDateOnly($request->general_period_end),
-                "worked_time" => $periodData['worked_time'] ?? 30,
-                "issue_date" => $this->formatDateOnly($request->date_of_issue)
-            ],
-            "worker_code" => $worker->code,
-            "prefix" => $resolution->prefix ?? 'NI',
-            "consecutive" => 0, // Se calculará en el backend
-            "payroll_period_id" => $periodData['payroll_period'] ?? 5,
-            "notes" => $request->notes ?? '',
-            "worker" => [
-                "type_worker_id" => $worker->type_worker_id ?? 1,
-                "sub_type_worker_id" => $worker->sub_type_worker_id ?? 1,
-                "payroll_type_document_identification_id" => $worker->payroll_type_document_identification_id ?? 1,
-                "municipality_id" => $worker->municipality_id ?? 822,
-                "type_contract_id" => $worker->type_contract_id ?? 1,
-                "high_risk_pension" => $worker->high_risk_pension ?? false,
-                "identification_number" => $worker->identification_number,
-                "surname" => $worker->surname ?? '',
-                "second_surname" => $worker->second_surname ?? '',
-                "first_name" => $worker->first_name ?? '',
-                "address" => $worker->address ?? '',
-                "integral_salarary" => $worker->integral_salarary ?? false,
-                "salary" => number_format($worker->salary, 2, '.', '')
-            ],
-            "payment" => [
-                "payment_method_id" => $paymentData['payment_method_id'] ?? 10,
-                "bank_name" => $paymentData['bank_name'] ?? '',
-                "account_type" => $paymentData['account_type'] ?? '',
-                "account_number" => $paymentData['account_number'] ?? ''
-            ],
-            "payment_dates" => $this->formatPaymentDates($paymentData['payment_dates'] ?? []),
-            "accrued" => $this->formatAccruedData($accruedData),
-            "deductions" => $this->formatDeductionData($deductionData)
-        ];
     }
 
     /**
@@ -1565,6 +1584,25 @@ class BlockPayrollController extends Controller
     private function createIndividualPayrollDocument($employeeJson, $worker)
     {
         try {
+            // Validar que $employeeJson no sea null
+            if (!$employeeJson || !is_array($employeeJson)) {
+                throw new \Exception("EmployeeJson es null o no es un array válido");
+            }
+
+            // Validar campos requeridos con valores por defecto
+            $requiredFields = [
+                'type_document_id', 'prefix', 'consecutive', 'payroll_period_id',
+                'notes', 'head_note', 'foot_note', 'resolution_number',
+                'period', 'payment', 'payment_dates', 'accrued', 'deductions', 'novelty'
+            ];
+
+            foreach ($requiredFields as $field) {
+                if (!isset($employeeJson[$field])) {
+                    Log::warning("Campo faltante en employeeJson para worker {$worker->id}: {$field}");
+                    throw new \Exception("Campo requerido faltante: {$field}");
+                }
+            }
+
             // Crear una instancia de Request con los datos estructurados correctamente
             $requestData = [
                 'type_document_id' => $employeeJson['type_document_id'],
@@ -1572,9 +1610,9 @@ class BlockPayrollController extends Controller
                 'prefix' => $employeeJson['prefix'],
                 'consecutive' => $employeeJson['consecutive'],
                 'payroll_period_id' => $employeeJson['payroll_period_id'],
-                'notes' => $employeeJson['notes'],
-                'head_note' => $employeeJson['head_note'],
-                'foot_note' => $employeeJson['foot_note'],
+                'notes' => $employeeJson['notes'] ?? '',
+                'head_note' => $employeeJson['head_note'] ?? '',
+                'foot_note' => $employeeJson['foot_note'] ?? '',
                 'resolution_number' => $employeeJson['resolution_number'],
                 'period' => $employeeJson['period'],
                 'payment' => $employeeJson['payment'],
@@ -1621,6 +1659,10 @@ class BlockPayrollController extends Controller
             ];
 
         } catch (\Exception $e) {
+            Log::error("Error en createIndividualPayrollDocument para worker {$worker->id}: " . $e->getMessage());
+            Log::error("Stack trace: " . $e->getTraceAsString());
+            Log::error("EmployeeJson data: " . json_encode($employeeJson));
+            
             return [
                 'success' => false,
                 'message' => $e->getMessage()
@@ -1768,6 +1810,13 @@ class BlockPayrollController extends Controller
                 $keyLower = strtolower($key);
                 if (in_array($keyLower, ['isvalid', 'is_valid', 'valid', 'esvalido', 'valido'])) {
                     Log::info("Campo isValid encontrado en ruta: {$currentPath} con valor: " . json_encode($value));
+                    
+                    // Manejar tanto strings como booleans
+                    if (is_string($value)) {
+                        $valueLower = strtolower(trim($value));
+                        return $valueLower === 'true' || $valueLower === '1';
+                    }
+                    
                     return (bool) $value;
                 }
 
