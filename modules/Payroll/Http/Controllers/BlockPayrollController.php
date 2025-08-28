@@ -260,13 +260,13 @@ class BlockPayrollController extends Controller
         try {
             $block_payroll_id = $request->input('block_payroll_id');
             $worker_id = $request->input('worker_id');
-            
+
             // Log para debugging
             Log::info("queryIndividualZipkey called", [
                 'block_payroll_id' => $block_payroll_id,
                 'worker_id' => $worker_id
             ]);
-            
+
             $blockPayroll = BlockPayroll::find($block_payroll_id);
             if (!$blockPayroll) {
                 return response()->json(['success' => false, 'message' => 'Bloque de nómina no encontrado'], 404);
@@ -369,7 +369,7 @@ class BlockPayrollController extends Controller
     {
         try {
             $block_payroll_id = $request->input('block_payroll_id');
-            
+
             $blockPayroll = BlockPayroll::find($block_payroll_id);
             if (!$blockPayroll) {
                 return response()->json(['success' => false, 'message' => 'Bloque de nómina no encontrado'], 404);
@@ -1823,6 +1823,10 @@ class BlockPayrollController extends Controller
     private function queryZipKeyValidation($documentId, $zipKey)
     {
         try {
+            // Pausa de 2 segundos para permitir que la DIAN procese el documento
+            // antes de consultar el ZipKey, ya que puede haber delay en el procesamiento
+            sleep(2);
+
             // Crear una instancia del controlador de documentos
             $documentController = app(\Modules\Payroll\Http\Controllers\DocumentPayrollController::class);
 
@@ -2228,26 +2232,27 @@ class BlockPayrollController extends Controller
         $html .= '
             <thead>
                 <tr>
-                    <th style="width: 15%;">EMPLEADO</th>
-                    <th style="width: 8%;">IDENTIFICACIÓN</th>
-                    <th style="width: 5%;">DÍAS<br>TRABAJADOS</th>
-                    <th style="width: 9%;">SALARIO<br>BÁSICO</th>
-                    <th style="width: 8%;">VACACIONES</th>
-                    <th style="width: 8%;">PRIMA<br>SERVICIOS</th>
-                    <th style="width: 8%;">CESANTÍAS</th>
-                    <th style="width: 9%;">TOTAL<br>DEVENGADO</th>
-                    <th style="width: 8%;">SALUD</th>
-                    <th style="width: 8%;">PENSIÓN</th>
-                    <th style="width: 6%;">OTRAS<br>DEDUCCIONES</th>
-                    <th style="width: 9%;">TOTAL<br>DEDUCCIONES</th>
-                    <th style="width: 9%;">NETO A<br>PAGAR</th>
+                    <th style="width: 13%;">EMPLEADO</th>
+                    <th style="width: 7%;">IDENTIFICACIÓN</th>
+                    <th style="width: 4%;">DÍAS<br>TRABAJADOS</th>
+                    <th style="width: 8%;">SALARIO<br>BÁSICO</th>
+                    <th style="width: 7%;">VACACIONES</th>
+                    <th style="width: 7%;">PRIMA<br>SERVICIOS</th>
+                    <th style="width: 7%;">CESANTÍAS</th>
+                    <th style="width: 8%;">TOTAL<br>DEVENGADO</th>
+                    <th style="width: 7%;">SALUD</th>
+                    <th style="width: 7%;">PENSIÓN</th>
+                    <th style="width: 5%;">OTRAS<br>DEDUCCIONES</th>
+                    <th style="width: 8%;">TOTAL<br>DEDUCCIONES</th>
+                    <th style="width: 8%;">NETO A<br>PAGAR</th>
+                    <th style="width: 6%;">ESTADO</th>
                 </tr>
             </thead>
             <tbody>';
 
         // Filas de empleados
-        foreach ($employeesData as $employee) {
-            $html .= $this->generateEmployeeRowHTML($employee);
+        foreach ($employeesData as $workerId => $employee) {
+            $html .= $this->generateEmployeeRowHTML($employee, $blockPayroll, $workerId);
         }
 
         $html .= '</tbody></table>';
@@ -2268,7 +2273,7 @@ class BlockPayrollController extends Controller
     /**
      * Generar fila HTML para un empleado en la tabla
      */
-    private function generateEmployeeRowHTML($employee)
+    private function generateEmployeeRowHTML($employee, $blockPayroll = null, $workerId = null)
     {
         // Extraer datos del empleado - nombre completo
         $firstName = $employee['worker']['first_name'] ?? '';
@@ -2330,6 +2335,23 @@ class BlockPayrollController extends Controller
         // Neto a pagar
         $netPayment = $totalAccrued - $totalDeductions;
 
+        // Determinar estado del trabajador
+        $payrollStatus = 'Pendiente';
+        $statusColor = '#ffecb3'; // Amarillo claro para pendiente
+
+        if ($blockPayroll && $workerId && $blockPayroll->block_payroll_json_responses) {
+            $jsonResponses = $blockPayroll->block_payroll_json_responses;
+            if (isset($jsonResponses[$workerId])) {
+                $workerResponse = $jsonResponses[$workerId];
+
+                // Usar exactamente la misma lógica que el frontend: solo verificar is_valid
+                if (isset($workerResponse['is_valid']) && $workerResponse['is_valid'] === true) {
+                    $payrollStatus = 'Aceptada';
+                    $statusColor = '#c8e6c9'; // Verde claro para aceptada
+                }
+            }
+        }
+
         $html = '<tr>
             <td class="employee-name">' . htmlspecialchars($workerName) . '</td>
             <td>' . htmlspecialchars($identification) . '</td>
@@ -2344,6 +2366,7 @@ class BlockPayrollController extends Controller
             <td class="currency">$' . number_format($otherDeductions, 2, '.', ',') . '</td>
             <td class="currency" style="background-color: #ffe8e8; font-weight: bold;">$' . number_format($totalDeductions, 2, '.', ',') . '</td>
             <td class="currency" style="background-color: #e8e8ff; font-weight: bold;">$' . number_format($netPayment, 2, '.', ',') . '</td>
+            <td style="background-color: ' . $statusColor . '; font-weight: bold; text-align: center;">' . $payrollStatus . '</td>
         </tr>';
 
         return $html;

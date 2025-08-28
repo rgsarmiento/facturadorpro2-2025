@@ -54,7 +54,7 @@
                             ${{ getFormatDecimal(calculateBlockTotal(blockData.accrued_total, blockData.deductions_total)) }}
                         </div>
                     </div>
-                    
+
                     <!-- Sección de nóminas individuales -->
                     <div v-if="blockData.block_payroll_json && Object.keys(blockData.block_payroll_json).length > 0" class="mt-4">
                         <h5 class="mb-3">Nóminas Individuales Generadas</h5>
@@ -81,12 +81,11 @@
                                         <td class="text-center">{{ payrollData.prefix || 'N/A' }}</td>
                                         <td class="text-center">{{ getPayrollConsecutive(payrollData, workerId) }}</td>
                                         <td class="text-center">
-                                            <span 
+                                            <span
                                                 class="badge"
                                                 :class="{
                                                     'bg-success': getValidationStatus(workerId) === true,
-                                                    'bg-danger': getValidationStatus(workerId) === false,
-                                                    'bg-warning': getValidationStatus(workerId) === null
+                                                    'bg-warning': getValidationStatus(workerId) !== true
                                                 }"
                                             >
                                                 {{ getValidationStatusText(workerId) }}
@@ -165,7 +164,7 @@ export default {
                 .then(response => {
                     this.blockData = response.data.data;
                     this.titleDialog = `Opciones - Bloque #${this.blockData.id}`;
-                    
+
                     // Cargar consecutivos automáticamente al cargar los datos
                     this.loadAllConsecutives();
                 })
@@ -180,7 +179,7 @@ export default {
 
         async loadConsecutives() {
             if (!this.blockData?.block_payroll_json_responses) return;
-            
+
             for (const [workerId, response] of Object.entries(this.blockData.block_payroll_json_responses)) {
                 if (response.validation_method === 'zipkey_query_message' && response.zip_key) {
                     try {
@@ -194,7 +193,7 @@ export default {
                     }
                 }
             }
-            
+
             // Forzar actualización de la vista
             this.$forceUpdate();
         },
@@ -313,7 +312,7 @@ export default {
                 }
 
                 this.$set(this.tableData[index], 'consecutive_loading', true);
-                
+
                 const params = {
                     block_payroll_id: this.id,
                     worker_id: row.worker_id
@@ -323,13 +322,13 @@ export default {
                 .then(response => {
                     if (response.data.success && response.data.data) {
                         const responseData = response.data.data;
-                        
+
                         // Actualizar la fila con los datos obtenidos
                         this.$set(this.tableData[index], 'consecutive_number', responseData.consecutive_number || 'N/A');
                         this.$set(this.tableData[index], 'zip_key', responseData.zip_key || '');
                         this.$set(this.tableData[index], 'status_message', responseData.status_message || '');
                         this.$set(this.tableData[index], 'is_valid', responseData.is_valid || false);
-                        
+
                         console.log(`Consecutivo extraído para trabajador ${row.worker_id}:`, responseData.consecutive_number);
                     } else {
                         console.error('Error al obtener consecutivo:', response.data.message);
@@ -351,15 +350,15 @@ export default {
             }
 
             this.loadingConsecutives = true;
-            
+
             try {
                 const response = await this.$http.post(`/${this.resource}/query-all-consecutives`, {
                     block_payroll_id: this.recordId
                 });
-                
+
                 if (response.data.success && response.data.data) {
                     const consecutivesData = response.data.data;
-                    
+
                     // Actualizar los datos del bloque con los consecutivos obtenidos
                     for (const [workerId, consecutiveInfo] of Object.entries(consecutivesData)) {
                         if (this.blockData.block_payroll_json[workerId]) {
@@ -382,12 +381,12 @@ export default {
             if (payrollData?.consecutive_number) {
                 return payrollData.consecutive_number;
             }
-            
+
             // Buscar el consecutivo en las respuestas cargadas
             if (this.blockData?.block_payroll_json_responses?.[workerId]?.consecutive_number) {
                 return this.blockData.block_payroll_json_responses[workerId].consecutive_number;
             }
-            
+
             // Buscar en mensaje de autorización directo
             if (this.blockData?.block_payroll_json_responses?.[workerId]) {
                 const apiResponse = this.blockData.block_payroll_json_responses[workerId];
@@ -399,7 +398,7 @@ export default {
                     }
                 }
             }
-            
+
             // Fallback: buscar en el payrollData
             const authMessage = this.getAuthorizationMessage(payrollData);
             if (authMessage) {
@@ -408,12 +407,12 @@ export default {
                     return consecutiveMatch[2];
                 }
             }
-            
+
             // Último fallback: usar consecutivo del payrollData si existe y no es 0
             if (payrollData.consecutive && payrollData.consecutive !== 0) {
                 return payrollData.consecutive.toString();
             }
-            
+
             return 'N/A';
         },
 
@@ -422,7 +421,7 @@ export default {
             if (apiResponse.worker_name && apiResponse.worker_name.includes('ALEXANDER')) {
                 console.log('API Response FULL STRUCTURE (ALEXANDER):', JSON.stringify(apiResponse, null, 2));
             }
-            
+
             // Buscar en la respuesta original del API si existe
             if (apiResponse.original_api_response) {
                 // Si hay un mensaje directo en la respuesta original
@@ -436,7 +435,7 @@ export default {
                     return apiResponse.original_api_response.response_message;
                 }
             }
-            
+
             // Buscar en campos directos de la respuesta
             if (apiResponse.authorization_message) {
                 return apiResponse.authorization_message;
@@ -450,8 +449,8 @@ export default {
             if (apiResponse.message) {
                 return apiResponse.message;
             }
-            
-            // Si el método de validación es zipkey_query_message, 
+
+            // Si el método de validación es zipkey_query_message,
             // probablemente necesitamos hacer una consulta al ZipKey
             if (apiResponse.validation_method === 'zipkey_query_message' && apiResponse.zip_key) {
                 // Por ahora, intentaremos construir un consecutivo basado en algún patrón
@@ -459,7 +458,7 @@ export default {
                 console.log('ZipKey available:', apiResponse.zip_key);
                 return null; // Retornamos null para que se maneje en getPayrollConsecutive
             }
-            
+
             return null;
         },
 
@@ -480,23 +479,23 @@ export default {
             if (payrollData.worker && payrollData.worker.identification_number && payrollData.worker.identification_number.includes('1')) {
                 console.log('PayrollData FULL STRUCTURE (Worker with 1 in cedula):', JSON.stringify(payrollData, null, 2));
             }
-            
+
             // Buscar el mensaje de autorización en diferentes ubicaciones posibles
             const fields = [
                 'response_api_message',
-                'authorization_message', 
+                'authorization_message',
                 'message',
                 'response.message',
                 'api_response.message'
             ];
-            
+
             for (let field of fields) {
                 let value = this.getNestedProperty(payrollData, field);
                 if (value) {
                     return value;
                 }
             }
-            
+
             return null;
         },
 
@@ -510,11 +509,11 @@ export default {
 
             // Buscar el filename_pdf en las respuestas almacenadas
             let filename = null;
-            
+
             // Explorar la estructura completa de block_payroll_json_responses
             if (this.blockData?.block_payroll_json_responses?.[workerId]) {
                 const workerResponse = this.blockData.block_payroll_json_responses[workerId];
-                
+
                 // Estrategia 1: urlpayrollpdf directo
                 if (workerResponse.urlpayrollpdf) {
                     filename = workerResponse.urlpayrollpdf;
@@ -539,7 +538,7 @@ export default {
                     filename = workerResponse.filename_pdf;
                 }
             }
-            
+
             // Fallback: Buscar en payrollData directamente
             if (!filename && payrollData.filename_pdf) {
                 filename = payrollData.filename_pdf;
@@ -589,11 +588,11 @@ export default {
 
         getPayrollTotal(payrollData) {
             if (!payrollData || !payrollData.accrued) return 0;
-            
+
             // Intentar obtener el total de devengados
             const accruedTotal = payrollData.accrued.accrued_total || 0;
             const deductionsTotal = payrollData.deductions ? payrollData.deductions.deductions_total || 0 : 0;
-            
+
             return parseFloat(accruedTotal) - parseFloat(deductionsTotal);
         },
 
@@ -601,18 +600,18 @@ export default {
             if (!this.blockData || !this.blockData.block_payroll_json_responses) {
                 return null;
             }
-            
+
             const response = this.blockData.block_payroll_json_responses[workerId];
             if (!response) return null;
-            
+
             return response.is_valid;
         },
 
         getValidationStatusText(workerId) {
             const status = this.getValidationStatus(workerId);
-            
-            if (status === true) return 'Válida';
-            if (status === false) return 'Inválida';
+
+            if (status === true) return 'Aceptada';
+            if (status === false) return 'Pendiente';
             return 'Pendiente';
         },
 

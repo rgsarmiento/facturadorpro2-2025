@@ -4746,13 +4746,13 @@ export default {
                 current: 0,
                 total: selectedWorkers.length,
                 percentage: 0,
-                currentEmployee: '',
+                currentEmployee: 'Procesando datos de nómina...',
                 isProcessing: true
             };
             this.showProgressModal = true;
 
-            // Simular progreso visual empleado por empleado
-            this.simulateEmployeeProgress(selectedWorkers);
+            // El progreso se actualizará mediante el proceso real del servidor
+            // Simulación eliminada para evitar conflictos con el proceso real
 
             // Preparar datos para enviar (igual que saveWithoutGenerate pero para generar documentos)
             const formData = {
@@ -4954,17 +4954,69 @@ export default {
             formData.employee_accrued_data = employeeAccruedData;
             formData.employee_deduction_data = employeeDeductionData;
 
+            let progressInterval = null;
+
             try {
+                // Actualizar progreso para mostrar que se está enviando al servidor
+                this.progressData.currentEmployee = 'Enviando datos al servidor...';
+                this.progressData.percentage = 10;
+
                 // Determinar URL según modo
                 const url = this.editMode
                     ? `/${this.resource}/${this.blockPayrollId}/save-and-generate`
                     : `/${this.resource}/save-and-generate`;
 
+                // Simular progreso durante la espera de respuesta
+                progressInterval = setInterval(() => {
+                    if (this.progressData.percentage < 90) {
+                        this.progressData.percentage += 10;
+
+                        // Actualizar también el contador de empleados procesados
+                        const progressRatio = this.progressData.percentage / 100;
+                        this.progressData.current = Math.floor(progressRatio * selectedWorkers.length);
+
+                        // Determinar qué empleado mostrar basado en el progreso actual
+                        const currentEmployeeIndex = Math.floor(progressRatio * selectedWorkers.length);
+                        if (currentEmployeeIndex < selectedWorkers.length) {
+                            const currentWorker = this.form.items.find(
+                                item => item.id === selectedWorkers[currentEmployeeIndex]
+                            );
+
+                            if (currentWorker) {
+                                const employeeName = currentWorker.search_fullname || currentWorker.fullname || `Empleado ID: ${selectedWorkers[currentEmployeeIndex]}`;
+                                if (this.progressData.percentage < 50) {
+                                    this.progressData.currentEmployee = `Procesando: ${employeeName}`;
+                                } else {
+                                    this.progressData.currentEmployee = `Generando documento: ${employeeName}`;
+                                }
+                            } else {
+                                // Fallback si no se encuentra el empleado
+                                this.progressData.currentEmployee = this.progressData.percentage < 50
+                                    ? 'Procesando datos de nómina...'
+                                    : 'Generando documentos de nómina...';
+                            }
+                        }
+                    }
+                }, 500); // Actualizar cada 500ms
+
                 const response = await this.$http.post(url, formData);
+
+                // Limpiar el intervalo cuando llegue la respuesta
+                clearInterval(progressInterval);
+                progressInterval = null;
 
                 if (response.data.success) {
                     const data = response.data.data;
                     const errors = response.data.errors || [];
+
+                    // Actualizar progreso al 100% antes de mostrar el mensaje
+                    this.progressData.percentage = 100;
+                    this.progressData.current = selectedWorkers.length; // Mostrar todos los empleados procesados
+                    this.progressData.currentEmployee = 'Proceso completado';
+                    this.progressData.isProcessing = false;
+
+                    // Usar $nextTick para asegurar que el progreso se renderice antes del mensaje
+                    await this.$nextTick();
 
                     let message = `Bloque guardado exitosamente. `;
                     message += `Documentos generados: ${data.successful_documents}/${data.total_workers}`;
@@ -4981,13 +5033,15 @@ export default {
                         this.$message.success(message);
                     }
 
-                    // Cerrar el modal de progreso
-                    this.showProgressModal = false;
+                    // Cerrar el modal de progreso después de mostrar el mensaje
+                    setTimeout(() => {
+                        this.showProgressModal = false;
+                    }, 2000); // Aumenté el tiempo para que se vea mejor el mensaje
 
-                    // Redirigir al listado después de un breve delay
+                    // Redirigir al listado después de un breve delay adicional
                     setTimeout(() => {
                         window.location.href = "/payroll/block-payrolls";
-                    }, 2000);
+                    }, 4000); // Ajusté el tiempo total
 
                 } else {
                     this.$message.error(
@@ -5001,8 +5055,16 @@ export default {
                     "Error al procesar la solicitud de guardar y generar"
                 );
             } finally {
+                // Limpiar el intervalo si aún existe
+                if (progressInterval) {
+                    clearInterval(progressInterval);
+                }
                 this.loading_submit = false;
-                this.showProgressModal = false; // Cerrar modal en caso de error
+                // No cerrar el modal aquí automáticamente en caso de éxito
+                // Solo cerrarlo en caso de error real
+                if (this.progressData.percentage < 100) {
+                    this.showProgressModal = false;
+                }
             }
         },
 
