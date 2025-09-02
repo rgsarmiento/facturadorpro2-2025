@@ -1,13 +1,14 @@
 <?php
 
-namespace Modules\Document\Traits; 
+namespace Modules\Document\Traits;
 
 use App\Models\Tenant\Item;
 
 trait SearchTrait
-{ 
+{
 
     public function getItemsServices($request){
+        $limit = $request->limit ?? 50; // Límite de 50 por defecto
 
         return Item::where('name','like', "%{$request->input}%")
                     ->orWhere('internal_id','like', "%{$request->input}%")
@@ -21,11 +22,12 @@ trait SearchTrait
                     ->whereNotIsSet()
                     ->whereIsActive()
                     ->orderBy('name')
+                    ->limit($limit)
                     ->get();
-
     }
-    
+
     public function getItemsNotServices($request){
+        $limit = $request->limit ?? 50; // Límite de 50 por defecto
 
         return Item::where('name','like', "%{$request->input}%")
                     ->orWhere('internal_id','like', "%{$request->input}%")
@@ -39,11 +41,11 @@ trait SearchTrait
                     ->whereNotIsSet()
                     ->whereIsActive()
                     ->orderBy('name')
+                    ->limit($limit)
                     ->get();
-
     }
 
-    
+
     public function getItemsServicesById($id){
 
         return Item::where('id', $id)
@@ -53,7 +55,7 @@ trait SearchTrait
                     ->get();
 
     }
-    
+
     public function getItemsNotServicesById($id){
 
         return Item::where('id', $id)
@@ -83,7 +85,7 @@ trait SearchTrait
                     $warehouse_stock = number_format($wr->stock, 2);
                 }
             }
-              
+
             $stock = ($row->warehouses && $warehouse) ? "{$warehouse_stock}" : "";
         }
         else{

@@ -2212,11 +2212,24 @@ class DocumentController extends Controller
         if ($table === 'items') {
             $establishment_id = auth()->user()->establishment_id;
             $warehouse = ModuleWarehouse::where('establishment_id', $establishment_id)->first();
-//            $items_u = ItemP::whereNotItemsAiu()->whereWarehouse()->whereIsActive()->whereNotIsSet()->orderBy('description')->take(20)->get();
-//            $items_s = ItemP::whereNotItemsAiu()->where('unit_type_id','ZZ')->whereIsActive()->orderBy('description')->take(10)->get();
-            $items_u = ItemP::whereNotItemsAiu()->whereWarehouse()->whereIsActive()->whereNotIsSet()->orderBy('description')->get();
-            $items_s = ItemP::whereNotItemsAiu()->where('unit_type_id','ZZ')->whereIsActive()->orderBy('description')->get();
-            // $items_aiu = ItemP::whereIn('internal_id', ['aiu00001', 'aiu00002', 'aiu00003'])->get();
+
+            // Cargar solo los primeros 20 productos más populares para la carga inicial
+            // La búsqueda completa se hará mediante AJAX
+            $items_u = ItemP::whereNotItemsAiu()
+                        ->whereWarehouse()
+                        ->whereIsActive()
+                        ->whereNotIsSet()
+                        ->orderBy('description')
+                        ->limit(20)
+                        ->get();
+
+            $items_s = ItemP::whereNotItemsAiu()
+                        ->where('unit_type_id','ZZ')
+                        ->whereIsActive()
+                        ->orderBy('description')
+                        ->limit(10)
+                        ->get();
+
             $items = $items_u->merge($items_s);
             //$items = $items->merge($items_aiu);
             return collect($items)->transform(function($row) use($warehouse){

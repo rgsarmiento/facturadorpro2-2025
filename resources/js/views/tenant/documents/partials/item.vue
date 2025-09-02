@@ -342,6 +342,9 @@ export default {
     data() {
         return {
             loading_search: false,
+            searchTimeout: null, // Para debounce
+            lastSearchQuery: '', // Evitar búsquedas duplicadas
+            minSearchLength: 3, // Mínimo caracteres para buscar
             titleAction: '',
             is_client: false,
             titleDialog: '',
@@ -385,7 +388,8 @@ export default {
             this.charge_types = response.data.charge_types
             this.attribute_types = response.data.attribute_types
             this.is_client = response.data.is_client;
-            this.filterItems()
+            // Mostrar solo los primeros items al cargar
+            this.items = this.all_items.slice(0, 10);
         })
         this.$eventHub.$on('reloadDataItems', (item_id) => {
             this.reloadDataItems(item_id)
@@ -396,25 +400,50 @@ export default {
     },
     methods: {
         async searchRemoteItems(input) {
-            if (input.length > 2 || this.search_item_by_barcode) {
-                this.loading_search = true
-                let parameters = `input=${input}`
-                await this.$http.get(`/${this.resource}/search-items/?${parameters}`)
-                    .then(response => {
-                        // console.log(response)
-                        this.items = response.data.items
-                        this.loading_search = false
-                        this.enabledSearchItemsBarcode()
-                        if (this.items.length == 0) {
-                            this.filterItems()
+            // Limpiar timeout anterior
+            if (this.searchTimeout) {
+                clearTimeout(this.searchTimeout);
+            }
+
+            // Si es el mismo término de búsqueda, no buscar de nuevo
+            if (input === this.lastSearchQuery) {
+                return;
+            }
+
+            // Si es búsqueda por código de barras o tiene suficientes caracteres
+            if (input.length >= this.minSearchLength || this.search_item_by_barcode) {
+                // Debounce de 300ms para evitar demasiadas consultas
+                this.searchTimeout = setTimeout(async () => {
+                    this.loading_search = true;
+                    this.lastSearchQuery = input;
+
+                    try {
+                        let parameters = `input=${encodeURIComponent(input)}&limit=50`; // Límite de 50 resultados
+                        const response = await this.$http.get(`/${this.resource}/search-items/?${parameters}`);
+
+                        this.items = response.data.items;
+                        this.enabledSearchItemsBarcode();
+
+                        // Si no hay resultados y tenemos items precargados, mostrar algunos
+                        if (this.items.length == 0 && this.all_items.length > 0) {
+                            this.items = this.all_items.slice(0, 10); // Mostrar solo los primeros 10
                         }
-                    })
+                    } catch (error) {
+                        console.error('Error en búsqueda de items:', error);
+                        this.items = this.all_items.slice(0, 10); // Fallback a items precargados
+                    } finally {
+                        this.loading_search = false;
+                    }
+                }, 300);
             } else {
-                await this.filterItems()
+                // Si no tiene suficientes caracteres, mostrar items precargados limitados
+                this.items = this.all_items.slice(0, 10);
+                this.lastSearchQuery = input;
             }
         },
         filterItems() {
-            this.items = this.all_items
+            // Mostrar solo los primeros 20 items en lugar de todos
+            this.items = this.all_items.slice(0, 20);
         },
         enabledSearchItemsBarcode() {
             if (this.search_item_by_barcode) {

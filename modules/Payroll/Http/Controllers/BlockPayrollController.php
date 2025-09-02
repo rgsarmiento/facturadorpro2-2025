@@ -1725,7 +1725,7 @@ class BlockPayrollController extends Controller
                         $valueLower = strtolower(trim($value));
                         return $valueLower === 'true' || $valueLower === '1';
                     }
-                    
+
                     return (bool) $value;
                 }
 
