@@ -560,7 +560,8 @@
                     this.form.id = this.form.item_id;
                     this.form.unit_type_id = this.form.item.unit_type_id;
                     this.lots = this.form.item.lots;
-                    this.form.tax_id = (this.taxes.length > 0) ? this.form.item.tax.id : null;
+                    // Validar si tax existe antes de acceder a sus propiedades
+                    this.form.tax_id = (this.taxes.length > 0 && this.form.item.tax && this.form.item.tax.id) ? this.form.item.tax.id : null;
                     this.form.price = this.form.item.sale_unit_price;
                     this.form.quantity = 1;
                     this.cleanTotalItem();
@@ -590,7 +591,8 @@
                     formaiu.item.sale_unit_price = price
                     formaiu.item_unit_types = _.find(context.items_aiu, {'id': formaiu.item_id}).item_unit_types
                     formaiu.id = formaiu.item_id
-                    formaiu.tax_id = (context.taxes.length > 0) ? formaiu.item.tax.id: null
+                    // Validar si tax existe antes de acceder a sus propiedades
+                    formaiu.tax_id = (context.taxes.length > 0 && formaiu.item.tax && formaiu.item.tax.id) ? formaiu.item.tax.id: null
                     formaiu.price = price
                     formaiu.quantity = 1
                     formaiu.item.presentation = {};
