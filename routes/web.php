@@ -346,6 +346,7 @@ if ($hostname) {
             // Route::post('documents/email', 'Tenant\DocumentController@email');
             // Route::get('documents/note/{document}', 'Tenant\NoteController@create');
             Route::get('purchases/item/tables', 'Tenant\PurchaseController@item_tables');
+            Route::get('purchases/item/search', 'Tenant\PurchaseController@searchItems');
             // Route::get('documents/table/{table}', 'Tenant\DocumentController@table');
 
             //quotations

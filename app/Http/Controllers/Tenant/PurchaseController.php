@@ -641,5 +641,68 @@ class PurchaseController extends Controller
         return $pdf->stream($filename.'.pdf');
     }
 
+    /**
+     * Búsqueda optimizada de items para el select
+     */
+    public function searchItems(Request $request)
+    {
+        $query = $request->get('q', '');
+        $limit = $request->get('limit', 50);
+        
+        if (empty($query)) {
+            return response()->json(['items' => []]);
+        }
+
+        $items = Item::whereNotIsSet()
+            ->whereIsActive()
+            ->where(function($q) use ($query) {
+                $q->where('name', 'like', '%' . $query . '%')
+                  ->orWhere('internal_id', 'like', '%' . $query . '%')
+                  ->orWhere('item_code', 'like', '%' . $query . '%');
+            })
+            ->orderBy('name')
+            ->limit($limit)
+            ->get();
+
+        $transformedItems = collect($items)->transform(function($row) {
+            $full_description = ($row->internal_id) ? $row->internal_id . ' - ' . $row->name : $row->name;
+            return [
+                'id' => $row->id,
+                'item_code' => $row->item_code,
+                'name' => $row->name,
+                'description' => $row->description,
+                'full_description' => $full_description,
+                'currency_type_id' => $row->currency_type_id,
+                'currency_type_symbol' => $row->currency_type->symbol,
+                'sale_unit_price' => $row->sale_unit_price,
+                'purchase_unit_price' => $row->purchase_unit_price,
+                'unit_type_id' => $row->unit_type_id,
+                'purchase_tax_id' => $row->purchase_tax_id,
+                'purchase_affectation_igv_type_id' => $row->purchase_affectation_igv_type_id,
+                'has_perception' => (bool) $row->has_perception,
+                'lots_enabled' => (bool) $row->lots_enabled,
+                'percentage_perception' => $row->percentage_perception,
+                'item_unit_types' => collect($row->item_unit_types)->transform(function($row) {
+                    return [
+                        'id' => $row->id,
+                        'description' => "{$row->description}",
+                        'item_id' => $row->item_id,
+                        'unit_type_id' => $row->unit_type_id,
+                        'unit_type' => $row->unit_type,
+                        'quantity_unit' => $row->quantity_unit,
+                        'price1' => $row->price1,
+                        'price2' => $row->price2,
+                        'price3' => $row->price3,
+                        'price_default' => $row->price_default,
+                    ];
+                }),
+                'warehouses' => $row->warehouses,
+                'lots' => $row->lots
+            ];
+        });
+
+        return response()->json(['items' => $transformedItems]);
+    }
+
 
 }
