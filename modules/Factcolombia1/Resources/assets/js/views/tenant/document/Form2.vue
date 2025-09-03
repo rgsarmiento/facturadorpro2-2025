@@ -836,7 +836,7 @@ export default {
                     this.form.resolution_id = this.invoice.type_document_id;
                 }
                 const resol = this.resolutions.find(x => x.id == this.form.resolution_id);
-                console.log('Resolución seleccionada:', resol);
+//                console.log('Resolución seleccionada:', resol);
                 if (resol) {
                     this.form.resolution_number = resol.resolution_number;
                     this.form.prefix = resol.prefix;
