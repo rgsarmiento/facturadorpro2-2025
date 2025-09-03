@@ -347,6 +347,7 @@ if ($hostname) {
             // Route::get('documents/note/{document}', 'Tenant\NoteController@create');
             Route::get('purchases/item/tables', 'Tenant\PurchaseController@item_tables');
             Route::get('purchases/item/search', 'Tenant\PurchaseController@searchItems');
+            Route::get('purchases/warehouses-taxes', 'Tenant\PurchaseController@getWarehousesAndTaxes');
             // Route::get('documents/table/{table}', 'Tenant\DocumentController@table');
 
             //quotations

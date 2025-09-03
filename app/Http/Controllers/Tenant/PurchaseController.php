@@ -150,6 +150,17 @@ class PurchaseController extends Controller
         return compact('items', 'categories', 'taxes','warehouses');
     }
 
+    /**
+     * Devuelve solo warehouses y taxes para mejorar performance
+     */
+    public function getWarehousesAndTaxes()
+    {
+        $taxes = $this->table('taxes');
+        $warehouses = Warehouse::all();
+
+        return compact('taxes', 'warehouses');
+    }
+
     public function record($id)
     {
 
@@ -647,28 +658,41 @@ class PurchaseController extends Controller
     public function searchItems(Request $request)
     {
         $query = $request->get('q', '');
+        $itemId = $request->get('item_id', null);
         $limit = $request->get('limit', 50);
-        
-        if (empty($query)) {
-            return response()->json(['items' => []]);
-        }
 
-        $items = Item::whereNotIsSet()
-            ->whereIsActive()
-            ->where(function($q) use ($query) {
-                $q->where('name', 'like', '%' . $query . '%')
-                  ->orWhere('internal_id', 'like', '%' . $query . '%')
-                  ->orWhere('item_code', 'like', '%' . $query . '%');
-            })
-            ->orderBy('name')
-            ->limit($limit)
-            ->get();
+        // Si buscamos por ID específico
+        if ($itemId) {
+            $items = Item::whereNotIsSet()
+                ->whereIsActive()
+                ->where('id', $itemId)
+                ->get();
+        } else if (empty($query)) {
+            // Si no hay query, devolver los primeros items ordenados por nombre
+            $items = Item::whereNotIsSet()
+                ->whereIsActive()
+                ->orderBy('name')
+                ->limit($limit)
+                ->get();
+        } else {
+            // Búsqueda por texto
+            $items = Item::whereNotIsSet()
+                ->whereIsActive()
+                ->where(function($q) use ($query) {
+                    $q->where('name', 'like', '%' . $query . '%')
+                      ->orWhere('internal_id', 'like', '%' . $query . '%')
+                      ->orWhere('description', 'like', '%' . $query . '%');
+                })
+                ->orderBy('name')
+                ->limit($limit)
+                ->get();
+        }
 
         $transformedItems = collect($items)->transform(function($row) {
             $full_description = ($row->internal_id) ? $row->internal_id . ' - ' . $row->name : $row->name;
             return [
                 'id' => $row->id,
-                'item_code' => $row->item_code,
+                'item_code' => $row->internal_id, // Usar internal_id en lugar de item_code
                 'name' => $row->name,
                 'description' => $row->description,
                 'full_description' => $full_description,

@@ -9,10 +9,11 @@
                                 Producto/Servicio
                                 <a href="#" @click.prevent="showDialogNewItem = true">[+ Nuevo]</a>
                             </label>
-                            <el-select 
-                                v-model="form.item_id" 
-                                @change="changeItem" 
-                                filterable 
+                            <el-select
+                                v-model="form.item_id"
+                                @change="changeItem"
+                                @focus="onSelectFocus"
+                                filterable
                                 remote
                                 :remote-method="searchItems"
                                 :loading="loadingItems"
@@ -221,13 +222,18 @@
         },
         created() {
             this.initForm()
-            this.$http.get(`/${this.resource}/item/tables`).then(response => {
-                // Cargamos solo los primeros 20 items para mejorar performance inicial
-                const allItems = response.data.items || [];
-                this.items = allItems.slice(0, 20);
-                
+            // Solo cargamos warehouses y taxes para mejorar performance
+            this.$http.get(`/${this.resource}/warehouses-taxes`).then(response => {
                 this.warehouses = response.data.warehouses
                 this.taxes = response.data.taxes;
+            }).catch(() => {
+                // Fallback: si no existe el nuevo endpoint, usar el anterior sin cargar items
+                console.warn('Usando fallback para cargar warehouses y taxes');
+                this.$http.get(`/${this.resource}/item/tables`).then(response => {
+                    this.warehouses = response.data.warehouses
+                    this.taxes = response.data.taxes;
+                    // NO cargamos items para evitar timeout
+                })
             })
 
             this.$eventHub.$on('reloadDataItems', (item_id) => {
@@ -248,35 +254,32 @@
                 this.items = this.items.filter(item => item.warehouses.length >0)
             },
             searchItems(query) {
-                if (query && query.length >= 2) {
-                    this.loadingItems = true;
-                    
-                    // Intentamos usar el endpoint de búsqueda
-                    this.$http.get(`/${this.resource}/item/search`, {
-                        params: {
-                            q: query,
-                            limit: 50
-                        }
-                    }).then(response => {
-                        this.items = response.data.items || response.data;
-                        this.loadingItems = false;
-                    }).catch(() => {
-                        // Fallback: buscar en todos los items
-                        this.$http.get(`/${this.resource}/item/tables`).then(response => {
-                            const allItems = response.data.items || [];
-                            // Filtrar localmente si el endpoint de búsqueda no existe
-                            this.items = allItems.filter(item => 
-                                item.full_description.toLowerCase().includes(query.toLowerCase())
-                            ).slice(0, 50);
-                            this.loadingItems = false;
-                        }).catch(() => {
-                            this.loadingItems = false;
-                        });
-                    });
-                } else if (query === '') {
-                    // Si la consulta está vacía, mostrar algunos items populares
-                    this.loadPopularItems();
+                // Si la query es muy corta, limpiar items
+                if (query && query.length < 2) {
+                    this.items = [];
+                    return;
                 }
+
+                this.loadingItems = true;
+
+                // Intentamos usar el endpoint de búsqueda optimizada
+                this.$http.get(`/${this.resource}/item/search`, {
+                    params: {
+                        q: query || '', // Permitir query vacío para items iniciales
+                        limit: query ? 50 : 20 // Más resultados si hay búsqueda, menos para carga inicial
+                    }
+                }).then(response => {
+                    this.items = response.data.items || response.data;
+                    this.loadingItems = false;
+                }).catch((error) => {
+                    this.loadingItems = false;
+                    console.error('Error en búsqueda de items:', error);
+                    
+                    // Fallback solo si no hay query (para evitar cargar 6000+ items)
+                    if (!query) {
+                        this.items = [];
+                    }
+                });
             },
             onSelectFocus() {
                 // Cargar algunos items populares cuando se hace focus
@@ -289,17 +292,19 @@
                 this.items = [];
             },
             loadPopularItems() {
-                // Cargar los primeros 20 items más populares
+                // Cargar los primeros 20 items usando el endpoint de búsqueda con query vacío
                 this.loadingItems = true;
-                this.$http.get(`/${this.resource}/item/tables`, {
+                this.$http.get(`/${this.resource}/item/search`, {
                     params: {
+                        q: '', // Query vacío para obtener los primeros items
                         limit: 20
                     }
                 }).then(response => {
-                    this.items = response.data.items ? response.data.items.slice(0, 20) : [];
+                    this.items = response.data.items || [];
                     this.loadingItems = false;
-                }).catch(() => {
+                }).catch((error) => {
                     this.loadingItems = false;
+                    console.warn('Error cargando items:', error);
                 });
             },
             loadAllItems() {
@@ -456,17 +461,26 @@
                 return form
             },
             reloadDataItems(item_id) {
-                // Para recargar un item específico, buscamos por ID
-                this.$http.get(`/${this.resource}/table/items`, {
-                    params: { item_id: item_id }
+                // Buscar solo el item específico para evitar cargar todos
+                this.$http.get(`/${this.resource}/item/search`, {
+                    params: {
+                        item_id: item_id,
+                        limit: 1
+                    }
                 }).then((response) => {
-                    this.items = response.data
-                    this.form.item_id = item_id
-                    this.changeItem()
+                    if (response.data.items && response.data.items.length > 0) {
+                        // Agregar el item específico si no existe ya
+                        const existingItem = this.items.find(item => item.id === item_id);
+                        if (!existingItem) {
+                            this.items.push(response.data.items[0]);
+                        }
+                        this.form.item_id = item_id;
+                        this.changeItem();
+                    }
                 }).catch(() => {
-                    // Fallback: cargar el item específico
-                    this.form.item_id = item_id
-                    this.changeItem()
+                    // Fallback: simplemente setear el ID y cambiar
+                    this.form.item_id = item_id;
+                    this.changeItem();
                 })
             },
         }
