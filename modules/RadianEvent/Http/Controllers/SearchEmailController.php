@@ -88,42 +88,63 @@ class SearchEmailController extends Controller
                     }
 
                     $mail = $mailbox->getMail($email_id);
+                    \Log::debug("Procesando email #{$processed_count}: {$mail->subject} (ID: {$email_id})");
 
                     // validar si el correo cumple las condiciones
                     $data_upload = null;
 
                     if($this->isValidEmail($mail, $email_reading))
                     {
-                        // obtener archivos del correo
-                        $attachments = collect($mail->getAttachments());
-                        $zip_found = false;
-                        $zip_content = null;
-                        $filename = null;
+                        \Log::info("Email VÁLIDO - iniciando procesamiento: {$mail->subject} (ID: {$email_id})");
 
-                        // Recorrer todos los archivos adjuntos
-                        foreach ($attachments as $attachment) {
-                            // Verificar si el archivo es un ZIP por su tipo MIME o extensión
-                            if (pathinfo($attachment->name, PATHINFO_EXTENSION) == 'zip') {
-                                $zip_found = true;
-                                $zip_content = $attachment->getContents();
-                                $filename = $attachment->name;
-                                break; // Salir del bucle una vez que encontramos un ZIP
+                        try {
+                            // obtener archivos del correo
+                            $attachments = collect($mail->getAttachments());
+                            $zip_found = false;
+                            $zip_content = null;
+                            $filename = null;
+
+                            \Log::debug("Buscando archivos ZIP en {$attachments->count()} attachments para email ID: {$email_id}");
+
+                            // Recorrer todos los archivos adjuntos
+                            foreach ($attachments as $attachment) {
+                                // Verificar si el archivo es un ZIP por su tipo MIME o extensión
+                                if (pathinfo($attachment->name, PATHINFO_EXTENSION) == 'zip') {
+                                    $zip_found = true;
+                                    $zip_content = $attachment->getContents();
+                                    $filename = $attachment->name;
+                                    \Log::debug("Archivo ZIP encontrado: {$filename} para email ID: {$email_id}");
+                                    break; // Salir del bucle una vez que encontramos un ZIP
+                                }
                             }
-                        }
 
-                        if ($zip_found) {
+                            if ($zip_found) {
+                                \Log::debug("Procesando archivo ZIP: {$filename} para email ID: {$email_id}");
                             $extract_zip = (new ZipHelper())->extractZip($zip_content);
 
                             if(count($extract_zip) === 2) // se valida si tiene 2 archivos, xml y pdf
                             {
-                                $xml_filename = $extract_zip[0]['filename'];
-                                $xml_content = $extract_zip[0]['content'];
+                                // Identificar dinámicamente cuál archivo es XML y cuál es PDF
+                                $xml_file = null;
+                                $pdf_file = null;
 
-                                $pdf_filename = $extract_zip[1]['filename'];
-                                $pdf_content = $extract_zip[1]['content'];
+                                foreach($extract_zip as $file) {
+                                    if(str_contains(strtolower($file['filename']), '.xml')) {
+                                        $xml_file = $file;
+                                    } elseif(str_contains(strtolower($file['filename']), '.pdf')) {
+                                        $pdf_file = $file;
+                                    }
+                                }
 
-                                if(str_contains($xml_filename, '.xml') && str_contains($pdf_filename, '.pdf'))
+                                if($xml_file && $pdf_file)
                                 {
+                                    $xml_filename = $xml_file['filename'];
+                                    $xml_content = $xml_file['content'];
+                                    $pdf_filename = $pdf_file['filename'];
+                                    $pdf_content = $pdf_file['content'];
+
+                                    \Log::debug("Archivos identificados correctamente - XML: {$xml_filename}, PDF: {$pdf_filename} para email ID: {$email_id}");
+
                                     // verificar si existe el xml
                                     $exist_received_document = ReceivedDocument::select('id')->where('xml', $xml_filename)->first();
 
@@ -162,10 +183,25 @@ class SearchEmailController extends Controller
                                             ]);
 
                                         }
+                                    } else {
+                                        \Log::warning("XML ya existe en la base de datos: {$xml_filename} para email ID: {$email_id}");
                                     }
+                                } else {
+                                    \Log::error("Archivos ZIP no contiene XML y PDF válidos para email ID: {$email_id}. Archivos encontrados: " .
+                                        implode(', ', array_map(function($f) { return $f['filename']; }, $extract_zip)));
                                 }
+                            } else {
+                                \Log::error("ZIP no contiene exactamente 2 archivos para email ID: {$email_id}. Archivos encontrados: " . count($extract_zip));
                             }
+                        } else {
+                            \Log::warning("No se encontró archivo ZIP en email ID: {$email_id}");
                         }
+                    } catch (\Exception $e) {
+                            \Log::error("Error procesando email ID {$email_id}: " . $e->getMessage());
+                            \Log::error("Stack trace: " . $e->getTraceAsString());
+                        }
+                    } else {
+                        \Log::debug("Email NO VÁLIDO - saltando: {$mail->subject} (ID: {$email_id})");
                     }
                 }
 
@@ -224,7 +260,7 @@ class SearchEmailController extends Controller
             }
 
             $totalDetails = $lastEmailReading->details()->count();
-            
+
             // Contar emails exitosos basándose en si tienen documento recibido asociado
             $successfulDetails = $lastEmailReading->details()
                 ->whereHas('received_document')
@@ -411,6 +447,8 @@ class SearchEmailController extends Controller
     public function isValidEmail($mail, $email_reading)
     {
         $subject = $mail->subject;
+        \Log::debug("Evaluando email: {$subject} (ID: {$mail->id})");
+
         // permitir correos reenviados
         if (strpos($subject, 'Fwd: ') === 0) {
             $subject = substr($subject, 5);
@@ -421,26 +459,46 @@ class SearchEmailController extends Controller
         $parse_subject = explode(';',  $subject);
         $quantity_items = count($parse_subject);
 
-        $email_reading_detail = EmailReadingDetail::where('email_user', $email_reading->email_user)
+        $email_reading_detail = EmailReadingDetail::where('co_email_reading_id', $email_reading->id)
                                                     ->where('email_id', $mail->id)
                                                     ->select('id')
                                                     ->first();
 
-        // validar si es que no existe el email registrado
+        // validar si es que no existe el email registrado en esta sesión específica
         if($quantity_items > 0 && !$email_reading_detail)
         {
+            \Log::debug("Email no procesado previamente en esta sesión, continuando validación...");
+
             if(isset($parse_subject[3]))
             {
                 $type_document_code = trim($parse_subject[3]);
                 $exist_type_document = TypeDocument::where('code', $type_document_code)->select('id')->first();
 
-                if($quantity_items === 5 && is_numeric($parse_subject[0]) && $exist_type_document && $mail->hasAttachments())
+                if($quantity_items >= 4 && is_numeric($parse_subject[0]) && $exist_type_document && $mail->hasAttachments())
                 {
-                    if(count($mail->getAttachments()) > 0)
+                    $attachments = $mail->getAttachments();
+                    if(count($attachments) > 0)
                     {
-                        return true;
+                        // Verificar si tiene un archivo ZIP
+                        foreach ($attachments as $attachment) {
+                            if (pathinfo($attachment->name, PATHINFO_EXTENSION) == 'zip') {
+                                \Log::info("Email válido encontrado: {$mail->subject} (ID: {$mail->id})");
+                                return true;
+                            }
+                        }
+                        \Log::debug("Email ignorado - sin archivo ZIP: {$mail->subject}");
                     }
                 }
+                else {
+                    \Log::debug("Email no cumple condiciones: items={$quantity_items}, numeric={$parse_subject[0]}, type_doc={$type_document_code}, attachments={$mail->hasAttachments()}");
+                }
+            }
+        }
+        else {
+            if($email_reading_detail) {
+                \Log::debug("Email ya procesado en esta sesión: {$subject}");
+            } else {
+                \Log::debug("Email sin elementos en subject: {$subject}");
             }
         }
 

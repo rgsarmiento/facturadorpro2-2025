@@ -274,7 +274,7 @@
                 }).catch((error) => {
                     this.loadingItems = false;
                     console.error('Error en búsqueda de items:', error);
-                    
+
                     // Fallback solo si no hay query (para evitar cargar 6000+ items)
                     if (!query) {
                         this.items = [];
