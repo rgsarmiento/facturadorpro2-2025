@@ -191,11 +191,11 @@
                                     <tbody>
                                     <tr v-for="(row, index) in form.items" :key="index">
                                         <td>{{ index + 1 }}</td>
-                                        <td>{{ row.item.name }}<br/>
-                                            <small>{{row.tax.name}}</small>
+                                        <td>{{ row.item && row.item.name ? row.item.name : 'Producto no disponible' }}<br/>
+                                            <small>{{row.tax && row.tax.name ? row.tax.name : 'Sin impuesto'}}</small>
                                         </td>
-                                        <td class="text-left">{{ row.warehouse_description ? row.warehouse_description : row.item.warehouse_description }}</td>
-                                        <td class="text-center">{{ row.item.unit_type.name }}</td>
+                                        <td class="text-left">{{ row.warehouse_description ? row.warehouse_description : (row.item && row.item.warehouse_description ? row.item.warehouse_description : 'N/A') }}</td>
+                                        <td class="text-center">{{ row.item && row.item.unit_type && row.item.unit_type.name ? row.item.unit_type.name : 'N/A' }}</td>
                                         <td class="text-right">{{ row.quantity }}</td>
                                         <td class="text-right">{{ ratePrefix() }} {{ getFormatUnitPriceRow(row.unit_price) }}</td>
                                         <td class="text-right">{{ ratePrefix() }} {{ row.discount }}</td>

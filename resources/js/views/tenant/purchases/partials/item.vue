@@ -48,7 +48,7 @@
                         <div class="form-group" :class="{'has-danger': errors.unit_price}">
                             <label class="control-label">Precio Unitario</label>
                             <el-input v-model="form.unit_price">
-                                <template slot="prepend" v-if="form.item.currency_type_symbol">{{ form.item.currency_type_symbol }}</template>
+                                <template slot="prepend" v-if="form.item && form.item.currency_type_symbol">{{ form.item.currency_type_symbol }}</template>
                             </el-input>
                             <small class="form-control-feedback" v-if="errors.unit_price" v-text="errors.unit_price[0]"></small>
                         </div>
@@ -63,7 +63,7 @@
                         </div>
                     </div>
                     <div class="col-md-6 mt-2" v-if="form.item_id">
-                        <div class="form-group" :class="{'has-danger': errors.lot_code}" v-if="form.item.lots_enabled">
+                        <div class="form-group" :class="{'has-danger': errors.lot_code}" v-if="form.item && form.item.lots_enabled">
                             <label class="control-label">
                                 Código lote
                             </label>
@@ -74,14 +74,14 @@
                         </div>
                     </div>
                     <div style="padding-top: 1%;" class="col-md-3" v-show="form.item_id">
-                        <div class="form-group" :class="{'has-danger': errors.date_of_due}" v-if="form.item.lots_enabled">
+                        <div class="form-group" :class="{'has-danger': errors.date_of_due}" v-if="form.item && form.item.lots_enabled">
                             <label class="control-label">Fec. Vencimiento</label>
                             <el-date-picker v-model="form.date_of_due" type="date" value-format="yyyy-MM-dd" :clearable="true"></el-date-picker>
                             <small class="form-control-feedback" v-if="errors.date_of_due" v-text="errors.date_of_due[0]"></small>
                         </div>
                     </div>
                     <div class="col-md-3" v-show="form.item_id">  <br>
-                        <div class="form-group" :class="{'has-danger': errors.lot_code}" v-if="form.item.series_enabled">
+                        <div class="form-group" :class="{'has-danger': errors.lot_code}" v-if="form.item && form.item.series_enabled">
                             <label class="control-label">
                                 <!-- <el-checkbox v-model="enabled_lots"  @change="changeEnabledPercentageOfProfit">Código lote</el-checkbox> -->
                                 Ingrese series
@@ -104,7 +104,7 @@
                                     slot="prepend"
                                     :disabled="!form.item_id">
                                     <el-option label="%" value="percentage"></el-option>
-                                    <el-option :label="form.item.currency_type_symbol" value="amount"></el-option>
+                                    <el-option :label="form.item && form.item.currency_type_symbol ? form.item.currency_type_symbol : '$'" value="amount"></el-option>
                                 </el-select>
                             </el-input>
                             <small class="form-control-feedback" v-if="errors.discount" v-text="errors.discount[0]"></small>
@@ -132,7 +132,7 @@
                             <tbody>
                             <tr v-for="(row, index) in form.item_unit_types" :key="index">
 
-                                    <td class="text-center">{{row.unit_type.name}}</td>
+                                    <td class="text-center">{{row.unit_type && row.unit_type.name ? row.unit_type.name : 'N/A'}}</td>
                                     <td class="text-center">{{row.description}}</td>
                                     <td class="text-center">{{row.quantity_unit}}</td>
 
@@ -392,17 +392,42 @@
                 this.form.item.unit_type_id = row.unit_type_id
             },
             changeItem() {
+                if (!this.form.item_id) {
+                    this.form.item = {};
+                    return;
+                }
 
                 this.form.item = _.find(this.items, {'id': this.form.item_id})
-                this.form.unit_price = this.form.item.purchase_unit_price
+                
+                // Validar que se encontró el item
+                if (!this.form.item) {
+                    console.warn('Producto no encontrado en la lista de items');
+                    this.form.item = {};
+                    return;
+                }
+                
+                // Asegurar que el item tenga unit_type con propiedades por defecto
+                if (!this.form.item.unit_type) {
+                    this.form.item.unit_type = {name: 'Unidad', id: null};
+                }
+                
+                this.form.unit_price = this.form.item.purchase_unit_price || 0
                 // this.form.affectation_igv_type_id = this.form.item.purchase_affectation_igv_type_id
-                this.form.item_unit_types = _.find(this.items, {'id': this.form.item_id}).item_unit_types
+                this.form.item_unit_types = this.form.item.item_unit_types || []
 
                 this.form.unit_type_id = this.form.item.unit_type_id
                 this.form.tax_id = (this.taxes.length > 0) ? this.form.item.purchase_tax_id: null
 
             },
             async clickAddItem() {
+                // Validar que se ha seleccionado un producto
+                if (!this.form.item_id) {
+                    return this.$message.error('Por favor seleccione un producto');
+                }
+                
+                if (!this.form.item || Object.keys(this.form.item).length === 0) {
+                    return this.$message.error('Información del producto no disponible');
+                }
 
                 if(this.form.item.lots_enabled){
 
@@ -426,11 +451,13 @@
 
                 let date_of_due = this.form.date_of_due
 
-                this.form.tax = _.find(this.taxes, {'id': this.form.tax_id})
-                this.form.type_unit = this.form.item.type_unit
+                this.form.tax = _.find(this.taxes, {'id': this.form.tax_id}) || {name: 'Sin impuesto', id: null}
+                this.form.type_unit = (this.form.item && this.form.item.type_unit) ? this.form.item.type_unit : {}
 
-                this.form.item.unit_price = this.form.unit_price
-                this.form.item.presentation = this.item_unit_type;
+                if (this.form.item) {
+                    this.form.item.unit_price = this.form.unit_price
+                    this.form.item.presentation = this.item_unit_type;
+                }
 
 
                 this.form.lot_code = await this.lot_code
@@ -456,8 +483,15 @@
             },
             changeWarehouse(form){
                 let warehouse = _.find(this.warehouses,{'id':this.form.warehouse_id})
-                form.warehouse_id = warehouse.id
-                form.warehouse_description = warehouse.description
+                if (warehouse) {
+                    form.warehouse_id = warehouse.id
+                    form.warehouse_description = warehouse.description
+                } else {
+                    console.warn('Warehouse no encontrado con ID:', this.form.warehouse_id);
+                    // Mantener el ID pero sin descripción si no se encuentra
+                    form.warehouse_id = this.form.warehouse_id
+                    form.warehouse_description = null
+                }
                 return form
             },
             reloadDataItems(item_id) {
