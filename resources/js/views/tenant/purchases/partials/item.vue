@@ -398,19 +398,19 @@
                 }
 
                 this.form.item = _.find(this.items, {'id': this.form.item_id})
-                
+
                 // Validar que se encontró el item
                 if (!this.form.item) {
                     console.warn('Producto no encontrado en la lista de items');
                     this.form.item = {};
                     return;
                 }
-                
+
                 // Asegurar que el item tenga unit_type con propiedades por defecto
                 if (!this.form.item.unit_type) {
                     this.form.item.unit_type = {name: 'Unidad', id: null};
                 }
-                
+
                 this.form.unit_price = this.form.item.purchase_unit_price || 0
                 // this.form.affectation_igv_type_id = this.form.item.purchase_affectation_igv_type_id
                 this.form.item_unit_types = this.form.item.item_unit_types || []
@@ -424,7 +424,7 @@
                 if (!this.form.item_id) {
                     return this.$message.error('Por favor seleccione un producto');
                 }
-                
+
                 if (!this.form.item || Object.keys(this.form.item).length === 0) {
                     return this.$message.error('Información del producto no disponible');
                 }

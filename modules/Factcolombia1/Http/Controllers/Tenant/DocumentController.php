@@ -665,7 +665,6 @@ class DocumentController extends Controller
 //        \Log::debug($request->all());
         DB::connection('tenant')->beginTransaction();
         try {
-
             // **VALIDACIÓN DE STOCK ANTES DE ENVIAR A DIAN**
             // Validar stock disponible antes de procesar el documento en DIAN
             if($invoice_json === NULL && isset($request->service_invoice['invoice_lines'])) {
@@ -837,7 +836,40 @@ class DocumentController extends Controller
             if($invoice_json === NULL){
                 $service_invoice['notes'] = $request->observation;
                 $service_invoice['date'] = date('Y-m-d', strtotime($request->date_issue));
-                $service_invoice['time'] = date('H:i:s');
+                $d = Document::where('prefix', $service_invoice['prefix'])->where('number', $service_invoice['number'])->first();
+                if($d){
+                    $response_api = json_decode($d->response_api);
+                    // Extraer el tiempo del XML si existe
+                    $t = null;
+                    if(isset($response_api->unsignedinvoicexml)) {
+                        try {
+                            // Decodificar el XML desde base64
+                            $xml_content = base64_decode($response_api->unsignedinvoicexml);
+                            // Cargar el XML
+                            $xml_document = new \DOMDocument();
+                            $xml_document->loadXML($xml_content);
+                            // Buscar el tag cbc:IssueTime usando XPath
+                            $xpath = new \DOMXPath($xml_document);
+                            $xpath->registerNamespace('cbc', 'urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2');
+                            $issue_time_nodes = $xpath->query('//cbc:IssueTime');
+                            if($issue_time_nodes->length > 0) {
+                                $t = $issue_time_nodes->item(0)->nodeValue;
+                                // Extraer solo la parte de tiempo (sin zona horaria)
+                                $t = substr($t, 0, 8); // Toma solo HH:MM:SS
+                            }
+                        } catch (\Exception $e) {
+                            \Log::warning('Error al extraer IssueTime del XML: ' . $e->getMessage());
+                        }
+                    }
+                    // Usar el tiempo extraído del XML o el tiempo del documento
+                    if($t) {
+                        $service_invoice['time'] = $t;
+                    } else {
+                        $service_invoice['time'] = date('H:i:s', strtotime($d->time_of_issue));
+                    }
+                }
+                else
+                    $service_invoice['time'] = date('H:i:s');
                 $service_invoice['payment_form']['payment_form_id'] = $request->payment_form_id;
                 $service_invoice['payment_form']['payment_method_id'] = $request->payment_method_id;
                 if($request->payment_form_id == '1')
@@ -939,8 +971,14 @@ class DocumentController extends Controller
             $zip_key = null;
             $invoice_status_api = null;
 
-            if(isset($response_model->success) && ($response_model->success === false) && ($response_model->message == "Este documento ya fue enviado anteriormente, se registra en la base de datos.")){
-                if($response_model->customer == $service_invoice['customer']['identification_number'] && round($response_model->sale, 5) == round($service_invoice['legal_monetary_totals']['payable_amount'], 5)){
+            if((isset($response_model->success) && ($response_model->success === false) && ($response_model->message == "Este documento ya fue enviado anteriormente, se registra en la base de datos.")) ||
+               (isset($response_model->success) && ($response_model->success === true) && ($response_model->message == "AttachedDocument #{$service_invoice['prefix']}{$service_invoice['number']} generada con éxito")))
+              {
+                if($response_model->success === false)
+                    $test = $response_model->customer == $service_invoice['customer']['identification_number'] && round($response_model->sale, 5) == round($service_invoice['legal_monetary_totals']['payable_amount'], 5);
+                else
+                    $test = true;
+                if($test){
                     try{
                         $d = Document::where('prefix', $service_invoice['prefix'])->where('number', $service_invoice['number'])->firstOrFail();
                         $response_api = json_decode($d->response_api, true);
