@@ -28,6 +28,16 @@
 
             <nav id="menu" class="nav-main" role="navigation">
                 <ul class="nav nav-main">
+                    <li class="{{ ($path[0] === 'maintenance')?'nav-active':'' }}">
+                        <a class="nav-link" href="{{route('system.maintenance.index')}}">
+                           <i class="fas fa-wrench"></i><span>Modo Mantenimiento</span>
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+
+            <nav id="menu" class="nav-main" role="navigation">
+                <ul class="nav nav-main">
                     <li class="">
                         <a class="nav-link" href="{{url('logs')}}" target="_BLANK">
                             <i class="fas fa-bug"></i><span>Logs</span>
