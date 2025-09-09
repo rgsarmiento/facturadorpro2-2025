@@ -1,12 +1,24 @@
 @php
     $currentRouteName = request()->route()->getName();
+    $useHorizontalMenu = $vc_horizontal_menu ?? true;
+
+    // Aplicar sidebar collapsed independientemente del tipo de menú
     $sidebar_collapse = $vc_compact_sidebar->compact_sidebar == true ? 'sidebar-left-collapsed' : '';
     if($currentRouteName === 'tenant.pos.index') {
         $sidebar_collapse = 'sidebar-left-collapsed';
     }
+
+    // Solo aplicar clases de sidebar lateral cuando no es horizontal
+    if($useHorizontalMenu) {
+        $is_dark_sidebar = '';
+    } else {
+        $is_dark_sidebar = ($visual->sidebars == 'dark' || $visual->bg == 'dark') ? 'sidebar-dark' : 'sidebar-white sidebar-light';
+    }
+
     $is_dark_header = $visual->header == 'dark' ? 'header-dark' : '';
-    $is_dark_sidebar = ($visual->sidebars == 'dark' || $visual->bg == 'dark') ? 'sidebar-dark' : 'sidebar-white sidebar-light';
     $is_dark_theme = $visual->bg == 'dark' ? 'dark' : '';
+    $menu_type_class = $useHorizontalMenu ? 'horizontal-menu' : 'lateral-menu';
+
     $paths = [
         'tenant.co-documents-aiu.create',
         'tenant.co-documents-health.create',
@@ -20,7 +32,7 @@
 <!DOCTYPE html>
 <html
     lang="{{ str_replace('_', '-', app()->getLocale()) }}"
-    class="fixed no-mobile-device custom-scroll {{$sidebar_collapse}} {{ $is_dark_header }} {{ $is_dark_sidebar }} {{ $is_dark_theme}} {{ $is_form }}">
+    class="fixed no-mobile-device custom-scroll {{$sidebar_collapse}} {{ $is_dark_header }} {{ $is_dark_sidebar }} {{ $is_dark_theme}} {{ $is_form }} {{ $menu_type_class }}">
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">

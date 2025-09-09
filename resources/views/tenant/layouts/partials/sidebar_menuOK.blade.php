@@ -3,13 +3,7 @@
     $path[1] = (array_key_exists(1, $path)> 0) ? $path[1] : '';
     $path[2] = (array_key_exists(2, $path)> 0) ? $path[2] : '';
     $path[0] = ($path[0] === '') ? 'documents' : $path[0];
-
-    // Determinar el tipo de menú a mostrar
-    $useHorizontalMenu = $vc_horizontal_menu ?? true;
 @endphp
-
-@if($useHorizontalMenu)
-    {{-- MENÚ HORIZONTAL --}}
 
 <style>
 .horizontal-navbar {
@@ -233,13 +227,13 @@
 /* Efecto de aparición suave */
 
 @keyframes slideInRight {
-    from {
-        opacity: 0;
-        transform: translateX(-10px);
+    from { 
+        opacity: 0; 
+        transform: translateX(-10px); 
     }
-    to {
-        opacity: 1;
-        transform: translateX(0);
+    to { 
+        opacity: 1; 
+        transform: translateX(0); 
     }
 }
 
@@ -324,25 +318,25 @@
         overflow-y: auto;
         box-shadow: 0 4px 6px rgba(0,0,0,0.1);
     }
-
+    
     .horizontal-nav.show {
         display: flex;
     }
-
+    
     .horizontal-nav > li {
         margin-right: 0;
         border-bottom: 1px solid #f8f9fc;
     }
-
+    
     .horizontal-nav > li > a {
         padding: 0.75rem 1rem;
         justify-content: flex-start;
     }
-
+    
     .mobile-menu-toggle {
         display: block;
     }
-
+    
     .dropdown-menu-horizontal {
         position: static;
         display: block;
@@ -354,7 +348,7 @@
         border-radius: 0;
         z-index: auto;
     }
-
+    
     .dropdown-menu-horizontal li a {
         padding-left: 2rem;
         border-left: none;
@@ -362,78 +356,9 @@
     }
 }
 
-/* Ajuste para el contenido principal - solo para menú horizontal */
-html.horizontal-menu body {
+/* Ajuste para el contenido principal */
+body {
     padding-top: 60px;
-}
-
-/* Resetear padding para menú lateral */
-html.lateral-menu body {
-    padding-top: 0;
-}
-
-/* Ocultar navbar horizontal en modo lateral */
-html.lateral-menu .horizontal-navbar {
-    display: none;
-}
-
-/* Efectos de sidebar contraído en modo horizontal */
-html.horizontal-menu.sidebar-left-collapsed .horizontal-navbar {
-    /* Extender el navbar cuando el sidebar está contraído */
-    left: 0;
-    right: 0;
-}
-
-html.horizontal-menu.sidebar-left-collapsed body {
-    /* Mantener el padding top pero ajustar para más espacio */
-    padding-top: 60px;
-}
-
-/* Aplicar efectos de sidebar contraído a todo el contenido en modo horizontal */
-html.horizontal-menu.sidebar-left-collapsed .content-body,
-html.horizontal-menu.sidebar-left-collapsed .inner-wrapper,
-html.horizontal-menu.sidebar-left-collapsed .content {
-    margin-left: 0 !important;
-    padding-left: 0 !important;
-}
-
-/* Asegurar que el sidebar lateral esté completamente oculto en modo horizontal */
-html.horizontal-menu #sidebar-left,
-html.horizontal-menu .sidebar-left {
-    display: none !important;
-    width: 0 !important;
-    margin: 0 !important;
-    padding: 0 !important;
-}
-
-/* Maximizar espacio de trabajo en modo horizontal contraído */
-html.horizontal-menu.sidebar-left-collapsed .inner-wrapper > .content,
-html.horizontal-menu.sidebar-left-collapsed .inner-wrapper {
-    width: 100% !important;
-    max-width: 100% !important;
-    margin: 0 !important;
-    padding: 0 15px !important;
-}
-
-/* Sobreescribir estilos del tema Porto para modo horizontal */
-html.fixed.horizontal-menu.sidebar-left-collapsed .page-header {
-    left: 0 !important;
-}
-
-html.fixed.horizontal-menu.sidebar-left-collapsed .content-body {
-    margin-left: 0 !important;
-    padding: 60px 15px 15px 15px !important;
-}
-
-/* Asegurar que todos los elementos de contenido usen el ancho completo */
-html.horizontal-menu.sidebar-left-collapsed .page-content-wrapper,
-html.horizontal-menu.sidebar-left-collapsed .content-with-menu,
-html.horizontal-menu.sidebar-left-collapsed .inner-wrapper,
-html.horizontal-menu.sidebar-left-collapsed .content {
-    width: 100% !important;
-    margin-left: 0 !important;
-    padding-left: 15px !important;
-    padding-right: 15px !important;
 }
 
 /* Mejoras adicionales */
@@ -505,99 +430,6 @@ html.horizontal-menu.sidebar-left-collapsed .content {
         transform: translateX(0);
     }
 }
-
-/* Estilos compactos para el navbar horizontal */
-.horizontal-nav {
-    gap: 0px !important; /* Sin espacio entre elementos */
-}
-
-.horizontal-nav li {
-    margin: 0 !important; /* Sin margen entre elementos */
-}
-
-.horizontal-nav li a.nav-link {
-    padding: 6px 8px !important; /* Padding aún más reducido */
-    font-size: 13px !important; /* Reducir tamaño de fuente */
-    border-radius: 3px !important;
-    margin: 0 1px !important; /* Mínima separación visual */
-}
-
-.horizontal-nav li a.nav-link i {
-    margin-right: 6px !important; /* Reducir espacio entre icono y texto */
-    font-size: 12px !important;
-}
-
-.horizontal-nav li a.nav-link span {
-    font-weight: 500;
-}
-
-/* Estilo para mostrar el nombre del usuario */
-.horizontal-nav li.nav-user-info {
-    margin-left: auto !important; /* Empuja hacia la derecha */
-    margin-right: 15px !important;
-}
-
-.horizontal-nav li.nav-user-info .user-name {
-    color: #ffffff !important;
-    font-size: 12px !important;
-    font-weight: 500;
-    padding: 6px 10px;
-    background-color: rgba(0, 0, 0, 0.3);
-    border-radius: 3px;
-    display: flex;
-    align-items: center;
-    text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.5);
-}
-
-.horizontal-nav li.nav-user-info .user-name i {
-    margin-right: 6px !important;
-    font-size: 11px !important;
-    color: #ffffff !important;
-}
-
-/* Estilo especial para la opción Salir */
-.horizontal-nav li.nav-logout a.nav-link {
-    background-color: rgba(220, 53, 69, 0.8) !important;
-    color: white !important;
-}
-
-.horizontal-nav li.nav-logout a.nav-link:hover {
-    background-color: rgba(220, 53, 69, 1) !important;
-}
-
-/* Dropdown menus más compactos */
-.dropdown-menu-horizontal {
-    padding: 4px 0 !important;
-}
-
-.dropdown-menu-horizontal li a {
-    padding: 6px 12px !important;
-    font-size: 12px !important;
-}
-
-/* Responsive para pantallas pequeñas */
-@media (max-width: 768px) {
-    .horizontal-nav li.nav-user-info .user-name {
-        font-size: 11px !important;
-        padding: 4px 6px !important;
-    }
-
-    .horizontal-nav li a.nav-link {
-        padding: 5px 6px !important;
-        font-size: 12px !important;
-    }
-
-    .horizontal-nav li a.nav-link span {
-        display: none; /* Ocultar texto en móviles, solo mostrar iconos */
-    }
-
-    .horizontal-nav li.nav-user-info .user-name,
-    .horizontal-nav li.nav-logout a.nav-link span {
-        display: flex !important; /* Mantener usuario y salir visibles */
-    }
-}
-
-
 </style>
 
 <nav class="horizontal-navbar" style="overflow: visible !important;">
@@ -609,11 +441,11 @@ html.horizontal-menu.sidebar-left-collapsed .content {
                 <img src="{{asset('logo/tulogo.png')}}" alt="Logo"/>
             @endif
         </a>
-
+        
         <button class="mobile-menu-toggle" type="button" onclick="toggleMobileMenu()">
             <i class="fas fa-bars"></i>
         </button>
-
+        
         <ul class="horizontal-nav" id="horizontal-nav">
                     @if(in_array('dashboard', $vc_modules))
                     <li class="{{ ($path[0] === 'dashboard')?'nav-active':'' }}">
@@ -1659,25 +1491,6 @@ html.horizontal-menu.sidebar-left-collapsed .content {
                         </ul>
                     </li>
                     @endif --}}
-
-                    <!-- Separador y nombre del usuario -->
-                    <li class="nav-user-info">
-                        <span class="user-name">
-                            <i class="fas fa-user" aria-hidden="true"></i>
-                            {{ $vc_user->name }}
-                        </span>
-                    </li>
-
-                    <!-- Opción de Salir al final del menú -->
-                    <li class="nav-logout">
-                        <a class="nav-link" href="#" onclick="confirmLogout()" title="Cerrar Sesión">
-                            <i class="fas fa-power-off" aria-hidden="true"></i>
-                            <span>Salir</span>
-                        </a>
-                        <form id="logout-form-horizontal" action="{{ route('logout') }}" method="POST" style="display: none;">
-                            @csrf
-                        </form>
-                    </li>
         </ul>
     </div>
 </nav>
@@ -1694,57 +1507,61 @@ let hideTimeout = null;
 
 // Posicionamiento dinámico de menús desplegables - con submenús
 document.addEventListener('DOMContentLoaded', function() {
+    console.log('📋 Script de navegación cargado');
+    
     const navItems = document.querySelectorAll('.horizontal-nav > li.nav-parent');
-
+    console.log('🔍 Elementos nav-parent encontrados:', navItems.length);
+    
     if (navItems.length === 0) {
+        console.warn('⚠️ No se encontraron elementos nav-parent');
         return;
     }
-
+    
     navItems.forEach(function(item, index) {
         const dropdown = item.querySelector('.dropdown-menu-horizontal');
         const itemText = item.querySelector('span') ? item.querySelector('span').textContent.trim() : 'Sin texto';
-
-
+        console.log(`📁 Item ${index} (${itemText}):`, dropdown ? '✅ Dropdown encontrado' : '❌ Sin dropdown');
+        
         if (dropdown) {
             let isDropdownOpen = false;
-
+            
             // Función para mostrar el menú
             function showDropdown() {
-
-
+                console.log(`📂 Mostrando dropdown de ${itemText}`);
+                
                 // Cancelar timeout si existe
                 if (hideTimeout) {
                     clearTimeout(hideTimeout);
                     hideTimeout = null;
                 }
-
+                
                 // LIMPIAR TODOS los submenus flotantes y de tercer nivel al abrir un nuevo dropdown
                 const allFloatingSubmenus = document.querySelectorAll(`[id^="floating-submenu-"]`);
                 allFloatingSubmenus.forEach(floating => {
                     try {
                         document.body.removeChild(floating);
-
+                        console.log('🧹 Submenu flotante limpiado al abrir nuevo dropdown:', floating.id);
                     } catch (e) {
-
+                        console.log('⚠️ Error limpiando submenu flotante:', e);
                     }
                 });
-
+                
                 const allThirdLevelMenus = document.querySelectorAll(`[id^="floating-third-level-"]`);
                 allThirdLevelMenus.forEach(thirdLevel => {
                     try {
                         document.body.removeChild(thirdLevel);
-
+                        console.log('🧹 Tercer nivel limpiado al abrir nuevo dropdown:', thirdLevel.id);
                     } catch (e) {
-
+                        console.log('⚠️ Error limpiando tercer nivel:', e);
                     }
                 });
-
+                
                 // Ocultar menú anterior
                 if (currentOpenDropdown && currentOpenDropdown !== dropdown) {
-
+                    console.log(`🔄 Cerrando dropdown anterior`);
                     currentOpenDropdown.style.display = 'none';
                 }
-
+                
                 // Posicionar y mostrar menú
                 const rect = item.getBoundingClientRect();
                 dropdown.style.position = 'fixed';
@@ -1754,144 +1571,144 @@ document.addEventListener('DOMContentLoaded', function() {
                 dropdown.style.display = 'block';
                 currentOpenDropdown = dropdown;
                 isDropdownOpen = true;
-
-
+                
+                console.log(`✅ Dropdown ${itemText} mostrado en posición:`, rect.left, '58px');
             }
-
+            
             // Función para ocultar el menú
             function hideDropdown() {
-
+                console.log(`📁 Ocultando dropdown de ${itemText}`);
                 dropdown.style.display = 'none';
-
+                
                 // CERRAR TODOS LOS SUBMENUS AL CERRAR EL DROPDOWN PRINCIPAL
-
-
+                console.log('🧹 Limpiando todos los submenus de este dropdown');
+                
                 // Limpiar TODOS los submenus flotantes (no solo de este dropdown)
                 const allFloatingSubmenus = document.querySelectorAll(`[id^="floating-submenu-"]`);
                 allFloatingSubmenus.forEach(floating => {
                     try {
                         document.body.removeChild(floating);
-
+                        console.log('🗑️ Submenu flotante eliminado por cierre de dropdown:', floating.id);
                     } catch (e) {
-
+                        console.log('⚠️ Error eliminando submenu flotante:', e);
                     }
                 });
-
+                
                 // Limpiar TODOS los submenus de tercer nivel
                 const allThirdLevelMenus = document.querySelectorAll(`[id^="floating-third-level-"]`);
                 allThirdLevelMenus.forEach(thirdLevel => {
                     try {
                         document.body.removeChild(thirdLevel);
-
+                        console.log('🗑️ Tercer nivel eliminado por cierre de dropdown:', thirdLevel.id);
                     } catch (e) {
-
+                        console.log('⚠️ Error eliminando tercer nivel:', e);
                     }
                 });
-
+                
                 // Ocultar submenus normales
                 const submenus = dropdown.querySelectorAll('.dropdown-menu-horizontal');
                 submenus.forEach(function(submenu) {
                     submenu.style.display = 'none';
                     submenu.dataset.openedByClick = 'false';
                 });
-
+                
                 if (currentOpenDropdown === dropdown) {
                     currentOpenDropdown = null;
                 }
                 isDropdownOpen = false;
-
+                console.log(`✅ Dropdown ${itemText} ocultado con todos sus submenus`);
             }
-
+            
             // Mostrar menú al hacer CLICK en el elemento principal
             const mainLink = item.querySelector('a');
             if (mainLink) {
-
+                console.log(`🔗 Agregando click listener a: ${itemText}`);
                 mainLink.addEventListener('click', function(e) {
                     e.preventDefault();
-
-
+                    console.log(`🖱️ CLICK en ${itemText} - Estado actual: ${isDropdownOpen ? 'ABIERTO' : 'CERRADO'}`);
+                    
                     if (isDropdownOpen) {
-
+                        console.log(`🔄 Cerrando dropdown de ${itemText}`);
                         hideDropdown();
                     } else {
-
+                        console.log(`🔄 Abriendo dropdown de ${itemText}`);
                         showDropdown();
                     }
                 });
             } else {
-
+                console.warn(`⚠️ No se encontró link principal en item ${index}`);
             }
-
+            
             // Mostrar menú al pasar el mouse por el elemento principal
             item.addEventListener('mouseenter', function() {
-
+                console.log('Mouse enter en item', index);
                 showDropdown();
             });
-
+            
             // Ocultar menú con retraso al salir del elemento principal
             item.addEventListener('mouseleave', function() {
-
+                console.log('Mouse leave en item', index);
                 hideTimeout = setTimeout(function() {
                     // Verificar si el mouse está sobre el dropdown o algún submenu flotante
                     let mouseOverMenu = dropdown.matches(':hover');
-
+                    
                     const allFloatingSubmenus = document.querySelectorAll(`[id^="floating-submenu-"]`);
                     let mouseOverFloating = false;
-
+                    
                     allFloatingSubmenus.forEach(floating => {
                         if (floating.matches(':hover')) {
                             mouseOverFloating = true;
                         }
                     });
-
+                    
                     // Solo cerrar si el mouse no está sobre ningún menú
                     if (!mouseOverMenu && !mouseOverFloating) {
-
-
+                        console.log('🧽 Cerrando todo desde item principal');
+                        
                         // Limpiar TODOS los submenus flotantes de segundo nivel
                         allFloatingSubmenus.forEach(floating => {
                             try {
                                 document.body.removeChild(floating);
                             } catch (e) {
-
+                                console.log('⚠️ Error limpiando submenu flotante:', e);
                             }
                         });
-
+                        
                         // Limpiar TODOS los submenus de tercer nivel
                         const allThirdLevelMenus = document.querySelectorAll(`[id^="floating-third-level-"]`);
                         allThirdLevelMenus.forEach(thirdLevel => {
                             try {
                                 document.body.removeChild(thirdLevel);
-
+                                console.log('🧹 Tercer nivel limpiado desde item principal:', thirdLevel.id);
                             } catch (e) {
-
+                                console.log('⚠️ Error limpiando tercer nivel:', e);
                             }
                         });
-
+                        
                         hideDropdown();
                     } else {
-
+                        console.log('🎯 Mouse aún en área de menús - no cerrar');
                     }
                 }, 200);
             });
-
+            
             // Mantener menú visible cuando el mouse está sobre él
             dropdown.addEventListener('mouseenter', function() {
-
+                console.log('Mouse enter en dropdown', index);
                 if (hideTimeout) {
                     clearTimeout(hideTimeout);
                     hideTimeout = null;
                 }
             });
-
+            
             // Ocultar menú al salir del dropdown
             dropdown.addEventListener('mouseleave', function(e) {
-
-
+                console.log('Mouse leave en dropdown', index);
+                
                 // Verificar si el mouse está moviéndose hacia un submenu flotante
                 const allFloatingSubmenus = document.querySelectorAll(`[id^="floating-submenu-"]`);
                 let movingToFloatingSubmenu = false;
-
+                
                 // Verificar si el mouse está sobre algún submenu flotante
                 allFloatingSubmenus.forEach(floating => {
                     const rect = floating.getBoundingClientRect();
@@ -1900,54 +1717,54 @@ document.addEventListener('DOMContentLoaded', function() {
                         movingToFloatingSubmenu = true;
                     }
                 });
-
+                
                 if (!movingToFloatingSubmenu) {
                     // Programar cierre con delay para dar tiempo al mouse de moverse
                     setTimeout(() => {
                         // Verificar de nuevo si el mouse está sobre algún submenu flotante
                         let mouseOverFloating = false;
                         const floatingMenus = document.querySelectorAll(`[id^="floating-submenu-"]`);
-
+                        
                         floatingMenus.forEach(floating => {
                             if (floating.matches(':hover')) {
                                 mouseOverFloating = true;
                             }
                         });
-
+                        
                         if (!mouseOverFloating) {
-
+                            console.log('🧽 Cerrando menú principal y submenus flotantes');
                             allFloatingSubmenus.forEach(floating => {
                                 try {
                                     document.body.removeChild(floating);
                                 } catch (e) {
-
+                                    console.log('⚠️ Error limpiando submenu flotante:', e);
                                 }
                             });
                             hideDropdown();
                         }
                     }, 200);
                 } else {
-
+                    console.log('🎯 Mouse moviéndose hacia submenu flotante - no cerrar');
                 }
             });
-
+            
             // MANEJO DE SUBMENÚS LATERALES (ESTILO WINDOWS)
             const subMenuItems = dropdown.querySelectorAll('.nav-parent');
-
-
+            console.log('Submenus encontrados en item', index, ':', subMenuItems.length);
+            
             subMenuItems.forEach(function(subItem, subIndex) {
                 const subDropdown = subItem.querySelector('.dropdown-menu-horizontal');
-
-
+                console.log('Submenu', subIndex, 'dropdown:', subDropdown);
+                
                 if (subDropdown) {
                     let subMenuTimeout = null;
                     let isSubMenuOpen = false;
                     let openedByClick = false; // Para distinguir apertura por click vs hover
-
+                    
                     // Función para mostrar submenu
                     function showSubMenu(byClick = false) {
-
-
+                        console.log(`📂 Mostrando submenu ${byClick ? 'por CLICK' : 'por HOVER'}`);
+                        
                         // Cancelar timeout de ocultado
                         if (subMenuTimeout) {
                             clearTimeout(subMenuTimeout);
@@ -1957,70 +1774,70 @@ document.addEventListener('DOMContentLoaded', function() {
                             clearTimeout(hideTimeout);
                             hideTimeout = null;
                         }
-
+                        
                         // Si es un click, cerrar TODOS los otros submenus flotantes primero
                         if (byClick) {
                             const allFloatingSubmenus = document.querySelectorAll('[id^="floating-submenu-"]');
                             allFloatingSubmenus.forEach(floating => {
-
+                                console.log('🧹 Cerrando submenu flotante existente antes de abrir nuevo:', floating.id);
                                 try {
                                     document.body.removeChild(floating);
                                 } catch (e) {
-
+                                    console.log('⚠️ Error removiendo submenu flotante:', e);
                                 }
                             });
                         }
-
+                        
                         // Verificar si hay submenu flotante existente para este item específico
                         const existingFloating = document.querySelector(`[id="floating-submenu-${subIndex}"]`);
-
+                        
                         // Si ya está abierto por click (flotante) y esto es hover, no hacer nada
                         if (existingFloating && !byClick) {
-
+                            console.log('� Submenu flotante ya existe, ignorando hover');
                             return;
                         }
-
+                        
                         // Calcular posición para submenu lateral (estilo Windows)
                         const parentRect = subItem.getBoundingClientRect();
                         const dropdownRect = dropdown.getBoundingClientRect();
-
+                        
                         // Obtener dimensiones del submenu
                         subDropdown.style.display = 'block';
                         subDropdown.style.visibility = 'hidden';
                         const subMenuWidth = subDropdown.offsetWidth || 280;
                         const subMenuHeight = subDropdown.offsetHeight || 200;
                         subDropdown.style.visibility = 'visible';
-
+                        
                         // Posición base: al lado derecho del elemento padre
                         let leftPos = parentRect.right + 5;
                         let topPos = parentRect.top;
-
+                        
                         // Ajustar si se sale por la derecha
                         if (leftPos + subMenuWidth > window.innerWidth - 10) {
                             leftPos = parentRect.left - subMenuWidth - 5; // Mostrar a la izquierda
-
+                            console.log('Submenu ajustado a la izquierda');
                         }
-
+                        
                         // Ajustar si se sale por abajo
                         if (topPos + subMenuHeight > window.innerHeight - 10) {
                             topPos = window.innerHeight - subMenuHeight - 10;
-
+                            console.log('Submenu ajustado hacia arriba');
                         }
-
+                        
                         // Asegurar que no se salga por arriba
                         if (topPos < 70) { // 70px para evitar el navbar
                             topPos = 70;
                         }
-
+                        
                         // Si se abre por click, crear submenu flotante
                         if (byClick) {
                             // First, remove any existing floating submenu for this subIndex
                             const existingFloating = document.querySelector(`[id="floating-submenu-${subIndex}"]`);
                             if (existingFloating) {
-
+                                console.log('🗑️ Removiendo submenu flotante existente antes de crear nuevo');
                                 document.body.removeChild(existingFloating);
                             }
-
+                            
                             // Crear un clon del submenu y agregarlo al body
                             const clonedSubmenu = subDropdown.cloneNode(true);
                             clonedSubmenu.id = `floating-submenu-${subIndex}`;
@@ -2032,43 +1849,43 @@ document.addEventListener('DOMContentLoaded', function() {
                             clonedSubmenu.style.display = 'block';
                             clonedSubmenu.dataset.openedByClick = 'true';
                             clonedSubmenu.dataset.subIndex = subIndex;
-
-
-
+                            
+                            console.log(`🆔 Creando submenu flotante con ID: floating-submenu-${subIndex}`);
+                            
                             // Agregar al body
                             document.body.appendChild(clonedSubmenu);
-
+                            
                             // PROCESAR SUBMENUS DE TERCER NIVEL dentro del submenu flotante
                             const thirdLevelItems = clonedSubmenu.querySelectorAll('.nav-parent');
-
-
+                            console.log(`🔍 Elementos de tercer nivel encontrados: ${thirdLevelItems.length}`);
+                            
                             thirdLevelItems.forEach(function(thirdLevelItem, thirdIndex) {
                                 const thirdLevelDropdown = thirdLevelItem.querySelector('.dropdown-menu-horizontal');
-
+                                
                                 if (thirdLevelDropdown) {
-
-
+                                    console.log(`📁 Procesando tercer nivel ${thirdIndex}`);
+                                    
                                     // Agregar click listener para tercer nivel
                                     thirdLevelItem.addEventListener('click', function(e) {
                                         e.preventDefault();
                                         e.stopPropagation();
-
-
-
+                                        
+                                        console.log(`🖱️ CLICK en tercer nivel: ${thirdLevelItem.textContent.trim()}`);
+                                        
                                         // Cerrar otros submenus de tercer nivel
                                         const otherThirdLevel = document.querySelectorAll(`[id^="floating-third-level-"]`);
                                         otherThirdLevel.forEach(other => {
                                             try {
                                                 document.body.removeChild(other);
                                             } catch (e) {
-
+                                                console.log('⚠️ Error removiendo tercer nivel:', e);
                                             }
                                         });
-
+                                        
                                         // Crear submenu flotante de tercer nivel
                                         const thirdLevelRect = thirdLevelItem.getBoundingClientRect();
                                         const clonedThirdLevel = thirdLevelDropdown.cloneNode(true);
-
+                                        
                                         clonedThirdLevel.id = `floating-third-level-${subIndex}-${thirdIndex}`;
                                         clonedThirdLevel.className = 'dropdown-menu-horizontal floating-submenu';
                                         clonedThirdLevel.style.position = 'fixed';
@@ -2076,44 +1893,44 @@ document.addEventListener('DOMContentLoaded', function() {
                                         clonedThirdLevel.style.top = thirdLevelRect.top + 'px';
                                         clonedThirdLevel.style.zIndex = '100015';
                                         clonedThirdLevel.style.display = 'block';
-
+                                        
                                         // Ajustar posición si se sale de la pantalla
                                         if (thirdLevelRect.right + 285 > window.innerWidth) {
                                             clonedThirdLevel.style.left = (thirdLevelRect.left - 285) + 'px';
                                         }
-
+                                        
                                         document.body.appendChild(clonedThirdLevel);
-
-
+                                        console.log(`✅ Submenu de tercer nivel creado: ${clonedThirdLevel.id}`);
+                                        
                                         // Event listeners para el tercer nivel
                                         clonedThirdLevel.addEventListener('mouseenter', function() {
-
+                                            console.log('🎯 Mouse en tercer nivel - mantener abierto');
                                         });
-
+                                        
                                         clonedThirdLevel.addEventListener('mouseleave', function() {
-
+                                            console.log('🎯 Mouse saliendo de tercer nivel');
                                             setTimeout(() => {
                                                 if (!clonedThirdLevel.matches(':hover')) {
                                                     try {
                                                         document.body.removeChild(clonedThirdLevel);
                                                     } catch (e) {
-
+                                                        console.log('⚠️ Error removiendo tercer nivel en mouseleave:', e);
                                                     }
                                                 }
                                             }, 200);
                                         });
                                     });
-
+                                    
                                     // Hover para tercer nivel
                                     thirdLevelItem.addEventListener('mouseenter', function() {
-
-
+                                        console.log(`🎯 Hover en tercer nivel: ${thirdLevelItem.textContent.trim()}`);
+                                        
                                         // Crear submenu flotante de tercer nivel por hover
                                         const existingThirdLevel = document.querySelector(`[id="floating-third-level-${subIndex}-${thirdIndex}"]`);
                                         if (!existingThirdLevel) {
                                             const thirdLevelRect = thirdLevelItem.getBoundingClientRect();
                                             const clonedThirdLevel = thirdLevelDropdown.cloneNode(true);
-
+                                            
                                             clonedThirdLevel.id = `floating-third-level-${subIndex}-${thirdIndex}`;
                                             clonedThirdLevel.className = 'dropdown-menu-horizontal floating-submenu';
                                             clonedThirdLevel.style.position = 'fixed';
@@ -2122,17 +1939,17 @@ document.addEventListener('DOMContentLoaded', function() {
                                             clonedThirdLevel.style.zIndex = '100015';
                                             clonedThirdLevel.style.display = 'block';
                                             clonedThirdLevel.dataset.openedByHover = 'true';
-
+                                            
                                             // Ajustar posición si se sale de la pantalla
                                             if (thirdLevelRect.right + 285 > window.innerWidth) {
                                                 clonedThirdLevel.style.left = (thirdLevelRect.left - 285) + 'px';
                                             }
-
+                                            
                                             document.body.appendChild(clonedThirdLevel);
-
+                                            console.log(`✅ Submenu de tercer nivel por hover: ${clonedThirdLevel.id}`);
                                         }
                                     });
-
+                                    
                                     thirdLevelItem.addEventListener('mouseleave', function() {
                                         setTimeout(() => {
                                             const thirdLevelMenu = document.querySelector(`[id="floating-third-level-${subIndex}-${thirdIndex}"]`);
@@ -2140,96 +1957,96 @@ document.addEventListener('DOMContentLoaded', function() {
                                                 try {
                                                     document.body.removeChild(thirdLevelMenu);
                                                 } catch (e) {
-
+                                                    console.log('⚠️ Error removiendo tercer nivel hover:', e);
                                                 }
                                             }
                                         }, 300);
                                     });
                                 }
                             });
-
+                            
                             // Agregar eventos para mantener el submenu abierto cuando el mouse está sobre él
                             clonedSubmenu.addEventListener('mouseenter', function() {
-
+                                console.log('🖱️ Mouse sobre submenu flotante - mantener menú principal abierto');
                                 // Cancelar cualquier timeout de cierre del menú principal
                                 if (hideTimeout) {
                                     clearTimeout(hideTimeout);
                                     hideTimeout = null;
                                 }
                             });
-
+                            
                             // Agregar evento para manejar cuando el mouse sale del submenu flotante
                             clonedSubmenu.addEventListener('mouseleave', function(e) {
-
-
+                                console.log('🖱️ Mouse saliendo del submenu flotante');
+                                
                                 // Verificar si el mouse está regresando al menú principal
                                 const dropdownRect = dropdown.getBoundingClientRect();
                                 const movingToDropdown = (e.clientX >= dropdownRect.left && e.clientX <= dropdownRect.right &&
                                                         e.clientY >= dropdownRect.top && e.clientY <= dropdownRect.bottom);
-
+                                
                                 if (!movingToDropdown) {
                                     // Si no se está moviendo al menú principal, programar cierre
                                     setTimeout(() => {
                                         // Verificar si el mouse está en algún menú de tercer nivel
                                         const allThirdLevelMenus = document.querySelectorAll(`[id^="floating-third-level-"]`);
                                         let mouseOverThirdLevel = false;
-
+                                        
                                         allThirdLevelMenus.forEach(thirdLevel => {
                                             if (thirdLevel.matches(':hover')) {
                                                 mouseOverThirdLevel = true;
                                             }
                                         });
-
+                                        
                                         if (!dropdown.matches(':hover') && !clonedSubmenu.matches(':hover') && !mouseOverThirdLevel) {
-
-
+                                            console.log('🧹 Cerrando todo desde submenu flotante');
+                                            
                                             // Limpiar menús de tercer nivel ANTES de cerrar el submenu flotante
                                             allThirdLevelMenus.forEach(thirdLevel => {
                                                 try {
                                                     document.body.removeChild(thirdLevel);
-
+                                                    console.log('🧹 Tercer nivel limpiado desde submenu flotante:', thirdLevel.id);
                                                 } catch (e) {
-
+                                                    console.log('⚠️ Error limpiando tercer nivel:', e);
                                                 }
                                             });
-
+                                            
                                             try {
                                                 document.body.removeChild(clonedSubmenu);
                                             } catch (e) {
-
+                                                console.log('⚠️ Error removiendo submenu flotante:', e);
                                             }
                                             hideDropdown();
                                         }
                                     }, 200);
                                 }
                             });
-
+                            
                             // Agregar evento para cerrar al hacer click fuera DESPUÉS de un pequeño delay
                             setTimeout(() => {
                                 function closeFloatingSubmenu(e) {
                                     // Verificar si el click fue en algún menú de tercer nivel
                                     const allThirdLevelMenus = document.querySelectorAll(`[id^="floating-third-level-"]`);
                                     let clickedOnThirdLevel = false;
-
+                                    
                                     allThirdLevelMenus.forEach(thirdLevel => {
                                         if (thirdLevel.contains(e.target)) {
                                             clickedOnThirdLevel = true;
                                         }
                                     });
-
+                                    
                                     if (!clonedSubmenu.contains(e.target) && !subItem.contains(e.target) && !clickedOnThirdLevel) {
-
-
+                                        console.log('🌐 Cerrando submenu flotante por click externo');
+                                        
                                         // Limpiar menús de tercer nivel
                                         allThirdLevelMenus.forEach(thirdLevel => {
                                             try {
                                                 document.body.removeChild(thirdLevel);
-
+                                                console.log('🧹 Tercer nivel limpiado por click externo:', thirdLevel.id);
                                             } catch (e) {
-
+                                                console.log('⚠️ Error limpiando tercer nivel:', e);
                                             }
                                         });
-
+                                        
                                         if (document.body.contains(clonedSubmenu)) {
                                             document.body.removeChild(clonedSubmenu);
                                         }
@@ -2240,10 +2057,10 @@ document.addEventListener('DOMContentLoaded', function() {
                                 }
                                 document.addEventListener('click', closeFloatingSubmenu);
                             }, 200);
-
+                            
                             isSubMenuOpen = true;
                             openedByClick = true;
-
+                            console.log(`✅ Submenu FLOTANTE creado en: ${leftPos}, ${topPos} - Abierto por: CLICK`);
                         } else {
                             // Comportamiento normal para hover
                             subDropdown.style.position = 'fixed';
@@ -2254,158 +2071,158 @@ document.addEventListener('DOMContentLoaded', function() {
                             subDropdown.dataset.openedByClick = 'false';
                             isSubMenuOpen = true;
                             openedByClick = false;
-
+                            console.log(`✅ Submenu posicionado en: ${leftPos}, ${topPos} - Abierto por: HOVER`);
                         }
-
+                        
                         isSubMenuOpen = true;
                         openedByClick = byClick;
                     }
-
+                    
                     // Función para ocultar submenu
                     function hideSubMenu() {
-
-
+                        console.log('📁 Ocultando submenu');
+                        
                         // Buscar y eliminar TODOS los submenus flotantes (no solo de este item)
                         const allFloatingSubmenus = document.querySelectorAll(`[id^="floating-submenu-"]`);
                         allFloatingSubmenus.forEach(floating => {
-
+                            console.log('🗑️ Eliminando submenu flotante:', floating.id);
                             try {
                                 document.body.removeChild(floating);
                             } catch (e) {
-
+                                console.log('⚠️ Error removiendo submenu flotante:', e);
                             }
                         });
-
+                        
                         // Buscar y eliminar TODOS los submenus de TERCER NIVEL
                         const allThirdLevelMenus = document.querySelectorAll(`[id^="floating-third-level-"]`);
                         allThirdLevelMenus.forEach(thirdLevel => {
-
+                            console.log('🗑️ Eliminando tercer nivel:', thirdLevel.id);
                             try {
                                 document.body.removeChild(thirdLevel);
                             } catch (e) {
-
+                                console.log('⚠️ Error removiendo tercer nivel:', e);
                             }
                         });
-
+                        
                         // Ocultar submenu normal
                         subDropdown.style.display = 'none';
                         subDropdown.dataset.openedByClick = 'false';
                         isSubMenuOpen = false;
                         openedByClick = false;
                     }
-
+                    
                     // Click en elemento con submenu - AGREGAR AL ELEMENTO LI
                     const subLink = subItem.querySelector('a');
                     if (subLink) {
-
-
+                        console.log(`🔗 Agregando click listener a submenu: ${subLink.textContent.trim()}`);
+                        
                         // Prevenir navegación del enlace
                         subLink.addEventListener('click', function(e) {
                             e.preventDefault();
                         });
-
+                        
                         // Agregar click listener al elemento LI completo
                         subItem.addEventListener('click', function(e) {
                             e.preventDefault();
                             e.stopPropagation(); // Evitar propagación del evento
-
+                            
                             // PRIMERO: Cerrar TODOS los otros submenus flotantes
                             const allFloatingSubmenus = document.querySelectorAll('[id^="floating-submenu-"]');
                             allFloatingSubmenus.forEach(floating => {
-
+                                console.log('🧹 Cerrando submenu flotante existente:', floating.id);
                                 try {
                                     document.body.removeChild(floating);
                                 } catch (e) {
-
+                                    console.log('⚠️ Error removiendo submenu flotante:', e);
                                 }
                             });
-
+                            
                             // Verificar si hay submenu flotante existente para este item específico
                             const existingFloating = document.querySelector(`[id="floating-submenu-${subIndex}"]`);
-
-
-
-
+                            
+                            console.log(`🖱️ CLICK en submenu: ${subLink.textContent.trim()} - Flotante existe: ${!!existingFloating}`);
+                            console.log(`🔍 Buscando submenu flotante con ID: floating-submenu-${subIndex}`);
+                            
                             if (!existingFloating) {
-
+                                console.log('🔄 Creando submenu flotante');
                                 showSubMenu(true); // true = abierto por click
                             } else {
-
+                                console.log('� Submenu ya cerrado por limpieza general');
                                 isSubMenuOpen = false;
                                 openedByClick = false;
                             }
                         });
                     }
-
+                    
                     subItem.addEventListener('mouseenter', function() {
-
-
+                        console.log(`🎯 Mouse enter en submenu lateral ${subIndex}`);
+                        
                         // Cancelar cualquier timeout de cierre
                         if (subMenuTimeout) {
                             clearTimeout(subMenuTimeout);
                             subMenuTimeout = null;
-
+                            console.log('⏹️ Cancelado timeout en mouseenter');
                         }
-
+                        
                         // Verificar si hay submenu flotante para este item específico
                         const existingFloating = document.querySelector(`[id="floating-submenu-${subIndex}"]`);
-
-
+                        console.log(`🔍 Verificando submenu flotante con ID: floating-submenu-${subIndex} - Existe: ${!!existingFloating}`);
+                        
                         if (!existingFloating && !isSubMenuOpen) {
-
+                            console.log('🖱️ Mostrando hover - creando submenu temporal');
                             showSubMenu(false); // false = abierto por hover
                         } else if (existingFloating) {
-
+                            console.log('🔒 Submenu flotante ya existe - no crear hover');
                         } else if (isSubMenuOpen) {
-
+                            console.log('🔒 Submenu ya está abierto - no crear hover');
                         }
                     });
-
+                    
                     subItem.addEventListener('mouseleave', function(e) {
-
-
+                        console.log('Mouse leave en submenu lateral', subIndex);
+                        
                         // Verificar si hay submenu flotante (no cerrar)
                         const existingFloating = document.querySelector(`[id="floating-submenu-${subIndex}"]`);
                         if (existingFloating) {
-
+                            console.log('🔒 Submenu flotante - no cerrar por mouseleave');
                             return;
                         }
-
+                        
                         // Solo programar cierre para hover, no para click
                         if (!openedByClick && isSubMenuOpen) {
-
+                            console.log('📅 Programando cierre de submenu hover en 300ms');
                             subMenuTimeout = setTimeout(function() {
                                 if (!openedByClick) { // Verificar de nuevo antes de cerrar
-
+                                    console.log('⏰ Cerrando submenu hover por timeout');
                                     hideSubMenu();
                                 }
                             }, 300);
                         }
                     });
-
+                    
                     // Mantener submenu visible cuando el mouse está sobre él
                     subDropdown.addEventListener('mouseenter', function() {
-
+                        console.log('🖱️ Mouse enter en submenu dropdown', subIndex);
                         if (subMenuTimeout) {
                             clearTimeout(subMenuTimeout);
                             subMenuTimeout = null;
-
+                            console.log('⏹️ Cancelado timeout de cierre');
                         }
                     });
-
+                    
                     subDropdown.addEventListener('mouseleave', function() {
-
-
+                        console.log('🖱️ Mouse leave en submenu dropdown', subIndex);
+                        
                         // Solo cerrar si no fue abierto por click
                         if (!openedByClick) {
-
+                            console.log('📅 Programando cierre inmediato para hover');
                             setTimeout(() => {
                                 if (!openedByClick) {
                                     hideSubMenu();
                                 }
                             }, 100);
                         } else {
-
+                            console.log('🔒 Submenu abierto por click - no cerrar');
                         }
                     });
                 }
@@ -2418,64 +2235,64 @@ document.addEventListener('DOMContentLoaded', function() {
 document.addEventListener('click', function(event) {
     const nav = document.getElementById('horizontal-nav');
     const toggle = document.querySelector('.mobile-menu-toggle');
-
+    
     // Cerrar menú móvil
     if (!nav.contains(event.target) && !toggle.contains(event.target)) {
         nav.classList.remove('show');
     }
-
+    
     // Verificar si el click fue fuera de cualquier menú o submenu flotante
     const clickedInsideMenu = nav.contains(event.target);
     const clickedInsideFloatingSubmenu = Array.from(document.querySelectorAll('[id^="floating-submenu-"]'))
         .some(floating => floating.contains(event.target));
     const clickedInsideThirdLevel = Array.from(document.querySelectorAll('[id^="floating-third-level-"]'))
         .some(thirdLevel => thirdLevel.contains(event.target));
-
+    
     // Si el click fue fuera de menús, submenus flotantes y menús de tercer nivel, cerrar todos
     if (!clickedInsideMenu && !clickedInsideFloatingSubmenu && !clickedInsideThirdLevel) {
-
-
+        console.log('🌐 Click fuera de menús - cerrando todos los submenus flotantes y de tercer nivel');
+        
         // Limpiar menús de tercer nivel
         const allThirdLevelMenus = document.querySelectorAll('[id^="floating-third-level-"]');
         allThirdLevelMenus.forEach(thirdLevel => {
-
+            console.log('🧹 Limpiando tercer nivel por click externo:', thirdLevel.id);
             try {
                 document.body.removeChild(thirdLevel);
             } catch (e) {
-
+                console.log('⚠️ Error removiendo tercer nivel:', e);
             }
         });
-
+        
         // Limpiar submenus flotantes
         const allFloatingSubmenus = document.querySelectorAll('[id^="floating-submenu-"]');
         allFloatingSubmenus.forEach(floating => {
-
+            console.log('🧹 Limpiando submenu flotante por click externo:', floating.id);
             try {
                 document.body.removeChild(floating);
             } catch (e) {
-
+                console.log('⚠️ Error removiendo submenu flotante:', e);
             }
         });
     }
-
+    
     // Cerrar menús desplegables si se hace click fuera
     const clickedInsideDropdown = event.target.closest('.dropdown-menu-horizontal');
     const clickedOnNavParent = event.target.closest('.horizontal-nav > li.nav-parent > a');
-
+    
     if (!clickedInsideDropdown && !clickedOnNavParent) {
-
+        console.log('🖱️ Click fuera de menús - cerrando todos');
         const dropdowns = document.querySelectorAll('.dropdown-menu-horizontal');
         dropdowns.forEach(function(dropdown) {
             dropdown.style.display = 'none';
         });
-
+        
         // Limpiar todos los submenus flotantes
         const floatingSubmenus = document.querySelectorAll('[id^="floating-submenu-"]');
         floatingSubmenus.forEach(function(floating) {
-
+            console.log('🗑️ Eliminando submenu flotante por click externo');
             document.body.removeChild(floating);
         });
-
+        
         if (currentOpenDropdown) {
             currentOpenDropdown = null;
         }
@@ -2486,7 +2303,7 @@ document.addEventListener('click', function(event) {
 document.addEventListener('keydown', function(event) {
     if (event.key === 'Escape') {
         document.getElementById('horizontal-nav').classList.remove('show');
-
+        
         // También cerrar menús desplegables
         const dropdowns = document.querySelectorAll('.dropdown-menu-horizontal');
         dropdowns.forEach(function(dropdown) {
@@ -2494,37 +2311,4 @@ document.addEventListener('keydown', function(event) {
         });
     }
 });
-
-// Función para confirmar logout
-function confirmLogout() {
-    // Verificar si SweetAlert2 está disponible
-    if (typeof Swal !== 'undefined') {
-        Swal.fire({
-            title: '¿Cerrar sesión?',
-            text: '¿Está seguro que desea cerrar sesión?',
-            icon: 'question',
-            showCancelButton: true,
-            confirmButtonColor: '#dc3545',
-            cancelButtonColor: '#6c757d',
-            confirmButtonText: 'Sí, cerrar sesión',
-            cancelButtonText: 'Cancelar',
-            reverseButtons: true
-        }).then((result) => {
-            if (result.isConfirmed) {
-                document.getElementById('logout-form-horizontal').submit();
-            }
-        });
-    } else {
-        // Fallback a confirm() básico si SweetAlert2 no está disponible
-        if (confirm('¿Está seguro que desea cerrar sesión?')) {
-            document.getElementById('logout-form-horizontal').submit();
-        }
-    }
-}
-
 </script>
-
-@else
-    {{-- MENÚ LATERAL --}}
-    @include('tenant.layouts.partials.sidebar_lateral')
-@endif

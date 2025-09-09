@@ -14,5 +14,6 @@ class CompactSidebarViewComposer
         $view->show_ws = $configuration->enable_whatsapp;
         $view->phone_whatsapp = $configuration->phone_whatsapp;
         $view->vc_compact_sidebar = $configuration;
+        $view->vc_horizontal_menu = $configuration->horizontal_menu ?? true;
     }
 }

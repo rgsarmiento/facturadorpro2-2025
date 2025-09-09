@@ -55,6 +55,21 @@
                 </div>
 
                 <div class="pt-3">
+                    <h5>Tipo de navegación</h5>
+                    <div :class="{'has-danger': errors.horizontal_menu}">
+                        <el-switch
+                            v-model="form.horizontal_menu"
+                            active-text="Horizontal"
+                            inactive-text="Lateral"
+                            @change="onNavigationTypeChange">
+                        </el-switch>
+                        <br>
+                        <small class="form-control-feedback" v-if="errors.horizontal_menu" v-text="errors.horizontal_menu[0]"></small>
+                        <small class="form-control-feedback">Horizontal: menú en la parte superior | Lateral: menú tradicional a la izquierda</small>
+                    </div>
+                </div>
+
+                <div class="pt-3">
                     <h5>Menú lateral contraído</h5>
                     <div :class="{'has-danger': errors.compact_sidebar}">
                         <el-switch
@@ -65,6 +80,7 @@
                         </el-switch>
                         <br>
                         <small class="form-control-feedback" v-if="errors.compact_sidebar" v-text="errors.compact_sidebar[0]"></small>
+                        <small class="form-control-feedback">En navegación horizontal: controla la barra lateral oculta. En navegación lateral: contrae el menú.</small>
                     </div>
                 </div>
 
@@ -125,6 +141,7 @@
                 this.form = {
                     id: 1,
                     compact_sidebar: true,
+                    horizontal_menu: true,
                     colums_grid_item: 4,
                     enable_whatsapp: true,
                     phone_whatsapp: ''
@@ -178,6 +195,92 @@
                     this.loading_submit = false;
                 });
             },
+            onNavigationTypeChange() {
+                // Si se activa navegación horizontal, activar menú lateral contraído
+                if (this.form.horizontal_menu) {
+                    this.form.compact_sidebar = true;
+                }
+                // Llamar al submit normal
+                this.submitForm();
+            },
         }
     }
 </script>
+
+<style>
+/* Forzar estilos claros para el componente visual - NO scoped para mayor prioridad */
+.style-switcher {
+    background-color: #fff !important;
+    background: #fff !important;
+    color: #333 !important;
+}
+
+.style-switcher .style-switcher-wrap {
+    background-color: #fff !important;
+    background: #fff !important;
+    color: #333 !important;
+}
+
+.style-switcher h4 {
+    background-color: #fff !important;
+    background: #fff !important;
+    color: #333 !important;
+}
+
+.style-switcher h5 {
+    color: #333 !important;
+}
+
+.style-switcher .form-control-feedback {
+    color: #666 !important;
+}
+
+.style-switcher .style-switcher-open {
+    background-color: #4e73df !important;
+    background: #4e73df !important;
+    color: #fff !important;
+}
+
+/* Asegurar que funcione en ambos modos de navegación */
+html.lateral-menu .style-switcher,
+html.horizontal-menu .style-switcher {
+    background-color: #fff !important;
+    background: #fff !important;
+    color: #333 !important;
+}
+
+html.lateral-menu .style-switcher .style-switcher-wrap,
+html.horizontal-menu .style-switcher .style-switcher-wrap {
+    background-color: #fff !important;
+    background: #fff !important;
+    color: #333 !important;
+}
+
+html.lateral-menu .style-switcher h4,
+html.horizontal-menu .style-switcher h4 {
+    background-color: #fff !important;
+    background: #fff !important;
+    color: #333 !important;
+}
+
+html.lateral-menu .style-switcher h5,
+html.horizontal-menu .style-switcher h5 {
+    color: #333 !important;
+}
+
+html.lateral-menu .style-switcher .style-switcher-open,
+html.horizontal-menu .style-switcher .style-switcher-open {
+    background-color: #4e73df !important;
+    background: #4e73df !important;
+    color: #fff !important;
+}
+
+/* Asegurar que los switches Element UI mantengan su estilo */
+.style-switcher .el-switch {
+    color: #333 !important;
+}
+
+.style-switcher .el-switch__label {
+    color: #333 !important;
+}
+</style>

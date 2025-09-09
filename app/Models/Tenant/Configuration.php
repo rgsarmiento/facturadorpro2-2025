@@ -22,6 +22,7 @@ class Configuration extends ModelTenant
         'date_time_start',
         'locked_tenant',
         'compact_sidebar',
+        'horizontal_menu',
         'decimal_quantity',
         'amount_plastic_bag_taxes',
         'colums_grid_item',
