@@ -154,8 +154,10 @@ export default {
         },
         getCustomer() {
             let customer = this.document.customer
+            console.log(customer)
             let obj = {
                 identification_number: customer.number,
+                type_document_identification_id: customer.identity_document_type.id,
                 name: customer.name,
                 phone: customer.telephone,
                 address: customer.address,

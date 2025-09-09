@@ -972,7 +972,7 @@ class DocumentController extends Controller
             $invoice_status_api = null;
 
             if((isset($response_model->success) && ($response_model->success === false) && ($response_model->message == "Este documento ya fue enviado anteriormente, se registra en la base de datos.")) ||
-               (isset($response_model->success) && ($response_model->success === true) && ($response_model->message == "AttachedDocument #{$service_invoice['prefix']}{$service_invoice['number']} generada con éxito")))
+               (isset($response_model->success) && ($response_model->success === true) && ($response_model->message == "AttachedDocument #{$service_invoice['prefix']}{$service_invoice['number']} generada con éxito")  && ($response_model->ResponseDian->Envelope->Body->SendBillSyncResponse->SendBillSyncResult->IsValid == "false")))
               {
                 if($response_model->success === false)
                     $test = $response_model->customer == $service_invoice['customer']['identification_number'] && round($response_model->sale, 5) == round($service_invoice['legal_monetary_totals']['payable_amount'], 5);
@@ -2014,8 +2014,19 @@ class DocumentController extends Controller
     }
 
     public function getCorrelativeInvoice($type_service, $prefix = null, $ignore_state_document_id = false){
+        // Validar que $type_service tenga un valor válido
+        if(empty($type_service))
+            $type_service = 1;
+
+        if(!is_numeric($type_service)) {
+            \Log::error('getCorrelativeInvoice: type_service no es numérico: ' . $type_service);
+            return null;
+        }
+
         $company = ServiceTenantCompany::firstOrFail();
+        \Log::debug('getCorrelativeInvoice - type_service: ' . $type_service . ', prefix: ' . $prefix . ', ignore_state: ' . ($ignore_state_document_id ? 'true' : 'false'));
         $url = $this->getBaseUrlCorrelativeInvoice($type_service, $prefix, $ignore_state_document_id);
+        \Log::debug('URL generada para correlativo: ' . $url);
         $ch2 = curl_init($url);
 //        dd($url, $ch2);
         curl_setopt($ch2, CURLOPT_RETURNTRANSFER, true);
@@ -2031,13 +2042,24 @@ class DocumentController extends Controller
         $err = curl_error($ch2);
         curl_close($ch2);
         $response_encode = json_decode($response_data);
-//        \Log::debug($url);
-//        \Log::debug($company->api_token);
-//        \Log::debug($response_data);
+        \Log::debug($url);
+        \Log::debug($company->api_token);
+        \Log::debug($response_data);
         if($err){
             return null;
         }
         else{
+            // Validar que la respuesta tenga la estructura esperada
+            if(!$response_encode) {
+                \Log::error('Error al decodificar respuesta JSON del correlativo: ' . $response_data);
+                return null;
+            }
+
+            if(!isset($response_encode->number)) {
+                \Log::error('La respuesta del correlativo no contiene la propiedad "number": ' . json_encode($response_encode));
+                return null;
+            }
+
             return $response_encode->number;
         }
     }
@@ -2048,11 +2070,41 @@ class DocumentController extends Controller
         $type_document_id = $request->input('type_document_id');
         $prefix = $request->input('prefix');
 
+        // Validar que se envió el type_document_id
+        if(empty($type_document_id)) {
+            \Log::error('invoiceCorrelative: type_document_id está vacío. Request: ' . json_encode($request->all()));
+            return response()->json([
+                'success' => false,
+                'message' => 'El parámetro type_document_id es requerido.',
+                'request_data' => $request->all()
+            ]);
+        }
+
+        // Validar que sea un valor numérico válido
+        if(!is_numeric($type_document_id)) {
+            \Log::error('invoiceCorrelative: type_document_id no es numérico: ' . $type_document_id);
+            return response()->json([
+                'success' => false,
+                'message' => 'El parámetro type_document_id debe ser numérico.',
+                'type_document_id' => $type_document_id
+            ]);
+        }
+
         // Puedes definir si deseas ignorar el estado del documento (ajusta según tus requerimientos)
         $ignore_state_document_id = false;
 
         // Llama a tu método interno para obtener el correlativo
         $number = $this->getCorrelativeInvoice($type_document_id, $prefix, $ignore_state_document_id);
+
+        // Validar que se obtuvo el correlativo correctamente
+        if($number === null) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener el número correlativo. Por favor verifique la configuración de resoluciones.',
+                'type_document_id' => $type_document_id,
+                'prefix' => $prefix
+            ]);
+        }
 
         // Devuelve la respuesta en formato JSON
         return response()->json([
