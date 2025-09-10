@@ -192,6 +192,36 @@
                         label: 'Profesional (Azul + Turquesa)',
                         primary: '#1e40af',
                         accent: '#0891b2'
+                    },
+                    {
+                        value: 'moderna',
+                        label: 'Moderna (Verde + Gris Oscuro)',
+                        primary: '#1f2937',
+                        accent: '#10b981'
+                    },
+                    {
+                        value: 'elegante',
+                        label: 'Elegante (Púrpura + Rosa)',
+                        primary: '#6b21a8',
+                        accent: '#ec4899'
+                    },
+                    {
+                        value: 'oceano',
+                        label: 'Océano (Azul Profundo + Turquesa)',
+                        primary: '#0c4a6e',
+                        accent: '#0891b2'
+                    },
+                    {
+                        value: 'sunset',
+                        label: 'Sunset (Naranja + Dorado)',
+                        primary: '#c2410c',
+                        accent: '#f59e0b'
+                    },
+                    {
+                        value: 'minimalista',
+                        label: 'Minimalista (Gris + Verde Menta)',
+                        primary: '#52525b',
+                        accent: '#14b8a6'
                     }
                 ]
             }
@@ -229,10 +259,20 @@
             submit() {
                 this.$http.post(`/${this.resource}/visual_settings`, this.visuals).then(response => {
                     if (response.data.success) {
-                        this.$message.success(response.data.message);
+                        this.$message({
+                            message: response.data.message,
+                            type: 'success',
+                            duration: 2000,
+                            showClose: true
+                        });
                     }
                     else {
-                        this.$message.error(response.data.message);
+                        this.$message({
+                            message: response.data.message,
+                            type: 'error',
+                            duration: 3000,
+                            showClose: true
+                        });
                     }
                 }).catch(error => {
                     if (error.response.status === 422) {
@@ -249,11 +289,21 @@
                 this.loading_submit = true;
                 this.$http.post(`/${this.resource}`, this.form).then(response => {
                     if (response.data.success) {
-                        this.$message.success(response.data.message);
+                        this.$message({
+                            message: response.data.message,
+                            type: 'success',
+                            duration: 2000,
+                            showClose: true
+                        });
                         location.reload()
                     }
                     else {
-                        this.$message.error(response.data.message);
+                        this.$message({
+                            message: response.data.message,
+                            type: 'error',
+                            duration: 3000,
+                            showClose: true
+                        });
                     }
                 }).catch(error => {
                     if (error.response.status === 422) {
@@ -288,7 +338,10 @@
             applyPalettePreview() {
                 // Remover todas las clases de paleta existentes
                 const html = document.documentElement;
-                html.classList.remove('palette-corporativo', 'palette-bancario', 'palette-tech', 'palette-premium', 'palette-profesional');
+                html.classList.remove(
+                    'palette-corporativo', 'palette-bancario', 'palette-tech', 'palette-premium', 'palette-profesional',
+                    'palette-moderna', 'palette-elegante', 'palette-oceano', 'palette-sunset', 'palette-minimalista'
+                );
                 
                 // Agregar la nueva clase de paleta
                 html.classList.add('palette-' + this.form.color_palette);
@@ -306,14 +359,24 @@
                     console.log('Respuesta del servidor:', response.data);
                     
                     if (response.data.success) {
-                        this.$message.success('Paleta actualizada correctamente');
+                        this.$message({
+                            message: 'Paleta actualizada correctamente',
+                            type: 'success',
+                            duration: 2000,
+                            showClose: true
+                        });
                         // Recargar después de un pequeño delay para ver el cambio
                         setTimeout(() => {
                             location.reload();
                         }, 1000);
                     }
                     else {
-                        this.$message.error(response.data.message);
+                        this.$message({
+                            message: response.data.message,
+                            type: 'error',
+                            duration: 3000,
+                            showClose: true
+                        });
                         console.error('Error del servidor:', response.data);
                     }
                 }).catch(error => {
