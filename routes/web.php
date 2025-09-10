@@ -635,6 +635,14 @@ if ($hostname) {
 
             Route::get('companies/record', 'System\CompanyController@record');
             Route::post('companies', 'System\CompanyController@store');
+            
+            // Maintenance mode routes
+            Route::get('maintenance', function() {
+                return view('system.maintenance.index');
+            })->name('system.maintenance.index');
+            Route::get('maintenance/status', 'System\CompanyController@getMaintenanceMode');
+            Route::post('maintenance/toggle', 'System\CompanyController@toggleMaintenanceMode');
+            Route::get('maintenance/companies', 'System\CompanyController@getCompaniesForMaintenance');
 
             // auto-update
             Route::get('auto-update', 'System\UpdateController@index')->name('system.update');

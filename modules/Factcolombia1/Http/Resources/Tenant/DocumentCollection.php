@@ -18,14 +18,19 @@ class DocumentCollection extends ResourceCollection
         return $this->collection->transform(function($row, $key) use ($company){
 
             $base_url_api = config('tenant.service_fact');
-            if($row->response_api_invoice->urlinvoicexml)
+            
+            // Si response_api no está disponible (optimización), usar enlaces por defecto
+            if(isset($row->response_api) && $row->response_api_invoice && $row->response_api_invoice->urlinvoicexml) {
                 $download_xml = "{$base_url_api}download/{$company->identification_number}/{$row->response_api_invoice->urlinvoicexml}";
-            else
+            } else {
                 $download_xml = "{$base_url_api}download/{$company->identification_number}/FES-{$row->prefix}{$row->number}.xml";
-            if($row->response_api_invoice->urlinvoicepdf)
+            }
+            
+            if(isset($row->response_api) && $row->response_api_invoice && $row->response_api_invoice->urlinvoicepdf) {
                 $download_pdf = "{$base_url_api}download/{$company->identification_number}/{$row->response_api_invoice->urlinvoicepdf}";
-            else
+            } else {
                 $download_pdf = "{$base_url_api}download/{$company->identification_number}/FES-{$row->prefix}{$row->number}.pdf";
+            }
 
             //mostrar el boton consultar si el estado es registrado y el entorno es habilitacion
             // shipping_two_steps aplica para documentos generados en habilitacion
@@ -41,7 +46,7 @@ class DocumentCollection extends ResourceCollection
                 'date_of_issue' => $row->date_of_issue->format('Y-m-d'),
                 'download_xml' => $download_xml,
                 'download_pdf' => $download_pdf,
-                'response_api_invoice' => $row->response_api_invoice,
+                'response_api_invoice' => isset($row->response_api) ? $row->response_api_invoice : (object)['message' => '', 'urlinvoicexml' => null, 'urlinvoicepdf' => null],
                 'acknowledgment_received' => ($row->acknowledgment_received != null) ? ($row->acknowledgment_received == 1 ? 'Aceptado' : 'Rechazado'):'',
                 'customer_name' => $row->customer->name,
                 'customer_number' => $row->customer->number,

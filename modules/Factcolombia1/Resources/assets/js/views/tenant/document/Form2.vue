@@ -752,10 +752,13 @@ export default {
                 const todayString = today.toISOString().split('T')[0]; // 'YYYY-MM-DD'
                 const resolutionEndDate = option.resolution_date_end;
 
+                // Filtro adicional: solo mostrar resoluciones con description === '1'
+                const hasValidDescription = option.description === '1' || option.description === 1;
+
                 if(this.is_contingency_3)
-                    return option.code === '3' && resolutionEndDate >= todayString;
+                    return option.code === '3' && resolutionEndDate >= todayString && hasValidDescription;
                 else
-                    return option.code === '1' && resolutionEndDate >= todayString;
+                    return option.code === '1' && resolutionEndDate >= todayString && hasValidDescription;
             },
 
             generatedFromExternalDocument()

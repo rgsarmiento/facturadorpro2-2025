@@ -696,7 +696,26 @@ class DocumentController extends Controller
 
         if($d_start && $d_end){
 
-            $records = Document::where('document_type_id', 'like', '%' . $document_type_id . '%')
+            $records = Document::select([
+                            'id', 'user_id', 'external_id', 'establishment_id', 'establishment',
+                            'soap_type_id', 'state_type_id', 'ubl_version', 'group_id', 'document_type_id',
+                            'series', 'number', 'date_of_issue', 'time_of_issue', 'customer_id', 'customer',
+                            'currency_type_id', 'purchase_order', 'quotation_id', 'exchange_rate_sale',
+                            'total_prepayment', 'total_discount', 'total_charge', 'total_exportation',
+                            'total_free', 'total_taxed', 'total_unaffected', 'total_exonerated',
+                            'total_igv', 'total_base_isc', 'total_isc', 'total_base_other_taxes',
+                            'total_other_taxes', 'total_taxes', 'total_value', 'total',
+                            'charges', 'discounts', 'prepayments', 'guides', 'related',
+                            'perception', 'detraction', 'legends', 'additional_information',
+                            'filename', 'hash', 'qr', 'has_xml', 'has_pdf', 'has_cdr',
+                            'has_prepayment', 'affectation_type_prepayment', 'data_json',
+                            'send_server', 'shipping_status', 'sunat_shipping_status', 'query_status',
+                            'total_plastic_bag_taxes', 'sale_note_id', 'subtotal', 'version_ubl_id',
+                            'ambient_id', 'payment_form_id', 'payment_method_id', 'time_days_credit',
+                            'correlative_api', 'response_api_status', 'order_reference', 'type_environment_id',
+                            'shipping_two_steps', 'created_at', 'updated_at', 'total_canceled', 'remission_id'
+                        ])
+                            ->where('document_type_id', 'like', '%' . $document_type_id . '%')
                             ->where('series', 'like', '%' . $series . '%')
                             ->where('number', 'like', '%' . $number . '%')
                             ->where('state_type_id', 'like', '%' . $state_type_id . '%')
@@ -705,14 +724,66 @@ class DocumentController extends Controller
                             ->latest();
 
         }else{
-
-            $records = Document::where('date_of_issue', 'like', '%' . $date_of_issue . '%')
-                            ->where('document_type_id', 'like', '%' . $document_type_id . '%')
-                            ->where('state_type_id', 'like', '%' . $state_type_id . '%')
-                            ->where('series', 'like', '%' . $series . '%')
-                            ->where('number', 'like', '%' . $number . '%')
-                            ->whereTypeUser()
-                            ->latest();
+            // Si no hay rango de fechas específico y tampoco hay búsqueda por filtros específicos,
+            // filtrar por los últimos 3 meses por defecto para optimizar la carga
+            if(!$date_of_issue && !$number && !$series && !$customer_id && !$item_id && !$category_id){
+                $threeMonthsAgo = now()->subMonths(3)->format('Y-m-d');
+                $today = now()->format('Y-m-d');
+                
+                $records = Document::select([
+                                'id', 'user_id', 'external_id', 'establishment_id', 'establishment',
+                                'soap_type_id', 'state_type_id', 'ubl_version', 'group_id', 'document_type_id',
+                                'series', 'number', 'date_of_issue', 'time_of_issue', 'customer_id', 'customer',
+                                'currency_type_id', 'purchase_order', 'quotation_id', 'exchange_rate_sale',
+                                'total_prepayment', 'total_discount', 'total_charge', 'total_exportation',
+                                'total_free', 'total_taxed', 'total_unaffected', 'total_exonerated',
+                                'total_igv', 'total_base_isc', 'total_isc', 'total_base_other_taxes',
+                                'total_other_taxes', 'total_taxes', 'total_value', 'total',
+                                'charges', 'discounts', 'prepayments', 'guides', 'related',
+                                'perception', 'detraction', 'legends', 'additional_information',
+                                'filename', 'hash', 'qr', 'has_xml', 'has_pdf', 'has_cdr',
+                                'has_prepayment', 'affectation_type_prepayment', 'data_json',
+                                'send_server', 'shipping_status', 'sunat_shipping_status', 'query_status',
+                                'total_plastic_bag_taxes', 'sale_note_id', 'subtotal', 'version_ubl_id',
+                                'ambient_id', 'payment_form_id', 'payment_method_id', 'time_days_credit',
+                                'correlative_api', 'response_api_status', 'order_reference', 'type_environment_id',
+                                'shipping_two_steps', 'created_at', 'updated_at', 'total_canceled', 'remission_id'
+                            ])
+                                ->where('document_type_id', 'like', '%' . $document_type_id . '%')
+                                ->where('state_type_id', 'like', '%' . $state_type_id . '%')
+                                ->whereBetween('date_of_issue', [$threeMonthsAgo, $today])
+                                ->whereTypeUser()
+                                ->latest();
+            } else {
+                // Si hay algún filtro de búsqueda específico, mantener el comportamiento original
+                // pero siempre excluyendo response_api para optimizar
+                $records = Document::select([
+                                'id', 'user_id', 'external_id', 'establishment_id', 'establishment',
+                                'soap_type_id', 'state_type_id', 'ubl_version', 'group_id', 'document_type_id',
+                                'series', 'number', 'date_of_issue', 'time_of_issue', 'customer_id', 'customer',
+                                'currency_type_id', 'purchase_order', 'quotation_id', 'exchange_rate_sale',
+                                'total_prepayment', 'total_discount', 'total_charge', 'total_exportation',
+                                'total_free', 'total_taxed', 'total_unaffected', 'total_exonerated',
+                                'total_igv', 'total_base_isc', 'total_isc', 'total_base_other_taxes',
+                                'total_other_taxes', 'total_taxes', 'total_value', 'total',
+                                'charges', 'discounts', 'prepayments', 'guides', 'related',
+                                'perception', 'detraction', 'legends', 'additional_information',
+                                'filename', 'hash', 'qr', 'has_xml', 'has_pdf', 'has_cdr',
+                                'has_prepayment', 'affectation_type_prepayment', 'data_json',
+                                'send_server', 'shipping_status', 'sunat_shipping_status', 'query_status',
+                                'total_plastic_bag_taxes', 'sale_note_id', 'subtotal', 'version_ubl_id',
+                                'ambient_id', 'payment_form_id', 'payment_method_id', 'time_days_credit',
+                                'correlative_api', 'response_api_status', 'order_reference', 'type_environment_id',
+                                'shipping_two_steps', 'created_at', 'updated_at', 'total_canceled', 'remission_id'
+                            ])
+                                ->where('date_of_issue', 'like', '%' . $date_of_issue . '%')
+                                ->where('document_type_id', 'like', '%' . $document_type_id . '%')
+                                ->where('state_type_id', 'like', '%' . $state_type_id . '%')
+                                ->where('series', 'like', '%' . $series . '%')
+                                ->where('number', 'like', '%' . $number . '%')
+                                ->whereTypeUser()
+                                ->latest();
+            }
         }
 
         if($pending_payment){

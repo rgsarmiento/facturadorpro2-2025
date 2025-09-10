@@ -198,17 +198,52 @@ class DocumentController extends Controller
 
     public function records(Request $request)
     {
-        $records = Document::query();
+        // Verificar si se requieren todos los registros (convierte string 'true'/'false' a boolean)
+        $loadAll = filter_var($request->get('load_all', 'false'), FILTER_VALIDATE_BOOLEAN);
+        
+        // Excluir response_api y otros campos JSON pesados para optimizar
+        // data_json, health_fields, order_reference también son longtext que ralentizan
+        $records = Document::select([
+            'id', 'type_document_id', 'state_document_id', 'user_id', 'type_environment_id',
+            'shipping_two_steps', 'external_id', 'establishment_id', 'establishment',
+            'soap_type_id', 'calculationrate', 'prefix', 'number', 'xml', 'cufe',
+            'acknowledgment_received', 'type_invoice_id', 'currency_id', 'date_expiration',
+            'observation', 'reference_id', 'note_concept_id', 'sale', 'taxes', 'total_tax',
+            'subtotal', 'version_ubl_id', 'ambient_id', 
+            'payment_form_id', 'payment_method_id',
+            'time_days_credit', 'correlative_api', 'response_api_status', 'date_of_issue',
+            'time_of_issue', 'customer_id', 'customer', 'quotation_id', 'sale_note_id',
+            'order_note_id', 'remission_id', 'total_discount', 'total_plastic_bag_taxes',
+            'total', 'send_server',
+            'success_shipping_status', 'shipping_status', 'success_sunat_shipping_status',
+            'sunat_shipping_status', 'query_status', 'success_query_status', 'total_canceled',
+            'created_at', 'updated_at'
+        ]);
 
-        if ($request->column == 'name' && $request->filled('value')) {
-            // Convertimos tanto el valor de la columna como el valor de búsqueda a minúsculas
-            $value = strtolower($request->value);
-            $records->whereRaw("LOWER(json_unquote(json_extract(`customer`, '$.name'))) LIKE ?", ["%{$value}%"]);
-        } elseif ($request->filled('column') && $request->filled('value')) {
-            // Para otras columnas que no son JSON y buscamos insensitivo a mayúsculas/minúsculas
-            $value = strtolower($request->value);
-            $records->whereRaw("LOWER({$request->column}) LIKE ?", ["%{$value}%"]);
+        // Determinar si hay una búsqueda activa
+        $hasSearch = $request->filled('value');
+        
+        // Solo aplicar búsqueda si realmente hay un valor
+        if ($hasSearch) {
+            // Si hay búsqueda, buscar en TODA la base de datos (sin límite de fecha)
+            if ($request->column == 'name') {
+                // Convertimos tanto el valor de la columna como el valor de búsqueda a minúsculas
+                $value = strtolower($request->value);
+                $records->whereRaw("LOWER(json_unquote(json_extract(`customer`, '$.name'))) LIKE ?", ["%{$value}%"]);
+            } else {
+                // Para otras columnas que no son JSON y buscamos insensitivo a mayúsculas/minúsculas
+                $value = strtolower($request->value);
+                $records->whereRaw("LOWER({$request->column}) LIKE ?", ["%{$value}%"]);
+            }
+            // NO aplicar filtro de fecha cuando hay búsqueda - buscar en toda la BD
+        } elseif (!$loadAll) {
+            // Si NO hay búsqueda y NO se requieren todos los registros,
+            // limitar a últimos 3 meses para optimizar carga inicial
+            $threeMonthsAgo = now()->subMonths(3)->format('Y-m-d');
+            $today = now()->format('Y-m-d');
+            $records->whereBetween('date_of_issue', [$threeMonthsAgo, $today]);
         }
+        // Si loadAll es true y no hay búsqueda, cargar todos sin filtro de fecha
 
         $records->whereTypeUser()->latest();
 
@@ -374,7 +409,8 @@ class DocumentController extends Controller
                     $lastsync = 0;
             }
 
-            $company = ServiceTenantCompany::firstOrFail();
+            // Optimización: Solo cargar campos necesarios de ServiceTenantCompany
+            $company = ServiceTenantCompany::select('id', 'identification_number', 'api_token', 'type_environment_id', 'test_id')->firstOrFail();
             $this->sincronize_resolutions($company->identification_number);
             $base_url = config('tenant.service_fact');
             $i = 0;
@@ -427,7 +463,8 @@ class DocumentController extends Controller
 //        DB::connection('tenant')->beginTransaction();
 //        try {
             $this->company = Company::query()->with('country', 'version_ubl', 'type_identity_document')->firstOrFail();
-            $company = ServiceTenantCompany::firstOrFail();
+            // Optimización: Solo cargar campos necesarios de ServiceTenantCompany
+            $company = ServiceTenantCompany::select('id', 'identification_number', 'api_token', 'type_environment_id', 'test_id')->firstOrFail();
             if (is_string($document_invoice->request_api)) {
                 $invoice_json_decoded = json_decode($document_invoice->request_api, true);
             } elseif (is_object($document_invoice->request_api) || is_array($document_invoice->request_api)) {
@@ -704,15 +741,21 @@ class DocumentController extends Controller
             $response =  null;
             $response_status =  null;
             // $correlative_api = $this->getCorrelativeInvoice(1, $request->prefix);
-            $this->company = Company::query()->with('country', 'version_ubl', 'type_identity_document')->firstOrFail();
+            // Optimización: Cargar company una sola vez con relaciones necesarias
+            $this->company = Company::query()
+                ->select('id', 'limit_documents', 'country_id', 'version_ubl_id', 'type_identity_document_id', 'type_regime_id', 'ica_rate', 'economic_activity_code', 'jpg_firma_facturas')
+                ->with(['country:id,code', 'version_ubl:id,name', 'type_identity_document:id,name', 'type_regime:id,name'])
+                ->firstOrFail();
 
-            if (($this->company->limit_documents != 0) && (Document::count() >= $this->company->limit_documents))
+            // Optimización: Usar count con select solo id
+            if (($this->company->limit_documents != 0) && (Document::select('id')->count() >= $this->company->limit_documents))
                 return [
                     'success' => false,
                     'message' => '"Has excedido el límite de documentos de tu cuenta."'
                 ];
 
-            $company = ServiceTenantCompany::firstOrFail();
+            // Optimización: Solo cargar campos necesarios de ServiceTenantCompany
+            $company = ServiceTenantCompany::select('id', 'identification_number', 'api_token', 'type_environment_id', 'test_id')->firstOrFail();
 
             // si la empresa esta en habilitacion, envio el parametro ignore_state_document_id en true
             // para buscar el correlativo en api sin filtrar por el campo state_document_id=1
@@ -801,7 +844,8 @@ class DocumentController extends Controller
                 }
             }
 
-            $datoscompany = Company::with('type_regime', 'type_identity_document')->firstOrFail();
+            // Optimización: Reusar $this->company en lugar de hacer nueva consulta
+            $datoscompany = $this->company;
             if(file_exists(storage_path('template.api'))){
                 $service_invoice['invoice_template'] = "one";
                 $service_invoice['template_token'] = password_hash($company->identification_number, PASSWORD_DEFAULT);
@@ -813,7 +857,9 @@ class DocumentController extends Controller
                 }
             }
 
-            $sucursal = \App\Models\Tenant\Establishment::where('id', auth()->user()->establishment_id)->first();
+            // Optimización: Solo cargar campos necesarios del establecimiento
+            $sucursal = \App\Models\Tenant\Establishment::select('id', 'description', 'address', 'telephone', 'establishment_logo', 'email')
+                        ->where('id', auth()->user()->establishment_id)->first();
 
             if(file_exists(storage_path('sendmail.api')))
                 $service_invoice['sendmail'] = true;
@@ -836,9 +882,12 @@ class DocumentController extends Controller
             if($invoice_json === NULL){
                 $service_invoice['notes'] = $request->observation;
                 $service_invoice['date'] = date('Y-m-d', strtotime($request->date_issue));
-                $d = Document::where('prefix', $service_invoice['prefix'])->where('number', $service_invoice['number'])->first();
+                // Optimización: Solo seleccionar campos necesarios, excluyendo response_api inicialmente
+                $d = Document::select('id', 'time_of_issue')->where('prefix', $service_invoice['prefix'])->where('number', $service_invoice['number'])->first();
                 if($d){
-                    $response_api = json_decode($d->response_api);
+                    // Solo cargar response_api si realmente existe el documento
+                    $d_full = Document::select('response_api')->find($d->id);
+                    $response_api = json_decode($d_full->response_api);
                     // Extraer el tiempo del XML si existe
                     $t = null;
                     if(isset($response_api->unsignedinvoicexml)) {
@@ -980,7 +1029,11 @@ class DocumentController extends Controller
                     $test = true;
                 if($test){
                     try{
-                        $d = Document::where('prefix', $service_invoice['prefix'])->where('number', $service_invoice['number'])->firstOrFail();
+                        // Optimización: Solo seleccionar campos necesarios
+                        $d = Document::select('id', 'response_api', 'state_document_id', 'cufe')
+                                    ->where('prefix', $service_invoice['prefix'])
+                                    ->where('number', $service_invoice['number'])
+                                    ->firstOrFail();
                         $response_api = json_decode($d->response_api, true);
                         $response_api['cufe'] = $response_model->cufe;
                         $d->response_api = json_encode($response_api);
@@ -1045,7 +1098,11 @@ class DocumentController extends Controller
 //                    \Log::debug($service_invoice['date']);
                     if($date_xml == $service_invoice['date'] && $customer_xml == $service_invoice['customer']['identification_number'] && round($sale_xml, 5) - round($service_invoice['legal_monetary_totals']['payable_amount'], 5) > 0 && round($sale_xml, 5) - round($service_invoice['legal_monetary_totals']['payable_amount'], 5) < 0.005){
                         try{
-                            $d = Document::where('prefix', $service_invoice['prefix'])->where('number', $service_invoice['number'])->firstOrFail();
+                            // Optimización: Solo seleccionar campos necesarios
+                        $d = Document::select('id', 'response_api', 'state_document_id', 'cufe')
+                                    ->where('prefix', $service_invoice['prefix'])
+                                    ->where('number', $service_invoice['number'])
+                                    ->firstOrFail();
                             $response_api = json_decode($d->response_api, true);
                             $response_api['cufe'] = $response_model->ResponseDian->Envelope->Body->SendBillSyncResponse->SendBillSyncResult->XmlDocumentKey;
                             $d->response_api = json_encode($response_api);
@@ -1357,7 +1414,8 @@ class DocumentController extends Controller
             $response = null;
             $this->company = Company::query()->with('country', 'version_ubl', 'type_identity_document')->firstOrFail();
 
-            $company = ServiceTenantCompany::firstOrFail();
+            // Optimización: Solo cargar campos necesarios de ServiceTenantCompany
+            $company = ServiceTenantCompany::select('id', 'identification_number', 'api_token', 'type_environment_id', 'test_id')->firstOrFail();
 
             // si la empresa esta en habilitacion, envio el parametro ignore_state_document_id en true
             // para buscar el correlativo en api sin filtrar por el campo state_document_id=1
@@ -1410,7 +1468,8 @@ class DocumentController extends Controller
                 }
             }
 
-            $datoscompany = Company::with('type_regime', 'type_identity_document')->firstOrFail();
+            // Optimización: Reusar $this->company en lugar de hacer nueva consulta
+            $datoscompany = $this->company;
             if(file_exists(storage_path('template.api'))){
                 $service_invoice['invoice_template'] = "one";
                 $service_invoice['template_token'] = password_hash($company->identification_number, PASSWORD_DEFAULT);
@@ -1420,7 +1479,9 @@ class DocumentController extends Controller
                 $service_invoice['template_token'] = password_hash($company->identification_number, PASSWORD_DEFAULT);
             }
 
-            $sucursal = \App\Models\Tenant\Establishment::where('id', auth()->user()->establishment_id)->first();
+            // Optimización: Solo cargar campos necesarios del establecimiento
+            $sucursal = \App\Models\Tenant\Establishment::select('id', 'description', 'address', 'telephone', 'establishment_logo', 'email')
+                        ->where('id', auth()->user()->establishment_id)->first();
 
             if(file_exists(storage_path('sendmail.api')))
                 $service_invoice['sendmail'] = true;
@@ -1542,7 +1603,8 @@ class DocumentController extends Controller
                         'message' => '"Has excedido el límite de documentos de tu cuenta."'
                 ];
             // $correlative_api = $this->getCorrelativeInvoice($type_document_service);
-            $company = ServiceTenantCompany::firstOrFail();
+            // Optimización: Solo cargar campos necesarios de ServiceTenantCompany
+            $company = ServiceTenantCompany::select('id', 'identification_number', 'api_token', 'type_environment_id', 'test_id')->firstOrFail();
             //si la empresa esta en habilitacion, envio el parametro ignore_state_document_id en true
             //  para buscar el correlativo en api sin filtrar por el campo state_document_id=1
             $ignore_state_document_id = ($company->type_environment_id === 2);
@@ -1562,7 +1624,8 @@ class DocumentController extends Controller
             $note_service['resolution_number'] = $resolution['resolution_number'];
             $note_service['date'] = date('Y-m-d', strtotime($request->date_issue));
             $note_service['time'] = date('H:i:s');
-            $datoscompany = Company::with('type_regime', 'type_identity_document')->firstOrFail();
+            // Optimización: Reusar $this->company en lugar de hacer nueva consulta
+            $datoscompany = $this->company;
             // $company = ServiceTenantCompany::firstOrFail();
             $note_concept_id = NoteConcept::query()->where('id', $request->note_concept_id)->get();
             $note_service['discrepancyresponsecode'] = $note_concept_id[0]->code;
@@ -1571,7 +1634,9 @@ class DocumentController extends Controller
             $note_service['tarifaica'] = $datoscompany->ica_rate;
             $note_service['actividadeconomica'] = $datoscompany->economic_activity_code;
             $note_service['notes'] = $request->observation;
-            $sucursal = \App\Models\Tenant\Establishment::where('id', auth()->user()->establishment_id)->first();
+            // Optimización: Solo cargar campos necesarios del establecimiento
+            $sucursal = \App\Models\Tenant\Establishment::select('id', 'description', 'address', 'telephone', 'establishment_logo', 'email')
+                        ->where('id', auth()->user()->establishment_id)->first();
             if(file_exists(storage_path('sendmail.api')))
                 $note_service['sendmail'] = true;
             $note_service['ivaresponsable'] = $datoscompany->type_regime->name;
@@ -2800,7 +2865,8 @@ class DocumentController extends Controller
             $response =  null;
             $response_status =  null;
 
-            $company = ServiceTenantCompany::firstOrFail();
+            // Optimización: Solo cargar campos necesarios de ServiceTenantCompany
+            $company = ServiceTenantCompany::select('id', 'identification_number', 'api_token', 'type_environment_id', 'test_id')->firstOrFail();
 
             //si la empresa esta en habilitacion, envio el parametro ignore_state_document_id en true
             //  para buscar el correlativo en api sin filtrar por el campo state_document_id=1
@@ -2831,7 +2897,8 @@ class DocumentController extends Controller
                 }
             }
 
-            $datoscompany = Company::with('type_regime', 'type_identity_document')->firstOrFail();
+            // Optimización: Reusar $this->company en lugar de hacer nueva consulta
+            $datoscompany = $this->company;
             // $company = ServiceTenantCompany::firstOrFail();
 
             if(file_exists(storage_path('sendmail.api')))
