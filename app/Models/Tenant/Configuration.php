@@ -17,6 +17,7 @@ class Configuration extends ModelTenant
         'visual',
         'enable_whatsapp',
         'phone_whatsapp',
+        'color_palette',
         'limit_users',
         'quantity_documents',
         'date_time_start',

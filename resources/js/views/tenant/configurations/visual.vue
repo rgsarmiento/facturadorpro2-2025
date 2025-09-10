@@ -85,6 +85,39 @@
                 </div>
 
                 <div class="pt-3">
+                    <h5>Paleta de colores</h5>
+                    <div :class="{'has-danger': errors.color_palette}">
+                        <el-select 
+                            v-model="form.color_palette" 
+                            placeholder="Seleccionar paleta"
+                            @change="onPaletteChange"
+                            style="width: 100%;">
+                            <el-option
+                                v-for="palette in colorPalettes"
+                                :key="palette.value"
+                                :label="palette.label"
+                                :value="palette.value">
+                                <div style="display: flex; align-items: center;">
+                                    <div 
+                                        :style="{
+                                            width: '20px', 
+                                            height: '20px', 
+                                            background: `linear-gradient(135deg, ${palette.primary} 0%, ${palette.accent} 100%)`,
+                                            borderRadius: '4px',
+                                            marginRight: '10px'
+                                        }">
+                                    </div>
+                                    <span>{{ palette.label }}</span>
+                                </div>
+                            </el-option>
+                        </el-select>
+                        <br>
+                        <small class="form-control-feedback" v-if="errors.color_palette" v-text="errors.color_palette[0]"></small>
+                        <small class="form-control-feedback">Cambia la paleta de colores de toda la aplicación</small>
+                    </div>
+                </div>
+
+                <div class="pt-3">
                     <h5>Cantidad de columnas en POS</h5>
                     <div :class="{'has-danger': errors.amount_plastic_bag_taxes}">
                         <el-slider
@@ -129,6 +162,38 @@
                 errors: {},
                 form: {},
                 visuals: {},
+                colorPalettes: [
+                    {
+                        value: 'corporativo',
+                        label: 'Corporativo (Gris + Verde)',
+                        primary: '#2d3748',
+                        accent: '#38a169'
+                    },
+                    {
+                        value: 'bancario',
+                        label: 'Bancario (Azul Marino + Dorado)',
+                        primary: '#1e3a8a',
+                        accent: '#f59e0b'
+                    },
+                    {
+                        value: 'tech',
+                        label: 'Tech (Gris Oscuro + Naranja)',
+                        primary: '#374151',
+                        accent: '#f97316'
+                    },
+                    {
+                        value: 'premium',
+                        label: 'Premium (Negro + Púrpura)',
+                        primary: '#111827',
+                        accent: '#8b5cf6'
+                    },
+                    {
+                        value: 'profesional',
+                        label: 'Profesional (Azul + Turquesa)',
+                        primary: '#1e40af',
+                        accent: '#0891b2'
+                    }
+                ]
             }
         },
         async created() {
@@ -144,14 +209,20 @@
                     horizontal_menu: true,
                     colums_grid_item: 4,
                     enable_whatsapp: true,
-                    phone_whatsapp: ''
+                    phone_whatsapp: '',
+                    color_palette: 'corporativo'
                 }
             },
             getRecords() {
                 this.$http.get(`/${this.resource}/record`) .then(response => {
+                    console.log('Datos cargados desde el servidor:', response.data);
+                    
                     if (response.data !== ''){
                         this.visuals = response.data.data.visual;
                         this.form = response.data.data;
+                        
+                        console.log('Formulario después de cargar:', this.form);
+                        console.log('Paleta cargada:', this.form.color_palette);
                     }
                 });
             },
@@ -202,6 +273,63 @@
                 }
                 // Llamar al submit normal
                 this.submitForm();
+            },
+            onPaletteChange() {
+                // Debug: Ver qué paleta se seleccionó
+                console.log('Paleta seleccionada:', this.form.color_palette);
+                console.log('Formulario completo:', this.form);
+                
+                // Aplicar inmediatamente la paleta al HTML para feedback visual
+                this.applyPalettePreview();
+                
+                // Guardar la paleta seleccionada sin recargar automáticamente
+                this.savePalette();
+            },
+            applyPalettePreview() {
+                // Remover todas las clases de paleta existentes
+                const html = document.documentElement;
+                html.classList.remove('palette-corporativo', 'palette-bancario', 'palette-tech', 'palette-premium', 'palette-profesional');
+                
+                // Agregar la nueva clase de paleta
+                html.classList.add('palette-' + this.form.color_palette);
+                
+                console.log('Clase aplicada:', 'palette-' + this.form.color_palette);
+            },
+            savePalette() {
+                this.loading_submit = true;
+                
+                // Debug: Ver exactamente qué se está enviando
+                console.log('Enviando al servidor:', this.form);
+                console.log('URL:', `/${this.resource}`);
+                
+                this.$http.post(`/${this.resource}`, this.form).then(response => {
+                    console.log('Respuesta del servidor:', response.data);
+                    
+                    if (response.data.success) {
+                        this.$message.success('Paleta actualizada correctamente');
+                        // Recargar después de un pequeño delay para ver el cambio
+                        setTimeout(() => {
+                            location.reload();
+                        }, 1000);
+                    }
+                    else {
+                        this.$message.error(response.data.message);
+                        console.error('Error del servidor:', response.data);
+                    }
+                }).catch(error => {
+                    console.error('Error completo:', error);
+                    console.error('Error response:', error.response);
+                    
+                    if (error.response && error.response.status === 422) {
+                        this.errors = error.response.data.errors;
+                        console.error('Errores de validación:', this.errors);
+                    }
+                    else {
+                        console.log('Error general:', error);
+                    }
+                }).then(() => {
+                    this.loading_submit = false;
+                });
             },
         }
     }
