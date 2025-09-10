@@ -198,17 +198,52 @@ class DocumentController extends Controller
 
     public function records(Request $request)
     {
-        $records = Document::query();
+        // Verificar si se requieren todos los registros (convierte string 'true'/'false' a boolean)
+        $loadAll = filter_var($request->get('load_all', 'false'), FILTER_VALIDATE_BOOLEAN);
+        
+        // Excluir response_api y otros campos JSON pesados para optimizar
+        // data_json, health_fields, order_reference también son longtext que ralentizan
+        $records = Document::select([
+            'id', 'type_document_id', 'state_document_id', 'user_id', 'type_environment_id',
+            'shipping_two_steps', 'external_id', 'establishment_id', 'establishment',
+            'soap_type_id', 'calculationrate', 'prefix', 'number', 'xml', 'cufe',
+            'acknowledgment_received', 'type_invoice_id', 'currency_id', 'date_expiration',
+            'observation', 'reference_id', 'note_concept_id', 'sale', 'taxes', 'total_tax',
+            'subtotal', 'version_ubl_id', 'ambient_id', 
+            'payment_form_id', 'payment_method_id',
+            'time_days_credit', 'correlative_api', 'response_api_status', 'date_of_issue',
+            'time_of_issue', 'customer_id', 'customer', 'quotation_id', 'sale_note_id',
+            'order_note_id', 'remission_id', 'total_discount', 'total_plastic_bag_taxes',
+            'total', 'send_server',
+            'success_shipping_status', 'shipping_status', 'success_sunat_shipping_status',
+            'sunat_shipping_status', 'query_status', 'success_query_status', 'total_canceled',
+            'created_at', 'updated_at'
+        ]);
 
-        if ($request->column == 'name' && $request->filled('value')) {
-            // Convertimos tanto el valor de la columna como el valor de búsqueda a minúsculas
-            $value = strtolower($request->value);
-            $records->whereRaw("LOWER(json_unquote(json_extract(`customer`, '$.name'))) LIKE ?", ["%{$value}%"]);
-        } elseif ($request->filled('column') && $request->filled('value')) {
-            // Para otras columnas que no son JSON y buscamos insensitivo a mayúsculas/minúsculas
-            $value = strtolower($request->value);
-            $records->whereRaw("LOWER({$request->column}) LIKE ?", ["%{$value}%"]);
+        // Determinar si hay una búsqueda activa
+        $hasSearch = $request->filled('value');
+        
+        // Solo aplicar búsqueda si realmente hay un valor
+        if ($hasSearch) {
+            // Si hay búsqueda, buscar en TODA la base de datos (sin límite de fecha)
+            if ($request->column == 'name') {
+                // Convertimos tanto el valor de la columna como el valor de búsqueda a minúsculas
+                $value = strtolower($request->value);
+                $records->whereRaw("LOWER(json_unquote(json_extract(`customer`, '$.name'))) LIKE ?", ["%{$value}%"]);
+            } else {
+                // Para otras columnas que no son JSON y buscamos insensitivo a mayúsculas/minúsculas
+                $value = strtolower($request->value);
+                $records->whereRaw("LOWER({$request->column}) LIKE ?", ["%{$value}%"]);
+            }
+            // NO aplicar filtro de fecha cuando hay búsqueda - buscar en toda la BD
+        } elseif (!$loadAll) {
+            // Si NO hay búsqueda y NO se requieren todos los registros,
+            // limitar a últimos 3 meses para optimizar carga inicial
+            $threeMonthsAgo = now()->subMonths(3)->format('Y-m-d');
+            $today = now()->format('Y-m-d');
+            $records->whereBetween('date_of_issue', [$threeMonthsAgo, $today]);
         }
+        // Si loadAll es true y no hay búsqueda, cargar todos sin filtro de fecha
 
         $records->whereTypeUser()->latest();
 
