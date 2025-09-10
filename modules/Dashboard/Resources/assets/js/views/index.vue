@@ -1,13 +1,5 @@
 <template>
   <div v-if="typeUser == 'admin'">
-    <header
-      class="page-header"
-      style="display: flex; justify-content: space-between; align-items: center"
-    >
-      <div>
-        <h2>Dashboard</h2>
-      </div>
-    </header>
     <div class="row">
       <div class="col-12" v-if="resolutions.length > 0">
         <div class="alert alert-warning alert-dismissible fade show" role="alert">
@@ -127,7 +119,7 @@
                       <el-progress :percentage="disc.pcent"></el-progress>
                     </div>
                   </div>
-                  <!-- <div class="col-lg-4">
+<!--                  <div class="col-lg-4">
                     <div class="summary">
                       <h4 class="title">
                         Disponible
@@ -142,7 +134,7 @@
                       </h4>
                       <el-progress :percentage="disc.used"></el-progress>
                     </div>
-                  </div> -->
+                  </div>    -->
                 </div>
               </div>
             </div>
