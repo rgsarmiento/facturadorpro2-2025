@@ -71,7 +71,10 @@ class CashController extends Controller
         $currentResolutionId = request()->input('current_resolution_id');
 
         // Obtiene todas las resoluciones que están siendo usadas por cajas abiertas (excluyendo la actual si existe)
-        $resolutionsInUse = Cash::where('state', true)->pluck('resolution_id')->unique();
+        $resolutionsInUse = Cash::where('state', true)
+            ->whereNotNull('resolution_id')
+            ->pluck('resolution_id')
+            ->unique();
 
         // Si hay una resolución actual, la excluimos de las "en uso" para que esté disponible
         if ($currentResolutionId) {
@@ -82,7 +85,7 @@ class CashController extends Controller
 
         // Para debug: obtener todas las resoluciones primero
         $allResolutions = ConfigurationPos::select('id', 'prefix', 'resolution_number', 'date_from','date_end', 'from', 'to')->get();
-
+        
         // Obtiene las resoluciones disponibles (no en uso) más la resolución actual si existe
         $resolutions = ConfigurationPos::select('id', 'prefix', 'resolution_number', 'date_from','date_end', 'from', 'to')
             ->where(function ($query) use ($resolutionsInUse, $currentResolutionId) {
@@ -94,7 +97,7 @@ class CashController extends Controller
                 }
             })
             ->get();
-
+            
         // Si no hay resoluciones pero sí hay resoluciones totales, agregar información de debug
         if ($resolutions->isEmpty() && $allResolutions->isNotEmpty()) {
             $debugInfo = [
@@ -103,9 +106,7 @@ class CashController extends Controller
                 'current_resolution_id' => $currentResolutionId,
                 'all_resolutions_ids' => $allResolutions->pluck('id')->toArray()
             ];
-        }
-
-        $maxNumbersByPrefix = DocumentPos::selectRaw('prefix, MAX(CAST(number AS SIGNED)) as max_number')
+        }        $maxNumbersByPrefix = DocumentPos::selectRaw('prefix, MAX(CAST(number AS SIGNED)) as max_number')
             ->groupBy('prefix')
             ->get();
 
