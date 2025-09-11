@@ -80,22 +80,45 @@ class CashController extends Controller
             });
         }
 
+        // Para debug: obtener todas las resoluciones primero
+        $allResolutions = ConfigurationPos::select('id', 'prefix', 'resolution_number', 'date_from','date_end', 'from', 'to')->get();
+
         // Obtiene las resoluciones disponibles (no en uso) más la resolución actual si existe
         $resolutions = ConfigurationPos::select('id', 'prefix', 'resolution_number', 'date_from','date_end', 'from', 'to')
             ->where(function ($query) use ($resolutionsInUse, $currentResolutionId) {
-                $query->whereNotIn('id', $resolutionsInUse);
+                if ($resolutionsInUse->isNotEmpty()) {
+                    $query->whereNotIn('id', $resolutionsInUse);
+                }
                 if ($currentResolutionId) {
                     $query->orWhere('id', $currentResolutionId);
                 }
             })
             ->get();
 
+        // Si no hay resoluciones pero sí hay resoluciones totales, agregar información de debug
+        if ($resolutions->isEmpty() && $allResolutions->isNotEmpty()) {
+            $debugInfo = [
+                'total_resolutions' => $allResolutions->count(),
+                'resolutions_in_use' => $resolutionsInUse->toArray(),
+                'current_resolution_id' => $currentResolutionId,
+                'all_resolutions_ids' => $allResolutions->pluck('id')->toArray()
+            ];
+        }
+
         $maxNumbersByPrefix = DocumentPos::selectRaw('prefix, MAX(CAST(number AS SIGNED)) as max_number')
             ->groupBy('prefix')
             ->get();
 
         $blindCash = AdvancedConfiguration::first()->blind_cash ?? false;
-        return compact('users', 'user', 'resolutions', 'blindCash', 'maxNumbersByPrefix' );
+
+        $response = compact('users', 'user', 'resolutions', 'blindCash', 'maxNumbersByPrefix');
+
+        // Agregar información de debug si está disponible
+        if (isset($debugInfo)) {
+            $response['debug'] = $debugInfo;
+        }
+
+        return $response;
     }
 
 
