@@ -1,0 +1,68 @@
+/* =====================================================
+   ESTILOS MODERNOS PARA FORMULARIOS Y MODALES
+   Solo mejoras específicas sin interferir con Element UI
+   ===================================================== */
+
+/* Variables CSS para compatibilidad con paletas */
+:root {
+    --form-primary: var(--primary-color, #007bff);
+    --form-primary-dark: var(--primary-dark, #0056b3);
+    --form-accent: var(--accent-color, #28a745);
+    --form-text-primary: var(--text-primary, #2d3748);
+    --form-text-secondary: var(--text-secondary, #718096);
+    --form-border: var(--border-color, #e2e8f0);
+    --form-bg-light: var(--background-light, #f7fafc);
+    --form-spacing: 24px;
+    --form-border-radius: 12px;
+    --form-shadow: 0 4px 16px rgba(0, 0, 0, 0.05);
+    --form-header-bg: linear-gradient(135deg, var(--primary-color, #007bff) 0%, var(--primary-dark, #0056b3) 100%);
+}
+
+
+/* =====================================================
+   RESPONSIVE PARA MODALES
+   ===================================================== */
+
+@media (max-width: 768px) {
+    .modal.fade.modal-default[id*="modal-"] .modal-dialog,
+    .modal.fade.in.modal-default[id*="modal-"] .modal-dialog {
+        width: 98vw !important;
+        margin: 10px auto !important;
+    }
+    
+    .modal-header {
+        padding: 16px 20px !important;
+    }
+    
+    .modal-body {
+        padding: 20px !important;
+        max-height: 60vh !important;
+    }
+    
+    .modal-footer {
+        padding: 16px 20px !important;
+        flex-direction: column !important;
+        gap: 8px !important;
+    }
+}
+
+/* =====================================================
+   ANIMACIONES SUAVES
+   ===================================================== */
+
+.modal {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.modal.fade .modal-dialog {
+    transform: translate(0, -50px) !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}
+
+.modal.in .modal-dialog {
+    transform: translate(0, 0) !important;
+}
+
+.modal-content {
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+}

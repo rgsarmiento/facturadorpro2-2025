@@ -1,0 +1,1643 @@
+/* =====================================================
+   TEMA MÍNIMO SIN INTERFERENCIAS
+   ===================================================== */
+
+/* Importar fuente moderna */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+/* Variables que se sobrescriben por las paletas dinámicas */
+
+/* Solo aplicar fuente a elementos seguros */
+.modern-minimal {
+    font-family: 'Inter', sans-serif;
+}
+
+/* Proteger iconos FontAwesome */
+.modern-minimal .fa,
+.modern-minimal .fas,
+.modern-minimal .far,
+.modern-minimal .fab,
+.modern-minimal [class*="fa-"] {
+    font-family: "Font Awesome 5 Free", "Font Awesome 5 Brands" !important;
+}
+
+/* Mejoras corporativas sin transiciones */
+.modern-minimal .sidebar-left {
+    background: linear-gradient(180deg, #ffffff 0%, var(--background-light) 100%);
+    border-right: 1px solid var(--border-color);
+    box-shadow: 2px 0 10px rgba(45, 55, 72, 0.1);
+}
+
+.modern-minimal .header {
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+    color: white;
+    box-shadow: 0 2px 10px rgba(45, 55, 72, 0.15);
+}
+
+/* Botones corporativos */
+.modern-minimal .btn-primary {
+    background: linear-gradient(135deg, var(--accent-color) 0%, var(--accent-light) 100%);
+    border-color: var(--accent-color);
+    color: white;
+    font-weight: 600;
+}
+
+.modern-minimal .btn-primary:hover {
+    background: var(--accent-color);
+    border-color: var(--accent-color);
+    box-shadow: 0 4px 12px rgba(56, 161, 105, 0.3);
+}
+
+.modern-minimal .btn-secondary {
+    background: var(--secondary-color);
+    border-color: var(--secondary-color);
+    color: white;
+}
+
+.modern-minimal .btn-secondary:hover {
+    background: var(--primary-color);
+    border-color: var(--primary-color);
+}
+
+/* Botones personalizados que usan la paleta */
+.modern-minimal .btn-custom {
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%) !important;
+    border: 1px solid var(--primary-color) !important;
+    color: white !important;
+    border-radius: 6px !important;
+    font-weight: 500 !important;
+    transition: all 0.3s ease !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+}
+
+.modern-minimal .btn-custom:hover {
+    background: linear-gradient(135deg, var(--primary-dark) 0%, var(--accent-color) 100%) !important;
+    border-color: var(--primary-dark) !important;
+    color: white !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15) !important;
+}
+
+.modern-minimal .btn-custom:focus,
+.modern-minimal .btn-custom:active {
+    background: var(--primary-dark) !important;
+    border-color: var(--primary-dark) !important;
+    color: white !important;
+    box-shadow: 0 0 0 3px rgba(var(--primary-color-rgb), 0.25) !important;
+}
+
+/* Cards corporativas */
+.modern-minimal .card {
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    box-shadow: 0 4px 6px rgba(45, 55, 72, 0.07);
+    background: white;
+}
+
+.modern-minimal .card-header {
+    background: linear-gradient(135deg, var(--background-light) 0%, #edf2f7 100%);
+    border-bottom: 1px solid var(--border-color);
+    color: var(--text-primary);
+    font-weight: 700;
+}
+
+/* Modales corporativos */
+.modern-minimal .modal-header {
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%);
+    color: white;
+    border-bottom: none;
+}
+
+.modern-minimal .modal-title {
+    color: white;
+    font-weight: 700;
+}
+
+/* Navegación sidebar corporativa */
+.modern-minimal .sidebar-left .nav-main > li > a {
+    color: var(--text-primary);
+    font-weight: 500;
+    padding: 12px 20px;
+    border-radius: 0 25px 25px 0;
+    margin: 2px 10px 2px 0;
+}
+
+.modern-minimal .sidebar-left .nav-main > li > a:hover,
+.modern-minimal .sidebar-left .nav-main > li.nav-active > a {
+    background: linear-gradient(135deg, var(--accent-color) 0%, var(--accent-light) 100%);
+    color: white;
+}
+
+.modern-minimal .sidebar-left .nav-main > li > a i {
+    color: var(--secondary-color);
+    margin-right: 10px;
+    width: 20px;
+    text-align: center;
+}
+
+.modern-minimal .sidebar-left .nav-main > li > a:hover i,
+.modern-minimal .sidebar-left .nav-main > li.nav-active > a i {
+    color: white;
+}
+
+/* Tablas corporativas - estilo material */
+.modern-minimal .table {
+    border-radius: 4px;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1), 0 8px 16px rgba(0,0,0,0.1);
+    border: none;
+    background: white;
+    transition: box-shadow 0.3s ease;
+}
+
+.modern-minimal .table:hover {
+    box-shadow: 0 4px 8px rgba(0,0,0,0.12), 0 16px 24px rgba(0,0,0,0.14);
+}
+
+/* Cuerpo de la tabla - estilo material */
+.modern-minimal .table tbody td {
+    background: white;
+    border-top: 1px solid rgba(0,0,0,0.06);
+    padding: 12px 16px;
+    vertical-align: middle;
+    color: rgba(0,0,0,0.87);
+    font-size: 0.875rem;
+    line-height: 1.43;
+}
+
+/* Indicadores Material Design */
+.modern-minimal .table thead th::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: var(--accent-color);
+}
+
+/* Separación Material entre filas */
+.modern-minimal .table tbody tr:not(:last-child) td {
+    border-bottom: 1px solid rgba(0,0,0,0.06);
+}
+
+/* Efecto de selección Material */
+.modern-minimal .table tbody tr:active {
+    background: rgba(var(--accent-color), 0.1) !important;
+    transform: scale(0.998);
+}
+
+/* Estados de fila alternados más sutiles */
+.modern-minimal .table-striped tbody tr:nth-of-type(odd) {
+    background: rgba(0,0,0,0.02);
+}
+
+/* Typography Material para diferentes tipos de contenido */
+.modern-minimal .table tbody td.numeric {
+    font-variant-numeric: tabular-nums;
+    text-align: right;
+    font-weight: 500;
+}
+
+.modern-minimal .table tbody td.primary-text {
+    color: rgba(0,0,0,0.87);
+    font-weight: 500;
+}
+
+.modern-minimal .table tbody td.secondary-text {
+    color: rgba(0,0,0,0.54);
+    font-size: 0.8125rem;
+}
+
+/* ========================================
+   ENCABEZADOS DE TARJETAS ULTRA-MODERNOS
+   ======================================== */
+
+/* Estilo sin fondo con texto visible */
+.modern-minimal .card-header.bg-info {
+    background: transparent !important;
+    border: none !important;
+    border-bottom: 1px solid #e9ecef !important;
+    border-radius: 8px 8px 0 0 !important;
+    padding: 18px 24px !important;
+    box-shadow: none !important;
+    position: relative !important;
+    overflow: hidden !important;
+    z-index: auto !important;
+}
+
+/* Sin patrón de fondo */
+.modern-minimal .card-header.bg-info::before {
+    display: none;
+}
+
+/* Título limpio sin interferencias */
+.modern-minimal .card-header.bg-info h1,
+.modern-minimal .card-header.bg-info h2,
+.modern-minimal .card-header.bg-info h3,
+.modern-minimal .card-header.bg-info h4,
+.modern-minimal .card-header.bg-info h5,
+.modern-minimal .card-header.bg-info h6 {
+    color: var(--text-primary) !important;
+    font-weight: 600 !important;
+    margin: 0 !important;
+    font-size: 1.25rem !important;
+    letter-spacing: 0 !important;
+    text-shadow: none !important;
+    position: static !important;
+    z-index: auto !important;
+    text-transform: capitalize !important;
+    padding: 0 !important;
+}
+
+/* Sin indicador lateral para evitar interferencia */
+.modern-minimal .card-header.bg-info h1::before,
+.modern-minimal .card-header.bg-info h2::before,
+.modern-minimal .card-header.bg-info h3::before,
+.modern-minimal .card-header.bg-info h4::before,
+.modern-minimal .card-header.bg-info h5::before,
+.modern-minimal .card-header.bg-info h6::before {
+    display: none;
+}
+
+/* Animaciones removidas - estilo estático moderno */
+
+/* Cuerpo de tarjeta simple */
+.modern-minimal .card-header.bg-info + .card-body {
+    padding: 20px !important;
+    background: white !important;
+    border-radius: 0 0 8px 8px !important;
+    position: relative !important;
+    box-shadow: none !important;
+}
+
+/* Contenedor de tarjeta simple */
+.modern-minimal .card:has(.card-header.bg-info) {
+    border-radius: 8px !important;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.08) !important;
+    border: 1px solid #e9ecef !important;
+    overflow: hidden !important;
+    transition: box-shadow 0.2s ease !important;
+}
+
+/* Efecto hover suave */
+.modern-minimal .card:has(.card-header.bg-info):hover {
+    box-shadow: 0 4px 12px rgba(0,0,0,0.12) !important;
+    border-color: var(--accent-color) !important;
+    transition: all 0.2s ease !important;
+}
+
+/* Iconos simples */
+.modern-minimal .card-header.bg-info i {
+    color: var(--accent-color) !important;
+    margin-right: 10px !important;
+    font-size: 1rem !important;
+    filter: none !important;
+    position: relative !important;
+    z-index: 10 !important;
+}
+
+/* Animaciones removidas para evitar distracciones */
+
+/* Efecto hover en header */
+.modern-minimal .card-header.bg-info:hover {
+    background: #f8f9fa !important;
+    transition: background 0.2s ease !important;
+}
+
+/* Soporte para otros colores de encabezado con el mismo estilo */
+.modern-minimal .card-header.bg-primary,
+.modern-minimal .card-header.bg-success,
+.modern-minimal .card-header.bg-warning,
+.modern-minimal .card-header.bg-danger {
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%) !important;
+    border: none !important;
+    border-radius: 8px 8px 0 0 !important;
+    padding: 20px 24px !important;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1) !important;
+    position: relative !important;
+}
+
+.modern-minimal .card-header.bg-primary h1,
+.modern-minimal .card-header.bg-primary h2,
+.modern-minimal .card-header.bg-primary h3,
+.modern-minimal .card-header.bg-primary h4,
+.modern-minimal .card-header.bg-primary h5,
+.modern-minimal .card-header.bg-primary h6,
+.modern-minimal .card-header.bg-success h1,
+.modern-minimal .card-header.bg-success h2,
+.modern-minimal .card-header.bg-success h3,
+.modern-minimal .card-header.bg-success h4,
+.modern-minimal .card-header.bg-success h5,
+.modern-minimal .card-header.bg-success h6,
+.modern-minimal .card-header.bg-warning h1,
+.modern-minimal .card-header.bg-warning h2,
+.modern-minimal .card-header.bg-warning h3,
+.modern-minimal .card-header.bg-warning h4,
+.modern-minimal .card-header.bg-warning h5,
+.modern-minimal .card-header.bg-warning h6,
+.modern-minimal .card-header.bg-danger h1,
+.modern-minimal .card-header.bg-danger h2,
+.modern-minimal .card-header.bg-danger h3,
+.modern-minimal .card-header.bg-danger h4,
+.modern-minimal .card-header.bg-danger h5,
+.modern-minimal .card-header.bg-danger h6 {
+    color: white !important;
+    font-weight: 600 !important;
+    margin: 0 !important;
+    font-size: 1.1rem !important;
+    letter-spacing: 0.025em !important;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.1) !important;
+}
+
+/* Encabezados con badges o etiquetas */
+.modern-minimal .card-header.bg-info .badge {
+    background: rgba(255,255,255,0.2) !important;
+    color: white !important;
+    border: 1px solid rgba(255,255,255,0.3) !important;
+    margin-left: 8px !important;
+}
+
+/* Botones dentro de encabezados */
+.modern-minimal .card-header.bg-info .btn {
+    background: rgba(255,255,255,0.15) !important;
+    border: 1px solid rgba(255,255,255,0.3) !important;
+    color: white !important;
+    font-size: 0.875rem !important;
+    padding: 6px 12px !important;
+}
+
+.modern-minimal .card-header.bg-info .btn:hover {
+    background: rgba(255,255,255,0.25) !important;
+    border-color: rgba(255,255,255,0.5) !important;
+}
+
+/* Para contenido de formularios dentro de las tarjetas */
+.modern-minimal .card-header.bg-info + .card-body .form-group {
+    margin-bottom: 1.5rem;
+}
+
+.modern-minimal .card-header.bg-info + .card-body .form-control {
+    border: 2px solid #e5e7eb;
+    border-radius: 6px;
+    padding: 10px 14px;
+    transition: border-color 0.2s ease;
+}
+
+.modern-minimal .card-header.bg-info + .card-body .form-control:focus {
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 3px rgba(var(--accent-color), 0.1);
+}
+
+.modern-minimal .table thead th {
+    background: #fafafa;
+    color: var(--text-primary);
+    font-weight: 500;
+    border: none;
+    border-radius: 0;
+    padding: 10px 14px;
+    box-shadow: 0 1px 0 0 rgba(0,0,0,0.12);
+    position: relative;
+    text-transform: capitalize;
+    font-size: 0.85rem;
+    letter-spacing: 0.025em;
+    background: linear-gradient(180deg, #fafafa 0%, #f5f5f5 100%);
+}
+
+.modern-minimal .table tbody tr:hover {
+    background: #f5f5f5;
+    box-shadow: inset 0 0 0 2px var(--accent-color);
+    transition: all 0.2s ease;
+}
+
+.modern-minimal .table tbody tr {
+    background: white;
+    transition: all 0.2s ease;
+    cursor: pointer;
+}
+
+/* DataTables headers - estilo material */
+.modern-minimal .dataTables_wrapper .dataTable thead th,
+.modern-minimal .dataTables_wrapper .dataTable thead td {
+    background: linear-gradient(180deg, #fafafa 0%, #f5f5f5 100%) !important;
+    color: var(--text-primary) !important;
+    font-weight: 500 !important;
+    border: none !important;
+    border-radius: 0 !important;
+    padding: 10px 14px !important;
+    box-shadow: 0 1px 0 0 rgba(0,0,0,0.12) !important;
+    position: relative !important;
+    text-transform: capitalize !important;
+    font-size: 0.85rem !important;
+    letter-spacing: 0.025em !important;
+}
+
+/* Todos los encabezados de tabla - estilo material */
+.modern-minimal .table-striped thead th,
+.modern-minimal .table-bordered thead th,
+.modern-minimal .table-hover thead th,
+.modern-minimal thead th {
+    background: linear-gradient(180deg, #fafafa 0%, #f5f5f5 100%) !important;
+    color: var(--text-primary) !important;
+    font-weight: 500 !important;
+    border: none !important;
+    border-radius: 0 !important;
+    padding: 10px 14px !important;
+    box-shadow: 0 1px 0 0 rgba(0,0,0,0.12) !important;
+    position: relative !important;
+    text-transform: capitalize !important;
+    font-size: 0.85rem !important;
+    letter-spacing: 0.025em !important;
+}
+
+/* Formularios corporativos */
+.modern-minimal .form-control {
+    border: 2px solid var(--border-color);
+    border-radius: 8px;
+    padding: 10px 15px;
+    color: var(--text-primary);
+}
+
+.modern-minimal .form-control:focus {
+    border-color: var(--accent-color);
+    box-shadow: 0 0 0 3px rgba(56, 161, 105, 0.1);
+    outline: none;
+}
+
+.modern-minimal .form-label {
+    color: var(--text-primary);
+    font-weight: 600;
+    margin-bottom: 8px;
+}
+
+/* Alertas corporativas */
+.modern-minimal .alert {
+    border: none;
+    border-radius: 8px;
+    border-left: 4px solid;
+    font-weight: 500;
+}
+
+.modern-minimal .alert-primary {
+    background: linear-gradient(135deg, #e6fffa 0%, #d4edda 100%);
+    border-left-color: var(--accent-color);
+    color: #2d5016;
+}
+
+.modern-minimal .alert-success {
+    background: linear-gradient(135deg, #f0fff4 0%, #d4edda 100%);
+    border-left-color: var(--accent-light);
+    color: #1e4620;
+}
+
+.modern-minimal .alert-warning {
+    background: linear-gradient(135deg, #fffbeb 0%, #fef3c7 100%);
+    border-left-color: #f59e0b;
+    color: #92400e;
+}
+
+.modern-minimal .alert-danger {
+    background: linear-gradient(135deg, #fef2f2 0%, #fee2e2 100%);
+    border-left-color: #ef4444;
+    color: #991b1b;
+}
+
+/* Badges corporativos */
+.modern-minimal .badge {
+    border-radius: 20px;
+    font-weight: 600;
+    padding: 6px 12px;
+    font-size: 12px;
+}
+
+.modern-minimal .badge-primary {
+    background: linear-gradient(135deg, var(--accent-color) 0%, var(--accent-light) 100%);
+    color: white;
+}
+
+.modern-minimal .badge-secondary {
+    background: var(--secondary-color);
+    color: white;
+}
+
+/* Breadcrumbs corporativos */
+.modern-minimal .breadcrumb {
+    background: transparent;
+    padding: 0;
+    margin-bottom: 20px;
+}
+
+.modern-minimal .breadcrumb-item a {
+    color: var(--accent-color);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.modern-minimal .breadcrumb-item.active {
+    color: var(--text-secondary);
+    font-weight: 600;
+}
+
+/* Header dropdown mejorado */
+.modern-minimal .header .dropdown-toggle {
+    background: rgba(255, 255, 255, 0.15);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    border-radius: 8px;
+    padding: 8px 15px;
+    font-weight: 500;
+}
+
+.modern-minimal .header .dropdown-toggle:hover {
+    background: rgba(255, 255, 255, 0.25);
+}
+
+/* =====================================================
+   OVERRIDES AGRESIVOS PARA COLORES HARDCODEADOS
+   ===================================================== */
+
+/* Sobrescribir TODOS los azules hardcodeados del tema Porto */
+.modern-minimal .card-header,
+.modern-minimal .panel-heading,
+.modern-minimal .card-title,
+.modern-minimal .panel-title,
+.modern-minimal .section-title,
+.modern-minimal .page-header h1,
+.modern-minimal .page-header h2,
+.modern-minimal .page-header h3,
+.modern-minimal .content-header,
+.modern-minimal .widget-header,
+.modern-minimal .box-header {
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%) !important;
+    color: white !important;
+    border-color: var(--primary-color) !important;
+}
+
+/* Sobrescribir colores de texto en headers */
+.modern-minimal .card-header h1,
+.modern-minimal .card-header h2,
+.modern-minimal .card-header h3,
+.modern-minimal .card-header h4,
+.modern-minimal .card-header h5,
+.modern-minimal .card-header h6,
+.modern-minimal .panel-heading h1,
+.modern-minimal .panel-heading h2,
+.modern-minimal .panel-heading h3,
+.modern-minimal .panel-heading h4,
+.modern-minimal .panel-heading h5,
+.modern-minimal .panel-heading h6 {
+    color: white !important;
+}
+
+/* Sobrescribir elementos con colores azules específicos */
+.modern-minimal [style*="background-color: #007bff"],
+.modern-minimal [style*="background-color: #0d6efd"],
+.modern-minimal [style*="background-color: #0088cc"],
+.modern-minimal [style*="background: #007bff"],
+.modern-minimal [style*="background: #0d6efd"],
+.modern-minimal [style*="background: #0088cc"] {
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%) !important;
+    color: white !important;
+}
+
+/* Elementos específicos de configuración */
+.modern-minimal .configuration-header,
+.modern-minimal .config-section-title,
+.modern-minimal .settings-header {
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%) !important;
+    color: white !important;
+}
+
+/* Tabs azules hardcodeadas */
+.modern-minimal .nav-tabs .nav-link.active,
+.modern-minimal .nav-pills .nav-link.active {
+    background: linear-gradient(135deg, var(--accent-color) 0%, var(--accent-light) 100%) !important;
+    color: white !important;
+    border-color: var(--accent-color) !important;
+}
+
+.modern-minimal .nav-tabs .nav-link:hover,
+.modern-minimal .nav-pills .nav-link:hover {
+    background: var(--accent-light) !important;
+    color: white !important;
+}
+
+/* Progress bars azules */
+.modern-minimal .progress-bar,
+.modern-minimal .progress-bar-primary {
+    background: linear-gradient(90deg, var(--accent-color) 0%, var(--accent-light) 100%) !important;
+}
+
+/* Links azules hardcodeados */
+.modern-minimal a:not(.btn),
+.modern-minimal .text-primary {
+    color: var(--accent-color) !important;
+}
+
+.modern-minimal a:not(.btn):hover {
+    color: var(--primary-color) !important;
+}
+
+/* Elementos de bootstrap con colores azules */
+.modern-minimal .bg-primary {
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%) !important;
+    color: white !important;
+}
+
+.modern-minimal .text-primary {
+    color: var(--primary-color) !important;
+}
+
+.modern-minimal .border-primary {
+    border-color: var(--primary-color) !important;
+}
+
+/* Elementos específicos que podrían tener azul hardcodeado */
+.modern-minimal .widget-title,
+.modern-minimal .box-title,
+.modern-minimal .panel-default > .panel-heading {
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%) !important;
+    color: white !important;
+}
+
+/* Sobrescribir cualquier elemento con clase que contenga 'blue' o 'primary' */
+.modern-minimal [class*="blue"],
+.modern-minimal [class*="primary"]:not(.btn-primary) {
+    background: var(--primary-color) !important;
+    color: white !important;
+}
+
+/* Buttons secundarios que podrían ser azules */
+.modern-minimal .btn-info {
+    background: linear-gradient(135deg, var(--accent-color) 0%, var(--accent-light) 100%) !important;
+    border-color: var(--accent-color) !important;
+    color: white !important;
+}
+
+.modern-minimal .btn-info:hover {
+    background: var(--accent-color) !important;
+    border-color: var(--accent-color) !important;
+}
+
+/* Elementos de DataTables que podrían ser azules */
+.modern-minimal .dataTables_wrapper .dataTables_paginate .paginate_button.current,
+.modern-minimal .dataTables_wrapper .dataTables_paginate .paginate_button.current:hover {
+    background: var(--accent-color) !important;
+    border-color: var(--accent-color) !important;
+    color: white !important;
+}
+
+/* Select2 elements */
+.modern-minimal .select2-container--default .select2-selection--single .select2-selection__rendered {
+    color: var(--text-primary) !important;
+}
+
+.modern-minimal .select2-container--default .select2-results__option--highlighted[aria-selected] {
+    background: var(--accent-color) !important;
+    color: white !important;
+}
+
+/* =============================================================================
+   MENSAJES Y NOTIFICACIONES ELEMENT UI
+============================================================================= */
+
+/* Mensajes de éxito */
+.modern-minimal .el-message--success {
+    background: linear-gradient(135deg, var(--accent-color) 0%, var(--accent-light) 100%) !important;
+    border-color: var(--accent-color) !important;
+    color: white !important;
+}
+
+.modern-minimal .el-message--success .el-message__icon {
+    color: white !important;
+}
+
+/* Mensajes de error */
+.modern-minimal .el-message--error {
+    background: linear-gradient(135deg, #e53e3e 0%, #fc8181 100%) !important;
+    border-color: #e53e3e !important;
+    color: white !important;
+}
+
+.modern-minimal .el-message--error .el-message__icon {
+    color: white !important;
+}
+
+/* Mensajes de información */
+.modern-minimal .el-message--info {
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-light) 100%) !important;
+    border-color: var(--primary-color) !important;
+    color: white !important;
+}
+
+.modern-minimal .el-message--info .el-message__icon {
+    color: white !important;
+}
+
+/* Mensajes de advertencia */
+.modern-minimal .el-message--warning {
+    background: linear-gradient(135deg, #d69e2e 0%, #f6e05e 100%) !important;
+    border-color: #d69e2e !important;
+    color: white !important;
+}
+
+.modern-minimal .el-message--warning .el-message__icon {
+    color: white !important;
+}
+
+/* Notificaciones */
+.modern-minimal .el-notification {
+    background: rgba(255, 255, 255, 0.95) !important;
+    -webkit-backdrop-filter: blur(10px) !important;
+    backdrop-filter: blur(10px) !important;
+    border: 1px solid var(--border-color) !important;
+    box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15) !important;
+}
+
+.modern-minimal .el-notification.success {
+    border-left: 4px solid var(--accent-color) !important;
+}
+
+.modern-minimal .el-notification.success .el-notification__icon {
+    color: var(--accent-color) !important;
+}
+
+.modern-minimal .el-notification.error {
+    border-left: 4px solid #e53e3e !important;
+}
+
+.modern-minimal .el-notification.error .el-notification__icon {
+    color: #e53e3e !important;
+}
+
+/* =============================================================================
+   DASHBOARD COMPACTO ESTILO CARD-BASED
+============================================================================= */
+
+/* Header con contenido alineado correctamente */
+.modern-minimal .page-header {
+    background: linear-gradient(90deg, var(--primary-color) 0%, var(--primary-dark) 100%) !important;
+    color: white !important;
+    padding: 15px 30px !important;
+    border-radius: 8px !important;
+    margin-bottom: 20px !important;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1) !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: space-between !important;
+    min-height: 60px !important;
+}
+
+.modern-minimal .page-header h2 {
+    color: white !important;
+    font-weight: 500 !important;
+    margin: 0 !important;
+    font-size: 1.5rem !important;
+    text-transform: capitalize !important;
+    line-height: 1 !important;
+}
+
+.modern-minimal .page-header h2 a {
+    color: white !important;
+    text-decoration: none !important;
+}
+
+.modern-minimal .page-header h2 a:hover {
+    color: rgba(255, 255, 255, 0.8) !important;
+}
+
+/* Breadcrumbs alineados */
+.modern-minimal .page-header .breadcrumbs {
+    margin: 0 !important;
+    padding: 0 !important;
+    flex-grow: 1 !important;
+    margin-left: 20px !important;
+}
+
+/* Right-wrapper contenedor de botones */
+.modern-minimal .page-header .right-wrapper {
+    display: flex !important;
+    align-items: center !important;
+    gap: 8px !important;
+    flex-shrink: 0 !important;
+}
+
+/* Botones dentro del page-header */
+.modern-minimal .page-header .right-wrapper .btn,
+.modern-minimal .page-header .right-wrapper .el-button {
+    margin: 0 !important;
+    white-space: nowrap !important;
+    font-size: 0.875rem !important;
+    padding: 8px 12px !important;
+    height: auto !important;
+    line-height: 1.2 !important;
+}
+
+/* Tooltips de Element UI en page-header */
+.modern-minimal .page-header .right-wrapper .el-tooltip {
+    display: inline-block !important;
+}
+
+/* Asegurar que los iconos estén alineados */
+.modern-minimal .page-header .right-wrapper .btn i,
+.modern-minimal .page-header .right-wrapper .el-button i {
+    margin-right: 6px !important;
+    vertical-align: middle !important;
+}
+
+/* Estilos específicos para POS header - mantener layout original */
+.modern-minimal header.page-header {
+    background: linear-gradient(90deg, var(--primary-color) 0%, var(--primary-dark) 100%) !important;
+    color: white !important;
+    padding: 20px 25px !important;
+    border-radius: 8px !important;
+    margin-bottom: 20px !important;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1) !important;
+}
+
+.modern-minimal header.page-header .row {
+    margin: 0 !important;
+}
+
+.modern-minimal header.page-header .col-md-6,
+.modern-minimal header.page-header .col-md-4,
+.modern-minimal header.page-header .col-md-2 {
+    background: transparent !important;
+    background-color: transparent !important;
+}
+
+/* Switches de Element UI en POS header - sin background */
+.modern-minimal header.page-header .el-switch {
+    margin: 0 !important;
+    background: transparent !important;
+    background-color: transparent !important;
+}
+
+.modern-minimal header.page-header .el-switch__label {
+    color: white !important;
+    font-weight: 500 !important;
+    font-size: 0.9rem !important;
+    background: transparent !important;
+    background-color: transparent !important;
+}
+
+.modern-minimal header.page-header .el-switch__label.is-active {
+    color: white !important;
+    background: transparent !important;
+    background-color: transparent !important;
+}
+
+/* H2 dentro del POS header - sin background */
+.modern-minimal header.page-header h2 {
+    color: white !important;
+    font-weight: 500 !important;
+    margin: 0 !important;
+    font-size: 1rem !important;
+    display: flex !important;
+    align-items: center !important;
+    background: transparent !important;
+    background-color: transparent !important;
+    padding: 0 !important;
+}
+
+/* Botones en POS header */
+.modern-minimal header.page-header .btn {
+    margin: 0 !important;
+    font-size: 0.875rem !important;
+    padding: 8px 12px !important;
+    height: auto !important;
+    line-height: 1.2 !important;
+    white-space: nowrap !important;
+}
+
+.modern-minimal header.page-header .btn-success {
+    background: linear-gradient(135deg, #28a745 0%, #20a944 100%) !important;
+    border-color: #28a745 !important;
+    color: white !important;
+}
+
+.modern-minimal header.page-header .btn-success:hover {
+    background: linear-gradient(135deg, #20a944 0%, #1e7e34 100%) !important;
+    border-color: #1e7e34 !important;
+    transform: translateY(-1px) !important;
+}
+
+/* Right wrapper en POS */
+.modern-minimal header.page-header .right-wrapper {
+    display: flex !important;
+    justify-content: flex-end !important;
+    align-items: center !important;
+    width: 100% !important;
+}
+
+.modern-minimal header.page-header .right-wrapper h2 {
+    font-size: 0.9rem !important;
+    margin: 0 !important;
+}
+
+/* Eliminar todos los fondos que interfieren */
+.modern-minimal header.page-header *,
+.modern-minimal header.page-header .el-switch,
+.modern-minimal header.page-header .el-switch__label,
+.modern-minimal header.page-header h2 {
+    transition: all 0.2s ease !important;
+}
+
+/* Limpiar fondos específicos de controles problemáticos */
+.modern-minimal header.page-header .col-md-6,
+.modern-minimal header.page-header .col-md-4,
+.modern-minimal header.page-header .col-md-2 {
+    background: transparent !important;
+    background-color: transparent !important;
+}
+
+/* Asegurar que el wrapper del switch esté limpio */
+.modern-minimal header.page-header .el-switch-wrapper,
+.modern-minimal header.page-header .switch-container {
+    background: transparent !important;
+    background-color: transparent !important;
+    padding: 0 !important;
+    margin: 0 !important;
+}
+
+/* Responsive para pantallas pequeñas */
+@media (max-width: 1200px) {
+    .modern-minimal .page-header {
+        flex-wrap: wrap !important;
+        padding: 15px 20px !important;
+    }
+
+    .modern-minimal .page-header .right-wrapper {
+        margin-top: 10px !important;
+        width: 100% !important;
+        justify-content: flex-start !important;
+        flex-wrap: wrap !important;
+    }
+
+    .modern-minimal .page-header .right-wrapper .btn,
+    .modern-minimal .page-header .right-wrapper .el-button {
+        font-size: 0.8rem !important;
+        padding: 6px 10px !important;
+        margin-bottom: 5px !important;
+    }
+
+    /* POS responsive */
+    .modern-minimal header.page-header .col-md-6,
+    .modern-minimal header.page-header .col-md-4,
+    .modern-minimal header.page-header .col-md-2 {
+        margin-bottom: 10px !important;
+        justify-content: center !important;
+    }
+
+    .modern-minimal header.page-header .col-md-2 .right-wrapper {
+        justify-content: center !important;
+    }
+}
+
+/* Cards compactos con diseño moderno */
+.modern-minimal .card-featured-left,
+.modern-minimal .card-featured-secondary,
+.modern-minimal section.card {
+    border: 1px solid #e8e8e8 !important;
+    border-radius: 8px !important;
+    background: white !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06) !important;
+    margin-bottom: 18px !important;
+    transition: all 0.2s ease !important;
+    overflow: hidden !important;
+}
+
+.modern-minimal .card-featured-left:hover,
+.modern-minimal .card-featured-secondary:hover,
+.modern-minimal section.card:hover {
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.1) !important;
+    border-color: var(--accent-color) !important;
+    transform: translateY(-1px) !important;
+}
+
+/* Títulos de cards completamente limpios */
+.modern-minimal .card-title {
+    color: var(--text-primary) !important;
+    font-weight: 600 !important;
+    font-size: 1.25rem !important;
+    margin-bottom: 15px !important;
+    text-transform: capitalize !important;
+    position: static !important;
+    padding: 0 !important;
+    background: transparent !important;
+    background-color: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+.modern-minimal .card-title::before {
+    display: none !important;
+}
+
+/* Asegurar que los h1-h6 con clase card-title también estén limpios */
+.modern-minimal h1.card-title,
+.modern-minimal h2.card-title,
+.modern-minimal h3.card-title,
+.modern-minimal h4.card-title,
+.modern-minimal h5.card-title,
+.modern-minimal h6.card-title {
+    background: transparent !important;
+    background-color: transparent !important;
+    color: var(--text-primary) !important;
+    border: none !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+}
+
+/* Limpiar cualquier contenedor que pueda tener fondos */
+.modern-minimal .col-md-12.m-b-10,
+.modern-minimal .widget-summary-col .col-md-12,
+.modern-minimal .widget-summary .col-md-12 {
+    background: transparent !important;
+    background-color: transparent !important;
+}
+
+/* Limpiar específicamente los contenedores de títulos en dashboard */
+.modern-minimal .widget-summary .widget-summary-col .col-md-12.m-b-10 {
+    background: transparent !important;
+    background-color: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+}
+
+/* Métricas compactas */
+.modern-minimal .widget-summary .summary {
+    text-align: center !important;
+    padding: 12px 8px !important;
+    border-radius: 6px !important;
+    background: #f8f9fa !important;
+    margin-bottom: 8px !important;
+    border: 1px solid transparent !important;
+    transition: all 0.2s ease !important;
+}
+
+.modern-minimal .widget-summary .summary:hover {
+    background: #e9ecef !important;
+    border-color: var(--accent-color) !important;
+    transform: scale(1.02) !important;
+}
+
+.modern-minimal .widget-summary .summary .title {
+    font-size: 0.7rem !important;
+    font-weight: 600 !important;
+    margin-bottom: 4px !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+    color: #6c757d !important;
+    line-height: 1.2 !important;
+}
+
+.modern-minimal .widget-summary .summary .amount {
+    font-size: 1.3rem !important;
+    font-weight: 700 !important;
+    display: block !important;
+    color: var(--text-primary) !important;
+    line-height: 1.1 !important;
+}
+
+/* Colores más vibrantes */
+.modern-minimal .text-info,
+.modern-minimal .amount.text-info {
+    color: var(--accent-color) !important;
+}
+
+.modern-minimal .text-danger,
+.modern-minimal .amount.text-danger {
+    color: #dc3545 !important;
+}
+
+.modern-minimal .text-success,
+.modern-minimal .amount.text-success {
+    color: #28a745 !important;
+}
+
+/* Alertas compactas */
+.modern-minimal .alert {
+    border: none !important;
+    border-radius: 6px !important;
+    background: #fff3cd !important;
+    border-left: 3px solid #ffc107 !important;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1) !important;
+    padding: 12px 16px !important;
+    margin-bottom: 20px !important;
+}
+
+.modern-minimal .alert strong {
+    color: #856404 !important;
+    font-weight: 600 !important;
+}
+
+/* Labels compactos */
+.modern-minimal .form-group label.control-label {
+    color: var(--text-primary) !important;
+    font-weight: 500 !important;
+    font-size: 0.8rem !important;
+    margin-bottom: 6px !important;
+    text-transform: capitalize !important;
+}
+
+/* Progress bars delgados */
+.modern-minimal .el-progress {
+    margin-bottom: 12px !important;
+}
+
+.modern-minimal .el-progress-bar__outer {
+    background: #e9ecef !important;
+    border-radius: 10px !important;
+    height: 8px !important;
+}
+
+.modern-minimal .el-progress-bar__inner {
+    background: linear-gradient(90deg, var(--accent-color) 0%, var(--accent-light) 100%) !important;
+    border-radius: 10px !important;
+}
+
+/* Separadores de gráficos */
+.modern-minimal .widget-summary .row.m-t-20 {
+    margin-top: 15px !important;
+    padding-top: 15px !important;
+    border-top: 1px solid #e9ecef !important;
+}
+
+/* Popovers compactos */
+.modern-minimal .el-popover {
+    background: white !important;
+    border: 1px solid #dee2e6 !important;
+    border-radius: 6px !important;
+    box-shadow: 0 3px 12px rgba(0, 0, 0, 0.15) !important;
+}
+
+.modern-minimal .custom-badge {
+    background: var(--accent-color) !important;
+    color: white !important;
+    padding: 2px 6px !important;
+    border-radius: 4px !important;
+    font-size: 0.7rem !important;
+    font-weight: 500 !important;
+}
+
+/* Botones compactos */
+.modern-minimal .el-button.is-circle {
+    background: var(--accent-color) !important;
+    border: none !important;
+    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1) !important;
+    width: 28px !important;
+    height: 28px !important;
+    transition: all 0.2s ease !important;
+}
+
+.modern-minimal .el-button.is-circle:hover {
+    background: var(--primary-color) !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+}
+
+/* Layout compacto general */
+.modern-minimal .row {
+    margin-bottom: 15px !important;
+}
+
+.modern-minimal .card-body {
+    padding: 18px !important;
+}
+
+/* Responsive compacto */
+@media (max-width: 768px) {
+    .modern-minimal .page-header h2 {
+        font-size: 1.2rem !important;
+    }
+
+    .modern-minimal .widget-summary .summary .amount {
+        font-size: 1.1rem !important;
+    }
+
+    .modern-minimal .card-body {
+        padding: 15px !important;
+    }
+
+    .modern-minimal .widget-summary .summary {
+        padding: 10px 6px !important;
+    }
+}
+
+/* =============================================================================
+   MODALES MODERNOS
+============================================================================= */
+
+/* Overlay del modal con blur */
+.modern-minimal .el-dialog__wrapper {
+    background: rgba(0, 0, 0, 0.6) !important;
+    -webkit-backdrop-filter: blur(8px) !important;
+    backdrop-filter: blur(8px) !important;
+    animation: fadeInBackdrop 0.3s ease-out !important;
+}
+
+@keyframes fadeInBackdrop {
+    from {
+        background: rgba(0, 0, 0, 0) !important;
+        -webkit-backdrop-filter: blur(0px) !important;
+        backdrop-filter: blur(0px) !important;
+    }
+    to {
+        background: rgba(0, 0, 0, 0.6) !important;
+        -webkit-backdrop-filter: blur(8px) !important;
+        backdrop-filter: blur(8px) !important;
+    }
+}
+
+/* Contenedor principal del modal */
+.modern-minimal .el-dialog {
+    background: linear-gradient(145deg, #ffffff 0%, #f8f9fa 100%) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    border-radius: 16px !important;
+    box-shadow:
+        0 20px 40px rgba(0, 0, 0, 0.15),
+        0 0 0 1px rgba(255, 255, 255, 0.1),
+        inset 0 1px 0 rgba(255, 255, 255, 0.8) !important;
+    -webkit-backdrop-filter: blur(20px) !important;
+    backdrop-filter: blur(20px) !important;
+    overflow: hidden !important;
+    position: relative !important;
+    transform: scale(0.9) translateY(-20px) !important;
+    animation: modalSlideIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards !important;
+}
+
+@keyframes modalSlideIn {
+    to {
+        transform: scale(1) translateY(0) !important;
+    }
+}
+
+/* Header del modal moderno */
+.modern-minimal .el-dialog__header {
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%) !important;
+    color: white !important;
+    padding: 20px 24px !important;
+    border-bottom: none !important;
+    border-radius: 16px 16px 0 0 !important;
+    position: relative !important;
+    overflow: hidden !important;
+}
+
+.modern-minimal .el-dialog__header::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background:
+        radial-gradient(circle at 20% 20%, rgba(255,255,255,0.1) 0%, transparent 50%),
+        radial-gradient(circle at 80% 80%, rgba(255,255,255,0.05) 0%, transparent 50%);
+    z-index: 0;
+}
+
+/* Título del modal */
+.modern-minimal .el-dialog__title {
+    color: white !important;
+    font-weight: 600 !important;
+    font-size: 1.25rem !important;
+    text-shadow: 0 2px 4px rgba(0,0,0,0.2) !important;
+    position: relative !important;
+    z-index: 10 !important;
+    display: flex !important;
+    align-items: center !important;
+}
+
+.modern-minimal .el-dialog__title::before {
+    content: '';
+    width: 4px;
+    height: 24px;
+    background: var(--accent-color);
+    border-radius: 2px;
+    margin-right: 12px;
+    box-shadow: 0 0 8px rgba(var(--accent-color-rgb), 0.5);
+}
+
+/* Botón de cerrar moderno */
+.modern-minimal .el-dialog__headerbtn {
+    top: 16px !important;
+    right: 16px !important;
+    width: 36px !important;
+    height: 36px !important;
+    background: rgba(255, 255, 255, 0.1) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    border-radius: 8px !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    -webkit-backdrop-filter: blur(10px) !important;
+    backdrop-filter: blur(10px) !important;
+    z-index: 20 !important;
+}
+
+.modern-minimal .el-dialog__headerbtn:hover {
+    background: rgba(255, 255, 255, 0.2) !important;
+    border-color: rgba(255, 255, 255, 0.4) !important;
+    transform: scale(1.05) !important;
+}
+
+.modern-minimal .el-dialog__close {
+    color: white !important;
+    font-size: 18px !important;
+    font-weight: bold !important;
+    text-shadow: 0 1px 2px rgba(0,0,0,0.3) !important;
+}
+
+/* Cuerpo del modal */
+.modern-minimal .el-dialog__body {
+    padding: 24px !important;
+    background: linear-gradient(180deg, #fafbfc 0%, white 100%) !important;
+    color: var(--text-primary) !important;
+    position: relative !important;
+}
+
+.modern-minimal .el-dialog__body::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 24px;
+    right: 24px;
+    height: 1px;
+    background: linear-gradient(90deg, transparent, rgba(0,0,0,0.1), transparent);
+}
+
+/* Footer del modal */
+.modern-minimal .el-dialog__footer {
+    padding: 16px 24px 24px !important;
+    background: white !important;
+    border-top: 1px solid #f0f0f0 !important;
+    border-radius: 0 0 16px 16px !important;
+    display: flex !important;
+    justify-content: flex-end !important;
+    gap: 12px !important;
+}
+
+/* Botones del modal modernos */
+.modern-minimal .el-dialog__footer .el-button {
+    border-radius: 8px !important;
+    padding: 10px 20px !important;
+    font-weight: 500 !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    border: 2px solid transparent !important;
+    position: relative !important;
+    overflow: hidden !important;
+}
+
+.modern-minimal .el-dialog__footer .el-button--primary {
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-dark) 100%) !important;
+    color: white !important;
+    box-shadow: 0 4px 12px rgba(var(--primary-color-rgb), 0.3) !important;
+}
+
+.modern-minimal .el-dialog__footer .el-button--primary:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: 0 6px 20px rgba(var(--primary-color-rgb), 0.4) !important;
+}
+
+.modern-minimal .el-dialog__footer .el-button--default {
+    background: white !important;
+    color: var(--text-primary) !important;
+    border-color: #dee2e6 !important;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.05) !important;
+}
+
+.modern-minimal .el-dialog__footer .el-button--default:hover {
+    background: #f8f9fa !important;
+    border-color: var(--accent-color) !important;
+    transform: translateY(-1px) !important;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1) !important;
+}
+
+/* Animación de salida del modal */
+.modern-minimal .el-dialog.el-dialog--close {
+    animation: modalSlideOut 0.3s cubic-bezier(0.32, 0, 0.67, 0) forwards !important;
+}
+
+@keyframes modalSlideOut {
+    to {
+        transform: scale(0.9) translateY(-20px) !important;
+        opacity: 0 !important;
+    }
+}
+
+/* Modales responsivos */
+@media (max-width: 768px) {
+    .modern-minimal .el-dialog {
+        width: 95% !important;
+        margin: 20px auto !important;
+        border-radius: 12px !important;
+    }
+
+    .modern-minimal .el-dialog__header {
+        padding: 16px 20px !important;
+        border-radius: 12px 12px 0 0 !important;
+    }
+
+    .modern-minimal .el-dialog__title {
+        font-size: 1.1rem !important;
+    }
+
+    .modern-minimal .el-dialog__body {
+        padding: 20px !important;
+    }
+
+    .modern-minimal .el-dialog__footer {
+        padding: 12px 20px 20px !important;
+        flex-direction: column !important;
+    }
+
+    .modern-minimal .el-dialog__footer .el-button {
+        width: 100% !important;
+        margin: 0 !important;
+    }
+}
+
+/* =============================================================================
+   CONTROLES ELEMENT UI COMPACTOS
+============================================================================= */
+
+/* Selects compactos */
+.modern-minimal .el-select {
+    width: 100% !important;
+}
+
+.modern-minimal .el-input__inner {
+    border: 1px solid #dee2e6 !important;
+    border-radius: 6px !important;
+    padding: 8px 12px !important;
+    font-size: 0.85rem !important;
+    background: white !important;
+    transition: all 0.2s ease !important;
+    height: 32px !important;
+}
+
+.modern-minimal .el-input__inner:focus {
+    border-color: var(--accent-color) !important;
+    box-shadow: 0 0 0 2px rgba(var(--accent-color-rgb), 0.1) !important;
+    outline: none !important;
+}
+
+.modern-minimal .el-select-dropdown {
+    background: white !important;
+    border: 1px solid #dee2e6 !important;
+    border-radius: 6px !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1) !important;
+    padding: 4px 0 !important;
+}
+
+.modern-minimal .el-select-dropdown__item {
+    padding: 8px 12px !important;
+    font-size: 0.85rem !important;
+    transition: background-color 0.15s ease !important;
+    line-height: 1.4 !important;
+}
+
+.modern-minimal .el-select-dropdown__item:hover {
+    background: #f8f9fa !important;
+    color: var(--text-primary) !important;
+}
+
+.modern-minimal .el-select-dropdown__item.selected {
+    background: var(--accent-color) !important;
+    color: white !important;
+    font-weight: 500 !important;
+}
+
+/* Date pickers compactos */
+.modern-minimal .el-date-editor {
+    width: 100% !important;
+}
+
+.modern-minimal .el-date-editor .el-input__inner {
+    background: white !important;
+    height: 32px !important;
+}
+
+.modern-minimal .el-picker-panel {
+    background: white !important;
+    border: 1px solid #dee2e6 !important;
+    border-radius: 8px !important;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15) !important;
+}
+
+.modern-minimal .el-date-picker__header {
+    background: var(--primary-color) !important;
+    color: white !important;
+    border-radius: 8px 8px 0 0 !important;
+    padding: 10px !important;
+}
+
+.modern-minimal .el-date-picker__header-label {
+    color: white !important;
+    font-weight: 500 !important;
+    font-size: 0.9rem !important;
+}
+
+.modern-minimal .el-date-table td.today .cell {
+    background: var(--accent-color) !important;
+    color: white !important;
+    border-radius: 4px !important;
+    font-weight: 500 !important;
+}
+
+.modern-minimal .el-date-table td.current:not(.disabled) .cell {
+    background: var(--primary-color) !important;
+    color: white !important;
+    border-radius: 4px !important;
+}
+
+.modern-minimal .el-date-table td .cell:hover {
+    color: var(--accent-color) !important;
+    background: #f1f1f1 !important;
+    border-radius: 4px !important;
+}
+
+/* Tooltips compactos */
+.modern-minimal .el-tooltip__popper {
+    background: rgba(0, 0, 0, 0.85) !important;
+    border: none !important;
+    border-radius: 6px !important;
+    color: white !important;
+    font-size: 0.8rem !important;
+    padding: 6px 10px !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2) !important;
+}
+
+.modern-minimal .el-tooltip__popper .popper__arrow {
+    border-top-color: rgba(0, 0, 0, 0.85) !important;
+}
+
+/* Sliders compactos */
+.modern-minimal .el-slider__runway {
+    background: #e9ecef !important;
+    height: 6px !important;
+    border-radius: 3px !important;
+}
+
+.modern-minimal .el-slider__bar {
+    background: linear-gradient(90deg, var(--accent-color) 0%, var(--accent-light) 100%) !important;
+    border-radius: 3px !important;
+}
+
+.modern-minimal .el-slider__button {
+    background: white !important;
+    border: 2px solid var(--accent-color) !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15) !important;
+    width: 16px !important;
+    height: 16px !important;
+}
+
+.modern-minimal .el-slider__button:hover {
+    transform: scale(1.1) !important;
+}
+
+/* Switches compactos */
+.modern-minimal .el-switch__core {
+    border-radius: 12px !important;
+    background: rgba(255, 255, 255, 0.3) !important;
+    height: 20px !important;
+    width: 36px !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+}
+
+.modern-minimal .el-switch.is-checked .el-switch__core {
+    background: var(--accent-color) !important;
+    border-color: var(--accent-color) !important;
+}
+
+.modern-minimal .el-switch__button {
+    border-radius: 50% !important;
+    width: 16px !important;
+    height: 16px !important;
+    top: 2px !important;
+    left: 2px !important;
+    background: white !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2) !important;
+}
+
+.modern-minimal .el-switch.is-checked .el-switch__button {
+    left: 18px !important;
+}
+
+/* Switches específicos en page-header */
+.modern-minimal header.page-header .el-switch__core {
+    background: rgba(255, 255, 255, 0.2) !important;
+    border: 1px solid rgba(255, 255, 255, 0.3) !important;
+}
+
+.modern-minimal header.page-header .el-switch.is-checked .el-switch__core {
+    background: var(--accent-color) !important;
+    border-color: var(--accent-color) !important;
+    box-shadow: 0 0 8px rgba(var(--accent-color-rgb), 0.4) !important;
+}
+
+.modern-minimal header.page-header .el-switch__button {
+    background: white !important;
+    box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3) !important;
+}
+
+/* SIN TRANSICIONES NI ANIMACIONES */

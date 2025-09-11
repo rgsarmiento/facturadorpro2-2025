@@ -1,0 +1,228 @@
+/* =====================================================
+   SISTEMA DE PALETAS DINÁMICAS
+   ===================================================== */
+
+/* Paleta por defecto: Corporativo */
+.modern-minimal {
+    --primary-color: #2d3748;
+    --primary-dark: #1a202c;
+    --accent-color: #38a169;
+    --accent-light: #48bb78;
+    --secondary-color: #4a5568;
+    --text-primary: #2d3748;
+    --text-secondary: #718096;
+    --border-color: #e2e8f0;
+    --background-light: #f7fafc;
+    --primary-color-rgb: 45, 55, 72;
+    --accent-color-rgb: 56, 161, 105;
+}
+
+/* Paleta Bancario */
+.palette-bancario {
+    --primary-color: #1e3a8a !important;
+    --primary-dark: #1e40af !important;
+    --accent-color: #f59e0b !important;
+    --accent-light: #fbbf24 !important;
+    --secondary-color: #3730a3 !important;
+    --text-primary: #1e3a8a !important;
+    --text-secondary: #64748b !important;
+    --border-color: #e1e7ef !important;
+    --background-light: #f8fafc !important;
+    --primary-color-rgb: 30, 58, 138 !important;
+    --accent-color-rgb: 245, 158, 11 !important;
+}
+
+/* Paleta Tech */
+.palette-tech {
+    --primary-color: #374151 !important;
+    --primary-dark: #1f2937 !important;
+    --accent-color: #f97316 !important;
+    --accent-light: #fb923c !important;
+    --secondary-color: #4b5563 !important;
+    --text-primary: #374151 !important;
+    --text-secondary: #6b7280 !important;
+    --border-color: #e5e7eb !important;
+    --background-light: #f9fafb !important;
+    --primary-color-rgb: 55, 65, 81 !important;
+    --accent-color-rgb: 249, 115, 22 !important;
+}
+
+/* Paleta Premium */
+.palette-premium {
+    --primary-color: #111827 !important;
+    --primary-dark: #030712 !important;
+    --accent-color: #8b5cf6 !important;
+    --accent-light: #a78bfa !important;
+    --secondary-color: #374151 !important;
+    --text-primary: #111827 !important;
+    --text-secondary: #6b7280 !important;
+    --border-color: #e5e7eb !important;
+    --background-light: #f9fafb !important;
+    --primary-color-rgb: 17, 24, 39 !important;
+    --accent-color-rgb: 139, 92, 246 !important;
+}
+
+/* Paleta Profesional */
+.palette-profesional {
+    --primary-color: #1e40af !important;
+    --primary-dark: #1e3a8a !important;
+    --accent-color: #0891b2 !important;
+    --accent-light: #06b6d4 !important;
+    --secondary-color: #3730a3 !important;
+    --text-primary: #1e40af !important;
+    --text-secondary: #64748b !important;
+    --border-color: #e2e8f0 !important;
+    --background-light: #f8fafc !important;
+    --primary-color-rgb: 30, 64, 175 !important;
+    --accent-color-rgb: 8, 145, 178 !important;
+}
+
+/* Paleta Moderna (Verde + Gris Oscuro) */
+.palette-moderna {
+    --primary-color: #1f2937 !important;
+    --primary-dark: #111827 !important;
+    --accent-color: #10b981 !important;
+    --accent-light: #34d399 !important;
+    --secondary-color: #374151 !important;
+    --text-primary: #1f2937 !important;
+    --text-secondary: #6b7280 !important;
+    --border-color: #e5e7eb !important;
+    --background-light: #f9fafb !important;
+    --primary-color-rgb: 31, 41, 55 !important;
+    --accent-color-rgb: 16, 185, 129 !important;
+}
+
+/* Paleta Elegante (Púrpura + Rosa) */
+.palette-elegante {
+    --primary-color: #6b21a8 !important;
+    --primary-dark: #581c87 !important;
+    --accent-color: #ec4899 !important;
+    --accent-light: #f472b6 !important;
+    --secondary-color: #7c3aed !important;
+    --text-primary: #6b21a8 !important;
+    --text-secondary: #9ca3af !important;
+    --border-color: #f3e8ff !important;
+    --background-light: #fdf4ff !important;
+    --primary-color-rgb: 107, 33, 168 !important;
+    --accent-color-rgb: 236, 72, 153 !important;
+}
+
+/* Paleta Océano (Azul Profundo + Turquesa) */
+.palette-oceano {
+    --primary-color: #0c4a6e !important;
+    --primary-dark: #0369a1 !important;
+    --accent-color: #0891b2 !important;
+    --accent-light: #22d3ee !important;
+    --secondary-color: #075985 !important;
+    --text-primary: #0c4a6e !important;
+    --text-secondary: #64748b !important;
+    --border-color: #e0f2fe !important;
+    --background-light: #f0f9ff !important;
+    --primary-color-rgb: 12, 74, 110 !important;
+    --accent-color-rgb: 8, 145, 178 !important;
+}
+
+/* Paleta Sunset (Naranja + Rojo) */
+.palette-sunset {
+    --primary-color: #c2410c !important;
+    --primary-dark: #9a3412 !important;
+    --accent-color: #f59e0b !important;
+    --accent-light: #fbbf24 !important;
+    --secondary-color: #ea580c !important;
+    --text-primary: #c2410c !important;
+    --text-secondary: #78716c !important;
+    --border-color: #fed7aa !important;
+    --background-light: #fffbeb !important;
+    --primary-color-rgb: 194, 65, 12 !important;
+    --accent-color-rgb: 245, 158, 11 !important;
+}
+
+/* Paleta Minimalista (Gris + Verde Menta) */
+.palette-minimalista {
+    --primary-color: #52525b !important;
+    --primary-dark: #3f3f46 !important;
+    --accent-color: #14b8a6 !important;
+    --accent-light: #5eead4 !important;
+    --secondary-color: #71717a !important;
+    --text-primary: #52525b !important;
+    --text-secondary: #a1a1aa !important;
+    --primary-color-rgb: 82, 82, 91 !important;
+    --accent-color-rgb: 20, 184, 166 !important;
+    --border-color: #f4f4f5 !important;
+    --background-light: #fafafa !important;
+}
+
+/* Paleta Oscura (Negro + Dorado) */
+.palette-oscura {
+    --primary-color: #000000 !important;
+    --primary-dark: #1a1a1a !important;
+    --accent-color: #ffd700 !important;
+    --accent-light: #ffed4e !important;
+    --secondary-color: #333333 !important;
+    --text-primary: #000000 !important;
+    --text-secondary: #666666 !important;
+    --border-color: #e5e5e5 !important;
+    --background-light: #f8f8f8 !important;
+    --primary-color-rgb: 0, 0, 0 !important;
+    --accent-color-rgb: 255, 215, 0 !important;
+}
+
+/* Paleta Neón (Verde Neón + Púrpura Oscuro) */
+.palette-neon {
+    --primary-color: #2d1b69 !important;
+    --primary-dark: #1a0f3e !important;
+    --accent-color: #39ff14 !important;
+    --accent-light: #7fff00 !important;
+    --secondary-color: #4c2889 !important;
+    --text-primary: #2d1b69 !important;
+    --text-secondary: #8b7fc7 !important;
+    --border-color: #e8e3ff !important;
+    --background-light: #f5f3ff !important;
+    --primary-color-rgb: 45, 27, 105 !important;
+    --accent-color-rgb: 57, 255, 20 !important;
+}
+
+/* Paleta Rosa (Rosa + Azul Claro) */
+.palette-rosa {
+    --primary-color: #be185d !important;
+    --primary-dark: #9d174d !important;
+    --accent-color: #0ea5e9 !important;
+    --accent-light: #38bdf8 !important;
+    --secondary-color: #db2777 !important;
+    --text-primary: #be185d !important;
+    --text-secondary: #94a3b8 !important;
+    --border-color: #fce7f3 !important;
+    --background-light: #fdf2f8 !important;
+    --primary-color-rgb: 190, 24, 93 !important;
+    --accent-color-rgb: 14, 165, 233 !important;
+}
+
+/* Paleta Natural (Verde Bosque + Café) */
+.palette-natural {
+    --primary-color: #15803d !important;
+    --primary-dark: #166534 !important;
+    --accent-color: #a3765a !important;
+    --accent-light: #d69e2e !important;
+    --secondary-color: #22c55e !important;
+    --text-primary: #15803d !important;
+    --text-secondary: #78716c !important;
+    --border-color: #dcfce7 !important;
+    --background-light: #f0fdf4 !important;
+    --primary-color-rgb: 21, 128, 61 !important;
+    --accent-color-rgb: 163, 118, 90 !important;
+}
+
+/* Paleta Arctic (Azul Glaciar + Blanco Puro) */
+.palette-arctic {
+    --primary-color: #155e75 !important;
+    --primary-dark: #0c4a6e !important;
+    --accent-color: #67e8f9 !important;
+    --accent-light: #a7f3d0 !important;
+    --secondary-color: #0891b2 !important;
+    --text-primary: #155e75 !important;
+    --text-secondary: #64748b !important;
+    --border-color: #e0f7fa !important;
+    --background-light: #f0fdff !important;
+    --primary-color-rgb: 21, 94, 117 !important;
+    --accent-color-rgb: 103, 232, 249 !important;
+}

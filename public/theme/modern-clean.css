@@ -1,0 +1,553 @@
+/* =====================================================
+   TEMA MODERNO PARA FACTURADOR PRO - ENFOQUE LIMPIO
+   ===================================================== */
+
+/* Importar fuente moderna */
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
+/* Variables CSS para el tema moderno */
+:root {
+    --modern-primary: #3b82f6;
+    --modern-primary-dark: #1d4ed8;
+    --modern-primary-light: #60a5fa;
+    --modern-success: #10b981;
+    --modern-warning: #f59e0b;
+    --modern-danger: #ef4444;
+    --modern-gray-50: #f9fafb;
+    --modern-gray-100: #f3f4f6;
+    --modern-gray-200: #e5e7eb;
+    --modern-gray-300: #d1d5db;
+    --modern-gray-400: #9ca3af;
+    --modern-gray-500: #6b7280;
+    --modern-gray-600: #4b5563;
+    --modern-gray-700: #374151;
+    --modern-gray-800: #1f2937;
+    --modern-gray-900: #111827;
+    --modern-radius: 8px;
+    --modern-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
+    --modern-shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+}
+
+/* =====================================================
+   APLICAR FUENTE MODERNA SOLO EN TENANT LAYOUTS
+   ===================================================== */
+.modern-theme {
+    font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif !important;
+}
+
+.modern-theme * {
+    font-family: inherit !important;
+}
+
+/* =====================================================
+   PROTECCIÓN COMPLETA PARA ICONOS FONT AWESOME
+   ===================================================== */
+
+/* Resetear fuente para todos los iconos */
+.modern-theme .fa,
+.modern-theme .fas,
+.modern-theme .far,
+.modern-theme .fal,
+.modern-theme .fab,
+.modern-theme [class*="fa-"],
+.modern-theme i[class*="fa"],
+.modern-theme span[class*="fa"],
+.modern-theme .icon {
+    font-family: "Font Awesome 5 Free", "Font Awesome 5 Pro", "Font Awesome 5 Brands", "FontAwesome" !important;
+    font-weight: 900 !important;
+    display: inline-block !important;
+    font-style: normal !important;
+    font-variant: normal !important;
+    text-rendering: auto !important;
+    line-height: 1 !important;
+    -webkit-font-smoothing: antialiased !important;
+    -moz-osx-font-smoothing: grayscale !important;
+}
+
+/* Iconos sólidos (fas) */
+.modern-theme .fas,
+.modern-theme .fa-solid,
+.modern-theme i.fas,
+.modern-theme span.fas {
+    font-weight: 900 !important;
+    font-family: "Font Awesome 5 Free" !important;
+}
+
+/* Iconos regulares (far) */
+.modern-theme .far,
+.modern-theme .fa-regular,
+.modern-theme i.far,
+.modern-theme span.far {
+    font-weight: 400 !important;
+    font-family: "Font Awesome 5 Free" !important;
+}
+
+/* Iconos ligeros (fal) */
+.modern-theme .fal,
+.modern-theme .fa-light,
+.modern-theme i.fal,
+.modern-theme span.fal {
+    font-weight: 300 !important;
+    font-family: "Font Awesome 5 Pro" !important;
+}
+
+/* Iconos de marca (fab) */
+.modern-theme .fab,
+.modern-theme .fa-brands,
+.modern-theme i.fab,
+.modern-theme span.fab {
+    font-weight: 400 !important;
+    font-family: "Font Awesome 5 Brands" !important;
+}
+
+/* Asegurar que los iconos no hereden transiciones */
+.modern-theme .fa,
+.modern-theme .fas,
+.modern-theme .far,
+.modern-theme .fal,
+.modern-theme .fab,
+.modern-theme [class*="fa-"],
+.modern-theme i[class*="fa"],
+.modern-theme span[class*="fa"] {
+    transition: color 0.2s ease, transform 0.2s ease !important;
+}
+
+/* Colores específicos para iconos en elementos del sidebar */
+.modern-theme .sidebar-left .nav-main > li > a i {
+    color: inherit !important;
+    font-size: 16px !important;
+    width: 20px !important;
+    text-align: center !important;
+}
+
+/* Colores específicos para iconos en el header */
+.modern-theme .header i {
+    color: inherit !important;
+}
+
+/* =====================================================
+   MEJORAS EN EL SIDEBAR LATERAL EXISTENTE
+   ===================================================== */
+.modern-theme .sidebar-left {
+    background: linear-gradient(180deg, #ffffff 0%, #f8fafc 100%) !important;
+    border-right: 1px solid var(--modern-gray-200) !important;
+    box-shadow: var(--modern-shadow-lg) !important;
+}
+
+.modern-theme .sidebar-left .sidebar-header {
+    background: linear-gradient(135deg, var(--modern-primary) 0%, var(--modern-primary-dark) 100%) !important;
+    color: white !important;
+    padding: 20px !important;
+    text-align: center !important;
+}
+
+.modern-theme .sidebar-left .sidebar-header .sidebar-title {
+    color: white !important;
+    font-weight: 700 !important;
+    font-size: 18px !important;
+    margin: 0 !important;
+}
+
+/* Mejorar elementos del menú lateral */
+.modern-theme .sidebar-left .nav-main > li > a {
+    padding: 12px 20px !important;
+    color: var(--modern-gray-700) !important;
+    border-radius: 0 25px 25px 0 !important;
+    margin: 2px 0 !important;
+    margin-right: 10px !important;
+    transition: all 0.3s ease !important;
+    font-weight: 500 !important;
+}
+
+.modern-theme .sidebar-left .nav-main > li > a:hover {
+    background: linear-gradient(135deg, var(--modern-primary) 0%, var(--modern-primary-light) 100%) !important;
+    color: white !important;
+    transform: translateX(5px) !important;
+}
+
+.modern-theme .sidebar-left .nav-main > li.nav-active > a,
+.modern-theme .sidebar-left .nav-main > li.nav-expanded > a {
+    background: linear-gradient(135deg, var(--modern-primary) 0%, var(--modern-primary-light) 100%) !important;
+    color: white !important;
+}
+
+.modern-theme .sidebar-left .nav-main > li > a i {
+    width: 20px !important;
+    text-align: center !important;
+    margin-right: 10px !important;
+    font-size: 16px !important;
+}
+
+/* =====================================================
+   MEJORAR EL HEADER EXISTENTE
+   ===================================================== */
+.modern-theme .header {
+    background: linear-gradient(135deg, var(--modern-primary) 0%, var(--modern-primary-dark) 100%) !important;
+    box-shadow: var(--modern-shadow-lg) !important;
+    border-bottom: none !important;
+}
+
+.modern-theme .header .header-right {
+    padding: 15px 20px !important;
+}
+
+.modern-theme .header .header-right .dropdown-toggle {
+    background: rgba(255, 255, 255, 0.1) !important;
+    border: 1px solid rgba(255, 255, 255, 0.2) !important;
+    color: white !important;
+    border-radius: var(--modern-radius) !important;
+    padding: 8px 15px !important;
+    transition: all 0.3s ease !important;
+}
+
+.modern-theme .header .header-right .dropdown-toggle:hover {
+    background: rgba(255, 255, 255, 0.2) !important;
+    transform: translateY(-1px) !important;
+}
+
+/* =====================================================
+   MEJORAR BOTONES GLOBALMENTE
+   ===================================================== */
+.modern-theme .btn {
+    border-radius: var(--modern-radius) !important;
+    font-weight: 600 !important;
+    padding: 8px 16px !important;
+    transition: all 0.3s ease !important;
+    border: none !important;
+}
+
+.modern-theme .btn-primary {
+    background: linear-gradient(135deg, var(--modern-primary) 0%, var(--modern-primary-dark) 100%) !important;
+    color: white !important;
+}
+
+.modern-theme .btn-primary:hover {
+    transform: translateY(-2px) !important;
+    box-shadow: var(--modern-shadow-lg) !important;
+}
+
+.modern-theme .btn-success {
+    background: linear-gradient(135deg, var(--modern-success) 0%, #059669 100%) !important;
+    color: white !important;
+}
+
+.modern-theme .btn-warning {
+    background: linear-gradient(135deg, var(--modern-warning) 0%, #d97706 100%) !important;
+    color: white !important;
+}
+
+.modern-theme .btn-danger {
+    background: linear-gradient(135deg, var(--modern-danger) 0%, #dc2626 100%) !important;
+    color: white !important;
+}
+
+.modern-theme .btn-secondary {
+    background: linear-gradient(135deg, var(--modern-gray-500) 0%, var(--modern-gray-600) 100%) !important;
+    color: white !important;
+}
+
+/* =====================================================
+   MEJORAR FORMULARIOS
+   ===================================================== */
+.modern-theme .form-control {
+    border: 2px solid var(--modern-gray-200) !important;
+    border-radius: var(--modern-radius) !important;
+    padding: 10px 15px !important;
+    transition: all 0.3s ease !important;
+    font-size: 14px !important;
+}
+
+.modern-theme .form-control:focus {
+    border-color: var(--modern-primary) !important;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1) !important;
+    outline: none !important;
+}
+
+.modern-theme .form-label {
+    font-weight: 600 !important;
+    color: var(--modern-gray-700) !important;
+    margin-bottom: 8px !important;
+}
+
+/* =====================================================
+   MEJORAR CARDS Y CONTENEDORES
+   ===================================================== */
+.modern-theme .card {
+    border: 1px solid var(--modern-gray-200) !important;
+    border-radius: var(--modern-radius) !important;
+    box-shadow: var(--modern-shadow) !important;
+    transition: all 0.3s ease !important;
+}
+
+.modern-theme .card:hover {
+    box-shadow: var(--modern-shadow-lg) !important;
+    transform: translateY(-2px) !important;
+}
+
+.modern-theme .card-header {
+    background: linear-gradient(135deg, var(--modern-gray-50) 0%, var(--modern-gray-100) 100%) !important;
+    border-bottom: 1px solid var(--modern-gray-200) !important;
+    font-weight: 700 !important;
+    color: var(--modern-gray-800) !important;
+}
+
+/* =====================================================
+   MEJORAR TABLAS
+   ===================================================== */
+.modern-theme .table {
+    border-radius: var(--modern-radius) !important;
+    overflow: hidden !important;
+    box-shadow: var(--modern-shadow) !important;
+}
+
+.modern-theme .table thead th {
+    background: linear-gradient(135deg, var(--modern-primary) 0%, var(--modern-primary-dark) 100%) !important;
+    color: white !important;
+    font-weight: 700 !important;
+    border: none !important;
+    padding: 15px !important;
+}
+
+.modern-theme .table tbody tr {
+    transition: all 0.2s ease !important;
+}
+
+.modern-theme .table tbody tr:hover {
+    background: var(--modern-gray-50) !important;
+    transform: scale(1.01) !important;
+}
+
+.modern-theme .table tbody td {
+    padding: 12px 15px !important;
+    border-color: var(--modern-gray-200) !important;
+}
+
+/* =====================================================
+   MODALES SIMPLES SIN EFECTOS
+   ===================================================== */
+.modern-theme .modal-content {
+    border: 1px solid var(--modern-gray-200) !important;
+    border-radius: var(--modern-radius) !important;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1) !important;
+}
+
+.modern-theme .modal-header {
+    background: var(--modern-primary) !important;
+    color: white !important;
+    border-bottom: 1px solid var(--modern-gray-200) !important;
+}
+
+.modern-theme .modal-title {
+    color: white !important;
+    font-weight: 600 !important;
+}
+
+/* =====================================================
+   ELEMENTOS FLOTANTES SIMPLES
+   ===================================================== */
+/* Reglas eliminadas para prevenir interferencias */
+
+/* =====================================================
+   MEJORAR ALERTAS
+   ===================================================== */
+.modern-theme .alert {
+    border: none !important;
+    border-radius: var(--modern-radius) !important;
+    border-left: 4px solid !important;
+    font-weight: 500 !important;
+}
+
+.modern-theme .alert-primary {
+    background: linear-gradient(135deg, #dbeafe 0%, #bfdbfe 100%) !important;
+    border-left-color: var(--modern-primary) !important;
+    color: var(--modern-primary-dark) !important;
+}
+
+.modern-theme .alert-success {
+    background: linear-gradient(135deg, #d1fae5 0%, #a7f3d0 100%) !important;
+    border-left-color: var(--modern-success) !important;
+    color: #065f46 !important;
+}
+
+.modern-theme .alert-warning {
+    background: linear-gradient(135deg, #fef3c7 0%, #fde68a 100%) !important;
+    border-left-color: var(--modern-warning) !important;
+    color: #92400e !important;
+}
+
+.modern-theme .alert-danger {
+    background: linear-gradient(135deg, #fee2e2 0%, #fecaca 100%) !important;
+    border-left-color: var(--modern-danger) !important;
+    color: #991b1b !important;
+}
+
+/* =====================================================
+   EFECTOS ESPECIALES PARA INTERACTIVIDAD
+   ===================================================== */
+.modern-theme .clickable-row {
+    cursor: pointer !important;
+    transition: all 0.2s ease !important;
+}
+
+.modern-theme .clickable-row:hover {
+    background: var(--modern-gray-50) !important;
+    transform: translateX(3px) !important;
+}
+
+/* Badges modernos */
+.modern-theme .badge {
+    border-radius: 20px !important;
+    font-weight: 600 !important;
+    padding: 4px 12px !important;
+}
+
+.modern-theme .badge-primary {
+    background: linear-gradient(135deg, var(--modern-primary) 0%, var(--modern-primary-dark) 100%) !important;
+}
+
+.modern-theme .badge-success {
+    background: linear-gradient(135deg, var(--modern-success) 0%, #059669 100%) !important;
+}
+
+.modern-theme .badge-warning {
+    background: linear-gradient(135deg, var(--modern-warning) 0%, #d97706 100%) !important;
+}
+
+.modern-theme .badge-danger {
+    background: linear-gradient(135deg, var(--modern-danger) 0%, #dc2626 100%) !important;
+}
+
+/* =====================================================
+   RESPONSIVE IMPROVEMENTS
+   ===================================================== */
+@media (max-width: 768px) {
+    .modern-theme .sidebar-left .nav-main > li > a {
+        margin-right: 5px !important;
+        border-radius: 0 15px 15px 0 !important;
+    }
+
+    .modern-theme .card {
+        margin-bottom: 15px !important;
+    }
+
+    .modern-theme .btn {
+        width: 100% !important;
+        margin-bottom: 10px !important;
+    }
+}
+
+/* =====================================================
+   SCROLLBAR PERSONALIZADO
+   ===================================================== */
+.modern-theme ::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+.modern-theme ::-webkit-scrollbar-track {
+    background: var(--modern-gray-100);
+    border-radius: 4px;
+}
+
+.modern-theme ::-webkit-scrollbar-thumb {
+    background: var(--modern-gray-400);
+    border-radius: 4px;
+    transition: background 0.3s ease;
+}
+
+.modern-theme ::-webkit-scrollbar-thumb:hover {
+    background: var(--modern-gray-500);
+}
+
+/* =====================================================
+   CLASE ANTI-TRANSICIONES GLOBAL
+   ===================================================== */
+
+/* DESACTIVAR COMPLETAMENTE TODAS LAS ANIMACIONES */
+.no-transitions *,
+.no-transitions *::before,
+.no-transitions *::after,
+.modern-theme *,
+.modern-theme *::before,
+.modern-theme *::after {
+    -webkit-transition: none !important;
+    -moz-transition: none !important;
+    -ms-transition: none !important;
+    -o-transition: none !important;
+    transition: none !important;
+    -webkit-transform: none !important;
+    -moz-transform: none !important;
+    -ms-transform: none !important;
+    -o-transform: none !important;
+    transform: none !important;
+    -webkit-animation: none !important;
+    -moz-animation: none !important;
+    -ms-animation: none !important;
+    -o-animation: none !important;
+    animation: none !important;
+}
+
+/* Solo permitir transiciones muy específicas y controladas */
+.modern-theme .btn:not(.modal *):not(.dropdown-menu *):hover {
+    background-color: var(--modern-primary-dark) !important;
+}
+
+.modern-theme .form-control:not(.modal *):focus {
+    border-color: var(--modern-primary) !important;
+    box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.1) !important;
+}
+
+.modern-theme .fade-in {
+    animation: fadeIn 0.5s ease-in;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+/* =====================================================
+   OVERRIDES ESPECÍFICOS PARA ELEMENTOS EXISTENTES
+   ===================================================== */
+
+/* Mejorar el aspecto del dashboard */
+.modern-theme .content-body {
+    background: var(--modern-gray-50) !important;
+}
+
+/* Mejorar breadcrumbs existentes */
+.modern-theme .breadcrumb {
+    background: transparent !important;
+    padding: 0 !important;
+    margin-bottom: 20px !important;
+}
+
+.modern-theme .breadcrumb-item a {
+    color: var(--modern-primary) !important;
+    text-decoration: none !important;
+    font-weight: 500 !important;
+}
+
+.modern-theme .breadcrumb-item.active {
+    color: var(--modern-gray-600) !important;
+    font-weight: 600 !important;
+}
+
+/* Mejorar elementos de navegación del menú horizontal */
+.modern-theme.horizontal-menu .nav-main {
+    background: transparent !important;
+}
+
+.modern-theme.horizontal-menu .nav-main > li > a {
+    color: rgba(255, 255, 255, 0.9) !important;
+    padding: 10px 20px !important;
+    border-radius: var(--modern-radius) !important;
+    margin: 0 5px !important;
+    transition: all 0.3s ease !important;
+}
+
+.modern-theme.horizontal-menu .nav-main > li > a:hover,
+.modern-theme.horizontal-menu .nav-main > li.nav-active > a {
+    background: rgba(255, 255, 255, 0.15) !important;
+    color: white !important;
+}

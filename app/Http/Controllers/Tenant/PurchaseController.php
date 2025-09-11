@@ -728,5 +728,40 @@ class PurchaseController extends Controller
         return response()->json(['items' => $transformedItems]);
     }
 
+    /**
+     * Leer XML desde la DIAN
+     */
+    public function readXMLFromDian(Request $request)
+    {
+        $request->validate([
+            'identifier' => 'required|string|max:50|regex:/^[a-z0-9]+$/'
+        ], [
+            'identifier.regex' => 'El identificador solo puede contener letras y números en minúsculas.'
+        ]);
+
+        try {
+            $identifier = $request->input('identifier');
+            
+            // Aquí iría la lógica para conectar con la API de la DIAN
+            // y obtener el XML del documento
+            
+            // Por ahora simulamos la respuesta
+            // En una implementación real, aquí se haría la consulta a la API de la DIAN
+            // con el identificador proporcionado
+            
+            // Ejemplo de respuesta simulada:
+            return response()->json([
+                'success' => false,
+                'message' => 'Funcionalidad en desarrollo. El identificador ' . $identifier . ' será procesado cuando la integración con DIAN esté completada.',
+                'data' => null
+            ], 501); // 501 Not Implemented
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al procesar la solicitud: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 
 }

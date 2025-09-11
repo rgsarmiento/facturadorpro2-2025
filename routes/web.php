@@ -332,12 +332,14 @@ if ($hostname) {
             Route::get('purchases/table/{table}', 'Tenant\PurchaseController@table');
             Route::post('purchases', 'Tenant\PurchaseController@store');
             Route::post('purchases/update', 'Tenant\PurchaseController@update');
+            Route::post('purchases/read-xml-dian', 'Tenant\PurchaseController@readXMLFromDian')->name('tenant.purchases.read-xml-dian');
             Route::get('purchases/record/{document}', 'Tenant\PurchaseController@record');
             Route::get('purchases/edit/{id}', 'Tenant\PurchaseController@edit');
             Route::get('purchases/anular/{id}', 'Tenant\PurchaseController@anular');
             Route::get('purchases/delete/{id}', 'Tenant\PurchaseController@delete');
             Route::post('purchases/import', 'Tenant\PurchaseController@import');
             Route::get('purchases/pdf/{id}', 'Tenant\PurchaseController@pdf');
+            Route::post('purchases/read-xml-dian', 'Tenant\PurchaseController@readXMLFromDian')->name('tenant.purchases.read_xml_dian');
             Route::get('purchases/note/{id}', 'Tenant\PurchaseController@note');
 
 

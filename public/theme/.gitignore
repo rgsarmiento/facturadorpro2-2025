@@ -1,2 +1,10 @@
-*
+# Ignorar archivos temporales pero permitir CSS
+*.tmp
+*.log
+*.cache
+.DS_Store
+Thumbs.db
+
+# Permitir archivos CSS modernos
+!modern-*.css
 !.gitignore

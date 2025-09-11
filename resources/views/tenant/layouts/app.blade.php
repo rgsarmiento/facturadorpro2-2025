@@ -109,6 +109,12 @@
     <!-- Estilos personalizados para sidebar lateral mejorado -->
     <link rel="stylesheet" href="{{ asset('css/custom-sidebar.css') }}" />
 
+    <!-- Estilos modernos y corporativos para Element UI -->
+    <link rel="stylesheet" href="{{ asset('css/modern-element-ui.css') }}" />
+
+    <!-- Estilos modernos para formularios complejos -->
+    <link rel="stylesheet" href="{{ asset('css/modern-forms.css') }}" />
+
     <!-- Estilos personalizados para sidebar lateral -->
     <link rel="stylesheet" href="{{ asset('css/custom-sidebar.css') }}" />
 

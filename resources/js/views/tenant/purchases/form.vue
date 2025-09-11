@@ -1,7 +1,11 @@
 <template>
     <div class="card mb-0 pt-2 pt-md-0">
-        <div class="card-header bg-info">
+        <div class="card-header bg-info d-flex justify-content-between align-items-center">
             <h3 class="my-0">Nueva Compra</h3>
+            <el-button type="primary" size="medium" @click="showDialogXMLDian = true" class="bg-white text-info border-white">
+                <i class="fas fa-file-import mr-2"></i>
+                Causar Compra Desde XML DIAN
+            </el-button>
         </div>
         <div class="card-body">
             <form autocomplete="off" @submit.prevent="submit">
@@ -342,6 +346,45 @@
         <purchase-options :showDialog.sync="showDialogOptions"
                           :recordId="purchaseNewId"
                           :showClose="false"></purchase-options>
+
+        <!-- Modal para XML DIAN -->
+        <el-dialog
+            title="Leer XML desde la DIAN"
+            :visible.sync="showDialogXMLDian"
+            width="600px"
+            :close-on-click-modal="false">
+            <div class="form-body">
+                <div class="form-group">
+                    <label class="control-label">
+                        <i class="fas fa-file-code mr-2"></i>
+                        Ingrese el identificador del documento
+                    </label>
+                    <el-input 
+                        v-model="xmlDianForm.identifier"
+                        placeholder="Ingrese solo letras y números en minúsculas"
+                        @input="formatXMLIdentifier"
+                        @paste.native="handlePaste"
+                        maxlength="50"
+                        show-word-limit>
+                        <i slot="prefix" class="el-input__icon el-icon-document"></i>
+                    </el-input>
+                    <small class="form-control-feedback text-muted mt-1">
+                        <i class="fas fa-info-circle mr-1"></i>
+                        Solo se permiten letras y números en minúsculas
+                    </small>
+                </div>
+            </div>
+            <span slot="footer" class="dialog-footer">
+                <el-button @click="cancelXMLDian" size="medium">
+                    <i class="fas fa-times mr-2"></i>
+                    Cancelar
+                </el-button>
+                <el-button type="primary" @click="readXMLFromDian" size="medium" :loading="xmlDianForm.loading" :disabled="!xmlDianForm.identifier.trim()">
+                    <i class="fas fa-cloud-download-alt mr-2"></i>
+                    Leer XML Desde La DIAN
+                </el-button>
+            </span>
+        </el-dialog>
     </div>
 </template>
 
@@ -365,6 +408,7 @@
                 showDialogAddItem: false,
                 showDialogNewPerson: false,
                 showDialogOptions: false,
+                showDialogXMLDian: false,
                 loading_submit: false,
                 hide_button: false,
                 is_perception_agent: false,
@@ -395,6 +439,10 @@
                 dialogRetention: false,
                 retention_taxes: [],
                 recordItem: null,
+                xmlDianForm: {
+                    identifier: '',
+                    loading: false
+                }
             }
         },
         async created() {
@@ -1037,6 +1085,73 @@
                 this.showDialogAddItem = true
 
             },
+            // Métodos para modal XML DIAN
+            formatXMLIdentifier(value) {
+                // Remover caracteres que no sean letras o números
+                const cleanValue = value.replace(/[^a-zA-Z0-9]/g, '');
+                // Convertir a minúsculas
+                this.xmlDianForm.identifier = cleanValue.toLowerCase();
+            },
+            handlePaste(event) {
+                // Prevenir el pegado por defecto
+                event.preventDefault();
+                
+                // Obtener el texto del portapapeles
+                const pastedText = (event.clipboardData || window.clipboardData).getData('text');
+                
+                // Limpiar y convertir a minúsculas
+                const cleanValue = pastedText.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+                
+                // Asignar el valor limpio
+                this.xmlDianForm.identifier = cleanValue;
+            },
+            cancelXMLDian() {
+                this.showDialogXMLDian = false;
+                this.xmlDianForm.identifier = '';
+                this.xmlDianForm.loading = false;
+            },
+            async readXMLFromDian() {
+                if (!this.xmlDianForm.identifier.trim()) {
+                    this.$message.warning('Por favor ingrese un identificador válido');
+                    return;
+                }
+
+                this.xmlDianForm.loading = true;
+
+                try {
+                    // Aquí iría la llamada a la API para leer el XML desde la DIAN
+                    // Por ahora solo simularemos la funcionalidad
+                    
+                    const response = await this.$http.post('/purchases/read-xml-dian', {
+                        identifier: this.xmlDianForm.identifier
+                    });
+
+                    if (response.data.success) {
+                        this.$message.success('XML leído exitosamente desde la DIAN');
+                        
+                        // Aquí se procesarían los datos del XML y se cargarían en el formulario
+                        // Por ejemplo:
+                        // this.form = response.data.purchase_data;
+                        // this.calculateTotal();
+                        
+                        this.cancelXMLDian();
+                    } else {
+                        this.$message.error(response.data.message || 'Error al leer el XML desde la DIAN');
+                    }
+                } catch (error) {
+                    console.error('Error al leer XML desde DIAN:', error);
+                    
+                    // Por ahora mostraremos un mensaje de que la funcionalidad estará disponible próximamente
+                    this.$message.info({
+                        message: 'Esta funcionalidad estará disponible próximamente. El identificador ingresado fue: ' + this.xmlDianForm.identifier,
+                        duration: 5000
+                    });
+                    
+                    this.cancelXMLDian();
+                } finally {
+                    this.xmlDianForm.loading = false;
+                }
+            }
         }
     }
 </script>
