@@ -45,21 +45,20 @@
     color: var(--primary-color, #007bff) !important;
     font-size: 12px !important;
     opacity: 0.7 !important;
-    margin-right: 10px !important;
-    display: block !important;
+    margin-right: 8px !important;
+    display: inline-block !important;
     transition: all 0.3s ease !important;
-    width: 15px !important;
+    position: relative !important;
+    vertical-align: baseline !important;
+    width: auto !important;
     text-align: left !important;
-    position: absolute !important;
-    left: 20px !important;
-    top: 50% !important;
-    transform: translateY(-50%) !important;
-    float: left !important;
+    width: auto !important;
+    text-align: left !important;
 }
 
 /* Ajustar el texto para dar espacio al icono */
 .horizontal-nav .dropdown-menu-horizontal li a {
-    padding: 8px 20px 8px 45px !important;
+    padding: 8px 20px 8px 15px !important;
     position: relative !important;
     color: var(--text-primary, #495057) !important;
     font-size: 13px !important;
@@ -191,19 +190,19 @@
     color: var(--primary-color, #007bff) !important;
     font-size: 12px !important;
     opacity: 0.7 !important;
-    margin-right: 10px !important;
-    display: block !important;
+    margin-right: 8px !important;
+    display: inline-block !important;
     transition: all 0.3s ease !important;
-    width: 15px !important;
+    position: relative !important;
+    vertical-align: baseline !important;
+    width: auto !important;
     text-align: left !important;
-    position: absolute !important;
-    left: 15px !important;
     top: 50% !important;
     transform: translateY(-50%) !important;
 }
 
 .sidebar-left ul.nav-main li .nav-children li a {
-    padding: 6px 15px 6px 40px !important;
+    padding: 6px 15px 6px 15px !important;
     position: relative !important;
     color: #b8c2cc !important;
     font-size: 13px !important;

@@ -66,3 +66,121 @@
 .modal-content {
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
 }
+
+/* =====================================================
+   BREADCRUMBS - QUITAR VIÑETAS
+   ===================================================== */
+
+/* Ocultar separadores de Bootstrap breadcrumbs */
+.breadcrumb-item + .breadcrumb-item:before {
+    display: none !important;
+}
+
+/* Ocultar separadores de page-titles breadcrumbs */
+.page-titles .breadcrumb .breadcrumb-item + .breadcrumb-item:before {
+    display: none !important;
+}
+
+/* Ocultar separadores de modern-breadcrumb */
+.modern-breadcrumb .breadcrumb-item + .breadcrumb-item:before {
+    display: none !important;
+}
+
+/* Estilos alternativos para breadcrumbs sin separadores */
+.breadcrumb-item {
+    margin-right: 8px !important;
+}
+
+.breadcrumb-item:not(:last-child)::after {
+    content: "" !important;
+}
+
+/* =====================================================
+   CORREGIR POSICIONAMIENTO DE VIÑETAS DE MENÚ
+   ===================================================== */
+
+/* Menú horizontal - segundo nivel - Corregir posicionamiento con alta especificidad */
+.sidebar-left .horizontal-nav .dropdown-menu-horizontal li a::before,
+.horizontal-nav .dropdown-menu-horizontal li a::before {
+    position: relative !important;
+    left: auto !important;
+    top: auto !important;
+    transform: none !important;
+    width: auto !important;
+    margin-right: 8px !important;
+    margin-left: 0 !important;
+    display: inline-block !important;
+    vertical-align: baseline !important;
+    padding-left: 0 !important;
+    text-align: left !important;
+}
+
+/* Menú horizontal - tercer nivel - Corregir posicionamiento con alta especificidad */
+.sidebar-left .horizontal-nav .dropdown-menu-horizontal .nav-parent > .dropdown-menu-horizontal li a::before,
+.horizontal-nav .dropdown-menu-horizontal .nav-parent > .dropdown-menu-horizontal li a::before {
+    position: relative !important;
+    left: auto !important;
+    top: auto !important;
+    transform: none !important;
+    width: auto !important;
+    margin-right: 8px !important;
+    margin-left: 0 !important;
+    display: inline-block !important;
+    vertical-align: baseline !important;
+    padding-left: 0 !important;
+    text-align: left !important;
+}
+
+/* Menú lateral - segundo nivel - Corregir posicionamiento con alta especificidad */
+.sidebar-left ul.nav-main li .nav-children li a::before {
+    position: relative !important;
+    left: auto !important;
+    top: auto !important;
+    transform: none !important;
+    width: auto !important;
+    margin-right: 8px !important;
+    margin-left: 0 !important;
+    display: inline-block !important;
+    vertical-align: baseline !important;
+    padding-left: 0 !important;
+    text-align: left !important;
+}
+
+/* Menú lateral - tercer nivel - Corregir posicionamiento con alta especificidad */
+.sidebar-left ul.nav-main li .nav-children .nav-children li a::before {
+    position: relative !important;
+    left: auto !important;
+    top: auto !important;
+    transform: none !important;
+    width: auto !important;
+    margin-right: 8px !important;
+    margin-left: 0 !important;
+    display: inline-block !important;
+    vertical-align: baseline !important;
+    padding-left: 0 !important;
+    text-align: left !important;
+}
+
+/* Menú lateral - cuarto nivel - Corregir posicionamiento con alta especificidad */
+.sidebar-left ul.nav-main li .nav-children .nav-children .nav-children li a::before {
+    position: relative !important;
+    left: auto !important;
+    top: auto !important;
+    transform: none !important;
+    width: auto !important;
+    margin-right: 8px !important;
+    margin-left: 0 !important;
+    display: inline-block !important;
+    vertical-align: baseline !important;
+    padding-left: 0 !important;
+    text-align: left !important;
+}
+
+/* Asegurar que los enlaces tengan el padding correcto para evitar superposición */
+.horizontal-nav .dropdown-menu-horizontal li a,
+.sidebar-left ul.nav-main li .nav-children li a,
+.sidebar-left ul.nav-main li .nav-children .nav-children li a,
+.sidebar-left ul.nav-main li .nav-children .nav-children .nav-children li a {
+    padding-left: 15px !important;
+    position: relative !important;
+}

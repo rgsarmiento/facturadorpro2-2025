@@ -74,7 +74,7 @@
 }
 
 .modern-breadcrumb .breadcrumb-item + .breadcrumb-item::before {
-    content: "›";
+    content: "";
     color: var(--gray-400, #94a3b8);
     font-weight: 600;
     float: none;
