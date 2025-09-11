@@ -106,6 +106,12 @@
     <link rel="stylesheet" href="{{ asset('theme/modern-minimal.css') }}" />
     <link rel="stylesheet" href="{{ asset('theme/modern-palettes.css') }}" />
 
+    <!-- Estilos personalizados para sidebar lateral mejorado -->
+    <link rel="stylesheet" href="{{ asset('css/custom-sidebar.css') }}" />
+
+    <!-- Estilos personalizados para sidebar lateral -->
+    <link rel="stylesheet" href="{{ asset('css/custom-sidebar.css') }}" />
+
     <!-- Override agresivo para colores hardcodeados -->
     <style>
         /* FORZAR cambios de colores hardcodeados con máxima especificidad */
