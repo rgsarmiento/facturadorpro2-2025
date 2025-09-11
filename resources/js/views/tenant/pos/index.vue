@@ -48,55 +48,61 @@
                         />
                     </el-dialog>
                 </div>
-                <div class="col-md-4">
-                    <button
-                        v-if="tables_quantity > 0"
-                        ref="mesas"
-                        title="Cuentas"
-                        type="button"
-                        :data-quantity="tables_quantity"
-                        :class="[
-                            'btn',
-                            'btn-sm',
-                            'mt-2',
-                            'mr-2',
-                            modoMesasActivo ? 'btn-success' : 'btn-custom'
-                        ]"
-                        @click="cambiarContenido"
-                    >
-                        <i class="fa fa-receipt"></i>
-                        {{
-                            modoMesasActivo ? "Ocultar Mesas" : "Mostrar Mesas"
-                        }}
-                    </button>
-                    <button
-                        type="button"
-                        @click="place = 'cat'"
-                        class="btn btn-custom btn-sm  mt-2 mr-2"
-                    >
-                        <i class="fa fa-border-all"></i>
-                    </button>
-                    <button
-                        type="button"
-                        :disabled="place == 'cat2'"
-                        @click="setView"
-                        class="btn btn-custom btn-sm  mt-2 mr-2"
-                    >
-                        <i class="fa fa-bars"></i>
-                    </button>
-                    <button
-                        type="button"
-                        :disabled="place == 'cat'"
-                        @click="back()"
-                        class="btn btn-custom btn-sm  mt-2 mr-2"
-                    >
-                        <i class="fa fa-undo"></i>
-                    </button>
+                <div class="col-md-5">
+                    <div class="d-flex flex-wrap">
+                        <button
+                            v-if="tables_quantity > 0"
+                            ref="mesas"
+                            title="Cuentas"
+                            type="button"
+                            :data-quantity="tables_quantity"
+                            :class="[
+                                'btn',
+                                'btn-sm',
+                                'mt-2',
+                                'mr-2',
+                                'mb-1',
+                                modoMesasActivo ? 'btn-success' : 'btn-custom'
+                            ]"
+                            @click="cambiarContenido"
+                        >
+                            <i class="fa fa-receipt"></i>
+                            {{
+                                modoMesasActivo ? "Ocultar Mesas" : "Mostrar Mesas"
+                            }}
+                        </button>
+                        <button
+                            type="button"
+                            @click="place = 'cat'"
+                            class="btn btn-custom btn-sm mt-2 mr-2 mb-1"
+                            title="Vista en cuadrícula"
+                        >
+                            <i class="fa fa-border-all"></i>
+                        </button>
+                        <button
+                            type="button"
+                            :disabled="place == 'cat2'"
+                            @click="setView"
+                            class="btn btn-custom btn-sm mt-2 mr-2 mb-1"
+                            title="Vista en lista"
+                        >
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <button
+                            type="button"
+                            :disabled="place == 'cat'"
+                            @click="back()"
+                            class="btn btn-custom btn-sm mt-2 mr-2 mb-1"
+                            title="Volver"
+                        >
+                            <i class="fa fa-undo"></i>
+                        </button>
+                    </div>
                 </div>
-                <div class="col-md-2">
+                <div class="col-md-1">
                     <div class="right-wrapper">
                         <!-- <h2 class="text-sm pr-5">T/C  {{form.exchange_rate_sale}}</h2> -->
-                        <h2 class="text-sm  pull-right">{{ user.name }}</h2>
+                        <h2 class="text-sm pull-right">{{ user.name }}</h2>
                     </div>
                 </div>
             </div>
@@ -2738,7 +2744,6 @@ export default {
             }
         },
         regresarAModalProductos() {
-            console.log("Ejecutando regresarAModalProductos");
 
             // Usar eventos nativos en lugar de jQuery
             try {
@@ -2780,7 +2785,6 @@ export default {
             }
         },
         regresarAModalCategorias() {
-            console.log("Ejecutando regresarAModalCategorias");
 
             // Usar eventos nativos en lugar de jQuery
             try {
@@ -2845,7 +2849,6 @@ export default {
             document.body.classList.remove("modal-open");
         },
         regresarAMesas() {
-            console.log("Ejecutando regresarAMesas");
 
             // Cerrar modal de categorías y regresar a vista de mesas
             try {
@@ -2878,26 +2881,12 @@ export default {
             }
         },
         regresarAModalPrincipal() {
-            console.log("Ejecutando regresarAModalPrincipal");
-            console.log(
-                "Intentando abrir modal_cuenta (Productos en la Cuenta)"
-            );
-
             // Cerrar modal de categorías y regresar al modal principal (cuenta)
             try {
                 const modalCategorias = document.getElementById(
                     "modal_cuenta_categorias"
                 );
                 const modalPrincipal = document.getElementById("modal_cuenta");
-
-                console.log(
-                    "Modal categorías encontrado:",
-                    modalCategorias ? "SÍ" : "NO"
-                );
-                console.log(
-                    "Modal principal encontrado:",
-                    modalPrincipal ? "SÍ" : "NO"
-                );
 
                 if (modalCategorias && modalPrincipal) {
                     // Ocultar modal actual
@@ -2912,7 +2901,6 @@ export default {
 
                     // Mostrar modal principal con un pequeño delay
                     setTimeout(() => {
-                        console.log("Abriendo modal principal (modal_cuenta)");
                         modalPrincipal.style.display = "block";
                         modalPrincipal.classList.add("show");
                         document.body.classList.add("modal-open");
@@ -2930,26 +2918,12 @@ export default {
             }
         },
         regresarAModalOperaciones() {
-            console.log("Ejecutando regresarAModalOperaciones");
-            console.log(
-                "Regresando al modal de operaciones de mesa (modal_order)"
-            );
-
             // Cerrar modal de categorías y regresar al modal de operaciones de mesa
             try {
                 const modalCategorias = document.getElementById(
                     "modal_cuenta_categorias"
                 );
                 const modalOperaciones = document.getElementById("modal_order");
-
-                console.log(
-                    "Modal categorías encontrado:",
-                    modalCategorias ? "SÍ" : "NO"
-                );
-                console.log(
-                    "Modal operaciones encontrado:",
-                    modalOperaciones ? "SÍ" : "NO"
-                );
 
                 if (modalCategorias && modalOperaciones) {
                     // Ocultar modal actual
@@ -2964,9 +2938,6 @@ export default {
 
                     // Mostrar modal de operaciones con un pequeño delay
                     setTimeout(() => {
-                        console.log(
-                            "Abriendo modal de operaciones (modal_order)"
-                        );
                         modalOperaciones.style.display = "block";
                         modalOperaciones.classList.add("show");
                         document.body.classList.add("modal-open");
@@ -2984,8 +2955,6 @@ export default {
             }
         },
         regresarDesdeCarritoAProductos() {
-            console.log("Ejecutando regresarDesdeCarritoAProductos");
-            console.log("Regresando del carrito al modal de productos");
 
             // Cerrar modal carrito y regresar al modal de productos
             try {
@@ -2994,15 +2963,6 @@ export default {
                 );
                 const modalProductos = document.getElementById(
                     "modal_cuenta_productos"
-                );
-
-                console.log(
-                    "Modal carrito encontrado:",
-                    modalCarrito ? "SÍ" : "NO"
-                );
-                console.log(
-                    "Modal productos encontrado:",
-                    modalProductos ? "SÍ" : "NO"
                 );
 
                 if (modalCarrito && modalProductos) {
@@ -3018,9 +2978,6 @@ export default {
 
                     // Mostrar modal de productos con un pequeño delay
                     setTimeout(() => {
-                        console.log(
-                            "Abriendo modal de productos (modal_cuenta_productos)"
-                        );
                         modalProductos.style.display = "block";
                         modalProductos.classList.add("show");
                         document.body.classList.add("modal-open");

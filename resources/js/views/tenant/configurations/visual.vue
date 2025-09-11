@@ -245,14 +245,9 @@
             },
             getRecords() {
                 this.$http.get(`/${this.resource}/record`) .then(response => {
-                    console.log('Datos cargados desde el servidor:', response.data);
-                    
                     if (response.data !== ''){
                         this.visuals = response.data.data.visual;
                         this.form = response.data.data;
-                        
-                        console.log('Formulario después de cargar:', this.form);
-                        console.log('Paleta cargada:', this.form.color_palette);
                     }
                 });
             },
@@ -309,9 +304,6 @@
                     if (error.response.status === 422) {
                         this.errors = error.response.data.errors;
                     }
-                    else {
-                        console.log(error);
-                    }
                 }).then(() => {
                     this.loading_submit = false;
                 });
@@ -325,10 +317,6 @@
                 this.submitForm();
             },
             onPaletteChange() {
-                // Debug: Ver qué paleta se seleccionó
-                console.log('Paleta seleccionada:', this.form.color_palette);
-                console.log('Formulario completo:', this.form);
-                
                 // Aplicar inmediatamente la paleta al HTML para feedback visual
                 this.applyPalettePreview();
                 
@@ -345,18 +333,11 @@
                 
                 // Agregar la nueva clase de paleta
                 html.classList.add('palette-' + this.form.color_palette);
-                
-                console.log('Clase aplicada:', 'palette-' + this.form.color_palette);
             },
             savePalette() {
                 this.loading_submit = true;
                 
-                // Debug: Ver exactamente qué se está enviando
-                console.log('Enviando al servidor:', this.form);
-                console.log('URL:', `/${this.resource}`);
-                
                 this.$http.post(`/${this.resource}`, this.form).then(response => {
-                    console.log('Respuesta del servidor:', response.data);
                     
                     if (response.data.success) {
                         this.$message({
@@ -377,18 +358,10 @@
                             duration: 3000,
                             showClose: true
                         });
-                        console.error('Error del servidor:', response.data);
                     }
                 }).catch(error => {
-                    console.error('Error completo:', error);
-                    console.error('Error response:', error.response);
-                    
                     if (error.response && error.response.status === 422) {
                         this.errors = error.response.data.errors;
-                        console.error('Errores de validación:', this.errors);
-                    }
-                    else {
-                        console.log('Error general:', error);
                     }
                 }).then(() => {
                     this.loading_submit = false;
