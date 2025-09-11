@@ -222,6 +222,36 @@
                         label: 'Minimalista (Gris + Verde Menta)',
                         primary: '#52525b',
                         accent: '#14b8a6'
+                    },
+                    {
+                        value: 'oscura',
+                        label: 'Oscura (Negro + Dorado)',
+                        primary: '#000000',
+                        accent: '#ffd700'
+                    },
+                    {
+                        value: 'neon',
+                        label: 'Neón (Verde Neón + Púrpura Oscuro)',
+                        primary: '#2d1b69',
+                        accent: '#39ff14'
+                    },
+                    {
+                        value: 'rosa',
+                        label: 'Rosa (Rosa + Azul Claro)',
+                        primary: '#be185d',
+                        accent: '#0ea5e9'
+                    },
+                    {
+                        value: 'natural',
+                        label: 'Natural (Verde Bosque + Café)',
+                        primary: '#15803d',
+                        accent: '#a3765a'
+                    },
+                    {
+                        value: 'arctic',
+                        label: 'Arctic (Azul Glaciar + Blanco Puro)',
+                        primary: '#155e75',
+                        accent: '#67e8f9'
                     }
                 ]
             }
