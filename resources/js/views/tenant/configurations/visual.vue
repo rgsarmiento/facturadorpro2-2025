@@ -87,8 +87,8 @@
                 <div class="pt-3">
                     <h5>Paleta de colores</h5>
                     <div :class="{'has-danger': errors.color_palette}">
-                        <el-select 
-                            v-model="form.color_palette" 
+                        <el-select
+                            v-model="form.color_palette"
                             placeholder="Seleccionar paleta"
                             @change="onPaletteChange"
                             style="width: 100%;">
@@ -98,10 +98,10 @@
                                 :label="palette.label"
                                 :value="palette.value">
                                 <div style="display: flex; align-items: center;">
-                                    <div 
+                                    <div
                                         :style="{
-                                            width: '20px', 
-                                            height: '20px', 
+                                            width: '20px',
+                                            height: '20px',
                                             background: `linear-gradient(135deg, ${palette.primary} 0%, ${palette.accent} 100%)`,
                                             borderRadius: '4px',
                                             marginRight: '10px'
@@ -319,7 +319,7 @@
             onPaletteChange() {
                 // Aplicar inmediatamente la paleta al HTML para feedback visual
                 this.applyPalettePreview();
-                
+
                 // Guardar la paleta seleccionada sin recargar automáticamente
                 this.savePalette();
             },
@@ -330,15 +330,15 @@
                     'palette-corporativo', 'palette-bancario', 'palette-tech', 'palette-premium', 'palette-profesional',
                     'palette-moderna', 'palette-elegante', 'palette-oceano', 'palette-sunset', 'palette-minimalista'
                 );
-                
+
                 // Agregar la nueva clase de paleta
                 html.classList.add('palette-' + this.form.color_palette);
             },
             savePalette() {
                 this.loading_submit = true;
-                
+
                 this.$http.post(`/${this.resource}`, this.form).then(response => {
-                    
+
                     if (response.data.success) {
                         this.$message({
                             message: 'Paleta actualizada correctamente',
@@ -446,5 +446,49 @@ html.horizontal-menu .style-switcher .style-switcher-open {
 
 .style-switcher .el-switch__label {
     color: #333 !important;
+}
+
+/* Asegurar que los switches funcionen correctamente en ambos estados */
+.style-switcher .el-switch__core {
+    background-color: #dcdfe6 !important;
+    border: 1px solid #dcdfe6 !important;
+}
+
+.style-switcher .el-switch.is-checked .el-switch__core {
+    background-color: #409eff !important;
+    border-color: #409eff !important;
+}
+
+.style-switcher .el-switch__label.is-active {
+    color: #409eff !important;
+}
+
+.style-switcher .el-switch__label {
+    color: #606266 !important;
+}
+
+.style-switcher .el-switch__label * {
+    color: inherit !important;
+}
+
+/* Forzar visibilidad del switch en estado off */
+.style-switcher .el-switch:not(.is-checked) .el-switch__core {
+    background-color: #ccc !important;
+    border-color: #ccc !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+/* Asegurar que el círculo del switch sea visible */
+.style-switcher .el-switch__core::after {
+    background-color: #fff !important;
+    border: 1px solid #dcdfe6 !important;
+    opacity: 1 !important;
+    visibility: visible !important;
+}
+
+.style-switcher .el-switch.is-checked .el-switch__core::after {
+    background-color: #fff !important;
+    border-color: #409eff !important;
 }
 </style>

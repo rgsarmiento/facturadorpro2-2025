@@ -28,11 +28,11 @@
         'reports.inventory.index',
     ];
     $is_form = in_array($currentRouteName, $paths) ? 'newinvoice' : '';
-    
+
     // Obtener paleta de colores de la configuración
     $color_palette = $vc_configurations->color_palette ?? 'corporativo';
     $palette_class = 'palette-' . $color_palette;
-    
+
     // Debug temporal para verificar la paleta
     // dd('Paleta cargada: ' . $color_palette, $vc_configurations);
 @endphp
