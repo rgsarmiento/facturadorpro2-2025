@@ -29,16 +29,16 @@
         width: 98vw !important;
         margin: 10px auto !important;
     }
-    
+
     .modal-header {
         padding: 16px 20px !important;
     }
-    
+
     .modal-body {
         padding: 20px !important;
         max-height: 60vh !important;
     }
-    
+
     .modal-footer {
         padding: 16px 20px !important;
         flex-direction: column !important;

@@ -637,7 +637,7 @@ if ($hostname) {
 
             Route::get('companies/record', 'System\CompanyController@record');
             Route::post('companies', 'System\CompanyController@store');
-            
+
             // Maintenance mode routes
             Route::get('maintenance', function() {
                 return view('system.maintenance.index');

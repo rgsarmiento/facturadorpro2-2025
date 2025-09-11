@@ -82,8 +82,12 @@ class CashController extends Controller
 
         // Obtiene las resoluciones disponibles (no en uso) más la resolución actual si existe
         $resolutions = ConfigurationPos::select('id', 'prefix', 'resolution_number', 'date_from','date_end', 'from', 'to')
-            ->whereNotIn('id', $resolutionsInUse)
-            ->orWhere('id', $currentResolutionId)
+            ->where(function ($query) use ($resolutionsInUse, $currentResolutionId) {
+                $query->whereNotIn('id', $resolutionsInUse);
+                if ($currentResolutionId) {
+                    $query->orWhere('id', $currentResolutionId);
+                }
+            })
             ->get();
 
         $maxNumbersByPrefix = DocumentPos::selectRaw('prefix, MAX(CAST(number AS SIGNED)) as max_number')

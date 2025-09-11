@@ -359,7 +359,7 @@
                         <i class="fas fa-file-code mr-2"></i>
                         Ingrese el identificador del documento
                     </label>
-                    <el-input 
+                    <el-input
                         v-model="xmlDianForm.identifier"
                         placeholder="Ingrese solo letras y números en minúsculas"
                         @input="formatXMLIdentifier"
@@ -1095,13 +1095,13 @@
             handlePaste(event) {
                 // Prevenir el pegado por defecto
                 event.preventDefault();
-                
+
                 // Obtener el texto del portapapeles
                 const pastedText = (event.clipboardData || window.clipboardData).getData('text');
-                
+
                 // Limpiar y convertir a minúsculas
                 const cleanValue = pastedText.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
-                
+
                 // Asignar el valor limpio
                 this.xmlDianForm.identifier = cleanValue;
             },
@@ -1121,32 +1121,32 @@
                 try {
                     // Aquí iría la llamada a la API para leer el XML desde la DIAN
                     // Por ahora solo simularemos la funcionalidad
-                    
+
                     const response = await this.$http.post('/purchases/read-xml-dian', {
                         identifier: this.xmlDianForm.identifier
                     });
 
                     if (response.data.success) {
                         this.$message.success('XML leído exitosamente desde la DIAN');
-                        
+
                         // Aquí se procesarían los datos del XML y se cargarían en el formulario
                         // Por ejemplo:
                         // this.form = response.data.purchase_data;
                         // this.calculateTotal();
-                        
+
                         this.cancelXMLDian();
                     } else {
                         this.$message.error(response.data.message || 'Error al leer el XML desde la DIAN');
                     }
                 } catch (error) {
                     console.error('Error al leer XML desde DIAN:', error);
-                    
+
                     // Por ahora mostraremos un mensaje de que la funcionalidad estará disponible próximamente
                     this.$message.info({
                         message: 'Esta funcionalidad estará disponible próximamente. El identificador ingresado fue: ' + this.xmlDianForm.identifier,
                         duration: 5000
                     });
-                    
+
                     this.cancelXMLDian();
                 } finally {
                     this.xmlDianForm.loading = false;

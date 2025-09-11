@@ -741,21 +741,21 @@ class PurchaseController extends Controller
 
         try {
             $identifier = $request->input('identifier');
-            
+
             // Aquí iría la lógica para conectar con la API de la DIAN
             // y obtener el XML del documento
-            
+
             // Por ahora simulamos la respuesta
             // En una implementación real, aquí se haría la consulta a la API de la DIAN
             // con el identificador proporcionado
-            
+
             // Ejemplo de respuesta simulada:
             return response()->json([
                 'success' => false,
                 'message' => 'Funcionalidad en desarrollo. El identificador ' . $identifier . ' será procesado cuando la integración con DIAN esté completada.',
                 'data' => null
             ], 501); // 501 Not Implemented
-            
+
         } catch (\Exception $e) {
             return response()->json([
                 'success' => false,

@@ -436,16 +436,16 @@ html.sidebar-light:not(.dark) .sidebar-left ul.nav-main li .nav-children .nav-ch
         min-width: 280px !important;
         max-width: calc(100vw - 20px) !important;
     }
-    
+
     .horizontal-nav .dropdown-menu-horizontal li a {
         padding: 6px 15px !important;
         font-size: 12px !important;
     }
-    
+
     .horizontal-nav .dropdown-menu-horizontal .nav-parent > .dropdown-menu-horizontal {
         min-width: 260px !important;
     }
-    
+
     .horizontal-nav .dropdown-menu-horizontal .nav-parent > .dropdown-menu-horizontal li a {
         padding: 5px 15px !important;
         font-size: 11px !important;
@@ -454,20 +454,20 @@ html.sidebar-light:not(.dark) .sidebar-left ul.nav-main li .nav-children .nav-ch
     .sidebar-left ul.nav-main > li > a {
         padding: 6px 20px !important;
     }
-    
+
     .sidebar-left ul.nav-main li .nav-children {
         margin-left: 5px !important;
     }
-    
+
     .sidebar-left ul.nav-main li .nav-children .nav-children {
         margin-left: 10px !important;
     }
-    
+
     .sidebar-left ul.nav-main li .nav-children li a {
         padding: 5px 15px !important;
         font-size: 12px !important;
     }
-    
+
     .sidebar-left ul.nav-main li .nav-children .nav-children li a {
         padding: 4px 15px !important;
         font-size: 11px !important;
