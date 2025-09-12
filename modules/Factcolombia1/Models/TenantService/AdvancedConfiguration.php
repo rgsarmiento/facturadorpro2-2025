@@ -34,6 +34,7 @@ class AdvancedConfiguration extends Model
         'enable_qz_tray',
         'blind_cash',
         'allow_seller_login',
+        'show_purchase_history_pos',
     ];
 
     protected $casts = [
@@ -42,6 +43,7 @@ class AdvancedConfiguration extends Model
         'enable_qz_tray' => 'bool',
         'blind_cash' => 'bool',
         'allow_seller_login' => 'bool',
+        'show_purchase_history_pos' => 'bool',
     ];
 
     /**
@@ -63,6 +65,7 @@ class AdvancedConfiguration extends Model
             'item_tax_included' => $this->item_tax_included,
             'blind_cash' => $this->blind_cash,
             'allow_seller_login' => $this->allow_seller_login,
+            'show_purchase_history_pos' => $this->show_purchase_history_pos,
         ];
     }
 

@@ -44,6 +44,18 @@
                                             {{envServiceFact}}sellerlogin/{{IdentificationNumber}}
                                         </a>
                                     </div>
+                                    <div class="col-md-4 mt-4" :class="{'has-danger': errors.show_purchase_history_pos}">
+                                        <label class="control-label">
+                                            Permite ver historial de compras en POS
+                                            <el-tooltip class="item" effect="dark" content="Si activado, se muestra el botón de historial de compras en la vista POS" placement="top-start">
+                                                <i class="fa fa-info-circle"></i>
+                                            </el-tooltip>
+                                        </label>
+                                        <div class="form-group" :class="{'has-danger': errors.show_purchase_history_pos}">
+                                            <el-switch v-model="form.show_purchase_history_pos" active-text="Si" inactive-text="No" @change="submit"></el-switch>
+                                            <small class="form-control-feedback" v-if="errors.show_purchase_history_pos" v-text="errors.show_purchase_history_pos[0]"></small>
+                                        </div>
+                                    </div>
                                 </div>
                             </el-tab-pane>
 
@@ -278,6 +290,7 @@ export default {
                 blind_cash: false,
                 allow_seller_login: false,
                 canChangeAllowSellerLogin: false,
+                show_purchase_history_pos: true,
             }
         },
 

@@ -288,33 +288,31 @@
                                         </h5>
                                     </template>
                                     <template v-else>
-                                        <el-input
-                                            min="0"
-                                            v-model="item.edit_sale_unit_price"
-                                            class="mt-3 mb-3"
-                                            size="mini"
-                                        >
-                                            <el-button
-                                                slot="append"
-                                                icon="el-icon-check"
-                                                type="primary"
-                                                @click="
-                                                    clickEditUnitPriceItem(
-                                                        index
-                                                    )
-                                                "
-                                            ></el-button>
-                                            <el-button
-                                                slot="append"
-                                                icon="el-icon-close"
-                                                type="danger"
-                                                @click="
-                                                    clickCancelUnitPriceItem(
-                                                        index
-                                                    )
-                                                "
-                                            ></el-button>
-                                        </el-input>
+                                        <div class="d-flex align-items-center">
+                                            <el-input
+                                                min="0"
+                                                v-model="item.edit_sale_unit_price"
+                                                class="flex-grow-1"
+                                                size="mini"
+                                                style="margin-right: 8px;"
+                                            />
+                                            <div class="d-flex">
+                                                <el-button
+                                                    icon="el-icon-check"
+                                                    type="primary"
+                                                    size="mini"
+                                                    style="padding: 4px 6px; margin-right: 4px; line-height: 1;"
+                                                    @click="clickEditUnitPriceItem(index)"
+                                                />
+                                                <el-button
+                                                    icon="el-icon-close"
+                                                    type="danger"
+                                                    size="mini"
+                                                    style="padding: 4px 6px; line-height: 1;"
+                                                    @click="clickCancelUnitPriceItem(index)"
+                                                />
+                                            </div>
+                                        </div>
                                     </template>
                                 </div>
 
@@ -366,7 +364,7 @@
                                                 </button>
                                             </el-tooltip>
                                         </el-col>
-                                        <el-col :span="6">
+                                        <el-col :span="6" v-if="localConfiguration && localConfiguration.show_purchase_history_pos">
                                             <el-tooltip
                                                 class="item"
                                                 effect="dark"
@@ -512,7 +510,7 @@
                                     <button type="button" style="width:25% !important;" class="btn btn-xs btn-primary-pos" @click="clickHistorySales(item.item_id)"><i class="fa fa-list"></i></button>
                                 </el-tooltip>
 
-                                <el-tooltip class="item" effect="dark" content="Visualizar historial de compras del producto (precio compra)" placement="bottom-end">
+                                <el-tooltip v-if="localConfiguration && localConfiguration.show_purchase_history_pos" class="item" effect="dark" content="Visualizar historial de compras del producto (precio compra)" placement="bottom-end">
                                     <button type="button" style="width:25% !important;" class="btn btn-xs btn-primary-pos" @click="clickHistoryPurchases(item.item_id)"><i class="fas fa-cart-plus"></i></button>
                                 </el-tooltip>
 
@@ -2065,7 +2063,8 @@ export default {
             categoriaSeleccionadaMesa: null, // Para recordar la categoría al navegar
             showExpenseFormModal: false,
             pdfUrl: null,
-            pdfLoaded: false
+            pdfLoaded: false,
+            localConfiguration: null,
         };
     },
 
@@ -2090,6 +2089,7 @@ export default {
                 "Factura Electronica de Venta"
         ) {
             this.plate_number_valid = true;
+            await this.loadAdvancedConfiguration();
             await this.initForm();
             await this.getTables();
             this.events();
@@ -2145,6 +2145,18 @@ export default {
         }
     },
     methods: {
+        async loadAdvancedConfiguration() {
+            try {
+                const response = await this.$http.get("/co-advanced-configuration/record");
+                this.localConfiguration = response.data.data;
+            } catch (error) {
+                console.log('Error cargando configuración avanzada:', error);
+                // Establecer valores por defecto si no se puede cargar
+                this.localConfiguration = {
+                    show_purchase_history_pos: true
+                };
+            }
+        },
         handleCloseExpenseForm() {
             this.showExpenseFormModal = false;
             // Cualquier otra acción que necesites realizar al cerrar el modal

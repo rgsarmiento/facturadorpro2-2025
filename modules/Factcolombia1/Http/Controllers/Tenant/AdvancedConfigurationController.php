@@ -55,28 +55,30 @@ class AdvancedConfigurationController extends Controller
     }
 
     public function store(AdvancedConfigurationRequest $request) {
-        $id = $request->input('id');
-        $record = AdvancedConfiguration::find($id);
+        $record = AdvancedConfiguration::firstOrFail();
         $record->fill($request->all());
         $record->save();
+
         // Procesar configuración RADIAN si se están guardando datos de correo
-        if ($request->has('radian_imap_host') && $request->has('radian_imap_user') &&
-            $request->has('radian_imap_password') && $request->has('radian_imap_encryption') &&
-            $request->has('radian_imap_port')) {
-                $this->sendRadianConfigurationToAPI($request);
+        if ($request->has(['radian_imap_host', 'radian_imap_user', 'radian_imap_password', 'radian_imap_encryption', 'radian_imap_port'])) {
+            $this->sendRadianConfigurationToAPI($request);
         }
 
-        $response = json_decode($this->change_allow_seller_login($request->allow_seller_login));
-        if($response->success)
-            return [
-                'success' => true,
-                'message' => 'Configuración actualizada'
-            ];
-        else
-            return [
-                'success' => false,
-                'message' => 'Hubo un problema al actualizar la informacion de allow_seller_login en la API...'
-            ];
+        // Solo actualizar allow_seller_login si el campo fue enviado
+        if ($request->has('allow_seller_login')) {
+            $response = json_decode($this->change_allow_seller_login($request->allow_seller_login));
+            if (!$response->success) {
+                return [
+                    'success' => false,
+                    'message' => 'Hubo un problema al actualizar la informacion de allow_seller_login en la API...'
+                ];
+            }
+        }
+
+        return [
+            'success' => true,
+            'message' => 'Configuración actualizada'
+        ];
     }
 
     /**

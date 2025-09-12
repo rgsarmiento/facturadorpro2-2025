@@ -184,3 +184,165 @@
     padding-left: 15px !important;
     position: relative !important;
 }
+
+/* =====================================================
+   ESTILOS PARA BOTONES DE EDICIÓN POS
+   ===================================================== */
+
+/* Contenedor de edición de precio en tarjetas POS */
+.card-footer .d-flex {
+    gap: 4px !important;
+    align-items: center !important;
+}
+
+/* Botones de edición de precio más pequeños y alineados */
+.card-footer .el-button--mini {
+    min-height: 24px !important;
+    height: 24px !important;
+    padding: 2px 4px !important;
+    font-size: 12px !important;
+    line-height: 1 !important;
+    display: flex !important;
+    align-items: center !important;
+    justify-content: center !important;
+    border-radius: 3px !important;
+}
+
+/* Icono específico dentro de los botones */
+.card-footer .el-button--mini i {
+    font-size: 12px !important;
+    line-height: 1 !important;
+}
+
+/* Input de edición más compacto */
+.card-footer .el-input--mini .el-input__inner {
+    height: 24px !important;
+    line-height: 24px !important;
+    font-size: 13px !important;
+    padding: 0 8px !important;
+}
+
+/* Responsive para pantallas pequeñas */
+@media (max-width: 768px) {
+    .card-footer .el-button--mini {
+        min-height: 20px !important;
+        height: 20px !important;
+        padding: 1px 3px !important;
+        font-size: 10px !important;
+    }
+
+    .card-footer .el-button--mini i {
+        font-size: 10px !important;
+    }
+
+    .card-footer .el-input--mini .el-input__inner {
+        height: 20px !important;
+        line-height: 20px !important;
+        font-size: 12px !important;
+        padding: 0 6px !important;
+    }
+}
+
+/* =====================================================
+   CORRECCIÓN DE ESTILOS PARA EL-SWITCH
+   ===================================================== */
+
+/* Corregir visualización del el-switch en posición OFF */
+.el-switch {
+    display: inline-flex !important;
+    align-items: center !important;
+    position: relative !important;
+    font-size: 14px !important;
+    line-height: 20px !important;
+    height: 20px !important;
+    vertical-align: middle !important;
+}
+
+.el-switch .el-switch__core {
+    margin: 0 !important;
+    display: inline-block !important;
+    position: relative !important;
+    width: 46px !important;
+    height: 20px !important;
+    border: 1px solid #dcdfe6 !important;
+    outline: none !important;
+    border-radius: 10px !important;
+    box-sizing: border-box !important;
+    background: #dcdfe6 !important;
+    cursor: pointer !important;
+    transition: border-color 0.3s, background-color 0.3s !important;
+    vertical-align: middle !important;
+}
+
+.el-switch .el-switch__core:after {
+    content: "" !important;
+    position: absolute !important;
+    top: 1px !important;
+    left: 1px !important;
+    border-radius: 50% !important;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1) !important;
+    width: 16px !important;
+    height: 16px !important;
+    background-color: #fff !important;
+    cursor: pointer !important;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1) !important;
+}
+
+/* Switch en estado ON (activo) */
+.el-switch.is-checked .el-switch__core {
+    border-color: #409eff !important;
+    background-color: #409eff !important;
+}
+
+.el-switch.is-checked .el-switch__core:after {
+    right: 2px !important;
+    left: auto !important;
+    transform: translateX(0) !important;
+}
+
+/* Switch en estado OFF */
+.el-switch .el-switch__core:after {
+    left: 2px !important;
+    right: auto !important;
+    transform: translateX(0) !important;
+}
+
+/* Etiquetas del switch */
+.el-switch__label {
+    transition: 0.2s !important;
+    height: 20px !important;
+    display: inline-block !important;
+    font-size: 14px !important;
+    font-weight: 500 !important;
+    cursor: pointer !important;
+    vertical-align: middle !important;
+    color: #303133 !important;
+}
+
+.el-switch__label.is-active {
+    color: #409eff !important;
+}
+
+.el-switch__label--left {
+    margin-right: 10px !important;
+}
+
+.el-switch__label--right {
+    margin-left: 10px !important;
+}
+
+/* Switch deshabilitado */
+.el-switch.is-disabled .el-switch__core,
+.el-switch.is-disabled .el-switch__label {
+    cursor: not-allowed !important;
+    opacity: 0.6 !important;
+}
+
+/* Asegurar que el switch sea visible en diferentes temas */
+.el-switch .el-switch__core {
+    box-shadow: inset 0 0 0 0 transparent !important;
+}
+
+.el-switch.is-checked .el-switch__core {
+    box-shadow: inset 0 0 0 0 transparent !important;
+}
