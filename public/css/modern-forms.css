@@ -346,3 +346,51 @@
 .el-switch.is-checked .el-switch__core {
     box-shadow: inset 0 0 0 0 transparent !important;
 }
+
+/* =====================================================
+   CORREGIR EL-INPUT-NUMBER EN MODAL DE PRODUCTOS
+   ===================================================== */
+
+/* Corregir posicionamiento del input de cantidad */
+.el-input-number {
+    position: relative !important;
+    width: 100% !important;
+    display: flex !important;
+    align-items: center !important;
+}
+
+.el-input-number .el-input__inner {
+    position: relative !important;
+    z-index: 2 !important;
+    background-color: #fff !important;
+    border: 1px solid #dcdfe6 !important;
+    text-align: center !important;
+    width: calc(100% - 60px) !important;
+    margin: 0 30px !important;
+}
+
+.el-input-number .el-input-number__decrease {
+    position: absolute !important;
+    left: 0 !important;
+    top: 0 !important;
+    z-index: 3 !important;
+    background-color: #f5f7fa !important;
+    border: 1px solid #dcdfe6 !important;
+    width: 30px !important;
+    height: 100% !important;
+    border-radius: 4px 0 0 4px !important;
+    border-right: 0 !important;
+}
+
+.el-input-number .el-input-number__increase {
+    position: absolute !important;
+    right: 0 !important;
+    top: 0 !important;
+    z-index: 3 !important;
+    background-color: #f5f7fa !important;
+    border: 1px solid #dcdfe6 !important;
+    width: 30px !important;
+    height: 100% !important;
+    border-radius: 0 4px 4px 0 !important;
+    border-left: 0 !important;
+}

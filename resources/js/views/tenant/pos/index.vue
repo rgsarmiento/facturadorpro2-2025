@@ -4940,14 +4940,15 @@ export default {
 /* Corrección mínima para layout POS - compatible desarrollo y producción */
 .page-header {
     position: relative !important;
-    top: -10px !important;
-    margin-bottom: -5px !important;
+    top: -3px !important;
+    left: -10px !important;
+    margin-bottom: 0px !important;
     z-index: 100 !important;
 }
 
 /* Subir también el contenido siguiente */
 .page-header + div {
-    margin-top: -5px !important;
+    margin-top: 0px !important;
 }
 
 /* Optimizar botones para que quepan en una sola fila */
