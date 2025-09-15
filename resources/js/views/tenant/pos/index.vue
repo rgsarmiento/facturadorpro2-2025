@@ -102,8 +102,6 @@
                             <i class="fa fa-plus"></i>
                             Gasto
                         </button>
-                        <!-- <h2 class="text-sm pr-5">T/C  {{form.exchange_rate_sale}}</h2> -->
-                        <h2 class="text-sm pull-right">{{ user.name }}</h2>
                     </div>
                 </div>
             </div>
@@ -579,6 +577,12 @@
                     style="height: calc(100vh - 110px)"
                 >
                     <div class="h-75 bg-light" style="overflow-y: auto">
+                        <!-- Nombre del usuario -->
+                        <div class="row py-2 m-0 p-0">
+                            <div class="col-12 text-right">
+                                <span class="text-muted" style="font-size: 14px;"><strong>Usuario: {{ user.name }}</strong></span>
+                            </div>
+                        </div>
                         <div class="row py-3 border-bottom m-0 p-0">
                             <div class="col-8">
                                 <el-select
