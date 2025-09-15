@@ -346,3 +346,30 @@
 .el-switch.is-checked .el-switch__core {
     box-shadow: inset 0 0 0 0 transparent !important;
 }
+
+/* =====================================================
+   OPTIMIZACIÓN LAYOUT POS HEADER - POSICIÓN ABSOLUTA
+   ===================================================== */
+
+/* Forzar posición del header POS hacia arriba */
+.page-header {
+    position: relative !important;
+    top: -40px !important;
+    margin-bottom: -30px !important;
+    z-index: 100 !important;
+}
+
+/* Subir el contenido principal del POS */
+.page-header + div {
+    margin-top: -40px !important;
+}
+
+/* Ajustar contenedor de productos y cliente */
+.hyo {
+    margin-top: -30px !important;
+}
+
+/* Contenedor de fila principal del POS */
+.row.col-lg-12.m-0.p-0 {
+    margin-top: -35px !important;
+}
