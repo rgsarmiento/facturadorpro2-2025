@@ -25,15 +25,6 @@
                             ></el-switch>
                         </h2>
                     </template>
-
-                    <h2>
-                        <el-button
-                            @click="showExpenseFormModal = true"
-                            class="btn btn-custom btn-sm  mt-2 mr-2"
-                            >Registrar Gasto</el-button
-                        >
-                    </h2>
-                    <!-- Modal para el formulario de gastos -->
                     <!-- Modal para el formulario de gastos -->
                     <el-dialog
                         :visible.sync="showExpenseFormModal"
@@ -101,6 +92,16 @@
                 </div>
                 <div class="col-md-1">
                     <div class="right-wrapper">
+                        <button
+                            type="button"
+                            @click="showExpenseFormModal = true"
+                            class="btn btn-custom btn-sm mt-2 mb-1"
+                            title="Registrar Gasto"
+                            style="width: 100%; font-size: 10px;"
+                        >
+                            <i class="fa fa-plus"></i>
+                            Gasto
+                        </button>
                         <!-- <h2 class="text-sm pr-5">T/C  {{form.exchange_rate_sale}}</h2> -->
                         <h2 class="text-sm pull-right">{{ user.name }}</h2>
                     </div>
@@ -4945,20 +4946,32 @@ export default {
     margin-top: -5px !important;
 }
 
-/* Asegurar que los botones del header se acomoden bien */
+/* Optimizar botones para que quepan en una sola fila */
 .page-header .col-md-5 .d-flex {
-    flex-wrap: wrap !important;
-    gap: 2px !important;
+    flex-wrap: nowrap !important;
+    gap: 1px !important;
+    overflow: hidden !important;
 }
 
 .page-header .btn-sm {
     margin: 1px !important;
+    padding: 4px 6px !important;
+    font-size: 10px !important;
+    line-height: 1.1 !important;
     white-space: nowrap !important;
+    min-width: auto !important;
+    flex-shrink: 1 !important;
 }
 
-/* Para pantallas más pequeñas, organizar verticalmente */
-@media (max-width: 1200px) {
+/* Texto más compacto en botones */
+.page-header .btn-sm i {
+    margin-right: 2px !important;
+}
+
+/* Si aún no caben, permitir wrap solo en pantallas muy pequeñas */
+@media (max-width: 1000px) {
     .page-header .col-md-5 .d-flex {
+        flex-wrap: wrap !important;
         flex-direction: column !important;
         align-items: flex-start !important;
     }
