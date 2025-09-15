@@ -4930,3 +4930,25 @@ export default {
     }
 };
 </script>
+
+<style>
+/* Corrección específica para layout POS en producción */
+.page-header {
+    position: relative !important;
+    top: 0px !important;
+    margin-bottom: 0px !important;
+    z-index: 100 !important;
+}
+
+.page-header + div {
+    margin-top: 0px !important;
+}
+
+.hyo {
+    margin-top: 0px !important;
+}
+
+.row.col-lg-12.m-0.p-0 {
+    margin-top: 0px !important;
+}
+</style>
