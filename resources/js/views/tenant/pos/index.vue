@@ -4932,23 +4932,35 @@ export default {
 </script>
 
 <style>
-/* Corrección específica para layout POS en producción */
+/* Corrección mínima para layout POS - compatible desarrollo y producción */
 .page-header {
     position: relative !important;
-    top: 0px !important;
-    margin-bottom: 0px !important;
+    top: -10px !important;
+    margin-bottom: -5px !important;
     z-index: 100 !important;
 }
 
+/* Subir también el contenido siguiente */
 .page-header + div {
-    margin-top: 0px !important;
+    margin-top: -5px !important;
 }
 
-.hyo {
-    margin-top: 0px !important;
+/* Asegurar que los botones del header se acomoden bien */
+.page-header .col-md-5 .d-flex {
+    flex-wrap: wrap !important;
+    gap: 2px !important;
 }
 
-.row.col-lg-12.m-0.p-0 {
-    margin-top: 0px !important;
+.page-header .btn-sm {
+    margin: 1px !important;
+    white-space: nowrap !important;
+}
+
+/* Para pantallas más pequeñas, organizar verticalmente */
+@media (max-width: 1200px) {
+    .page-header .col-md-5 .d-flex {
+        flex-direction: column !important;
+        align-items: flex-start !important;
+    }
 }
 </style>
