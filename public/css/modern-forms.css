@@ -394,3 +394,291 @@
     border-radius: 0 4px 4px 0 !important;
     border-left: 0 !important;
 }
+
+/* =====================================================
+   ALERTAS ADAPTABLES A PALETA DE COLORES - VERSIÓN MEJORADA
+   ===================================================== */
+
+/* Alertas Bootstrap - colores más neutros y legibles */
+.alert-danger,
+.alert.alert-danger,
+div.alert.alert-danger,
+.alert-danger *,
+.alert.alert-danger *,
+div.alert.alert-danger * {
+    background-color: #ffffff !important;
+    border: 2px solid #dc3545 !important;
+    color: #721c24 !important;
+    border-radius: 6px !important;
+}
+
+.alert-warning,
+.alert.alert-warning,
+div.alert.alert-warning,
+.alert-warning *,
+.alert.alert-warning *,
+div.alert.alert-warning * {
+    background-color: #ffffff !important;
+    border: 2px solid #ffc107 !important;
+    color: #856404 !important;
+    border-radius: 6px !important;
+}
+
+.alert-success,
+.alert.alert-success,
+div.alert.alert-success,
+.alert-success *,
+.alert.alert-success *,
+div.alert.alert-success * {
+    background-color: #ffffff !important;
+    border: 2px solid #28a745 !important;
+    color: #155724 !important;
+    border-radius: 6px !important;
+}
+
+.alert-info,
+.alert.alert-info,
+div.alert.alert-info,
+.alert-info *,
+.alert.alert-info *,
+div.alert.alert-info * {
+    background-color: #ffffff !important;
+    border: 2px solid #17a2b8 !important;
+    color: #0c5460 !important;
+    border-radius: 6px !important;
+}
+
+/* Element UI Alerts con fondo blanco */
+.el-alert--error,
+.el-alert--error.el-alert {
+    background-color: #ffffff !important;
+    border: 2px solid #dc3545 !important;
+    border-radius: 6px !important;
+}
+
+.el-alert--error .el-alert__title,
+.el-alert--error .el-alert__description,
+.el-alert--error .el-alert__content,
+.el-alert--error * {
+    color: #721c24 !important;
+}
+
+.el-alert--warning,
+.el-alert--warning.el-alert {
+    background-color: #ffffff !important;
+    border: 2px solid #ffc107 !important;
+    border-radius: 6px !important;
+}
+
+.el-alert--warning .el-alert__title,
+.el-alert--warning .el-alert__description,
+.el-alert--warning .el-alert__content,
+.el-alert--warning * {
+    color: #856404 !important;
+}
+
+.el-alert--success,
+.el-alert--success.el-alert {
+    background-color: #ffffff !important;
+    border: 2px solid #28a745 !important;
+    border-radius: 6px !important;
+}
+
+.el-alert--success .el-alert__title,
+.el-alert--success .el-alert__description,
+.el-alert--success .el-alert__content,
+.el-alert--success * {
+    color: #155724 !important;
+}
+
+.el-alert--info,
+.el-alert--info.el-alert {
+    background-color: #ffffff !important;
+    border: 2px solid #17a2b8 !important;
+    border-radius: 6px !important;
+}
+
+.el-alert--info .el-alert__title,
+.el-alert--info .el-alert__description,
+.el-alert--info .el-alert__content,
+.el-alert--info * {
+    color: #0c5460 !important;
+}
+
+/* Mensajes de error en formularios */
+.has-danger .form-control-feedback,
+.form-control-feedback,
+small.form-control-feedback,
+.text-danger,
+.text-danger * {
+    color: #721c24 !important;
+    background-color: #ffffff !important;
+    padding: 4px 8px !important;
+    border: 1px solid #dc3545 !important;
+    border-radius: 4px !important;
+    font-size: 12px !important;
+    display: inline-block !important;
+    font-weight: 500 !important;
+}
+
+/* Notificaciones Element UI */
+.el-notification--error,
+.el-notification.el-notification--error {
+    background-color: #ffffff !important;
+    border-left: 4px solid #dc3545 !important;
+    box-shadow: 0 2px 12px rgba(220, 53, 69, 0.1) !important;
+}
+
+.el-notification--error .el-notification__title,
+.el-notification--error .el-notification__content,
+.el-notification--error * {
+    color: #721c24 !important;
+}
+
+.el-notification--warning,
+.el-notification.el-notification--warning {
+    background-color: #ffffff !important;
+    border-left: 4px solid #ffc107 !important;
+    box-shadow: 0 2px 12px rgba(255, 193, 7, 0.1) !important;
+}
+
+.el-notification--warning .el-notification__title,
+.el-notification--warning .el-notification__content,
+.el-notification--warning * {
+    color: #856404 !important;
+}
+
+.el-notification--success,
+.el-notification.el-notification--success {
+    background-color: #ffffff !important;
+    border-left: 4px solid #28a745 !important;
+    box-shadow: 0 2px 12px rgba(40, 167, 69, 0.1) !important;
+}
+
+.el-notification--success .el-notification__title,
+.el-notification--success .el-notification__content,
+.el-notification--success * {
+    color: #155724 !important;
+}
+
+/* Mensajes tipo toast */
+.el-message--error,
+.el-message.el-message--error {
+    background-color: #ffffff !important;
+    border: 2px solid #dc3545 !important;
+    box-shadow: 0 2px 12px rgba(220, 53, 69, 0.1) !important;
+}
+
+.el-message--error *,
+.el-message.el-message--error * {
+    color: #721c24 !important;
+}
+
+.el-message--warning,
+.el-message.el-message--warning {
+    background-color: #ffffff !important;
+    border: 2px solid #ffc107 !important;
+    box-shadow: 0 2px 12px rgba(255, 193, 7, 0.1) !important;
+}
+
+.el-message--warning *,
+.el-message.el-message--warning * {
+    color: #856404 !important;
+}
+
+.el-message--success,
+.el-message.el-message--success {
+    background-color: #ffffff !important;
+    border: 2px solid #28a745 !important;
+    box-shadow: 0 2px 12px rgba(40, 167, 69, 0.1) !important;
+}
+
+.el-message--success *,
+.el-message.el-message--success * {
+    color: #155724 !important;
+}
+
+.el-message--info,
+.el-message.el-message--info {
+    background-color: #ffffff !important;
+    border: 2px solid #17a2b8 !important;
+    box-shadow: 0 2px 12px rgba(23, 162, 184, 0.1) !important;
+}
+
+.el-message--info *,
+.el-message.el-message--info * {
+    color: #0c5460 !important;
+}
+
+/* Mensajes flotantes adicionales - alta especificidad para sobrescribir temas */
+.el-message,
+div.el-message,
+.el-message__content {
+    background-color: #ffffff !important;
+    border-radius: 6px !important;
+    font-weight: 500 !important;
+    font-size: 14px !important;
+}
+
+/* Estilos específicos para iconos de mensajes flotantes */
+.el-message .el-message__icon,
+.el-message--error .el-message__icon,
+.el-message--warning .el-message__icon,
+.el-message--success .el-message__icon,
+.el-message--info .el-message__icon {
+    margin-right: 8px !important;
+}
+
+/* Botones de cierre de mensajes */
+.el-message .el-message__closeBtn,
+.el-message__closeBtn {
+    color: #999999 !important;
+    background: transparent !important;
+    border: none !important;
+}
+
+.el-message .el-message__closeBtn:hover,
+.el-message__closeBtn:hover {
+    color: #666666 !important;
+}
+
+/* Estilos adicionales para asegurar compatibilidad con todos los temas */
+.el-message-box,
+.el-message-box__wrapper {
+    background-color: rgba(0, 0, 0, 0.5) !important;
+}
+
+.el-message-box {
+    background-color: #ffffff !important;
+    border-radius: 8px !important;
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.1) !important;
+}
+
+.el-message-box .el-message-box__title,
+.el-message-box .el-message-box__content,
+.el-message-box * {
+    color: #333333 !important;
+}
+
+/* Estilos para mensajes globales - máxima especificidad */
+body .el-message,
+html .el-message,
+.el-message {
+    z-index: 9999 !important;
+    position: fixed !important;
+    top: 20px !important;
+    left: 50% !important;
+    transform: translateX(-50%) !important;
+    min-width: 300px !important;
+    max-width: 500px !important;
+    padding: 12px 16px !important;
+    border-radius: 6px !important;
+    font-size: 14px !important;
+    font-weight: 500 !important;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15) !important;
+}
+
+.el-message--info *,
+.el-message.el-message--info * {
+    color: #0c5460 !important;
+}
