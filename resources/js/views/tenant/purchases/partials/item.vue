@@ -188,7 +188,7 @@
     import LotsForm from '../../items/partials/lots.vue'
 
     export default {
-        props: ['showDialog', 'currencyTypeIdActive', 'exchangeRateSale', 'recordItem'],
+        props: ['showDialog', 'currencyTypeIdActive', 'exchangeRateSale', 'recordItem', 'taxes'],
         components: {itemForm, LotsForm},
         data() {
             return {
@@ -211,34 +211,90 @@
                 lot_code: null,
                 change_affectation_igv_type_id: false,
                 all_taxes:[],
-                taxes:[],
+                localTaxes:[],
                 titleAction: '',
             }
         },
         computed: {
             itemTaxes() {
-                return this.taxes.filter(tax => !tax.is_retention);
+                console.log('itemTaxes computed called');
+                console.log('itemTaxes - Props taxes:', this.taxes);
+                console.log('itemTaxes - Local taxes:', this.localTaxes);
+                
+                // Priorizar los impuestos pasados como prop (del componente padre)
+                let taxesSource = [];
+                
+                if (this.taxes && Array.isArray(this.taxes) && this.taxes.length > 0) {
+                    taxesSource = this.taxes;
+                    console.log('itemTaxes - Using props taxes');
+                } else if (this.localTaxes && Array.isArray(this.localTaxes) && this.localTaxes.length > 0) {
+                    taxesSource = this.localTaxes;
+                    console.log('itemTaxes - Using local taxes');
+                } else {
+                    console.log('itemTaxes - No taxes available');
+                    return [];
+                }
+                
+                const filteredTaxes = taxesSource.filter(tax => !tax.is_retention);
+                console.log('itemTaxes - Filtered taxes:', filteredTaxes);
+                return filteredTaxes;
             },
+        },
+        watch: {
+            // Detectar cuando se abre el modal
+            showDialog(newVal, oldVal) {
+                if (newVal && !oldVal) {
+                    console.log('Modal opened, taxes from props:', this.taxes);
+                    console.log('Modal opened, recordItem:', this.recordItem);
+                    // Forzar recálculo del computed
+                    this.$nextTick(() => {
+                        this.$forceUpdate();
+                    });
+                }
+            },
+            // Detectar cuando cambian los impuestos pasados como prop
+            taxes: {
+                handler(newTaxes, oldTaxes) {
+                    console.log('Taxes prop changed:', newTaxes);
+                    if (newTaxes && newTaxes.length > 0) {
+                        this.$nextTick(() => {
+                            this.$forceUpdate();
+                        });
+                    }
+                },
+                immediate: true,
+                deep: true
+            },
+            'form.tax_id': function(newVal, oldVal) {
+                console.log('form.tax_id changed from', oldVal, 'to', newVal);
+                console.log('itemTaxes after tax_id change:', this.itemTaxes);
+            }
         },
         created() {
             this.initForm()
             // Solo cargamos warehouses y taxes para mejorar performance
             this.$http.get(`/${this.resource}/warehouses-taxes`).then(response => {
                 this.warehouses = response.data.warehouses
-                this.taxes = response.data.taxes;
+                this.localTaxes = response.data.taxes;
             }).catch(() => {
                 // Fallback: si no existe el nuevo endpoint, usar el anterior sin cargar items
                 console.warn('Usando fallback para cargar warehouses y taxes');
                 this.$http.get(`/${this.resource}/item/tables`).then(response => {
                     this.warehouses = response.data.warehouses
-                    this.taxes = response.data.taxes;
+                    this.localTaxes = response.data.taxes;
                     // NO cargamos items para evitar timeout
                 })
             })
 
             this.$eventHub.$on('reloadDataItems', (item_id) => {
                 this.reloadDataItems(item_id)
-            })
+            });
+            
+            // Escuchar evento para recargar toda la lista de items
+            this.$eventHub.$on('reloadAllItems', () => {
+                console.log('Recargando lista completa de items');
+                this.loadPopularItems();
+            });
         },
         methods: {
             addRowLot(lots){
@@ -351,6 +407,18 @@
                 if (this.recordItem) {
                     // console.log(this.recordItem)
                     this.form.item_id = await this.recordItem.item_id
+                    
+                    // Si hay un item_id válido, asegurar que esté en la lista
+                    if (this.form.item_id) {
+                        // Verificar si el item está en la lista actual
+                        const existingItem = this.items.find(item => item.id === this.form.item_id);
+                        if (!existingItem) {
+                            console.log(`Item ID ${this.form.item_id} no encontrado en lista, recargando...`);
+                            // Si no está, intentar recargarlo específicamente
+                            await this.reloadDataItems(this.form.item_id);
+                        }
+                    }
+                    
                     await this.changeItem()
                     this.form.quantity = this.recordItem.quantity
                     this.form.unit_price = this.recordItem.unit_price
@@ -360,6 +428,15 @@
                         this.form.discount = this.recordItem.discount_percentage
                     } else {
                         this.form.discount = this.recordItem.discount
+                    }
+
+                    // Asignar tax_id desde el recordItem XML (si existe tax_id_mapped)
+                    if (this.recordItem.tax_id_mapped) {
+                        this.form.tax_id = this.recordItem.tax_id_mapped;
+                        console.log('Tax ID assigned from recordItem:', this.recordItem.tax_id_mapped);
+                    } else if (this.recordItem.tax_id) {
+                        this.form.tax_id = this.recordItem.tax_id;
+                        console.log('Tax ID assigned from recordItem (direct):', this.recordItem.tax_id);
                     }
                 }
             },
@@ -494,28 +571,46 @@
                 }
                 return form
             },
-            reloadDataItems(item_id) {
+            async reloadDataItems(item_id) {
                 // Buscar solo el item específico para evitar cargar todos
-                this.$http.get(`/${this.resource}/item/search`, {
-                    params: {
-                        item_id: item_id,
-                        limit: 1
-                    }
-                }).then((response) => {
+                try {
+                    const response = await this.$http.get(`/${this.resource}/item/search`, {
+                        params: {
+                            item_id: item_id,
+                            limit: 1
+                        }
+                    });
+                    
                     if (response.data.items && response.data.items.length > 0) {
                         // Agregar el item específico si no existe ya
                         const existingItem = this.items.find(item => item.id === item_id);
                         if (!existingItem) {
                             this.items.push(response.data.items[0]);
+                            console.log(`Item agregado a la lista: ${response.data.items[0].description}`);
+                        } else {
+                            // Actualizar el item existente con datos frescos
+                            const index = this.items.findIndex(item => item.id === item_id);
+                            if (index !== -1) {
+                                this.items.splice(index, 1, response.data.items[0]);
+                                console.log(`Item actualizado en la lista: ${response.data.items[0].description}`);
+                            }
                         }
-                        this.form.item_id = item_id;
-                        this.changeItem();
+                        
+                        // Si el modal está abierto y este es el item actual, actualizar el form
+                        if (this.showDialog && this.recordItem && this.recordItem.id === item_id) {
+                            this.form.item_id = item_id;
+                            this.changeItem();
+                            console.log(`Form actualizado con item ID: ${item_id}`);
+                        }
+                        
+                        return true; // Éxito
                     }
-                }).catch(() => {
-                    // Fallback: simplemente setear el ID y cambiar
-                    this.form.item_id = item_id;
-                    this.changeItem();
-                })
+                } catch (error) {
+                    // Fallback: recargar todos los items populares para asegurar que esté disponible
+                    console.log('Error buscando item específico, recargando lista completa');
+                    this.loadPopularItems();
+                    return false; // Error
+                }
             },
         }
     }

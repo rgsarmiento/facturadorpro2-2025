@@ -171,7 +171,7 @@
                         <div class="col-lg-12 col-md-6 d-flex align-items-end mt-4">
                             <div class="form-group">
                                 <button type="button" class="btn waves-effect waves-light btn-primary" @click.prevent="showDialogAddItem = true">+ Agregar Producto</button>
-                                <button type="button" class="btn waves-effect waves-light btn-primary" @click.prevent="dialogRetention = !dialogRetention">+ Agregar retención</button>
+                                <button type="button" class="btn waves-effect waves-light btn-primary" @click.prevent="dialogRetention = !dialogRetention">+ Agregar Retención</button>
                             </div>
                         </div>
                     </div>
@@ -188,6 +188,7 @@
                                         <th class="text-right">Cantidad</th>
                                         <th class="text-right">Precio Unitario</th>
                                         <th class="text-right">Descuento</th>
+                                        <th class="text-right">Impuesto</th>
                                         <th class="text-right">Total</th>
                                         <th></th>
                                     </tr>
@@ -203,6 +204,7 @@
                                         <td class="text-right">{{ row.quantity }}</td>
                                         <td class="text-right">{{ ratePrefix() }} {{ getFormatUnitPriceRow(row.unit_price) }}</td>
                                         <td class="text-right">{{ ratePrefix() }} {{ row.discount }}</td>
+                                        <td class="text-right">{{ ratePrefix() }} {{ row.total_tax ? Number(row.total_tax).toFixed(2) : '0.00' }}</td>
                                         <td class="text-right">{{ ratePrefix() }} {{ row.total }}</td>
                                         <td class="text-right">
                                             <button type="button" class="btn waves-effect waves-light btn-xs btn-info" @click="ediItem(row, index)" ><span style='font-size:10px;'>&#9998;</span> </button>
@@ -335,8 +337,10 @@
         <purchase-form-item :showDialog.sync="showDialogAddItem"
                            :currency-type-id-active="form.currency_type_id"
                            :exchange-rate-sale="form.exchange_rate_sale"
-                           @add="addRow"
-                           :recordItem="recordItem"></purchase-form-item>
+                           :taxes="taxesForModal"
+                           :recordItem="recordItem"
+                           :key="recordItem ? recordItem.id + '_' + (recordItem.tax_percent || 0) : 'default'"
+                           @add="addRow"></purchase-form-item>
 
         <person-form :showDialog.sync="showDialogNewPerson"
                        type="suppliers"
@@ -351,7 +355,7 @@
         <el-dialog
             title="Leer XML desde la DIAN"
             :visible.sync="showDialogXMLDian"
-            width="600px"
+            width="1000px"
             :close-on-click-modal="false">
             <div class="form-body">
                 <div class="form-group">
@@ -361,16 +365,16 @@
                     </label>
                     <el-input
                         v-model="xmlDianForm.identifier"
-                        placeholder="Ingrese solo letras y números en minúsculas"
+                        placeholder="Identificador de 96 caracteres alfanuméricos"
                         @input="formatXMLIdentifier"
                         @paste.native="handlePaste"
-                        maxlength="50"
-                        show-word-limit>
-                        <i slot="prefix" class="el-input__icon el-icon-document"></i>
+                        maxlength="96"
+                        show-word-limit
+                        style="width: 100%;">
                     </el-input>
                     <small class="form-control-feedback text-muted mt-1">
                         <i class="fas fa-info-circle mr-1"></i>
-                        Solo se permiten letras y números en minúsculas
+                        Debe contener exactamente 96 caracteres alfanuméricos (letras y números)
                     </small>
                 </div>
             </div>
@@ -379,7 +383,7 @@
                     <i class="fas fa-times mr-2"></i>
                     Cancelar
                 </el-button>
-                <el-button type="primary" @click="readXMLFromDian" size="medium" :loading="xmlDianForm.loading" :disabled="!xmlDianForm.identifier.trim()">
+                <el-button type="primary" @click="readXMLFromDian" size="medium" :loading="xmlDianForm.loading" :disabled="!xmlDianForm.identifier.trim() || xmlDianForm.identifier.length !== 96">
                     <i class="fas fa-cloud-download-alt mr-2"></i>
                     Leer XML Desde La DIAN
                 </el-button>
@@ -486,6 +490,43 @@
             await this.changeHasClient()
             this.retentiontaxes()
         },
+        computed: {
+            taxesForModal() {
+                // Crear una copia de los impuestos base
+                let modalTaxes = [...this.taxes];
+
+                // Si hay un item siendo editado que tiene impuesto personalizado del XML
+                if (this.recordItem && this.recordItem.tax && this.recordItem.tax_percent !== undefined && this.recordItem.tax_percent > 0) {
+                    const taxIndex = modalTaxes.findIndex(tax => tax.id === this.recordItem.tax_id);
+                    if (taxIndex >= 0) {
+                        // Crear impuesto personalizado con el porcentaje del XML
+                        const customTax = { ...modalTaxes[taxIndex] };
+                        customTax.rate = this.recordItem.tax_percent;
+                        const baseName = customTax.name.replace(/\s*\d+%?$/, '');
+                        customTax.name = `${baseName} ${this.recordItem.tax_percent}%`;
+
+                        // Reemplazar en la lista
+                        modalTaxes[taxIndex] = customTax;
+                    }
+                }
+
+                return modalTaxes;
+            }
+        },
+        watch: {
+            // Observar cambios en recordItem para forzar actualización del computed taxesForModal
+            recordItem: {
+                handler(newValue, oldValue) {
+                    if (newValue && newValue !== oldValue) {
+                        // Forzar re-evaluación del computed taxesForModal
+                        this.$nextTick(() => {
+                            this.$forceUpdate();
+                        });
+                    }
+                },
+                deep: true
+            }
+        },
         methods: {
             setDataTotals() {
 
@@ -496,10 +537,36 @@
                 val.items.forEach(item => {
                     item.tax = this.taxes.find(tax => tax.id == item.tax_id);
 
+                    // Si tenemos un porcentaje de impuesto del XML, usarlo en lugar del de la base de datos
+                    if (item.tax && item.tax_percent !== undefined && item.tax_percent > 0) {
+                        // Crear una copia del objeto tax para no modificar el original
+                        item.tax = { ...item.tax };
+                        // Usar el porcentaje del XML en lugar del de la base de datos
+                        const originalRate = this.taxes.find(tax => tax.id == item.tax_id)?.rate;
+                        item.tax.rate = item.tax_percent;
+                        // Actualizar también el nombre para reflejar el porcentaje correcto
+                        const baseName = item.tax.name.replace(/\s*\d+%?$/, ''); // Remover porcentaje existente del nombre
+                        item.tax.name = `${baseName} ${item.tax_percent}%`;
+                        console.log(`Usando porcentaje de impuesto del XML para ${item.description || 'item'}: ${item.tax_percent}% en lugar de ${originalRate}%`);
+                    }
+
                     // seteo de descuento en caso no posea o sea superior al precio por cantidad
                     if (item.discount == null || item.discount == "" || item.discount > (item.unit_price * item.quantity)) {
                         this.$set(item, "discount", 0);
                     }
+                    
+                    // DEBUG: Log valores antes del cálculo de descuento
+                    if (item.from_xml) {
+                        console.log(`setDataTotals - ${item.description}:`, {
+                            discount: item.discount,
+                            discount_type: item.discount_type,
+                            discount_percentage: item.discount_percentage,
+                            has_discount: item.has_discount,
+                            unit_price: item.unit_price,
+                            quantity: item.quantity
+                        });
+                    }
+                    
                     // defino el total de descuento
                     let total_discount = 0;
                     if(item.discount_type === 'percentage') {
@@ -507,7 +574,7 @@
                     } else {
                         total_discount = item.discount
                     }
-                    // console.log(total_discount);
+                    
                     this.$set( item, "discount", Number(total_discount).toFixed(2));
 
                     item.total_tax = 0;
@@ -522,15 +589,21 @@
                                 (total_discount < item.unit_price * item.quantity ? total_discount : 0)
                             ).toFixed(2);
 
-                        if (item.tax.is_percentage)
-
-                            item.total_tax = (
-                                (item.unit_price * item.quantity -
-                                (total_discount < item.unit_price * item.quantity
-                                    ? total_discount
-                                    : 0)) *
-                                (item.tax.rate / item.tax.conversion)
-                            ).toFixed(2);
+                        if (item.tax.is_percentage) {
+                            // Si el item viene del XML, usar SIEMPRE el monto de impuesto del XML (puede ser 0)
+                            if (item.from_xml && item.tax_amount !== undefined) {
+                                item.total_tax = Number(item.tax_amount).toFixed(2);
+                            } else {
+                                // Para items normales, calcular impuestos al precio base
+                                item.total_tax = (
+                                    (item.unit_price * item.quantity -
+                                    (total_discount < item.unit_price * item.quantity
+                                        ? total_discount
+                                        : 0)) *
+                                    (item.tax.rate / item.tax.conversion)
+                                ).toFixed(2);
+                            }
+                        }
 
                         if (!tax.hasOwnProperty("total"))
                             tax.total = Number(0).toFixed(2);
@@ -538,21 +611,27 @@
                         tax.total = (Number(tax.total) + Number(item.total_tax)).toFixed(2);
                     }
 
-                    item.subtotal = (
-                        Number(item.unit_price * item.quantity) + Number(item.total_tax)
-                    ).toFixed(2);
+                    // Calcular subtotal y total
+                    if (item.from_xml) {
+                        // Para items del XML:
+                        // - total = precio base sin impuestos (después de descuentos)
+                        // - subtotal = precio final con impuestos incluidos
+                        item.total = (Number(item.unit_price * item.quantity) - Number(total_discount)).toFixed(2);
+                        item.subtotal = (Number(item.total) + Number(item.total_tax)).toFixed(2);
+                    } else {
+                        // Para items normales, agregar impuestos al subtotal
+                        item.subtotal = (
+                            Number(item.unit_price * item.quantity) + Number(item.total_tax)
+                        ).toFixed(2);
 
-                    this.$set(
-                        item,
-                        "total",
-                        (Number(item.subtotal) - Number(total_discount)).toFixed(2)
-                    );
+                        item.total = (Number(item.subtotal) - Number(total_discount)).toFixed(2);
+                    }
 
                 });
 
                 val.subtotal = val.items
                     .reduce(
-                        (p, c) => Number(p) + (Number(c.subtotal) - Number(c.discount)),
+                        (p, c) => Number(p) + Number(c.unit_price * c.quantity) - Number(c.discount),
                         0
                     )
                     .toFixed(2);
@@ -570,9 +649,7 @@
                     .reduce((p, c) => Number(p) + Number(c.total_tax), 0)
                     .toFixed(2);
 
-                let total = val.items
-                    .reduce((p, c) => Number(p) + Number(c.total), 0)
-                    .toFixed(2);
+                let total = Number(val.subtotal) + Number(val.total_tax);
 
                 let totalRetentionBase = Number(0);
 
@@ -1083,14 +1160,17 @@
                 row.indexi = index
                 this.recordItem = row
                 this.showDialogAddItem = true
-
             },
             // Métodos para modal XML DIAN
             formatXMLIdentifier(value) {
                 // Remover caracteres que no sean letras o números
                 const cleanValue = value.replace(/[^a-zA-Z0-9]/g, '');
+
+                // Limitar a máximo 96 caracteres
+                const limitedValue = cleanValue.slice(0, 96);
+
                 // Convertir a minúsculas
-                this.xmlDianForm.identifier = cleanValue.toLowerCase();
+                this.xmlDianForm.identifier = limitedValue.toLowerCase();
             },
             handlePaste(event) {
                 // Prevenir el pegado por defecto
@@ -1099,8 +1179,8 @@
                 // Obtener el texto del portapapeles
                 const pastedText = (event.clipboardData || window.clipboardData).getData('text');
 
-                // Limpiar y convertir a minúsculas
-                const cleanValue = pastedText.replace(/[^a-zA-Z0-9]/g, '').toLowerCase();
+                // Limpiar, limitar a 96 caracteres y convertir a minúsculas
+                const cleanValue = pastedText.replace(/[^a-zA-Z0-9]/g, '').slice(0, 96).toLowerCase();
 
                 // Asignar el valor limpio
                 this.xmlDianForm.identifier = cleanValue;
@@ -1111,17 +1191,27 @@
                 this.xmlDianForm.loading = false;
             },
             async readXMLFromDian() {
-                if (!this.xmlDianForm.identifier.trim()) {
+                const identifier = this.xmlDianForm.identifier.trim();
+
+                if (!identifier) {
                     this.$message.warning('Por favor ingrese un identificador válido');
+                    return;
+                }
+
+                if (identifier.length !== 96) {
+                    this.$message.error(`El identificador debe tener exactamente 96 caracteres. Actualmente tiene ${identifier.length} caracteres.`);
+                    return;
+                }
+
+                // Validar que solo contenga caracteres alfanuméricos
+                if (!/^[a-zA-Z0-9]{96}$/.test(identifier)) {
+                    this.$message.error('El identificador solo debe contener letras y números.');
                     return;
                 }
 
                 this.xmlDianForm.loading = true;
 
                 try {
-                    // Aquí iría la llamada a la API para leer el XML desde la DIAN
-                    // Por ahora solo simularemos la funcionalidad
-
                     const response = await this.$http.post('/purchases/read-xml-dian', {
                         identifier: this.xmlDianForm.identifier
                     });
@@ -1129,29 +1219,674 @@
                     if (response.data.success) {
                         this.$message.success('XML leído exitosamente desde la DIAN');
 
-                        // Aquí se procesarían los datos del XML y se cargarían en el formulario
-                        // Por ejemplo:
-                        // this.form = response.data.purchase_data;
-                        // this.calculateTotal();
+                        // Procesar los datos del XML y cargarlos en el formulario
+                        this.loadPurchaseDataFromXML(response.data.data.purchase_data);
 
                         this.cancelXMLDian();
                     } else {
-                        this.$message.error(response.data.message || 'Error al leer el XML desde la DIAN');
+                        // Mostrar mensaje de error específico de la DIAN
+                        if (response.data.dian_response) {
+                            this.$message.error(`Error de la DIAN: ${response.data.dian_response}`);
+                        } else {
+                            this.$message.error(response.data.message || 'Error al leer el XML desde la DIAN');
+                        }
                     }
                 } catch (error) {
                     console.error('Error al leer XML desde DIAN:', error);
 
-                    // Por ahora mostraremos un mensaje de que la funcionalidad estará disponible próximamente
-                    this.$message.info({
-                        message: 'Esta funcionalidad estará disponible próximamente. El identificador ingresado fue: ' + this.xmlDianForm.identifier,
-                        duration: 5000
-                    });
-
-                    this.cancelXMLDian();
+                    // Manejar errores de validación del servidor
+                    if (error.response && error.response.status === 422) {
+                        const errors = error.response.data.errors;
+                        let errorMessage = 'Errores de validación:\n';
+                        Object.keys(errors).forEach(key => {
+                            errorMessage += `- ${errors[key].join('\n- ')}\n`;
+                        });
+                        this.$message.error(errorMessage);
+                    } else if (error.response && error.response.data && error.response.data.message) {
+                        this.$message.error(error.response.data.message);
+                    } else {
+                        this.$message.error('Error de conexión al procesar la solicitud');
+                    }
                 } finally {
                     this.xmlDianForm.loading = false;
+                }
+            },
+
+            /**
+             * Cargar los datos de compra extraídos del XML de la DIAN al formulario
+             */
+            loadPurchaseDataFromXML(purchaseData) {
+                try {
+
+                    // DEBUG: Revisar datos de descuentos en detail
+                    if (purchaseData.items && purchaseData.items.length > 0) {
+                        console.log('=== DEBUG DESCUENTOS ===');
+                        purchaseData.items.forEach((xmlItem, index) => {
+                            console.log(`Item ${index + 1}:`, {
+                                description: xmlItem.item_description,
+                                has_discount: xmlItem.has_discount,
+                                discount_amount: xmlItem.discount_amount,
+                                discount_percentage: xmlItem.discount_percentage,
+                                line_extension_amount: xmlItem.line_extension_amount,
+                                price_amount: xmlItem.price_amount,
+                                tax_amount: xmlItem.tax_amount
+                            });
+                        });
+                        
+                        if (purchaseData.monetary_totals) {
+                            console.log('Totales monetarios:', {
+                                allowance_total_amount: purchaseData.monetary_totals.allowance_total_amount,
+                                line_extension_amount: purchaseData.monetary_totals.line_extension_amount,
+                                tax_inclusive_amount: purchaseData.monetary_totals.tax_inclusive_amount,
+                                payable_amount: purchaseData.monetary_totals.payable_amount
+                            });
+                        }
+                        console.log('=== FIN DEBUG DESCUENTOS ===');
+                    }
+
+                    // Cargar campos específicos solicitados
+                    // Serie
+                    if (purchaseData.series) {
+                        this.form.series = purchaseData.series;
+                    }
+
+                    // Número (sin la serie)
+                    if (purchaseData.number) {
+                        this.form.number = purchaseData.number;
+                    }
+
+                    // Fecha de Emisión
+                    if (purchaseData.issue_date) {
+                        this.form.date_of_issue = purchaseData.issue_date;
+                    }
+
+                    // Fecha de Vencimiento
+                    if (purchaseData.due_date) {
+                        this.form.date_of_due = purchaseData.due_date;
+                    }
+
+                    // Cargar otros datos básicos del documento
+                    if (purchaseData.note) {
+                        this.form.observation = purchaseData.note;
+                    }
+
+                    // Buscar o crear el proveedor
+                    if (purchaseData.supplier && purchaseData.supplier.identification_number) {
+                        this.loadSupplierFromXML(purchaseData.supplier);
+                    }
+
+                    // Cargar totales monetarios
+                    if (purchaseData.monetary_totals) {
+                        const totals = purchaseData.monetary_totals;
+                        this.form.total = parseFloat(totals.payable_amount) || 0;
+                        this.form.subtotal = parseFloat(totals.line_extension_amount) || 0;
+                        this.form.total_taxes = parseFloat(totals.tax_inclusive_amount) - parseFloat(totals.line_extension_amount) || 0;
+
+                        // FORZAR: NO usar allowance_total_amount del XML, calcular desde items
+                        this.form.total_discount = 0; // Siempre iniciar en 0, se calculará después
+                        console.log(`Totales iniciales - Ignorando allowance_total_amount: ${totals.allowance_total_amount}`);
+                    }
+
+                    // Cargar items del documento
+                    if (purchaseData.items && purchaseData.items.length > 0) {
+                        this.loadItemsFromXML(purchaseData.items);
+                    }
+
+                    // Mostrar información adicional
+                    this.$message.success({
+                        message: `Compra cargada exitosamente con ${purchaseData.items?.length || 0} items`,
+                        duration: 3000
+                    });
+
+                } catch (error) {
+                    console.error('Error al cargar datos del XML:', error);
+                    this.$message.warning('XML procesado pero hubo errores al cargar algunos datos al formulario');
+                }
+            },
+
+            /**
+             * Cargar información del proveedor desde el XML
+             */
+            async loadSupplierFromXML(supplierData) {
+                try {
+                    if (!supplierData || !supplierData.identification_number) {
+                        return;
+                    }
+
+                    // Buscar si el proveedor ya existe
+                    const searchResponse = await this.$http.get('/persons-search-suppliers', {
+                        params: {
+                            input: supplierData.identification_number
+                        }
+                    });
+
+                    if (searchResponse.data && searchResponse.data.suppliers && searchResponse.data.suppliers.length > 0) {
+                        // Proveedor existe, seleccionarlo
+                        const supplier = searchResponse.data.suppliers[0];
+                        this.form.supplier_id = supplier.id;
+                        this.form.supplier = supplier;
+                        console.log(`Proveedor existente seleccionado: ${supplier.name} (${supplier.number})`);
+
+                        // Recargar lista de proveedores para refrescar la selección
+                        await this.reloadDataSuppliers(supplier.id);
+
+                    } else {
+                        // Proveedor no existe, crearlo automáticamente
+                        console.log(`Creando nuevo proveedor: ${supplierData.name} (${supplierData.identification_number})`);
+
+                        // Calcular dígito de verificación para NIT
+                        const calculateDV = (nit) => {
+                            const nitString = nit.toString();
+                            const factors = [3, 7, 13, 17, 19, 23, 29, 37, 41, 43, 47, 53, 59, 67, 71];
+                            let sum = 0;
+
+                            for (let i = 0; i < nitString.length; i++) {
+                                sum += parseInt(nitString[i]) * factors[nitString.length - 1 - i];
+                            }
+
+                            const remainder = sum % 11;
+                            return remainder < 2 ? remainder : 11 - remainder;
+                        };
+
+                        const dv = calculateDV(supplierData.identification_number);
+                        console.log(`Dígito de verificación calculado para ${supplierData.identification_number}: ${dv}`);
+
+                        const newSupplierData = {
+                            type: 'suppliers',
+                            identity_document_type_id: 6, // NIT (ID correcto, no código)
+                            number: supplierData.identification_number,
+                            name: (supplierData.name || 'Proveedor Importado').substring(0, 100), // Limitar longitud
+                            code: supplierData.identification_number, // Usar el NIT como código también
+                            dv: dv, // Dígito de verificación calculado
+                            type_obligation_id: 117, // No responsable (ID válido por defecto)
+                            country_id: 47, // Colombia por defecto (ID numérico)
+                            address: (supplierData.address || 'Dir no especificada').substring(0, 100), // Limitar longitud
+                            email: 'contacto@empresa.com', // Email genérico válido
+                            telephone: '3000000000', // Teléfono genérico válido (10 dígitos)
+                            from_invoice: true, // Para evitar validaciones de unicidad estrictas
+                            // Eliminar addresses para evitar problemas de clave foránea
+                            addresses: []
+                        };
+
+                        try {
+                            const createResponse = await this.$http.post('/persons', newSupplierData);
+
+                            if (createResponse.data.success) {
+                                const newSupplierId = createResponse.data.id;
+                                console.log(`Proveedor creado exitosamente con ID: ${newSupplierId}`);
+
+                                // Seleccionar el nuevo proveedor
+                                this.form.supplier_id = newSupplierId;
+
+                                // Recargar lista de proveedores
+                                await this.reloadDataSuppliers(newSupplierId);
+
+                                this.$message.success(`Proveedor ${supplierData.name} creado y seleccionado automáticamente`);
+                            } else {
+                                throw new Error('Error en la respuesta del servidor');
+                            }
+                        } catch (createError) {
+                            console.error('Error al crear proveedor:', createError);
+                            console.error('Detalles del error:', createError.response?.data);
+                            console.error('Datos enviados:', newSupplierData);
+
+                            let errorMessage = 'Error desconocido';
+                            if (createError.response?.data?.errors) {
+                                const errors = createError.response.data.errors;
+                                errorMessage = Object.keys(errors).map(key => `${key}: ${errors[key].join(', ')}`).join('; ');
+
+                                // Si es error de unicidad, sugerir búsqueda manual
+                                if (errorMessage.includes('already been taken') || errorMessage.includes('ya ha sido tomado')) {
+                                    errorMessage += '. Es posible que el proveedor ya exista con otro nombre.';
+                                }
+                            } else if (createError.response?.data?.message) {
+                                errorMessage = createError.response.data.message;
+                            }
+
+                            this.$message.error({
+                                message: `No se pudo crear automáticamente el proveedor ${supplierData.name} (${supplierData.identification_number}). Error: ${errorMessage}`,
+                                duration: 8000
+                            });
+                        }
+                    }
+                } catch (error) {
+                    console.error('Error al procesar proveedor del XML:', error);
+                    this.$message.error({
+                        message: 'Error al procesar la información del proveedor del XML',
+                        duration: 5000
+                    });
+                }
+            },
+
+            /**
+             * Cargar items desde el XML al formulario
+             */
+            async loadItemsFromXML(xmlItems) {
+                try {
+                    // Limpiar items actuales
+                    this.form.items = [];
+
+                    for (const [index, xmlItem] of xmlItems.entries()) {
+                        const item = {
+                            id: null, // Se asignará al buscar/crear el producto
+                            item: null,
+                            quantity: parseFloat(xmlItem.quantity) || 1,
+                            unit_price: parseFloat(xmlItem.price_amount) || 0,
+                            total: parseFloat(xmlItem.line_extension_amount) || 0,
+                            description: xmlItem.item_description || '',
+                            sellers_item_id: xmlItem.sellers_item_identification || '',
+                            unit_type_id: 10, // Siempre "Unidad" como especificaste
+                            warehouse_id: 1, // Siempre "Oficina Principal" como especificaste
+                            // Agregar información de impuestos del XML
+                            tax_id: xmlItem.tax_id_mapped || 1, // Usar el impuesto mapeado del XML o IVA por defecto
+                            tax_percent: parseFloat(xmlItem.tax_percent) || 0,
+                            tax_amount: parseFloat(xmlItem.tax_amount) || 0,
+                            // Información adicional de impuestos para debugging
+                            tax_id_xml: xmlItem.tax_id_xml || '',
+                            tax_name_xml: xmlItem.tax_name_xml || '',
+                            // Agregar información de descuentos del XML - Solo si realmente hay descuentos
+                            discount: 0, // Siempre iniciar en 0
+                            discount_percentage: 0, // Siempre iniciar en 0
+                            discount_type: 'fixed', // Por defecto usar fijo
+                            discount_reason: xmlItem.discount_reason || '',
+                            has_discount: xmlItem.has_discount || false,
+                            // Solo establecer valores temporales si realmente hay descuentos
+                            discount_fixed_from_xml: (xmlItem.has_discount && parseFloat(xmlItem.discount_amount) > 0.01) ? parseFloat(xmlItem.discount_amount) : 0,
+                            discount_multiplier_from_xml: (xmlItem.has_discount && parseFloat(xmlItem.discount_percentage) > 0.001) ? parseFloat(xmlItem.discount_percentage) : 0,
+                            // Flag para identificar que este item viene del XML y tiene impuestos incluidos
+                            from_xml: true,
+                            prices_include_tax: false // El LineExtensionAmount en DIAN es SIN impuestos
+                        };
+
+                        // Usar el precio del XML directamente, NO calcularlo desde el total
+                        // El LineExtensionAmount en DIAN es el precio base SIN impuestos y CON descuentos aplicados
+                        // Por lo tanto, debemos usar este valor directamente como precio unitario base
+                        const lineExtensionAmount = parseFloat(xmlItem.line_extension_amount) || 0;
+                        const quantity = parseFloat(xmlItem.quantity) || 1;
+                        const priceAmount = parseFloat(xmlItem.price_amount) || 0;
+                        
+                        // Calcular el precio unitario sin impuestos basado en LineExtensionAmount
+                        if (lineExtensionAmount > 0 && quantity > 0) {
+                            item.unit_price = lineExtensionAmount / quantity;
+                            
+                            // Solo detectar descuento si hay información explícita de descuento en el XML
+                            if (xmlItem.has_discount && (xmlItem.discount_amount > 0 || xmlItem.discount_percentage > 0)) {
+                                const discountAmount = parseFloat(xmlItem.discount_amount) || 0;
+                                const discountPercentage = parseFloat(xmlItem.discount_percentage) || 0;
+                                
+                                if (discountAmount > 0) {
+                                    item.discount_type = 'fixed';
+                                    item.discount = discountAmount;
+                                    item.has_discount = true;
+                                } else if (discountPercentage > 0) {
+                                    item.discount_type = 'percentage';
+                                    item.discount_percentage = discountPercentage;
+                                    item.has_discount = true;
+                                }
+                            } else {
+                                // No hay descuentos - PriceAmount vs LineExtensionAmount puede ser solo diferencia de estructura DIAN
+                                item.has_discount = false;
+                                item.discount = 0;
+                            }
+                        } else {
+                            // Fallback al método anterior si no hay LineExtensionAmount válido
+                            let xmlPrice = parseFloat(xmlItem.price_amount) || 0;
+                            let xmlPriceAlt = parseFloat(xmlItem.price_amount_alt) || 0;
+                            
+                            if (xmlPriceAlt > 0 && (xmlPriceAlt > xmlPrice || xmlPrice === 0)) {
+                                const taxRate = parseFloat(xmlItem.tax_percent) || 0;
+                                const priceWithTax = xmlPriceAlt;
+                                item.unit_price = taxRate > 0 ? priceWithTax / (1 + (taxRate / 100)) : priceWithTax;
+                            } else if (xmlPrice > 0) {
+                                const taxRate = parseFloat(xmlItem.tax_percent) || 0;
+                                const priceWithTax = xmlPrice;
+                                item.unit_price = taxRate > 0 ? priceWithTax / (1 + (taxRate / 100)) : priceWithTax;
+                            }
+                        }
+
+                        // Buscar o crear el producto automáticamente
+                        await this.findOrCreateItemForXML(item, xmlItem);
+
+                        // IMPORTANTE: Esperar un poco después de crear/buscar para asegurar sincronización
+                        await new Promise(resolve => setTimeout(resolve, 100));
+
+                        // Log del estado final del item después del procesamiento
+                        console.log(`Item ${index + 1} procesado:`, {
+                            description: item.description,
+                            has_item_object: !!item.item,
+                            item_id: item.id,
+                            item_name: item.item?.name,
+                            item_full_description: item.item?.full_description,
+                            warehouse_description: item.warehouse_description,
+                            item_warehouse_description: item.item?.warehouse_description,
+                            unit_type_name: item.item?.unit_type?.name,
+                            complete_item_object: JSON.stringify(item.item, null, 2)
+                        });
+
+                        // Usar Vue.set para agregar el item al array de forma reactiva
+                        this.form.items.push(item);
+                    }
+
+                    // Ajustar descuentos después de cargar todos los items
+                    this.form.items.forEach(item => {
+                        // FORZAR: Solo procesar descuentos si hay valores reales significativos
+                        const hasSignificantDiscountAmount = item.discount_fixed_from_xml > 0.01;
+                        const hasSignificantDiscountPercentage = item.discount_multiplier_from_xml > 0.001;
+                        
+                        console.log(`Evaluando descuentos para ${item.description}:`, {
+                            has_discount_flag: item.has_discount,
+                            discount_amount: item.discount_fixed_from_xml,
+                            discount_percentage: item.discount_multiplier_from_xml,
+                            hasSignificantDiscountAmount,
+                            hasSignificantDiscountPercentage
+                        });
+
+                        if (hasSignificantDiscountAmount || hasSignificantDiscountPercentage) {
+                            // Solo si hay valores significativos, aplicar descuentos
+                            if (hasSignificantDiscountAmount) {
+                                item.discount_type = 'fixed';
+                                item.discount = item.discount_fixed_from_xml;
+                                item.has_discount = true;
+                                console.log(`✓ Descuento fijo aplicado a ${item.description}: ${item.discount}`);
+                            } else if (hasSignificantDiscountPercentage) {
+                                item.discount_type = 'percentage';
+                                item.discount_percentage = item.discount_multiplier_from_xml * 100;
+                                item.has_discount = true;
+                                console.log(`✓ Descuento porcentual aplicado a ${item.description}: ${item.discount_percentage}%`);
+                            }
+                        } else {
+                            // FORZAR: Eliminar cualquier descuento, sin importar flags del XML
+                            item.discount = 0;
+                            item.discount_percentage = 0;
+                            item.discount_type = 'fixed';
+                            item.has_discount = false;
+                            console.log(`✗ SIN descuentos para ${item.description} - valores forzados a 0`);
+                        }
+                    });
+
+                    // Limpiar campos temporales
+                    this.form.items.forEach(item => {
+                        delete item.discount_fixed_from_xml;
+                        delete item.discount_multiplier_from_xml;
+                    });
+
+                    // Usar $nextTick para asegurar que todos los cambios reactivos se procesen
+                    this.$nextTick(async () => {
+                        // Esperar un poco más para que la sincronización de items sea completa
+                        await new Promise(resolve => setTimeout(resolve, 200));
+                        
+                        // Recalcular totales después de que todo esté sincronizado
+                        this.calculateTotal();
+                        
+                        // Forzar actualización de la vista
+                        this.$forceUpdate();
+
+                        
+                        // Emitir evento global para asegurar que todos los modales estén actualizados
+                        this.$eventHub.$emit('itemsUpdated');
+                    });
+
+                } catch (error) {
+                    console.error('Error al cargar items:', error);
+                    this.$message.error('Error al procesar los items del XML');
+                }
+            },
+
+            /**
+             * Buscar o crear producto automáticamente para item del XML
+             */
+            async findOrCreateItemForXML(item, xmlItem) {
+                try {
+                    // Buscar por código de vendedor o descripción
+                    let searchTerm = xmlItem.sellers_item_identification || xmlItem.item_description || '';
+
+                    if (!searchTerm) {
+                        console.log('No hay información suficiente para buscar el producto');
+                        return;
+                    }
+
+                    // Buscar producto existente
+                    const searchResponse = await this.$http.get('/main-items/search', {
+                        params: {
+                            input: searchTerm
+                        }
+                    });
+
+                    if (searchResponse.data && searchResponse.data.items && searchResponse.data.items.length > 0) {
+                        // Producto existe, seleccionarlo
+                        const existingItem = searchResponse.data.items[0];
+                        item.id = existingItem.id;
+                        item.item_id = existingItem.id;
+
+                        // Usar Vue.set para asegurar reactividad
+                        this.$set(item, 'item', existingItem);
+                        this.$set(item, 'warehouse_description', 'Oficina Principal');
+                        this.$set(item, 'unit_type_description', existingItem.unit_type?.description || existingItem.unit_type?.name || 'Unidad');
+
+                        // Asegurar que el item tenga warehouse_description
+                        if (!existingItem.warehouse_description) {
+                            this.$set(existingItem, 'warehouse_description', 'Oficina Principal');
+                        }
+
+                        // Asegurar que tenga información de unidad
+                        if (!existingItem.unit_type) {
+                            this.$set(existingItem, 'unit_type', {
+                                id: 10,
+                                name: 'Unidad',
+                                description: 'Unidad'
+                            });
+                        }
+
+                        // IMPORTANTE: Forzar Vue a procesar cambios reactivos
+                        this.$forceUpdate();
+                        
+                        // Esperar que Vue procese los cambios
+                        await this.$nextTick();
+
+                        // Emitir evento para asegurar que el producto esté en la lista del modal
+                        this.$eventHub.$emit('reloadDataItems', existingItem.id);
+                        return;
+                    }
+
+                    // Producto no existe, crearlo automáticamente
+
+                    // Usar el mejor precio disponible (priorizar alternativo si es mayor)
+                    let bestPrice = parseFloat(xmlItem.price_amount) || 0;
+                    let altPrice = parseFloat(xmlItem.price_amount_alt) || 0;
+                    if (altPrice > bestPrice) {
+                        bestPrice = altPrice;
+                    }
+
+                    // Para productos del XML, extraer el precio SIN impuestos para la base de datos
+                    const taxRate = parseFloat(xmlItem.tax_percent) || 0;
+                    const priceWithoutTax = taxRate > 0 ? bestPrice / (1 + (taxRate / 100)) : bestPrice;
+
+                    // Redondear el precio a 2 decimales para evitar errores SQL de precisión
+                    const roundedPrice = Math.round(priceWithoutTax * 100) / 100;
+                    
+                    // Asegurar que el precio esté dentro del rango válido para decimal(12,4)
+                    // Máximo: 99999999.9999 (8 dígitos enteros, 4 decimales)
+                    const safePrice = Math.min(roundedPrice, 99999999.99);
+
+                    // Generar un internal_id único y seguro
+                    const timestamp = Date.now();
+                    const randomSuffix = Math.floor(Math.random() * 1000);
+                    const safeInternalId = xmlItem.sellers_item_identification || `XML-${timestamp}-${randomSuffix}`;
+                    
+                    // Limpiar y validar nombre y descripción
+                    const cleanName = (xmlItem.item_description || 'Producto Importado')
+                        .replace(/[^\w\s\-\.]/g, '') // Remover caracteres especiales
+                        .substring(0, 80) // Límite más conservador
+                        .trim();
+                    
+                    const cleanDescription = (xmlItem.item_description || 'Producto importado desde XML DIAN')
+                        .replace(/[^\w\s\-\.]/g, '') 
+                        .substring(0, 200) // Límite más conservador  
+                        .trim();
+
+                    const newItemData = {
+                        name: cleanName,
+                        description: cleanDescription,
+                        item_type_id: '01', // Producto
+                        internal_id: safeInternalId.substring(0, 50), // Asegurar límite
+                        currency_type_id: 170, // COP - Peso Colombiano
+                        sale_unit_price: safePrice,
+                        purchase_unit_price: safePrice,
+                        unit_type_id: 10, // Unidad
+                        stock: 100, // Stock inicial por defecto
+                        stock_min: 1, // Stock mínimo
+                        // Impuestos básicos (IVA e Impuesto de compra requeridos)
+                        tax_id: 1, // IVA por defecto (puede ser null)
+                        purchase_tax_id: 1, // IVA requerido para compras
+                        calculate_quantity: false,
+                        has_igv: true,
+                        amount_plastic_bag_taxes: 0,
+                        percentage_isc: 0,
+                        suggested_price: safePrice,
+                        // Item unit types (requerido por el controlador)
+                        item_unit_types: [
+                            {
+                                id: null,
+                                description: cleanName,
+                                unit_type_id: 10, // Unidad
+                                quantity_unit: 1,
+                                price1: safePrice,
+                                price2: safePrice,
+                                price3: safePrice,
+                                price_default: 1 // Campo boolean: 1 = true (este es el precio por defecto)
+                            }
+                        ],
+                        // Warehouses
+                        warehouses: [
+                            {
+                                warehouse_id: 1, // Oficina Principal
+                                stock: 100
+                            }
+                        ]
+                    };
+
+                    try {
+                        console.log('Datos enviados para crear producto:', JSON.stringify(newItemData, null, 2));
+                        const createResponse = await this.$http.post('/items', newItemData);
+
+                        if (createResponse.data.success) {
+                            const newItemId = createResponse.data.id;
+                            console.log(`Producto creado exitosamente con ID: ${newItemId}`);
+
+                            // Asignar directamente toda la información necesaria para la tabla
+                            item.id = newItemId;
+                            item.item_id = newItemId;
+
+                            // Crear objeto completo del item con toda la información necesaria
+                            const completeItem = {
+                                id: newItemId,
+                                name: newItemData.name, // Nombre para la tabla
+                                description: newItemData.description,
+                                internal_id: newItemData.internal_id,
+                                full_description: `${newItemData.internal_id} - ${newItemData.name}`,
+                                currency_type_id: newItemData.currency_type_id,
+                                currency_type_symbol: '$',
+                                sale_unit_price: newItemData.sale_unit_price,
+                                purchase_unit_price: newItemData.purchase_unit_price,
+                                unit_type_id: newItemData.unit_type_id,
+                                purchase_tax_id: newItemData.purchase_tax_id,
+                                // Información de warehouse
+                                warehouse_description: 'Oficina Principal',
+                                // Información de unit_type - MUY IMPORTANTE para la tabla
+                                unit_type: {
+                                    id: 10,
+                                    name: 'Unidad',
+                                    description: 'Unidad',
+                                    code: '70'
+                                },
+                                // Otras propiedades necesarias
+                                lots_enabled: false,
+                                series_enabled: false,
+                                has_perception: false,
+                                percentage_perception: 0
+                            };
+
+                            // Usar Vue.set para asegurar reactividad
+                            this.$set(item, 'item', completeItem);
+                            this.$set(item, 'warehouse_description', 'Oficina Principal');
+                            this.$set(item, 'unit_type_description', 'Unidad');
+
+                            // IMPORTANTE: Forzar Vue a procesar todos los cambios reactivos inmediatamente
+                            this.$forceUpdate();
+                            
+                            // Esperar que Vue procese todos los cambios
+                            await this.$nextTick();
+
+                            console.log(`Producto configurado con información completa:`, {
+                                item_name: item.item.name,
+                                item_unit_type_name: item.item.unit_type.name,
+                                item_warehouse_description: item.item.warehouse_description,
+                                warehouse_description: item.warehouse_description
+                            });
+
+                            // Emitir evento para recargar la lista de productos en el modal item
+                            this.$eventHub.$emit('reloadDataItems', newItemId);
+                            // También recargar toda la lista para asegurar disponibilidad
+                            this.$eventHub.$emit('reloadAllItems');
+                            console.log(`Eventos reloadDataItems y reloadAllItems emitidos para producto ID: ${newItemId}`);
+
+                        } else {
+                            throw new Error('Error en la respuesta del servidor al crear producto');
+                        }
+                    } catch (createError) {
+                        console.error('Error al crear producto:', createError);
+                        
+                        // Capturar más información del error
+                        if (createError.response) {
+                            console.error('Error response:', createError.response.data);
+                            console.error('Status:', createError.response.status);
+                            console.error('Headers:', createError.response.headers);
+                        }
+                        
+                        // El item se mantendrá sin ID, mostrando "Producto no disponible"
+                    }
+
+                } catch (error) {
+                    console.error('Error al buscar/crear producto:', error);
                 }
             }
         }
     }
 </script>
+
+<style scoped>
+/* Estilos para el modal XML DIAN */
+.el-dialog__body .form-group {
+    margin-bottom: 20px;
+}
+
+/* Mejorar el espaciado del input */
+.el-dialog[aria-label="Leer XML desde la DIAN"] .el-input__inner {
+    font-family: 'Courier New', monospace; /* Fuente monoespaciada para mejor visualización de 96 caracteres */
+    font-size: 14px;
+    min-height: 45px;
+    line-height: 45px;
+}
+
+/* Ajustar el contador de caracteres */
+.el-input__count {
+    right: 8px;
+    bottom: 3px;
+    font-size: 12px;
+}
+
+/* Asegurar que el input sea suficientemente ancho */
+.el-input {
+    width: 100% !important;
+}
+
+/* Mejorar el espaciado del modal XML DIAN */
+.el-dialog[aria-label="Leer XML desde la DIAN"] .el-dialog__body {
+    padding: 30px 40px;
+}
+
+.el-dialog[aria-label="Leer XML desde la DIAN"] .el-input__inner {
+    min-height: 45px;
+    line-height: 45px;
+}
+</style>

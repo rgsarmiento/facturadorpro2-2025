@@ -364,6 +364,19 @@ class PurchaseController extends Controller
             'state_type_id' => '01'
         ];
 
+        // Procesar items para asegurar que item_id esté presente
+        if (isset($inputs['items']) && is_array($inputs['items'])) {
+            $processedItems = [];
+            foreach ($inputs['items'] as $item) {
+                // Si no hay item_id pero sí hay un objeto item con id, extraerlo
+                if (!isset($item['item_id']) && isset($item['item']['id'])) {
+                    $item['item_id'] = $item['item']['id'];
+                }
+                $processedItems[] = $item;
+            }
+            $inputs['items'] = $processedItems;
+        }
+
         $inputs->merge($values);
 
         return $inputs->all();
@@ -720,6 +733,8 @@ class PurchaseController extends Controller
                         'price_default' => $row->price_default,
                     ];
                 }),
+                'series_enabled' => (bool) $row->series_enabled,
+                'unit_type' => $row->unit_type,
                 'warehouses' => $row->warehouses,
                 'lots' => $row->lots
             ];
@@ -734,27 +749,84 @@ class PurchaseController extends Controller
     public function readXMLFromDian(Request $request)
     {
         $request->validate([
-            'identifier' => 'required|string|max:50|regex:/^[a-z0-9]+$/'
+            'identifier' => 'required|string|size:96|regex:/^[a-zA-Z0-9]+$/'
         ], [
-            'identifier.regex' => 'El identificador solo puede contener letras y números en minúsculas.'
+            'identifier.size' => 'El identificador debe tener exactamente 96 caracteres.',
+            'identifier.regex' => 'El identificador solo puede contener letras y números.'
         ]);
 
         try {
             $identifier = $request->input('identifier');
 
-            // Aquí iría la lógica para conectar con la API de la DIAN
-            // y obtener el XML del documento
+            // Obtener configuración del servicio de facturación
+            $base_url = config('tenant.service_fact');
+            $company = \Modules\Factcolombia1\Models\TenantService\Company::select('api_token')->firstOrFail();
 
-            // Por ahora simulamos la respuesta
-            // En una implementación real, aquí se haría la consulta a la API de la DIAN
-            // con el identificador proporcionado
+            // Construir la URL del endpoint
+            $endpoint_url = "{$base_url}ubl2.1/xml/document/{$identifier}";
 
-            // Ejemplo de respuesta simulada:
+            // Inicializar cURL
+            $ch = curl_init($endpoint_url);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
+            curl_setopt($ch, CURLOPT_CUSTOMREQUEST, "POST");
+            curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
+            curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, [
+                'Content-Type: application/json',
+                'Accept: application/json',
+                "Authorization: Bearer {$company->api_token}"
+            ]);
+
+            // Ejecutar la petición
+            $response = curl_exec($ch);
+            $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
+            curl_close($ch);
+            \Log::debug($endpoint_url);
+            \Log::debug($company->api_token);
+            \Log::debug($response);
+            if ($response === false) {
+                throw new \Exception('Error al conectar con el servidor de la DIAN');
+            }
+
+            $response_data = json_decode($response, true);
+
+            if ($http_code !== 200 || !$response_data) {
+                throw new \Exception('Respuesta inválida del servidor de la DIAN');
+            }
+
+            // Verificar si la consulta fue exitosa
+            if (!$response_data['success']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => $response_data['message'] ?? 'Documento no encontrado en la DIAN',
+                    'dian_response' => $response_data['ResponseDian'] ?? null
+                ]);
+            }
+
+            // Extraer y decodificar el XML
+            if (!isset($response_data['ResponseDian']['Envelope']['Body']['GetXmlByDocumentKeyResponse']['GetXmlByDocumentKeyResult']['XmlBytesBase64'])) {
+                throw new \Exception('XML no encontrado en la respuesta de la DIAN');
+            }
+
+            $xml_base64 = $response_data['ResponseDian']['Envelope']['Body']['GetXmlByDocumentKeyResponse']['GetXmlByDocumentKeyResult']['XmlBytesBase64'];
+            $xml_content = base64_decode($xml_base64);
+
+            if (!$xml_content) {
+                throw new \Exception('Error al decodificar el XML de la DIAN');
+            }
+
+            // Procesar el XML para extraer los datos de la compra
+            $purchase_data = $this->processXMLFromDian($xml_content);
+
             return response()->json([
-                'success' => false,
-                'message' => 'Funcionalidad en desarrollo. El identificador ' . $identifier . ' será procesado cuando la integración con DIAN esté completada.',
-                'data' => null
-            ], 501); // 501 Not Implemented
+                'success' => true,
+                'message' => 'XML leído exitosamente desde la DIAN',
+                'data' => [
+                    'purchase_data' => $purchase_data,
+                    'xml_content' => $xml_content,
+                    'certificate_days_left' => $response_data['certificate_days_left'] ?? null
+                ]
+            ]);
 
         } catch (\Exception $e) {
             return response()->json([
@@ -762,6 +834,318 @@ class PurchaseController extends Controller
                 'message' => 'Error al procesar la solicitud: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Procesar XML de la DIAN para extraer datos de compra
+     */
+    private function processXMLFromDian($xml_content)
+    {
+        try {
+            // Cargar el XML
+            $xml_document = new \DOMDocument();
+            $xml_document->loadXML($xml_content);
+
+            // Crear XPath para navegar el XML
+            $xpath = new \DOMXPath($xml_document);
+
+            // Registrar namespaces comunes
+            $xpath->registerNamespace('cbc', 'urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2');
+            $xpath->registerNamespace('cac', 'urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2');
+            $xpath->registerNamespace('ext', 'urn:oasis:names:specification:ubl:schema:xsd:CommonExtensionComponents-2');
+            $xpath->registerNamespace('sts', 'urn:dian:gov:co:facturaelectronica:Structures-2-1');
+
+            // Extraer Serie de las extensiones DIAN usando el namespace correcto sts
+            $series = null;
+            $series_paths = [
+                '//ext:UBLExtensions//ext:UBLExtension//ext:ExtensionContent//sts:DianExtensions//sts:InvoiceControl//sts:AuthorizedInvoices//sts:Prefix',
+                '//sts:DianExtensions//sts:InvoiceControl//sts:AuthorizedInvoices//sts:Prefix',
+                '//sts:InvoiceControl//sts:AuthorizedInvoices//sts:Prefix',
+                '//sts:AuthorizedInvoices//sts:Prefix',
+                '//sts:Prefix'
+            ];
+            
+            foreach ($series_paths as $path) {
+                $series = $this->getXmlValue($xpath, $path);
+                if ($series) {
+                    \Log::info("Serie encontrada usando ruta: {$path} = {$series}");
+                    break;
+                }
+            }
+            
+            // Si no se encuentra en extensiones, intentar extraer de los primeros caracteres del número
+            if (!$series) {
+                $full_number = $this->getXmlValue($xpath, '//cbc:ID');
+                if ($full_number) {
+                    // Para facturas colombianas, la serie suele estar en los primeros caracteres antes de los números
+                    if (preg_match('/^([A-Za-z]+)(\d+)$/', $full_number, $matches)) {
+                        $series = $matches[1];
+                    }
+                }
+            }
+
+            // Extraer número completo y quitar la serie para obtener solo el número
+            $full_number = $this->getXmlValue($xpath, '//cbc:ID');
+            $number_only = $full_number;
+            
+            // Si existe una serie, removerla del número completo
+            if ($series && $full_number) {
+                // Si el número completo empieza con la serie, removerla
+                if (strpos($full_number, $series) === 0) {
+                    $number_only = substr($full_number, strlen($series));
+                }
+            } elseif ($full_number) {
+                // Si no hay serie pero tenemos número completo, intentar extraer con regex
+                if (preg_match('/^([A-Za-z]+)(\d+)$/', $full_number, $matches)) {
+                    $series = $matches[1]; // Actualizar serie si se extrajo por regex
+                    $number_only = $matches[2];
+                    \Log::info("Serie y número extraídos por regex - Serie: {$series}, Número: {$number_only}");
+                }
+            }
+            
+            \Log::info("Extracción final - Número completo: {$full_number}, Serie: {$series}, Número solo: {$number_only}");
+
+            // Extraer fechas específicas
+            $issue_date = $this->getXmlValue($xpath, '//cbc:IssueDate');
+            $due_date_paths = [
+                '//cac:PaymentMeans//cbc:PaymentDueDate',
+                '//cac:PaymentTerms//cbc:DueDate',
+                '//cbc:PaymentDueDate',
+                '//cbc:DueDate'
+            ];
+            
+            $due_date = null;
+            foreach ($due_date_paths as $path) {
+                $due_date = $this->getXmlValue($xpath, $path);
+                if ($due_date) {
+                    \Log::info("Fecha de vencimiento encontrada usando ruta: {$path} = {$due_date}");
+                    break;
+                }
+            }
+            
+            if (!$due_date) {
+                \Log::warning("No se pudo encontrar la fecha de vencimiento en el XML");
+            }
+            
+            \Log::info("Fecha de emisión: {$issue_date}, Fecha de vencimiento: {$due_date}");
+
+            // Extraer datos básicos del documento
+            $purchase_data = [
+                'series' => $series,
+                'number' => $number_only,
+                'full_number' => $full_number,
+                'issue_date' => $issue_date,
+                'due_date' => $due_date,
+                'issue_time' => $this->getXmlValue($xpath, '//cbc:IssueTime'),
+                'document_currency_code' => $this->getXmlValue($xpath, '//cbc:DocumentCurrencyCode'),
+                'note' => $this->getXmlValue($xpath, '//cbc:Note'),
+
+                // Datos del proveedor
+                'supplier' => [
+                    'identification_number' => $this->getXmlValue($xpath, '//cac:AccountingSupplierParty//cac:Party//cac:PartyIdentification//cbc:ID') ?? 
+                                              $this->getXmlValue($xpath, '//cac:AccountingSupplierParty//cbc:CompanyID'),
+                    'name' => $this->getXmlValue($xpath, '//cac:AccountingSupplierParty//cac:Party//cac:PartyLegalEntity//cbc:RegistrationName') ?? 
+                             $this->getXmlValue($xpath, '//cac:AccountingSupplierParty//cbc:RegistrationName'),
+                    'address' => $this->getXmlValue($xpath, '//cac:AccountingSupplierParty//cac:Party//cac:PhysicalLocation//cac:Address//cbc:Line') ?? 
+                                $this->getXmlValue($xpath, '//cac:AccountingSupplierParty//cac:PhysicalLocation//cac:Address//cbc:Line'),
+                    'city' => $this->getXmlValue($xpath, '//cac:AccountingSupplierParty//cac:Party//cac:PhysicalLocation//cac:Address//cbc:CityName') ?? 
+                             $this->getXmlValue($xpath, '//cac:AccountingSupplierParty//cac:PhysicalLocation//cac:Address//cbc:CityName'),
+                    'country' => $this->getXmlValue($xpath, '//cac:AccountingSupplierParty//cac:Party//cac:PhysicalLocation//cac:Address//cac:Country//cbc:IdentificationCode') ?? 
+                                $this->getXmlValue($xpath, '//cac:AccountingSupplierParty//cac:PhysicalLocation//cac:Address//cac:Country//cbc:IdentificationCode'),
+                ],
+
+                // Totales monetarios
+                'monetary_totals' => [
+                    'line_extension_amount' => $this->getXmlValue($xpath, '//cac:LegalMonetaryTotal//cbc:LineExtensionAmount'),
+                    'tax_exclusive_amount' => $this->getXmlValue($xpath, '//cac:LegalMonetaryTotal//cbc:TaxExclusiveAmount'),
+                    'tax_inclusive_amount' => $this->getXmlValue($xpath, '//cac:LegalMonetaryTotal//cbc:TaxInclusiveAmount'),
+                    'payable_amount' => $this->getXmlValue($xpath, '//cac:LegalMonetaryTotal//cbc:PayableAmount'),
+                    'allowance_total_amount' => $this->getXmlValue($xpath, '//cac:LegalMonetaryTotal//cbc:AllowanceTotalAmount'),
+                ],
+
+                // Items del documento
+                'items' => $this->extractItemsFromXml($xpath),
+
+                // Impuestos
+                'tax_totals' => $this->extractTaxTotalsFromXml($xpath),
+            ];
+
+            // Log detallado de todos los campos extraídos
+            \Log::info("Resumen de datos extraídos del XML:", [
+                'serie' => $purchase_data['series'],
+                'numero_completo' => $purchase_data['full_number'],
+                'numero_solo' => $purchase_data['number'],
+                'fecha_emision' => $purchase_data['issue_date'],
+                'fecha_vencimiento' => $purchase_data['due_date'],
+                'proveedor_nit' => $purchase_data['supplier']['identification_number'],
+                'proveedor_nombre' => $purchase_data['supplier']['name'],
+                'total_items' => count($purchase_data['items']),
+                'monto_total' => $purchase_data['monetary_totals']['payable_amount'],
+            ]);
+
+            return $purchase_data;
+
+        } catch (\Exception $e) {
+            throw new \Exception('Error al procesar el XML: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Obtener valor de un nodo XML usando XPath
+     */
+    private function getXmlValue($xpath, $query, $default = null, $context_node = null)
+    {
+        if ($context_node) {
+            $nodes = $xpath->query($query, $context_node);
+        } else {
+            $nodes = $xpath->query($query);
+        }
+        return ($nodes->length > 0) ? trim($nodes->item(0)->nodeValue) : $default;
+    }
+
+    /**
+     * Extraer items del XML
+     */
+    private function extractItemsFromXml($xpath)
+    {
+        $items = [];
+        $item_nodes = $xpath->query('//cac:InvoiceLine');
+
+        foreach ($item_nodes as $item_node) {
+            $xpath_item = new \DOMXPath($item_node->ownerDocument);
+            $xpath_item->registerNamespace('cbc', 'urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2');
+            $xpath_item->registerNamespace('cac', 'urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2');
+
+            $xmlTaxId = $this->getXmlValue($xpath_item, './/cac:TaxTotal//cac:TaxSubtotal//cac:TaxCategory//cac:TaxScheme//cbc:ID', '', $item_node);
+            $xmlTaxName = $this->getXmlValue($xpath_item, './/cac:TaxTotal//cac:TaxSubtotal//cac:TaxCategory//cac:TaxScheme//cbc:Name', '', $item_node);
+
+            // Obtener descripción para logging
+            $itemDescription = $this->getXmlValue($xpath_item, './/cac:Item//cbc:Description', '', $item_node);
+
+            // Extraer información de descuentos (AllowanceCharge con ChargeIndicator=false)
+            $allowanceAmount = $this->getXmlValue($xpath_item, './/cac:AllowanceCharge[cbc:ChargeIndicator="false"]//cbc:Amount', 0, $item_node);
+            $allowanceBaseAmount = $this->getXmlValue($xpath_item, './/cac:AllowanceCharge[cbc:ChargeIndicator="false"]//cbc:BaseAmount', 0, $item_node);
+            $allowanceMultiplier = $this->getXmlValue($xpath_item, './/cac:AllowanceCharge[cbc:ChargeIndicator="false"]//cbc:MultiplierFactorNumeric', 0, $item_node);
+            $allowanceReason = $this->getXmlValue($xpath_item, './/cac:AllowanceCharge[cbc:ChargeIndicator="false"]//cbc:AllowanceChargeReason', '', $item_node);
+
+            // Solo buscar descuentos si realmente existen elementos AllowanceCharge con ChargeIndicator=false
+            // NO usar rutas alternativas que puedan confundir cargos con descuentos
+
+            // Log para debugging
+            if ($allowanceAmount > 0 || $allowanceMultiplier > 0) {
+                \Log::info("Descuento extraído para '{$itemDescription}': Amount={$allowanceAmount}, Multiplier={$allowanceMultiplier}, Reason='{$allowanceReason}'");
+            }
+            
+            // Log para debugging de precios
+            $priceAmount = $this->getXmlValue($xpath_item, './/cac:Price//cbc:PriceAmount', 0, $item_node);
+            $priceAmountAlt = $this->getXmlValue($xpath_item, './/cac:PricingReference//cac:AlternativeConditionPrice//cbc:PriceAmount', 0, $item_node);
+            $priceAmountBase = $this->getXmlValue($xpath_item, './/cac:Price//cbc:BaseQuantity', 0, $item_node);
+            $lineExtension = $this->getXmlValue($xpath_item, './/cbc:LineExtensionAmount', 0, $item_node);
+            $quantity = $this->getXmlValue($xpath_item, './/cbc:InvoicedQuantity', 1, $item_node);
+            \Log::info("Precios para '{$itemDescription}': PriceAmount={$priceAmount}, PriceAmountAlt={$priceAmountAlt}, BaseQuantity={$priceAmountBase}, LineExtension={$lineExtension}, Quantity={$quantity}");
+
+            $items[] = [
+                'id' => $this->getXmlValue($xpath_item, './/cbc:ID', null, $item_node),
+                'quantity' => $this->getXmlValue($xpath_item, './/cbc:InvoicedQuantity', 0, $item_node),
+                'unit_code' => $this->getXmlValueAttribute($xpath_item, './/cbc:InvoicedQuantity', 'unitCode', $item_node),
+                'line_extension_amount' => $this->getXmlValue($xpath_item, './/cbc:LineExtensionAmount', 0, $item_node),
+                'price_amount' => $this->getXmlValue($xpath_item, './/cac:Price//cbc:PriceAmount', 0, $item_node),
+                'price_amount_alt' => $this->getXmlValue($xpath_item, './/cac:PricingReference//cac:AlternativeConditionPrice//cbc:PriceAmount', 0, $item_node),
+                'item_description' => $itemDescription,
+                'sellers_item_identification' => $this->getXmlValue($xpath_item, './/cac:Item//cac:SellersItemIdentification//cbc:ID', '', $item_node),
+                // Extraer información de impuestos de la línea
+                'tax_id_xml' => $xmlTaxId,
+                'tax_name_xml' => $xmlTaxName,
+                'tax_id_mapped' => $this->mapTaxIdFromXml($xmlTaxId, $xmlTaxName),
+                'tax_percent' => $this->getXmlValue($xpath_item, './/cac:TaxTotal//cac:TaxSubtotal//cac:TaxCategory//cbc:Percent', 0, $item_node),
+                'tax_amount' => $this->getXmlValue($xpath_item, './/cac:TaxTotal//cac:TaxSubtotal//cbc:TaxAmount', 0, $item_node),
+                // Extraer información de descuentos de la línea
+                'discount_amount' => $allowanceAmount,
+                'discount_base_amount' => $allowanceBaseAmount,
+                'discount_percentage' => floatval($allowanceMultiplier) > 0 ? floatval($allowanceMultiplier) : 0, // NO multiplicar por 100, usar el valor tal como viene
+                'discount_reason' => $allowanceReason,
+                // Solo marcar has_discount si realmente hay descuentos significativos
+                'has_discount' => (floatval($allowanceAmount) > 0.01) || (floatval($allowanceMultiplier) > 0.001),
+            ];
+        }
+
+        return $items;
+    }
+
+    /**
+     * Extraer totales de impuestos del XML
+     */
+    private function extractTaxTotalsFromXml($xpath)
+    {
+        $tax_totals = [];
+        $tax_nodes = $xpath->query('//cac:TaxTotal//cac:TaxSubtotal');
+
+        foreach ($tax_nodes as $tax_node) {
+            $xpath_tax = new \DOMXPath($tax_node->ownerDocument);
+            $xpath_tax->registerNamespace('cbc', 'urn:oasis:names:specification:ubl:schema:xsd:CommonBasicComponents-2');
+            $xpath_tax->registerNamespace('cac', 'urn:oasis:names:specification:ubl:schema:xsd:CommonAggregateComponents-2');
+
+            $tax_totals[] = [
+                'taxable_amount' => $this->getXmlValue($xpath_tax, './/cbc:TaxableAmount', 0, $tax_node),
+                'tax_amount' => $this->getXmlValue($xpath_tax, './/cbc:TaxAmount', 0, $tax_node),
+                'tax_id' => $this->getXmlValue($xpath_tax, './/cac:TaxCategory//cac:TaxScheme//cbc:ID', '', $tax_node),
+                'tax_name' => $this->getXmlValue($xpath_tax, './/cac:TaxCategory//cac:TaxScheme//cbc:Name', '', $tax_node),
+                'percent' => $this->getXmlValue($xpath_tax, './/cac:TaxCategory//cbc:Percent', 0, $tax_node),
+            ];
+        }
+
+        return $tax_totals;
+    }
+
+    /**
+     * Mapear tax_id del XML DIAN a tax_id de la base de datos
+     */
+    private function mapTaxIdFromXml($xmlTaxId, $xmlTaxName)
+    {
+        // Mapeo de códigos de impuestos del XML DIAN a IDs de la base de datos
+        $taxMap = [
+            '01' => 1, // IVA -> ID 1
+            '02' => 2, // IC (Impuesto al Consumo) -> ID 2
+            '03' => 3, // ICA -> ID 3
+            '04' => 4, // INC -> ID 4
+            '05' => 5, // ReteIVA -> ID 5
+            '06' => 6, // ReteFuente -> ID 6
+            '07' => 7, // ReteICA -> ID 7
+            '20' => 8, // FtoHorticultura -> ID 8
+            '21' => 9, // Timbre -> ID 9
+            '22' => 10, // Bolsas -> ID 10
+        ];
+
+        // Si existe mapeo directo por código XML, usarlo
+        if (isset($taxMap[$xmlTaxId])) {
+            return $taxMap[$xmlTaxId];
+        }
+
+        // Si no, intentar mapear por nombre
+        if (strpos(strtolower($xmlTaxName), 'iva') !== false) {
+            return 1; // IVA por defecto
+        }
+
+        // Si no se puede mapear, devolver IVA por defecto
+        return 1;
+    }
+
+    /**
+     * Obtener valor de atributo de un nodo XML usando XPath
+     */
+    private function getXmlValueAttribute($xpath, $query, $attribute, $context_node = null)
+    {
+        if ($context_node) {
+            $nodes = $xpath->query($query, $context_node);
+        } else {
+            $nodes = $xpath->query($query);
+        }
+
+        if ($nodes->length > 0 && $nodes->item(0)->hasAttribute($attribute)) {
+            return $nodes->item(0)->getAttribute($attribute);
+        }
+
+        return null;
     }
 
 }
