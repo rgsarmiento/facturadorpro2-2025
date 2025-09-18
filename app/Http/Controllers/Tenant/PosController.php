@@ -57,35 +57,35 @@ class PosController extends Controller
             $configuration_pos = ConfigurationPos::first();
             $configuration->configuration_pos = $configuration_pos;
         } else {
-            $cash = Cash::where([['user_id', auth()->user()->id],['state', true]])->first();
+            $cash = Cash::where([['user_id', auth()->user()->id], ['state', true]])->first();
 
-            if(!$cash) return redirect()->route('tenant.cash.index');
-            if(!$cash->resolution_id) return redirect()->route('tenant.cash.index');
+            if (!$cash) return redirect()->route('tenant.cash.index');
+            if (!$cash->resolution_id) return redirect()->route('tenant.cash.index');
 
             $configuration = Configuration::first();
             $configuration_pos = ConfigurationPos::where('id', $cash->resolution_id)->firstOrFail();
             $configuration->configuration_pos = $configuration_pos;
         }
 
-        $establishment_id = User::where('id',auth()->user()->id)->first();
-        $tables = Establishment::select('tables')->where('id',$establishment_id->establishment_id)->first();
+        $establishment_id = User::where('id', auth()->user()->id)->first();
+        $tables = Establishment::select('tables')->where('id', $establishment_id->establishment_id)->first();
         $tables_quantity = $tables->tables;
         $cuentas = [];
 
-        if(!empty($tables)){
+        if (!empty($tables)) {
             $tables_array = Table::select('id', 'table_number')->where('establishment_id', $establishment_id->establishment_id)->get();
 
-            foreach($tables_array as $line){
+            foreach ($tables_array as $line) {
                 $account = TableAccount::select('account')
                     ->where('account', $line->id)->whereIn('state', ['A', 'R'])->first();
 
-                if(!empty($account)){
+                if (!empty($account)) {
                     $cuentas[] = [
                         'id' => $account->account,
                         'state' => 1,
                         'table_number' => $line->table_number
                     ];
-                }else{
+                } else {
                     $cuentas[] = [
                         'id' => $line->id,
                         'state' => 0,
@@ -113,7 +113,7 @@ class PosController extends Controller
         $data = $request->all();
 
         $table = Table::select('id')->where('establishment_id', $data['establecimiento'])
-        ->where('table_number', $data['mesa'])->first();
+            ->where('table_number', $data['mesa'])->first();
 
         if (!$table) {
             return response()->json(['success' => false, 'message' => 'Mesa no encontrada'], 404);
@@ -138,29 +138,30 @@ class PosController extends Controller
         ]);
     }
 
-    public function account_list(Request $request){
+    public function account_list(Request $request)
+    {
         $data = $request->all();
 
         $table = Table::select('id')->where('establishment_id', $data['establecimiento'])
-        ->where('table_number', $data['mesa'])
-        ->where('id', $data['mesaId'])->first();
+            ->where('table_number', $data['mesa'])
+            ->where('id', $data['mesaId'])->first();
 
         $products = TableAccount::select('item_description', 'price', 'quantity', 'account', 'id', 'item_id', 'state')
-        ->where('account', $table->id)->whereIn('state', ['A', 'R'])->get();
+            ->where('account', $table->id)->whereIn('state', ['A', 'R'])->get();
 
-        if($products->isEmpty()){
+        if ($products->isEmpty()) {
             return response()->json([
                 'message' => 'La cuenta no tiene productos.',
             ], 422);
-        }else{
+        } else {
             return response()->json([
                 'data' => $products
             ]);
         }
     }
 
-    public function record_detalle(Request $request){
-
+    public function record_detalle(Request $request)
+    {
         $mesaId = $request->input('mesaId');
         $establecimiento = $request->input('establecimiento');
         $customerId = $request->input('customer');
@@ -172,13 +173,16 @@ class PosController extends Controller
         $total_impuestos = 0;
 
         $items = TableAccount::select('item_description', 'price', 'quantity', 'account', 'id', 'item_id', 'state')
-        ->where('account', $mesaId)->whereIn('state', ['A', 'R'])->get();
+            ->where('account', $mesaId)
+            ->whereIn('state', ['A', 'R'])
+            ->get();
+
+        $configuracion_imp = AdvancedConfiguration::select('item_tax_included')->first();
+        $tax_included = $configuracion_imp ? $configuracion_imp->item_tax_included : 1; // por defecto 1
 
         $sucursal = Establishment::where('id', $establecimiento)->first();
-
         $customer = Person::where('id', $customerId)->first();
 
-        // Si no hay customer, crear uno por defecto
         if (!$customer) {
             $customer = (object) [
                 'name' => 'Cliente General',
@@ -190,16 +194,11 @@ class PosController extends Controller
         $company = Company::active();
         $date_of_issue = Carbon::now()->toDateString();
         $created_at = Carbon::now()->format('H:i:s');
-        $account = $items[0]->account;
+        $account = $items->isNotEmpty() ? $items[0]->account : null;
 
         foreach ($items as $product) {
-            $total_unidad = 0;
-            $total_linea = 0;
-            $total_linea_impuesto = 0;
-
             $item = Item::find($product->item_id);
 
-            // Asegurar que siempre hay un objeto item, incluso si no se encuentra en la base de datos
             if (!$item) {
                 $item = (object) [
                     'internal_id' => 'N/A',
@@ -210,83 +209,120 @@ class PosController extends Controller
                 ];
             }
 
-            // Asignar el item al producto siempre
             $product->item = $item;
 
-            $taxes = Tax::select('id','rate', 'name', 'is_retention')->where('id', $item->tax_id)->first();
+            $taxes = Tax::select('id', 'rate', 'name', 'is_retention')
+                ->where('id', $item->tax_id)
+                ->first();
 
-            if ($item && $taxes && isset($item->tax_id)) {
-                $total_unidad = ($item->sale_unit_price * $taxes->rate) / 100;
-                $total_linea = $total_unidad * $product->quantity;
-                $total_linea_impuesto = ($total_unidad + $item->sale_unit_price) * $product->quantity;
+            $line_subtotal = $item->sale_unit_price * $product->quantity;
 
-                if (!isset($impuesto[$taxes->id])) {
-                    $impuesto[$taxes->id] = [
-                        'name' => $taxes->name,
-                        'total' => 0,
-                        'is_retention' => $taxes->is_retention ?? false,
-                    ];
+            if ($taxes && isset($item->tax_id)) {
+                $line_tax = ($line_subtotal * $taxes->rate) / 100;
+
+                if ($tax_included) {
+                    // precios incluyen impuestos
+                    $product->subtotal = $line_subtotal;
+                    $product->total_tax = $line_tax;
+
+                    $subtotal += $line_subtotal;
+                    $total_impuestos += $line_tax;
+
+                    if (!isset($impuesto[$taxes->id])) {
+                        $impuesto[$taxes->id] = [
+                            'name' => $taxes->name,
+                            'total' => 0,
+                            'is_retention' => $taxes->is_retention ?? false,
+                        ];
+                    }
+                    $impuesto[$taxes->id]['total'] += $line_tax;
+                } else {
+                    $product->subtotal = $line_subtotal;
+                    $product->total_tax = 0;
+
+                    $subtotal += $line_subtotal;
+
+                    if (!isset($impuesto[$taxes->id])) {
+                        $impuesto[$taxes->id] = [
+                            'name' => $taxes->name,
+                            'total' => 0,
+                            'is_retention' => $taxes->is_retention ?? false,
+                        ];
+                    }
+                    $impuesto[$taxes->id]['total'] += $line_tax;
+                    $total_impuestos += $line_tax;
                 }
-
-                $impuesto[$taxes->id]['total'] += $total_linea;
-
-                $product->total_tax = $total_linea;
-                $product->subtotal = $total_linea_impuesto;
             } else {
-                // Si no hay taxes o hay algún problema, usar valores por defecto
+                $product->subtotal = $line_subtotal;
                 $product->total_tax = 0;
-                $product->subtotal = $item->sale_unit_price * $product->quantity;
+                $subtotal += $line_subtotal;
             }
-
-            $subtotal += $item->sale_unit_price * $product->quantity;
-            $total_impuestos += $total_linea;
         }
 
         $total_sin_impuestos = $subtotal - $descuento;
-        $total_venta += $subtotal + $total_impuestos;
+        $total_venta = $tax_included ? $subtotal : $subtotal + $total_impuestos;
 
-       if ($items->isEmpty()) {
+        if ($items->isEmpty()) {
             $mensaje = "La cuenta no tiene productos para mostrar.";
 
             $customPaper = [0, 0, 226, 600];
-            $pdf = PDF::loadView('tenant.pos.account_ticket_empty', compact('mensaje', 'sucursal', 'customer', 'company', 'date_of_issue', 'created_at'))
-                ->setPaper($customPaper, 'portrait');
+            $pdf = PDF::loadView(
+                'tenant.pos.account_ticket_empty',
+                compact('mensaje', 'sucursal', 'customer', 'company', 'date_of_issue', 'created_at')
+            )->setPaper($customPaper, 'portrait');
 
             return $pdf->stream("ticket.pdf");
         }
 
         $customPaper = [0, 0, 226, 600];
-        $pdf = PDF::loadView('tenant.pos.account_ticket', compact('items', 'sucursal', 'customer', 'company', 'date_of_issue', 'created_at', 'subtotal', 'descuento', 'total_sin_impuestos', 'impuesto', 'total_venta', 'account'))
-            ->setPaper($customPaper, 'portrait');
+        $pdf = PDF::loadView(
+            'tenant.pos.account_ticket',
+            compact(
+                'items',
+                'sucursal',
+                'customer',
+                'company',
+                'date_of_issue',
+                'created_at',
+                'subtotal',
+                'descuento',
+                'total_sin_impuestos',
+                'impuesto',
+                'total_venta',
+                'account'
+            )
+        )->setPaper($customPaper, 'portrait');
+
         return $pdf->stream("ticket.pdf");
     }
 
-    public function transfer_account(Request $request){
+    public function transfer_account(Request $request)
+    {
         $data = $request->all();
 
-        if($data['mesa_nueva'] <= 0){
+        if ($data['mesa_nueva'] <= 0) {
             return response()->json([
                 'message' => 'El número de la cuenta debe ser mayor de 0.',
             ], 422);
         }
 
         $table = Table::select('id')->where('establishment_id', $data['establecimiento'])
-        ->where('table_number', $data['mesa_nueva'])->first();
+            ->where('table_number', $data['mesa_nueva'])->first();
 
         $products = TableAccount::select('item_description', 'price', 'quantity')
-        ->where('account', $data['mesa_id'])->whereIn('state', ['A', 'R'])->get();
+            ->where('account', $data['mesa_id'])->whereIn('state', ['A', 'R'])->get();
 
-        if($products->isEmpty()){
+        if ($products->isEmpty()) {
             return response()->json([
                 'message' => 'La cuenta ' . $data['mesa'] . ' no tiene productos.',
             ], 422);
-        }else{
+        } else {
 
             TableAccount::where('account', $data['mesa_id'])
                 ->whereIn('state', ['A', 'R'])
                 ->update([
-                'account' => $table->id,
-            ]);
+                    'account' => $table->id,
+                ]);
 
             return [
                 'success' => true,
@@ -295,17 +331,17 @@ class PosController extends Controller
         }
 
         $products2 = TableAccount::select('item_description', 'price', 'quantity')
-        ->where('account', $data['mesa_id'])->where('state', 'R')->get();
+            ->where('account', $data['mesa_id'])->where('state', 'R')->get();
 
-        if(!$products2->isEmpty()){
+        if (!$products2->isEmpty()) {
             return response()->json([
                 'message' => 'La cuenta ' . $data['mesa'] . ' se encuentra en proceso de facturación.',
             ], 422);
         }
-
     }
 
-    public function delete_product(Request $request){
+    public function delete_product(Request $request)
+    {
         $data = $request->all();
 
         TableAccount::where('account', $data['mesa_id'])
@@ -319,27 +355,29 @@ class PosController extends Controller
         ];
     }
 
-    public function shopping_car (Request $request){
+    public function shopping_car(Request $request)
+    {
         $data = $request->all();
 
         $table = Table::select('id')->where('establishment_id', $data['establecimiento'])
-        ->where('table_number', $data['mesa'])->first();
+            ->where('table_number', $data['mesa'])->first();
 
         $products = TableAccount::select('item_description', 'price', 'quantity', 'account', 'id')
-        ->where('account', $table->id)->whereIn('state', ['A', 'R'])->get();
+            ->where('account', $table->id)->whereIn('state', ['A', 'R'])->get();
 
-        if($products->isEmpty()){
+        if ($products->isEmpty()) {
             return response()->json([
                 'message' => 'La cuenta no tiene productos.',
             ], 422);
-        }else{
+        } else {
             return response()->json([
                 'data' => $products
             ]);
         }
     }
 
-    public function delete_account(Request $request){
+    public function delete_account(Request $request)
+    {
         $data = $request->all();
 
         TableAccount::where('account', $data['mesa_id'])
@@ -352,35 +390,43 @@ class PosController extends Controller
         ];
     }
 
-    public function get_item($id, $id_cuenta){
-
+    public function get_item($id, $id_cuenta)
+    {
         $item = Item::with('tax')->findOrFail($id);
 
         $tax_percentage = $item->tax ? $item->tax->percentage : 0;
 
-        $item->sale_unit_price_with_tax = round($item->sale_unit_price * (1 + ($tax_percentage / 100)), 2);
-        $id_user = auth()->user()->id;
+        $configuracion_imp = AdvancedConfiguration::select('item_tax_included')->first();
+        $tax_included = $configuracion_imp ? $configuracion_imp->item_tax_included : 1;
 
+        if (!$tax_included) {
+            $item->sale_unit_price_with_tax = $item->sale_unit_price;
+        } else {
+            $item->sale_unit_price_with_tax = round($item->sale_unit_price * (1 + ($tax_percentage / 100)), 2);
+        }
+
+        $id_user = auth()->user()->id;
         $profile = User::select('type')->where('id', $id_user)->first();
 
-        if($profile->type == 'comand'){
+        if ($profile->type == 'comand') {
             return response()->json([
                 'message' => 'El usuario no puede facturar.',
             ], 422);
-        }else{
+        } else {
             TableAccount::where('id', $id_cuenta)
                 ->update([
-                'state' => 'R',
-            ]);
+                    'state' => 'R',
+                ]);
 
             return response()->json([
                 'data' => $item
             ]);
         }
-
     }
 
-    public function actualizar_estado_item($item) {
+
+    public function actualizar_estado_item($item)
+    {
         $updated = TableAccount::where('id', $item)
             ->update(['state' => 'A']);
 
@@ -398,10 +444,10 @@ class PosController extends Controller
 
     public function configuration_store(ConfigurationPosRequest $request)
     {
-        try{
+        try {
             $configuration = ConfigurationPos::updateOrCreate(['resolution_number' => $request->resolution_number, 'prefix' => $request->prefix], $request->all());
-//            \Log::debug($request->all());
-            if($request->electronic === true){
+            //            \Log::debug($request->all());
+            if ($request->electronic === true) {
                 $company = ServiceCompany::firstOrFail();
                 $base_url = config("tenant.service_fact", "");
                 $ch3 = curl_init("{$base_url}ubl2.1/config/resolution");
@@ -416,13 +462,13 @@ class PosController extends Controller
                     'date_from' => Carbon::parse($request->date_from)->toDateString(),
                     'date_to' => Carbon::parse($request->date_end)->toDateString(),
                 ];
-                if($request->type_resolution == "Factura Electronica de Venta")
+                if ($request->type_resolution == "Factura Electronica de Venta")
                     $data['type_document_id'] = 1;
 
                 $data_resolution = json_encode($data);
                 curl_setopt($ch3, CURLOPT_RETURNTRANSFER, true);
                 curl_setopt($ch3, CURLOPT_CUSTOMREQUEST, "PUT");
-                curl_setopt($ch3, CURLOPT_POSTFIELDS,($data_resolution));
+                curl_setopt($ch3, CURLOPT_POSTFIELDS, ($data_resolution));
                 curl_setopt($ch3, CURLOPT_SSL_VERIFYHOST, 0);
                 curl_setopt($ch3, CURLOPT_SSL_VERIFYPEER, 0);
                 curl_setopt($ch3, CURLOPT_HTTPHEADER, array(
@@ -438,7 +484,7 @@ class PosController extends Controller
 
                 //return json_encode($respuesta);
 
-                if($err) {
+                if ($err) {
                     $r = ConfigurationPos::where('resolution_number', $request->resolution_number)->where('prefix', $request->prefix)->first();
                     $r->forceDelete();
                     return [
@@ -452,8 +498,7 @@ class PosController extends Controller
                 'success' => true,
                 'message' => 'Cambios guardados correctamente.',
             ];
-        }
-        catch (\Exception $e){
+        } catch (\Exception $e) {
             $r = ConfigurationPos::where('resolution_number', $request->resolution_number)->where('prefix', $request->prefix)->first();
             $r->forceDelete();
             return [
@@ -465,9 +510,9 @@ class PosController extends Controller
 
     public function index_full()
     {
-        $cash = Cash::where([['user_id', auth()->user()->id],['state', true]])->first();
+        $cash = Cash::where([['user_id', auth()->user()->id], ['state', true]])->first();
 
-        if(!$cash) return redirect()->route('tenant.cash.index');
+        if (!$cash) return redirect()->route('tenant.cash.index');
 
         return view('tenant.pos.index_full');
     }
@@ -475,21 +520,21 @@ class PosController extends Controller
     public function search_items(Request $request)
     {
         $configuration =  Configuration::first();
-        $items = Item::where('name','like',  '%' . $request->input_item . '%')
-                    ->orWhere('description','like',  '%' . $request->input_item . '%')
-                    ->orWhere('internal_id','like',  '%' . $request->input_item . '%')
-                    ->orWhereHas('category', function($query) use($request) {
-                        $query->where('name', 'like', '%' . $request->input_item . '%');
-                    })
-                    ->orWhereHas('brand', function($query) use($request) {
-                        $query->where('name', 'like', '%' . $request->input_item . '%');
-                    })
-                    ->whereWarehouse()
-                    ->whereIsActive()
-                    ->when($request->has('cat') && $request->cat != '', function ($query) use ($request) {
-                        $query->where('category_id', $request->cat);
-                    })
-                    ->paginate(50);
+        $items = Item::where('name', 'like',  '%' . $request->input_item . '%')
+            ->orWhere('description', 'like',  '%' . $request->input_item . '%')
+            ->orWhere('internal_id', 'like',  '%' . $request->input_item . '%')
+            ->orWhereHas('category', function ($query) use ($request) {
+                $query->where('name', 'like', '%' . $request->input_item . '%');
+            })
+            ->orWhereHas('brand', function ($query) use ($request) {
+                $query->where('name', 'like', '%' . $request->input_item . '%');
+            })
+            ->whereWarehouse()
+            ->whereIsActive()
+            ->when($request->has('cat') && $request->cat != '', function ($query) use ($request) {
+                $query->where('category_id', $request->cat);
+            })
+            ->paginate(50);
         return new PosCollection($items, $configuration);
     }
 
@@ -508,11 +553,11 @@ class PosController extends Controller
         $establishment = Establishment::where('id', auth()->user()->establishment_id)->first();
 
 
-        return compact('items', 'customers','currencies','taxes','user', 'categories', 'establishment');
-
+        return compact('items', 'customers', 'currencies', 'taxes', 'user', 'categories', 'establishment');
     }
 
-    public function payment_tables(){
+    public function payment_tables()
+    {
 
         $payment_method_types = PaymentMethodType::all();
         $cards_brand = CardBrand::all();
@@ -521,27 +566,27 @@ class PosController extends Controller
         $type_invoices = TypeInvoice::where('id', 1)->get();
 
         $type_documents = TypeDocument::query()
-                            ->where('id', 1)
-                            ->get()
-                            ->each(function($typeDocument) {
-                                $typeDocument->alert_range = (($typeDocument->to - 100) < (Document::query()
-                                    ->hasPrefix($typeDocument->prefix)
-                                    ->whereBetween('number', [$typeDocument->from, $typeDocument->to])
-                                    ->max('number') ?? $typeDocument->from));
+            ->where('id', 1)
+            ->get()
+            ->each(function ($typeDocument) {
+                $typeDocument->alert_range = (($typeDocument->to - 100) < (Document::query()
+                    ->hasPrefix($typeDocument->prefix)
+                    ->whereBetween('number', [$typeDocument->from, $typeDocument->to])
+                    ->max('number') ?? $typeDocument->from));
 
-                                $typeDocument->alert_date = ($typeDocument->resolution_date_end == null) ? false : Carbon::parse($typeDocument->resolution_date_end)->subMonth(1)->lt(Carbon::now());
-                            });
+                $typeDocument->alert_date = ($typeDocument->resolution_date_end == null) ? false : Carbon::parse($typeDocument->resolution_date_end)->subMonth(1)->lt(Carbon::now());
+            });
 
         $payment_methods = PaymentMethod::all();
 
         $payment_forms = PaymentForm::all();
 
-        $series = Series::whereIn('document_type_id',['80'])
-                        ->where([['establishment_id', auth()->user()->establishment_id],['contingency',false]])
-                        ->get();
+        $series = Series::whereIn('document_type_id', ['80'])
+            ->where([['establishment_id', auth()->user()->establishment_id], ['contingency', false]])
+            ->get();
 
         $limit_uvt = AdvancedConfiguration::getPublicConfiguration(['uvt'])->getLimitUvt();
-        return compact('payment_method_types','cards_brand', 'payment_destinations', 'series', 'type_invoices', 'type_documents', 'payment_methods', 'payment_forms', 'limit_uvt');
+        return compact('payment_method_types', 'cards_brand', 'payment_destinations', 'series', 'type_invoices', 'type_documents', 'payment_methods', 'payment_forms', 'limit_uvt');
     }
 
     public function table($table)
@@ -549,7 +594,7 @@ class PosController extends Controller
 
         if ($table === 'taxes') {
 
-            return Tax::all()->transform(function($row) {
+            return Tax::all()->transform(function ($row) {
                 return [
                     'id' => $row->id,
                     'name' => $row->name,
@@ -570,10 +615,10 @@ class PosController extends Controller
         }
 
         if ($table === 'customers') {
-            $customers = Person::whereType('customers')->whereIsEnabled()->orderBy('name')->get()->transform(function($row) {
+            $customers = Person::whereType('customers')->whereIsEnabled()->orderBy('name')->get()->transform(function ($row) {
                 return [
                     'id' => $row->id,
-                    'description' => $row->number.' - '.$row->name,
+                    'description' => $row->number . ' - ' . $row->name,
                     'name' => $row->name,
                     'number' => $row->number,
                     'identity_document_type_id' => $row->identity_document_type_id,
@@ -590,46 +635,48 @@ class PosController extends Controller
             $configuration =  Configuration::first();
 
             $items = Item::whereWarehouse()->whereNotItemsAiu()->whereIsActive()->where('unit_type_id', '!=', 'ZZ')->orderBy('description')->take(100)
-                            ->get()->transform(function($row) use ($configuration) {
-                                $full_description = ($row->internal_id)?$row->internal_id.' - '.$row->description:$row->name;
-                                return [
-                                    'id' => $row->id,
-                                    'item_id' => $row->id,
-                                    'full_description' => $full_description,
-                                    'name' => $row->name,
-                                    'description' => $row->description,
-                                    'currency_type_id' => $row->currency_type->id,
-                                    'internal_id' => $row->internal_id,
-                                    'currency_type_symbol' => $row->currency_type->symbol,
-                                    'sale_unit_price' => number_format($row->sale_unit_price, $configuration->decimal_quantity, ".",""),
-                                    'unit_type_id' => $row->unit_type_id,
-                                    'calculate_quantity' => (bool) $row->calculate_quantity,
-                                    'tax_id' => $row->tax_id,
-                                    'is_set' => (bool) $row->is_set,
-                                    'edit_unit_price' => false,
-                                    'aux_quantity' => 1,
-                                    'edit_sale_unit_price' => number_format($row->sale_unit_price, $configuration->decimal_quantity, ".",""),
-                                    'aux_sale_unit_price' => number_format($row->sale_unit_price, $configuration->decimal_quantity, ".",""),
-                                    'image_url' => ($row->image !== 'imagen-no-disponible.jpg') ? asset('storage'.DIRECTORY_SEPARATOR.'uploads'.DIRECTORY_SEPARATOR.'items'.DIRECTORY_SEPARATOR.$row->image) : asset("/logo/{$row->image}"),
-                                    'warehouses' => collect($row->warehouses)->transform(function($row) {
-                                        return [
-                                            'warehouse_description' => $row->warehouse->description,
-                                            'stock' => $row->stock,
-                                        ];
-                                    }),
-                                    'category_id' => ($row->category) ? $row->category->id : null,
-                                    'sets' => collect($row->sets)->transform(function($r){
-                                        return [
-                                            $r->individual_item->name
-                                        ];
-                                    }),
-                                    'unit_type' => $row->unit_type,
-                                    'tax' => $row->tax,
-                                    'item_unit_types' => $row->item_unit_types->transform(function($row) { return $row->getSearchRowResource();}),
-                                    //'sale_unit_price_calculate' => self::calculateSalePrice($row)
-                                    'sale_unit_price_with_tax' => $this->getSaleUnitPriceWithTax($row, $configuration->decimal_quantity)
-                                ];
-                            });
+                ->get()->transform(function ($row) use ($configuration) {
+                    $full_description = ($row->internal_id) ? $row->internal_id . ' - ' . $row->description : $row->name;
+                    return [
+                        'id' => $row->id,
+                        'item_id' => $row->id,
+                        'full_description' => $full_description,
+                        'name' => $row->name,
+                        'description' => $row->description,
+                        'currency_type_id' => $row->currency_type->id,
+                        'internal_id' => $row->internal_id,
+                        'currency_type_symbol' => $row->currency_type->symbol,
+                        'sale_unit_price' => number_format($row->sale_unit_price, $configuration->decimal_quantity, ".", ""),
+                        'unit_type_id' => $row->unit_type_id,
+                        'calculate_quantity' => (bool) $row->calculate_quantity,
+                        'tax_id' => $row->tax_id,
+                        'is_set' => (bool) $row->is_set,
+                        'edit_unit_price' => false,
+                        'aux_quantity' => 1,
+                        'edit_sale_unit_price' => number_format($row->sale_unit_price, $configuration->decimal_quantity, ".", ""),
+                        'aux_sale_unit_price' => number_format($row->sale_unit_price, $configuration->decimal_quantity, ".", ""),
+                        'image_url' => ($row->image !== 'imagen-no-disponible.jpg') ? asset('storage' . DIRECTORY_SEPARATOR . 'uploads' . DIRECTORY_SEPARATOR . 'items' . DIRECTORY_SEPARATOR . $row->image) : asset("/logo/{$row->image}"),
+                        'warehouses' => collect($row->warehouses)->transform(function ($row) {
+                            return [
+                                'warehouse_description' => $row->warehouse->description,
+                                'stock' => $row->stock,
+                            ];
+                        }),
+                        'category_id' => ($row->category) ? $row->category->id : null,
+                        'sets' => collect($row->sets)->transform(function ($r) {
+                            return [
+                                $r->individual_item->name
+                            ];
+                        }),
+                        'unit_type' => $row->unit_type,
+                        'tax' => $row->tax,
+                        'item_unit_types' => $row->item_unit_types->transform(function ($row) {
+                            return $row->getSearchRowResource();
+                        }),
+                        //'sale_unit_price_calculate' => self::calculateSalePrice($row)
+                        'sale_unit_price_with_tax' => $this->getSaleUnitPriceWithTax($row, $configuration->decimal_quantity)
+                    ];
+                });
             return $items;
         }
 
@@ -638,7 +685,6 @@ class PosController extends Controller
 
             $card_brands = CardBrand::all();
             return $card_brands;
-
         }
 
         return [];
@@ -652,57 +698,49 @@ class PosController extends Controller
      * @return double
      */
 
-     private static $advancedConfig = null;
+    private static $advancedConfig = null;
 
-     private function getAdvancedConfiguration()
-     {
-         // Si aún no se ha obtenido la configuración avanzada, la obtenemos.
-         if (self::$advancedConfig === null) {
-             self::$advancedConfig = \Modules\Factcolombia1\Models\TenantService\AdvancedConfiguration::getPublicConfiguration();
-         }
-         return self::$advancedConfig;
-     }
+    private function getAdvancedConfiguration()
+    {
+        // Si aún no se ha obtenido la configuración avanzada, la obtenemos.
+        if (self::$advancedConfig === null) {
+            self::$advancedConfig = \Modules\Factcolombia1\Models\TenantService\AdvancedConfiguration::getPublicConfiguration();
+        }
+        return self::$advancedConfig;
+    }
 
-     private function getSaleUnitPriceWithTax($item, $decimal_quantity)
-     {
-         // Obtenemos la configuración avanzada (se consulta solo una vez gracias al cache estático).
-         $advancedConfig = $this->getAdvancedConfiguration();
+    private function getSaleUnitPriceWithTax($item, $decimal_quantity)
+    {
+        // Obtenemos la configuración avanzada (se consulta solo una vez gracias al cache estático).
+        $advancedConfig = $this->getAdvancedConfiguration();
 
-         // Se utiliza el valor de item_tax_included de AdvancedConfiguration para determinar el cálculo.
-         if ($advancedConfig->item_tax_included) {
-             // Si Incluir impuesto al precio de registro falso sedebe dejar el producto con el iva incluido
-             $taxRate   = $item->tax->rate ?? 0;
-             $conversion = $item->tax->conversion ?? 1;
-             $price = $item->sale_unit_price * (1 + ($taxRate / $conversion));
-         } else {
-             // Incluir impuesto al precio de registro se debe sumar el iva pero como el precio se esta sumando el iva se deja tal cual
-             $price = $item->sale_unit_price;
+        // Se utiliza el valor de item_tax_included de AdvancedConfiguration para determinar el cálculo.
+        if ($advancedConfig->item_tax_included) {
+            // Si Incluir impuesto al precio de registro falso sedebe dejar el producto con el iva incluido
+            $taxRate   = $item->tax->rate ?? 0;
+            $conversion = $item->tax->conversion ?? 1;
+            $price = $item->sale_unit_price * (1 + ($taxRate / $conversion));
+        } else {
+            // Incluir impuesto al precio de registro se debe sumar el iva pero como el precio se esta sumando el iva se deja tal cual
+            $price = $item->sale_unit_price;
+        }
 
-         }
-
-         return number_format($price, $decimal_quantity, ".", "");
-     }
+        return number_format($price, $decimal_quantity, ".", "");
+    }
 
     public static function calculateSalePrice($item)
     {
         $total_tax = 0;
 
-        if($item->tax)
-        {
-            if($item->tax->is_fixed_value)
-            {
-                $total_tax = ( $item->tax->rate * 1 - ($item->discount < $item->unit_price * 1 ? $item->discount : 0));
+        if ($item->tax) {
+            if ($item->tax->is_fixed_value) {
+                $total_tax = ($item->tax->rate * 1 - ($item->discount < $item->unit_price * 1 ? $item->discount : 0));
             }
 
-            if($item->tax->is_percentage)
-            {
-                $total_tax = ( ($item->unit_price * 1 - ($item->discount < $item->unit_price * 1 ? $item->discount : 0)) * ($item->tax->rate / $item->tax->conversion));
-
+            if ($item->tax->is_percentage) {
+                $total_tax = (($item->unit_price * 1 - ($item->discount < $item->unit_price * 1 ? $item->discount : 0)) * ($item->tax->rate / $item->tax->conversion));
             }
-
-        }
-        else{
-
+        } else {
         }
     }
 
@@ -711,30 +749,32 @@ class PosController extends Controller
         return view('tenant.pos.payment');
     }
 
-    public function status_configuration(){
+    public function status_configuration()
+    {
 
         $configuration = Configuration::first();
 
         return $configuration;
     }
 
-    public function validate_stock($item_id, $quantity){
+    public function validate_stock($item_id, $quantity)
+    {
 
         $inventory_configuration = InventoryConfiguration::firstOrFail();
         $warehouse = Warehouse::where('establishment_id', auth()->user()->establishment_id)->first();
-        $item_warehouse = ItemWarehouse::where([['item_id',$item_id], ['warehouse_id',$warehouse->id]])->first();
+        $item_warehouse = ItemWarehouse::where([['item_id', $item_id], ['warehouse_id', $warehouse->id]])->first();
         $item = Item::findOrFail($item_id);
 
-        if($item->is_set){
+        if ($item->is_set) {
 
             $sets = $item->sets;
 
             foreach ($sets as $set) {
 
                 $individual_item = $set->individual_item;
-                $item_warehouse = ItemWarehouse::where([['item_id',$individual_item->id], ['warehouse_id',$warehouse->id]])->first();
+                $item_warehouse = ItemWarehouse::where([['item_id', $individual_item->id], ['warehouse_id', $warehouse->id]])->first();
 
-                if(!$item_warehouse)
+                if (!$item_warehouse)
                     return [
                         'success' => false,
                         'message' => "El producto seleccionado no está disponible en su almacén!"
@@ -743,8 +783,8 @@ class PosController extends Controller
                 $stock = $item_warehouse->stock - $quantity;
 
 
-                if($item_warehouse->item->unit_type_id !== 'ZZ'){
-                    if (($inventory_configuration->stock_control) && ($stock < 0)){
+                if ($item_warehouse->item->unit_type_id !== 'ZZ') {
+                    if (($inventory_configuration->stock_control) && ($stock < 0)) {
                         return [
                             'success' => false,
                             'message' => "El producto {$item_warehouse->item->description} registrado en el conjunto {$item->description} no tiene suficiente stock!"
@@ -753,13 +793,10 @@ class PosController extends Controller
                 }
                 // dd($individual_item);
             }
+        } else {
 
 
-
-        }else{
-
-
-            if(!$item_warehouse)
+            if (!$item_warehouse)
                 return [
                     'success' => false,
                     'message' => "El producto seleccionado no está disponible en su almacén!"
@@ -768,15 +805,14 @@ class PosController extends Controller
             $stock = $item_warehouse->stock - $quantity;
 
 
-            if($item_warehouse->item->unit_type_id !== 'ZZ'){
-                if (($inventory_configuration->stock_control) && ($stock < 0)){
+            if ($item_warehouse->item->unit_type_id !== 'ZZ') {
+                if (($inventory_configuration->stock_control) && ($stock < 0)) {
                     return [
                         'success' => false,
                         'message' => "El producto {$item_warehouse->item->description} no tiene suficiente stock!"
                     ];
                 }
             }
-
         }
         return [
             'success' => true,
