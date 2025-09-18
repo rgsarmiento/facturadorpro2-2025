@@ -220,10 +220,10 @@
                 console.log('itemTaxes computed called');
                 console.log('itemTaxes - Props taxes:', this.taxes);
                 console.log('itemTaxes - Local taxes:', this.localTaxes);
-                
+
                 // Priorizar los impuestos pasados como prop (del componente padre)
                 let taxesSource = [];
-                
+
                 if (this.taxes && Array.isArray(this.taxes) && this.taxes.length > 0) {
                     taxesSource = this.taxes;
                     console.log('itemTaxes - Using props taxes');
@@ -234,7 +234,7 @@
                     console.log('itemTaxes - No taxes available');
                     return [];
                 }
-                
+
                 const filteredTaxes = taxesSource.filter(tax => !tax.is_retention);
                 console.log('itemTaxes - Filtered taxes:', filteredTaxes);
                 return filteredTaxes;
@@ -289,7 +289,7 @@
             this.$eventHub.$on('reloadDataItems', (item_id) => {
                 this.reloadDataItems(item_id)
             });
-            
+
             // Escuchar evento para recargar toda la lista de items
             this.$eventHub.$on('reloadAllItems', () => {
                 console.log('Recargando lista completa de items');
@@ -407,7 +407,7 @@
                 if (this.recordItem) {
                     // console.log(this.recordItem)
                     this.form.item_id = await this.recordItem.item_id
-                    
+
                     // Si hay un item_id válido, asegurar que esté en la lista
                     if (this.form.item_id) {
                         // Verificar si el item está en la lista actual
@@ -418,7 +418,7 @@
                             await this.reloadDataItems(this.form.item_id);
                         }
                     }
-                    
+
                     await this.changeItem()
                     this.form.quantity = this.recordItem.quantity
                     this.form.unit_price = this.recordItem.unit_price
@@ -580,7 +580,7 @@
                             limit: 1
                         }
                     });
-                    
+
                     if (response.data.items && response.data.items.length > 0) {
                         // Agregar el item específico si no existe ya
                         const existingItem = this.items.find(item => item.id === item_id);
@@ -595,14 +595,14 @@
                                 console.log(`Item actualizado en la lista: ${response.data.items[0].description}`);
                             }
                         }
-                        
+
                         // Si el modal está abierto y este es el item actual, actualizar el form
                         if (this.showDialog && this.recordItem && this.recordItem.id === item_id) {
                             this.form.item_id = item_id;
                             this.changeItem();
                             console.log(`Form actualizado con item ID: ${item_id}`);
                         }
-                        
+
                         return true; // Éxito
                     }
                 } catch (error) {
