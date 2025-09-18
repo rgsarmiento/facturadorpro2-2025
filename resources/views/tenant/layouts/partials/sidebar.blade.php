@@ -1600,6 +1600,10 @@ html.horizontal-menu.sidebar-left-collapsed .content {
                             <li class="{{($path[0] === 'inventories' && $path[1] === 'configuration') ? 'nav-active': ''}}">
                                 <a class="nav-link" href="{{route('tenant.inventories.configuration.index')}}">Inventarios</a>
                             </li>
+
+                            <li class="{{($path[0] === 'backup') ? 'nav-active': ''}}">
+                                <a class="nav-link" href="{{route('tenant.backup.index')}}">Copias de seguridad</a>
+                            </li>
                         </ul>
                     </li>
                     @endif

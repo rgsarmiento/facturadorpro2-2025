@@ -1,0 +1,4 @@
+<?php
+
+// Directorio para factories del módulo Backup
+// Actualmente no se requieren factories para este módulo
