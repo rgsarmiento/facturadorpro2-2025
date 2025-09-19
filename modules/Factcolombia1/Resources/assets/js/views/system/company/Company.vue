@@ -12,6 +12,15 @@
                   @click="dialog = !dialog; textModal = 'Nueva compañia'"
                 >Nueva compañia</v-btn>
               </li>
+              <li class="breadcrumb-item">
+                <v-btn
+                  color="primary text-white no-decoration"
+                  @click="goToSystemBackup"
+                >
+                  <v-icon left small>backup</v-icon>
+                  Backup del Sistema
+                </v-btn>
+              </li>
             </ol>
           </nav>
         </div>
@@ -572,6 +581,10 @@ export default {
       this.merchant_registration = null;
       this.address = null;
       this.phone = null;
+    },
+    goToSystemBackup() {
+      // Navegar a la página de backup del sistema
+      window.location.href = '/co-companies/system-backup/';
     },
     tables() {
       axios

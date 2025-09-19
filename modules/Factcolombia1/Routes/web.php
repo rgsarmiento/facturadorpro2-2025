@@ -165,6 +165,17 @@ if($current_hostname) {
                 Route::post('locked_user', 'System\CompanyController@lockedUser');
                 Route::post('locked_emission', 'System\CompanyController@lockedEmission');
                 Route::post('set_billing_cycle', 'System\CompanyController@startBillingCycle');
+
+                // System Backup Routes
+                Route::prefix('system-backup')->group(function () {
+                    Route::get('/', 'System\SystemBackupController@index')->name('system.backup.index');
+                    Route::post('create', 'System\SystemBackupController@create')->name('system.backup.create');
+                    Route::get('list', 'System\SystemBackupController@list')->name('system.backup.list');
+                    Route::get('debug-tenants', 'System\SystemBackupController@debugTenants')->name('system.backup.debug');
+                    Route::get('download/{filename}', 'System\SystemBackupController@download')->name('system.backup.download');
+                    Route::delete('delete/{filename}', 'System\SystemBackupController@delete')->name('system.backup.delete');
+                    Route::post('restore', 'System\SystemBackupController@restore')->name('system.backup.restore');
+                });
             });
         });
     });
