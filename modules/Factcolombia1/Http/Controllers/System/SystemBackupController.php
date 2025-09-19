@@ -245,6 +245,9 @@ class SystemBackupController extends Controller
             // Restaurar base de datos del sistema
             $this->restoreSystemDatabase($extractDir, $host, $port, $username, $password);
 
+            // Ajustar configuración de tenants para la nueva instalación
+            $this->adjustTenantConfiguration();
+
             // Restaurar bases de datos de tenants
             $this->restoreTenantDatabases($extractDir, $host, $port, $username, $password);
 
@@ -450,11 +453,15 @@ class SystemBackupController extends Controller
                 // Crear la base de datos si no existe
                 DB::connection('mysql')->statement("CREATE DATABASE IF NOT EXISTS `{$tenantDatabase}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
 
-                // Buscar el website correspondiente para obtener el UUID
-                $website = Website::where('uuid', $tenantName)->first();
+                // Buscar el website correspondiente usando el nuevo UUID después del ajuste
+                $newUuid = $prefixDatabase . '_' . $tenantName;
+                $website = Website::where('uuid', $newUuid)->first();
+
                 if ($website) {
                     // Crear usuario de base de datos con contraseña calculada
-                    $this->createTenantDatabaseUser($tenantName, $tenantDatabase, $website);
+                    $this->createTenantDatabaseUser($newUuid, $tenantDatabase, $website);
+                } else {
+                    \Log::warning("Website not found for UUID: {$newUuid}");
                 }
 
                 // Restaurar datos desde el archivo SQL
@@ -666,5 +673,80 @@ class SystemBackupController extends Controller
         } catch (\Exception $e) {
             return [];
         }
+    }
+
+    /**
+     * Adjust tenant configuration after system restore to match new installation settings
+     */
+    private function adjustTenantConfiguration()
+    {
+        try {
+            $newPrefixDatabase = env('PREFIX_DATABASE', 'tenancy');
+            $newAppUrlBase = env('APP_URL_BASE', 'nodomain.com');
+
+            // Obtener todos los websites
+            $websites = Website::all();
+
+            foreach ($websites as $website) {
+                $oldUuid = $website->uuid;
+
+                // Extraer el nombre del tenant del UUID actual
+                // Si el UUID es "oldprefix_torres", extraemos "torres"
+                $tenantName = $this->extractTenantNameFromUuid($oldUuid);
+
+                if ($tenantName) {
+                    // Construir nuevo UUID con el nuevo prefijo
+                    $newUuid = $newPrefixDatabase . '_' . $tenantName;
+
+                    // Solo actualizar si el UUID cambió
+                    if ($oldUuid !== $newUuid) {
+                        $website->uuid = $newUuid;
+                        $website->save();
+
+                        \Log::info("Updated website UUID from {$oldUuid} to {$newUuid}");
+                    }
+
+                    // Actualizar hostnames para este website
+                    $hostnames = $website->hostnames;
+                    foreach ($hostnames as $hostname) {
+                        $oldFqdn = $hostname->fqdn;
+
+                        // Construir nuevo FQDN: tenantName.newAppUrlBase
+                        $newFqdn = $tenantName . '.' . $newAppUrlBase;
+
+                        // Solo actualizar si el FQDN cambió
+                        if ($oldFqdn !== $newFqdn) {
+                            $hostname->fqdn = $newFqdn;
+                            $hostname->save();
+
+                            \Log::info("Updated hostname FQDN from {$oldFqdn} to {$newFqdn}");
+                        }
+                    }
+                }
+            }
+
+            \Log::info("Tenant configuration adjustment completed successfully");
+
+        } catch (\Exception $e) {
+            \Log::error("Error adjusting tenant configuration: " . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    /**
+     * Extract tenant name from UUID by removing the prefix
+     */
+    private function extractTenantNameFromUuid($uuid)
+    {
+        // Buscar el último underscore para separar prefijo del nombre del tenant
+        $lastUnderscorePos = strrpos($uuid, '_');
+
+        if ($lastUnderscorePos !== false) {
+            // Extraer la parte después del último underscore
+            return substr($uuid, $lastUnderscorePos + 1);
+        }
+
+        // Si no hay underscore, retornar el UUID completo como nombre del tenant
+        return $uuid;
     }
 }
