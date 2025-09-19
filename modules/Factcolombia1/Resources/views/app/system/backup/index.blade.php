@@ -21,10 +21,6 @@
                     <i class="fas fa-sync mr-2"></i>
                     Actualizar Lista
                 </button>
-                <button onclick="debugTenants()" class="btn btn-warning btn-modern ml-2">
-                    <i class="fas fa-bug mr-2"></i>
-                    Debug Tenants
-                </button>
                 <button onclick="showRestoreDialog()" class="btn btn-warning btn-modern ml-2">
                     <i class="fas fa-upload mr-2"></i>
                     Restaurar desde Archivo
@@ -107,6 +103,69 @@
         </div>
     </div>
 </div>
+
+<!-- Modal para Restaurar Backup - Implementación JavaScript pura -->
+<div id="restoreModal" class="custom-modal" style="display: none;">
+    <div class="custom-modal-backdrop"></div>
+    <div class="custom-modal-dialog">
+        <div class="custom-modal-content">
+            <div class="custom-modal-header">
+                <h5 class="custom-modal-title">
+                    <i class="fas fa-upload mr-2"></i>
+                    Restaurar Sistema desde Archivo
+                </h5>
+                <button type="button" class="custom-modal-close" onclick="closeRestoreModal()">
+                    <span>&times;</span>
+                </button>
+            </div>
+            <form id="restoreForm" enctype="multipart/form-data">
+                <div class="custom-modal-body">
+                    <div class="alert alert-warning" role="alert">
+                        <i class="fas fa-exclamation-triangle mr-2"></i>
+                        <strong>¡Advertencia!</strong> Esta operación restaurará completamente el sistema desde el archivo de backup seleccionado.
+                        Todos los datos actuales serán reemplazados. Asegúrese de tener un backup actual antes de proceder.
+                    </div>
+
+                    <div class="form-group">
+                        <label for="backup_file" class="form-label">
+                            <i class="fas fa-file-archive mr-2"></i>
+                            Seleccionar archivo de backup (.zip)
+                        </label>
+                        <input type="file" class="form-control-file" id="backup_file" name="backup_file" accept=".zip" required>
+                        <small class="form-text text-muted">
+                            Seleccione un archivo ZIP de backup generado por este sistema. Tamaño máximo: 1GB
+                        </small>
+                    </div>
+
+                    <div id="restore-progress" style="display: none;">
+                        <div class="progress mb-3">
+                            <div class="progress-bar progress-bar-striped progress-bar-animated"
+                                 role="progressbar" style="width: 100%"
+                                 aria-valuenow="100" aria-valuemin="0" aria-valuemax="100">
+                                Restaurando sistema...
+                            </div>
+                        </div>
+                        <p class="text-center text-muted">
+                            <i class="fas fa-spinner fa-spin mr-2"></i>
+                            Por favor espere mientras se restaura el sistema. Este proceso puede tomar varios minutos.
+                        </p>
+                    </div>
+                </div>
+                <div class="custom-modal-footer">
+                    <button type="button" class="btn btn-secondary" id="cancel-btn" onclick="closeRestoreModal()">
+                        <i class="fas fa-times mr-2"></i>
+                        Cancelar
+                    </button>
+                    <button type="submit" class="btn btn-danger" id="restore-btn">
+                        <i class="fas fa-upload mr-2"></i>
+                        Restaurar Sistema
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 @endsection
 
 @push('scripts')
@@ -140,15 +199,6 @@ function loadBackups() {
         .then(data => {
             if (data.success) {
                 backups = data.data || [];
-
-                // Debug temporal - remover después
-                if (backups.length > 0) {
-                    console.log('=== DEBUG BACKUP DATA ===');
-                    console.log('Primer backup:', backups[0]);
-                    console.log('Tamaño raw:', backups[0].size);
-                    console.log('Tamaño formateado:', formatFileSize(backups[0].size));
-                }
-
                 updateUI();
             } else {
                 showError('Error al cargar los backups: ' + (data.message || 'Error desconocido'));
@@ -303,17 +353,6 @@ function createBackup() {
     .then(data => {
         if (data.success) {
             showSuccess('Backup creado exitosamente');
-
-            // Mostrar información de debug si está disponible
-            if (data.details && data.details.debug_info) {
-                console.log('=== DEBUG BACKUP ===');
-                console.log('Tenant count:', data.details.tenant_count);
-                console.log('ZIP size:', data.details.zip_size);
-                console.log('ZIP exists:', data.details.debug_info.zip_path_exists);
-                console.log('ZIP size bytes:', data.details.debug_info.zip_size_bytes);
-                console.log('Tenants dir existed:', data.details.debug_info.tenants_dir_existed);
-            }
-
             loadBackups();
         } else {
             showError('Error al crear backup: ' + (data.message || 'Error desconocido'));
@@ -364,66 +403,197 @@ function deleteBackup(filename) {
 }
 
 // Función para mostrar diálogo de restauración
+// Función para mostrar el modal de restore
 function showRestoreDialog() {
-    // Implementar modal o lógica de restauración
-    showError('Funcionalidad de restauración pendiente de implementar');
+    console.log('Mostrando modal custom...');
+    const modal = document.getElementById('restoreModal');
+    if (modal) {
+        modal.style.display = 'block';
+        document.body.style.overflow = 'hidden'; // Prevenir scroll
+        console.log('Modal mostrado exitosamente');
+    } else {
+        console.error('Modal no encontrado');
+        showError('Error: Modal no encontrado');
+    }
 }
 
-// Función de debug para verificar tenants
-function debugTenants() {
-    fetch('/co-companies/system-backup/debug-tenants')
-        .then(response => response.json())
-        .then(data => {
-            if (data.success) {
-                console.log('=== DEBUG TENANTS ===');
-                console.log('Total websites:', data.debug.total_websites);
-                console.log('Prefix database:', data.debug.prefix_database);
-                console.log('Available databases:', data.debug.available_databases);
-                console.log('Websites details:', data.debug.websites);
-                console.log('Mysqldump test:', data.debug.mysqldump_test);
+// Función para cerrar el modal de restore
+function closeRestoreModal() {
+    console.log('Cerrando modal custom...');
+    const modal = document.getElementById('restoreModal');
+    if (modal) {
+        modal.style.display = 'none';
+        document.body.style.overflow = 'auto'; // Restaurar scroll
+        console.log('Modal cerrado exitosamente');
 
-                // Mostrar información resumida
-                const mysqldumpStatus = data.debug.mysqldump_test ?
-                    (data.debug.mysqldump_test.success ? '✅ OK' : '❌ FALLA') : '⚠️ No probado';
+        // Limpiar formulario
+        const form = document.getElementById('restoreForm');
+        if (form) {
+            form.reset();
+        }
 
-                const summary = `
-DEBUG TENANTS:
-- Total websites: ${data.debug.total_websites}
-- Prefix BD: ${data.debug.prefix_database}
-- BD disponibles: ${data.debug.available_databases.length}
-- Tenants con BD válida: ${data.debug.websites.filter(w => w.database_exists).length}
-- Test mysqldump: ${mysqldumpStatus}
-
-Ver detalles completos en la consola (F12)
-                `.trim();
-
-                alert(summary);
-            } else {
-                showError('Error en debug: ' + data.message);
-            }
-        })
-        .catch(error => {
-            showError('Error al ejecutar debug de tenants');
-        });
+        // Ocultar progreso si está visible
+        const progressDiv = document.getElementById('restore-progress');
+        if (progressDiv) {
+            progressDiv.style.display = 'none';
+        }
+    }
 }
 
-// Funciones para mostrar mensajes
+// Función para mostrar mensajes
 function showSuccess(message) {
     if (typeof toastr !== 'undefined') {
         toastr.success(message);
+    } else {
+        alert('SUCCESS: ' + message);
     }
 }
 
 function showError(message) {
     if (typeof toastr !== 'undefined') {
         toastr.error(message);
+    } else {
+        alert('ERROR: ' + message);
     }
 }
 
 // Inicializar cuando el DOM esté listo
 document.addEventListener('DOMContentLoaded', function() {
     loadBackups();
+    initializeRestoreForm();
 });
+
+// Función para inicializar el formulario de restore
+function initializeRestoreForm() {
+    const restoreForm = document.getElementById('restoreForm');
+    if (restoreForm) {
+        restoreForm.addEventListener('submit', function(e) {
+            e.preventDefault();
+            handleRestore();
+        });
+        console.log('Restore form initialized');
+    } else {
+        console.log('Restore form not found');
+    }
+
+    // Cerrar modal al hacer click en el backdrop
+    const modal = document.getElementById('restoreModal');
+    if (modal) {
+        const backdrop = modal.querySelector('.custom-modal-backdrop');
+        if (backdrop) {
+            backdrop.addEventListener('click', function() {
+                closeRestoreModal();
+            });
+        }
+    }
+
+    console.log('Modal event listeners initialized');
+}
+
+// Función para manejar la restauración
+function handleRestore() {
+    const fileInput = document.getElementById('backup_file');
+    const file = fileInput.files[0];
+
+    if (!file) {
+        showError('Por favor seleccione un archivo de backup');
+        return;
+    }
+
+    if (file.size > 1024 * 1024 * 1024) { // 1GB limit
+        showError('El archivo es demasiado grande. Tamaño máximo: 1GB');
+        return;
+    }
+
+    if (!file.name.toLowerCase().endsWith('.zip')) {
+        showError('Por favor seleccione un archivo ZIP válido');
+        return;
+    }
+
+    // Mostrar confirmación adicional
+    if (!confirm('¿Está completamente seguro de que desea restaurar el sistema? Esta operación no se puede deshacer y reemplazará todos los datos actuales.')) {
+        return;
+    }
+
+    // Preparar el formulario y mostrar progreso
+    const progressDiv = document.getElementById('restore-progress');
+    const restoreBtn = document.getElementById('restore-btn');
+    const cancelBtn = document.getElementById('cancel-btn');
+
+    if (progressDiv) {
+        progressDiv.style.display = 'block';
+    }
+
+    if (restoreBtn) {
+        restoreBtn.disabled = true;
+        restoreBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Restaurando...';
+    }
+
+    if (cancelBtn) {
+        cancelBtn.disabled = true;
+    }
+
+    // Crear FormData
+    const formData = new FormData();
+    formData.append('backup_file', file);
+    formData.append('_token', document.querySelector('meta[name="csrf-token"]').getAttribute('content'));
+
+    // Enviar archivo
+    fetch('/co-companies/system-backup/restore', {
+        method: 'POST',
+        body: formData,
+        headers: {
+            'X-Requested-With': 'XMLHttpRequest',
+        }
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (progressDiv) {
+            progressDiv.style.display = 'none';
+        }
+
+        if (restoreBtn) {
+            restoreBtn.disabled = false;
+            restoreBtn.innerHTML = '<i class="fas fa-upload mr-2"></i>Restaurar Sistema';
+        }
+
+        if (cancelBtn) {
+            cancelBtn.disabled = false;
+        }
+
+        if (data.success) {
+            showSuccess('Sistema restaurado exitosamente desde el backup');
+            closeRestoreModal();
+
+            // Limpiar el formulario
+            fileInput.value = '';
+
+            // Recargar la lista de backups
+            setTimeout(() => {
+                loadBackups();
+            }, 2000);
+        } else {
+            showError('Error al restaurar: ' + (data.message || 'Error desconocido'));
+        }
+    })
+    .catch(error => {
+        if (progressDiv) {
+            progressDiv.style.display = 'none';
+        }
+
+        if (restoreBtn) {
+            restoreBtn.disabled = false;
+            restoreBtn.innerHTML = '<i class="fas fa-upload mr-2"></i>Restaurar Sistema';
+        }
+
+        if (cancelBtn) {
+            cancelBtn.disabled = false;
+        }
+
+        showError('Error al restaurar el sistema. Verifique el archivo y la conexión.');
+        console.error('Restore error:', error);
+    });
+}
 </script>
 @endpush
 
@@ -743,6 +913,147 @@ document.addEventListener('DOMContentLoaded', function() {
 
     #backup-system-app .page-title {
         font-size: 1.5rem;
+    }
+}
+
+/* Estilos para el modal custom */
+.custom-modal {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 10000;
+    overflow: auto;
+}
+
+.custom-modal-backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5);
+    z-index: 10001;
+}
+
+.custom-modal-dialog {
+    position: relative;
+    margin: 2rem auto;
+    max-width: 800px;
+    width: 90%;
+    z-index: 10002;
+    pointer-events: none;
+}
+
+.custom-modal-content {
+    background-color: #fff;
+    border: 1px solid rgba(0,0,0,.2);
+    border-radius: 0.5rem;
+    box-shadow: 0 0.5rem 1rem rgba(0,0,0,.15);
+    pointer-events: auto;
+    position: relative;
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+}
+
+.custom-modal-header {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    color: white;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 1rem 1.25rem;
+    border-radius: 0.5rem 0.5rem 0 0;
+}
+
+.custom-modal-title {
+    margin: 0;
+    font-size: 1.25rem;
+    font-weight: 500;
+}
+
+.custom-modal-close {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 1.5rem;
+    cursor: pointer;
+    padding: 0;
+    width: 2rem;
+    height: 2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 0.25rem;
+    opacity: 0.8;
+    transition: opacity 0.2s;
+}
+
+.custom-modal-close:hover {
+    opacity: 1;
+    background-color: rgba(255,255,255,0.1);
+}
+
+.custom-modal-body {
+    padding: 1.25rem;
+    flex: 1 1 auto;
+}
+
+.custom-modal-footer {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 0.5rem;
+    padding: 1rem 1.25rem;
+    background-color: #f8f9fa;
+    border-top: 1px solid #dee2e6;
+    border-radius: 0 0 0.5rem 0.5rem;
+}
+
+/* Estilos específicos para elementos del modal de restore */
+#restoreModal .form-control-file {
+    border: 2px dashed #d1d5db;
+    border-radius: 8px;
+    padding: 20px;
+    text-align: center;
+    background: #f9fafb;
+    transition: all 0.2s;
+    width: 100%;
+    display: block;
+}
+
+#restoreModal .form-control-file:hover {
+    border-color: #f59e0b;
+    background: #fffbeb;
+}
+
+#restoreModal .progress {
+    height: 8px;
+    border-radius: 4px;
+    background: #e5e7eb;
+}
+
+#restoreModal .progress-bar {
+    background: linear-gradient(90deg, #f59e0b, #d97706);
+    border-radius: 4px;
+}
+
+/* Responsive */
+@media (max-width: 768px) {
+    .custom-modal-dialog {
+        margin: 1rem;
+        width: calc(100% - 2rem);
+    }
+
+    .custom-modal-footer {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
+
+    .custom-modal-footer .btn {
+        width: 100%;
     }
 }
 </style>

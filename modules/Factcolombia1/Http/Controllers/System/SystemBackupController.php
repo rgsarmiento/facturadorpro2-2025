@@ -22,116 +22,6 @@ class SystemBackupController extends Controller
     }
 
     /**
-     * Debug tenant information (temporal para diagnóstico)
-     */
-    public function debugTenants()
-    {
-        try {
-            $websites = Website::all();
-            $prefixDatabase = env('PREFIX_DATABASE', 'tenancy');
-
-            $debug = [
-                'total_websites' => $websites->count(),
-                'prefix_database' => $prefixDatabase,
-                'websites' => [],
-                'available_databases' => [],
-                'mysqldump_test' => null
-            ];
-
-            // Obtener todas las bases de datos disponibles
-            $databases = DB::select('SHOW DATABASES');
-            foreach ($databases as $db) {
-                $dbName = $db->Database ?? $db->database;
-                if (strpos($dbName, $prefixDatabase) === 0) {
-                    $debug['available_databases'][] = $dbName;
-                }
-            }
-
-            foreach ($websites as $website) {
-                $hostname = $website->hostnames()->first();
-                $websiteData = [
-                    'id' => $website->id,
-                    'uuid' => $website->uuid,
-                    'hostname' => $hostname ? $hostname->fqdn : null,
-                    'tenant_name' => null,
-                    'expected_database' => null,
-                    'database_exists' => false
-                ];
-
-                if ($hostname) {
-                    $tenantName = explode('.', $hostname->fqdn)[0];
-                    $expectedDatabase = $prefixDatabase . '_' . $tenantName;
-
-                    $websiteData['tenant_name'] = $tenantName;
-                    $websiteData['expected_database'] = $expectedDatabase;
-                    $websiteData['database_exists'] = in_array($expectedDatabase, $debug['available_databases']);
-                }
-
-                $debug['websites'][] = $websiteData;
-            }
-
-            // Test mysqldump con la primera base de datos de tenant encontrada
-            if (!empty($debug['available_databases'])) {
-                $testDatabase = $debug['available_databases'][0];
-                $debug['mysqldump_test'] = $this->testMysqldump($testDatabase);
-            }
-
-            return response()->json([
-                'success' => true,
-                'debug' => $debug
-            ]);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Error en diagnóstico: ' . $e->getMessage()
-            ], 500);
-        }
-    }
-
-    /**
-     * Test mysqldump functionality
-     */
-    private function testMysqldump($database)
-    {
-        try {
-            $connection = config('database.default');
-            $host = config("database.connections.{$connection}.host");
-            $username = config("database.connections.{$connection}.username");
-            $password = config("database.connections.{$connection}.password");
-            $port = config("database.connections.{$connection}.port", 3306);
-
-            $command = [
-                'mysqldump',
-                '--host=' . $host,
-                '--port=' . $port,
-                '--user=' . $username,
-                '--password=' . $password,
-                '--single-transaction',
-                '--no-data',  // Solo estructura, no datos para el test
-                $database
-            ];
-
-            $process = new Process($command);
-            $process->setTimeout(30); // 30 segundos para el test
-            $process->run();
-
-            return [
-                'success' => $process->isSuccessful(),
-                'command' => implode(' ', $command),
-                'output_length' => strlen($process->getOutput()),
-                'error' => $process->isSuccessful() ? null : $process->getErrorOutput()
-            ];
-
-        } catch (\Exception $e) {
-            return [
-                'success' => false,
-                'error' => $e->getMessage()
-            ];
-        }
-    }
-
-    /**
      * List all system backups
      */
     public function list()
@@ -432,35 +322,23 @@ class SystemBackupController extends Controller
         $websites = Website::all();
         $prefixDatabase = env('PREFIX_DATABASE', 'tenancy');
 
-        \Log::info("SystemBackup: Encontrados " . $websites->count() . " websites");
-        \Log::info("SystemBackup: Prefijo de BD: " . $prefixDatabase);
-        \Log::info("SystemBackup: Directorio tenants: " . $tenantsDir);
-
         $successfulBackups = 0;
 
         foreach ($websites as $website) {
             // Obtener el hostname principal del website
             $hostname = $website->hostnames()->first();
-            if (!$hostname) {
-                \Log::warning("SystemBackup: Website ID {$website->id} no tiene hostname");
-                continue;
-            }
+            if (!$hostname) continue;
 
             $tenantName = explode('.', $hostname->fqdn)[0];
             $tenantDatabase = $prefixDatabase . '_' . $tenantName;
-
-            \Log::info("SystemBackup: Procesando tenant: {$tenantName}, BD: {$tenantDatabase}");
 
             // Verificar si la base de datos existe
             try {
                 $result = DB::connection('mysql')->select("SELECT SCHEMA_NAME FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = ?", [$tenantDatabase]);
                 if (empty($result)) {
-                    \Log::warning("SystemBackup: BD {$tenantDatabase} no existe");
                     continue;
                 }
-                \Log::info("SystemBackup: BD {$tenantDatabase} existe, creando backup");
             } catch (\Exception $e) {
-                \Log::error("SystemBackup: Error verificando BD {$tenantDatabase}: " . $e->getMessage());
                 continue;
             }
 
@@ -491,25 +369,8 @@ class SystemBackupController extends Controller
                 $output = $process->getOutput();
                 if (!empty($output)) {
                     file_put_contents($filePath, $output);
-                    $fileSize = filesize($filePath);
-                    \Log::info("SystemBackup: Backup de {$tenantDatabase} creado exitosamente. Tamaño: " . $this->formatBytes($fileSize));
                     $successfulBackups++;
-                } else {
-                    \Log::warning("SystemBackup: mysqldump de {$tenantDatabase} ejecutado pero sin contenido");
                 }
-            } else {
-                \Log::error("SystemBackup: Error creando backup de {$tenantDatabase}: " . $process->getErrorOutput());
-            }
-        }
-
-        \Log::info("SystemBackup: Completado backup de tenants. {$successfulBackups} exitosos de " . $websites->count() . " total");
-
-        // Verificar archivos creados en el directorio
-        if (is_dir($tenantsDir)) {
-            $tenantFiles = glob($tenantsDir . '/tenant_*.sql');
-            \Log::info("SystemBackup: Archivos SQL de tenants encontrados: " . count($tenantFiles));
-            foreach ($tenantFiles as $file) {
-                \Log::info("SystemBackup: - " . basename($file) . " (" . $this->formatBytes(filesize($file)) . ")");
             }
         }
     }
@@ -585,47 +446,24 @@ class SystemBackupController extends Controller
             $tenantName = str_replace('tenant_', '', $filename);
             $tenantDatabase = $prefixDatabase . '_' . $tenantName;
 
-            // Crear la base de datos si no existe
             try {
+                // Crear la base de datos si no existe
                 DB::connection('mysql')->statement("CREATE DATABASE IF NOT EXISTS `{$tenantDatabase}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+
+                // Buscar el website correspondiente para obtener el UUID
+                $website = Website::where('uuid', $tenantName)->first();
+                if ($website) {
+                    // Crear usuario de base de datos con contraseña calculada
+                    $this->createTenantDatabaseUser($tenantName, $tenantDatabase, $website);
+                }
+
+                // Restaurar datos desde el archivo SQL
+                $this->restoreTenantSqlFile($sqlFile, $tenantDatabase, $host, $port, $username, $password, $extractDir, $tenantName);
+
             } catch (\Exception $e) {
+                // Log error pero continúa con otros tenants
+                \Log::error("Error restaurando tenant {$tenantName}: " . $e->getMessage());
                 continue;
-            }
-
-            if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
-                // Windows: usar archivo batch
-                $batchFile = $extractDir . '/restore_tenant_' . $tenantName . '_' . time() . '.bat';
-                $batchContent = sprintf(
-                    '@echo off' . "\n" .
-                    'mysql --force --host=%s --port=%s --user=%s --password=%s %s < "%s"',
-                    escapeshellarg($host),
-                    escapeshellarg($port),
-                    escapeshellarg($username),
-                    escapeshellarg($password),
-                    escapeshellarg($tenantDatabase),
-                    str_replace('/', '\\', $sqlFile)
-                );
-
-                file_put_contents($batchFile, $batchContent);
-                $command = $batchFile;
-            } else {
-                // Linux/Unix
-                $command = sprintf(
-                    'mysql --force --host=%s --port=%s --user=%s --password=%s %s < %s',
-                    escapeshellarg($host),
-                    escapeshellarg($port),
-                    escapeshellarg($username),
-                    escapeshellarg($password),
-                    escapeshellarg($tenantDatabase),
-                    escapeshellarg($sqlFile)
-                );
-            }
-
-            exec($command . ' 2>&1', $output, $returnCode);
-
-            // Limpiar archivo batch en Windows
-            if (isset($batchFile) && file_exists($batchFile)) {
-                unlink($batchFile);
             }
         }
     }
@@ -635,8 +473,6 @@ class SystemBackupController extends Controller
      */
     private function createZipFile($sourceDir, $zipPath)
     {
-        \Log::info("SystemBackup: Creando ZIP desde {$sourceDir} hacia {$zipPath}");
-
         $zip = new \ZipArchive();
         if ($zip->open($zipPath, \ZipArchive::CREATE | \ZipArchive::OVERWRITE) !== TRUE) {
             throw new \Exception('No se pudo crear el archivo ZIP');
@@ -647,22 +483,16 @@ class SystemBackupController extends Controller
             \RecursiveIteratorIterator::LEAVES_ONLY
         );
 
-        $addedFiles = 0;
         foreach ($files as $name => $file) {
             if (!$file->isDir()) {
                 $filePath = $file->getRealPath();
                 $relativePath = substr($filePath, strlen($sourceDir) + 1);
                 $zip->addFile($filePath, $relativePath);
-                $addedFiles++;
-                \Log::info("SystemBackup: Agregado al ZIP: {$relativePath} (" . $this->formatBytes($file->getSize()) . ")");
             }
         }
 
         $zip->close();
-        \Log::info("SystemBackup: ZIP creado con {$addedFiles} archivos. Tamaño final: " . $this->formatBytes(filesize($zipPath)));
-    }
-
-    /**
+    }    /**
      * Extract ZIP file
      */
     private function extractZipFile($zipPath, $extractDir)
@@ -724,5 +554,117 @@ class SystemBackupController extends Controller
         $suffixes = array('B', 'KB', 'MB', 'GB', 'TB');
 
         return round(pow(1024, $base - floor($base)), $precision) . ' ' . $suffixes[floor($base)];
+    }
+
+    /**
+     * Create tenant database user with calculated password
+     */
+    private function createTenantDatabaseUser($tenantUuid, $databaseName, $website)
+    {
+        $password = $this->calculatePassword($website);
+
+        try {
+            // Verificar si el usuario ya existe
+            $existingUsers = $this->checkExistingUsers($tenantUuid);
+
+            // Crear usuario para localhost si no existe
+            if (!in_array('localhost', $existingUsers)) {
+                $createQuery = "CREATE USER `{$tenantUuid}`@`localhost` IDENTIFIED WITH mysql_native_password BY '{$password}'";
+                DB::connection('mysql')->statement($createQuery);
+
+                $grantQuery = "GRANT ALL PRIVILEGES ON `{$databaseName}`.* TO `{$tenantUuid}`@`localhost`";
+                DB::connection('mysql')->statement($grantQuery);
+            } else {
+                // Actualizar contraseña si ya existe
+                $alterQuery = "ALTER USER `{$tenantUuid}`@`localhost` IDENTIFIED BY '{$password}'";
+                DB::connection('mysql')->statement($alterQuery);
+            }
+
+            // Crear usuario para % (cualquier host) si no existe
+            if (!in_array('%', $existingUsers)) {
+                $createQuery = "CREATE USER `{$tenantUuid}`@`%` IDENTIFIED WITH mysql_native_password BY '{$password}'";
+                DB::connection('mysql')->statement($createQuery);
+
+                $grantQuery = "GRANT ALL PRIVILEGES ON `{$databaseName}`.* TO `{$tenantUuid}`@`%`";
+                DB::connection('mysql')->statement($grantQuery);
+            } else {
+                // Actualizar contraseña si ya existe
+                $alterQuery = "ALTER USER `{$tenantUuid}`@`%` IDENTIFIED BY '{$password}'";
+                DB::connection('mysql')->statement($alterQuery);
+            }
+
+            // Aplicar cambios
+            DB::connection('mysql')->statement("FLUSH PRIVILEGES");
+
+        } catch (\Exception $e) {
+            \Log::error("Error creando usuario de BD para tenant {$tenantUuid}: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Restore SQL file for tenant database
+     */
+    private function restoreTenantSqlFile($sqlFile, $tenantDatabase, $host, $port, $username, $password, $extractDir, $tenantName)
+    {
+        if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
+            // Windows: usar archivo batch
+            $batchFile = $extractDir . '/restore_tenant_' . $tenantName . '_' . time() . '.bat';
+            $batchContent = sprintf(
+                '@echo off' . "\n" .
+                'mysql --force --host=%s --port=%s --user=%s --password=%s %s < "%s"',
+                escapeshellarg($host),
+                escapeshellarg($port),
+                escapeshellarg($username),
+                escapeshellarg($password),
+                escapeshellarg($tenantDatabase),
+                str_replace('/', '\\', $sqlFile)
+            );
+
+            file_put_contents($batchFile, $batchContent);
+            $command = $batchFile;
+        } else {
+            // Linux/Unix
+            $command = sprintf(
+                'mysql --force --host=%s --port=%s --user=%s --password=%s %s < %s',
+                escapeshellarg($host),
+                escapeshellarg($port),
+                escapeshellarg($username),
+                escapeshellarg($password),
+                escapeshellarg($tenantDatabase),
+                escapeshellarg($sqlFile)
+            );
+        }
+
+        exec($command . ' 2>&1', $output, $returnCode);
+
+        // Limpiar archivo batch en Windows
+        if (isset($batchFile) && file_exists($batchFile)) {
+            unlink($batchFile);
+        }
+    }
+
+    /**
+     * Calculate password for tenant (same logic as TenantPasswords command)
+     */
+    private function calculatePassword($website)
+    {
+        return md5(sprintf(
+            '%s.%d',
+            config('app.key'),
+            $website->id
+        ));
+    }
+
+    /**
+     * Check which users exist for a given username
+     */
+    private function checkExistingUsers($username)
+    {
+        try {
+            $result = DB::connection('mysql')->select("SELECT User, Host FROM mysql.user WHERE User = ?", [$username]);
+            return collect($result)->pluck('Host')->toArray();
+        } catch (\Exception $e) {
+            return [];
+        }
     }
 }
