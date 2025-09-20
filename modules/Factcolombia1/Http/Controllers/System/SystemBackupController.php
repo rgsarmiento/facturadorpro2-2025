@@ -14,6 +14,21 @@ use Hyn\Tenancy\Models\Hostname;
 class SystemBackupController extends Controller
 {
     /**
+     * Safe logging method that handles permission issues
+     */
+    private function safeLog($message)
+    {
+        try {
+            \Log::info($message);
+        } catch (\Exception $e) {
+            // Si falla el log normal, usar archivo temporal
+            $logFile = storage_path('app/backup_debug.log');
+            $timestamp = date('Y-m-d H:i:s');
+            file_put_contents($logFile, "[{$timestamp}] {$message}\n", FILE_APPEND | LOCK_EX);
+        }
+    }
+
+    /**
      * Display a listing of system backups
      */
     public function index()
@@ -77,6 +92,13 @@ class SystemBackupController extends Controller
     public function create()
     {
         try {
+            // Configurar tiempo de ejecución y memoria para instalaciones con muchas empresas
+            ini_set('max_execution_time', 7200); // 2 horas
+            ini_set('memory_limit', '2G');
+            
+            // Logging alternativo para evitar problemas de permisos
+            $this->safeLog('BACKUP: Iniciando proceso de backup del sistema completo');
+            
             $backupsPath = storage_path('app/system_backups');
             if (!is_dir($backupsPath)) {
                 mkdir($backupsPath, 0755, true);
@@ -88,6 +110,8 @@ class SystemBackupController extends Controller
             if (!is_dir($systemBackupDir)) {
                 mkdir($systemBackupDir, 0755, true);
             }
+            
+            $this->safeLog('BACKUP: Directorio temporal creado: ' . $systemBackupDir);
 
             // Configuración de base de datos
             $connection = config('database.default');
@@ -118,6 +142,7 @@ class SystemBackupController extends Controller
             }
 
             // 3. Crear archivo ZIP con todos los backups
+            $this->safeLog('BACKUP: Creando archivo ZIP final');
             $zipFilename = 'system_backup_' . $timestamp . '.zip';
             $zipPath = $backupsPath . '/' . $zipFilename;
 
@@ -125,9 +150,13 @@ class SystemBackupController extends Controller
 
             // 4. Obtener tamaño real del ZIP creado
             $zipSize = file_exists($zipPath) ? filesize($zipPath) : 0;
+            $this->safeLog('BACKUP: Archivo ZIP creado exitosamente - Tamaño: ' . $this->formatBytes($zipSize));
 
             // 5. Limpiar directorio temporal
+            $this->safeLog('BACKUP: Limpiando directorio temporal');
             $this->deleteDirectory($systemBackupDir);
+
+            $this->safeLog('BACKUP: Proceso de backup completado exitosamente');
 
             return response()->json([
                 'success' => true,
@@ -219,6 +248,12 @@ class SystemBackupController extends Controller
     public function restore(Request $request)
     {
         try {
+            // Configurar tiempo de ejecución y memoria para restore con muchas empresas
+            ini_set('max_execution_time', 7200); // 2 horas
+            ini_set('memory_limit', '2G');
+            
+            $this->safeLog('RESTORE: Iniciando proceso de restauración del sistema');
+            
             $request->validate([
                 'backup_file' => 'required|file|max:1048576' // 1GB max
             ]);
@@ -233,9 +268,12 @@ class SystemBackupController extends Controller
             // Guardar archivo ZIP temporal
             $tempZipFile = $backupsPath . '/restore_temp_' . time() . '.zip';
             $file->move($backupsPath, basename($tempZipFile));
+            
+            $this->safeLog('RESTORE: Archivo ZIP guardado temporalmente: ' . basename($tempZipFile));
 
             // Extraer ZIP
             $extractDir = $backupsPath . '/extract_temp_' . time();
+            $this->safeLog('RESTORE: Extrayendo archivo ZIP a: ' . $extractDir);
             $this->extractZipFile($tempZipFile, $extractDir);
 
             // Configuración de base de datos
@@ -245,22 +283,31 @@ class SystemBackupController extends Controller
             $password = config("database.connections.{$connection}.password");
             $port = config("database.connections.{$connection}.port", 3306);
 
+            $this->safeLog('RESTORE: Configuración de BD establecida - Host: ' . $host . ', Puerto: ' . $port);
+
             // Restaurar base de datos del sistema
+            $this->safeLog('RESTORE: Iniciando restauración de base de datos del sistema');
             $this->restoreSystemDatabase($extractDir, $host, $port, $username, $password);
 
             // Ajustar configuración de tenants para la nueva instalación
+            $this->safeLog('RESTORE: Ajustando configuración de tenants');
             $this->adjustTenantConfiguration();
 
             // Restaurar bases de datos de tenants
+            $this->safeLog('RESTORE: Iniciando restauración de bases de datos de tenants');
             $this->restoreTenantDatabases($extractDir, $host, $port, $username, $password);
 
             // Restaurar carpetas storage y public
+            $this->safeLog('RESTORE: Restaurando carpetas storage y public');
             $this->restoreStorageAndPublicFolders($extractDir);
 
             // Limpiar archivos temporales
+            $this->safeLog('RESTORE: Limpiando archivos temporales');
             unlink($tempZipFile);
             $this->deleteDirectory($extractDir);
 
+            $this->safeLog('RESTORE: Proceso de restauración completado exitosamente');
+            
             return response()->json([
                 'success' => true,
                 'message' => 'Sistema restaurado exitosamente: BD + Carpetas + Tenants'
@@ -330,58 +377,89 @@ class SystemBackupController extends Controller
         // Obtener todos los websites/tenants
         $websites = Website::all();
         $prefixDatabase = env('PREFIX_DATABASE', 'tenancy');
+        $totalTenants = $websites->count();
+        $batchSize = 10; // Procesar de 10 en 10 para evitar timeout
+        $processed = 0;
+
+        \Log::info("BACKUP: Iniciando backup de {$totalTenants} tenants en lotes de {$batchSize}");
 
         $successfulBackups = 0;
 
-        foreach ($websites as $website) {
-            // Obtener el hostname principal del website
-            $hostname = $website->hostnames()->first();
-            if (!$hostname) continue;
+        // Procesar en lotes
+        $batches = $websites->chunk($batchSize);
+        $batchNumber = 1;
 
-            $tenantName = explode('.', $hostname->fqdn)[0];
-            $tenantDatabase = $prefixDatabase . '_' . $tenantName;
-
-            // Verificar si la base de datos existe
-            try {
-                $result = DB::connection('mysql')->select("SELECT SCHEMA_NAME FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = ?", [$tenantDatabase]);
-                if (empty($result)) {
+        foreach ($batches as $batch) {
+            $this->safeLog("BACKUP: Procesando lote {$batchNumber}/" . $batches->count() . " (" . $batch->count() . " tenants)");
+            
+            foreach ($batch as $website) {
+                // Obtener el hostname principal del website
+                $hostname = $website->hostnames()->first();
+                if (!$hostname) {
+                    $processed++;
                     continue;
                 }
-            } catch (\Exception $e) {
-                continue;
-            }
 
-            $filename = 'tenant_' . $tenantName . '.sql';
-            $filePath = $tenantsDir . '/' . $filename;
+                $tenantName = explode('.', $hostname->fqdn)[0];
+                $tenantDatabase = $prefixDatabase . '_' . $tenantName;
+                $processed++;
 
-            $command = [
-                'mysqldump',
-                '--host=' . $host,
-                '--port=' . $port,
-                '--user=' . $username,
-                '--password=' . $password,
-                '--single-transaction',
-                '--routines',
-                '--triggers',
-                '--add-drop-table',
-                '--disable-keys',
-                '--extended-insert',
-                '--no-autocommit',
-                $tenantDatabase
-            ];
+                $this->safeLog("BACKUP: [{$processed}/{$totalTenants}] Procesando tenant: {$tenantName}");
 
-            $process = new Process($command);
-            $process->setTimeout(600);
-            $process->run();
+                // Verificar si la base de datos existe
+                try {
+                    $result = DB::connection('mysql')->select("SELECT SCHEMA_NAME FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = ?", [$tenantDatabase]);
+                    if (empty($result)) {
+                        $this->safeLog("BACKUP: Base de datos {$tenantDatabase} no existe, omitiendo...");
+                        continue;
+                    }
+                } catch (\Exception $e) {
+                    $this->safeLog("BACKUP: Error verificando DB {$tenantDatabase}: " . $e->getMessage());
+                    continue;
+                }
 
-            if ($process->isSuccessful()) {
-                $output = $process->getOutput();
-                if (!empty($output)) {
-                    file_put_contents($filePath, $output);
-                    $successfulBackups++;
+                $filename = 'tenant_' . $tenantName . '.sql';
+                $filePath = $tenantsDir . '/' . $filename;
+
+                $command = [
+                    'mysqldump',
+                    '--host=' . $host,
+                    '--port=' . $port,
+                    '--user=' . $username,
+                    '--password=' . $password,
+                    '--single-transaction',
+                    '--routines',
+                    '--triggers',
+                    '--add-drop-table',
+                    '--disable-keys',
+                    '--extended-insert',
+                    '--no-autocommit',
+                    $tenantDatabase
+                ];
+
+                $process = new Process($command);
+                $process->setTimeout(600);
+                $process->run();
+
+                if ($process->isSuccessful()) {
+                    $output = $process->getOutput();
+                    if (!empty($output)) {
+                        file_put_contents($filePath, $output);
+                        $successfulBackups++;
+                        $this->safeLog("BACKUP: [{$processed}/{$totalTenants}] Tenant {$tenantName} backup exitoso");
+                    } else {
+                        $this->safeLog("BACKUP: Tenant {$tenantName} produjo output vacío");
+                    }
+                } else {
+                    $this->safeLog("BACKUP: Error en backup de tenant {$tenantName}: " . $process->getErrorOutput());
                 }
             }
+            
+            $this->safeLog("BACKUP: Lote {$batchNumber} completado");
+            $batchNumber++;
         }
+        
+        $this->safeLog("BACKUP: Backup de tenants completado ({$successfulBackups}/{$totalTenants} exitosos)");
     }
 
     /**
@@ -444,41 +522,65 @@ class SystemBackupController extends Controller
     {
         $tenantsDir = $extractDir . '/tenants';
         if (!is_dir($tenantsDir)) {
+            $this->safeLog('RESTORE: No hay directorio de tenants para restaurar');
             return; // No hay tenants para restaurar
         }
 
         $tenantFiles = glob($tenantsDir . '/tenant_*.sql');
         $prefixDatabase = env('PREFIX_DATABASE', 'tenancy');
+        $totalTenants = count($tenantFiles);
+        $batchSize = 10; // Procesar de 10 en 10 para evitar timeout
+        $processed = 0;
 
-        foreach ($tenantFiles as $sqlFile) {
-            $filename = basename($sqlFile, '.sql');
-            $tenantName = str_replace('tenant_', '', $filename);
-            $tenantDatabase = $prefixDatabase . '_' . $tenantName;
+        $this->safeLog("RESTORE: Iniciando restauración de {$totalTenants} tenants en lotes de {$batchSize}");
 
-            try {
-                // Crear la base de datos si no existe
-                DB::connection('mysql')->statement("CREATE DATABASE IF NOT EXISTS `{$tenantDatabase}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+        // Procesar en lotes
+        $batches = array_chunk($tenantFiles, $batchSize);
+        $batchNumber = 1;
 
-                // Buscar el website correspondiente usando el nuevo UUID después del ajuste
-                $newUuid = $prefixDatabase . '_' . $tenantName;
-                $website = Website::where('uuid', $newUuid)->first();
+        foreach ($batches as $batch) {
+            $this->safeLog("RESTORE: Procesando lote {$batchNumber}/" . count($batches) . " (" . count($batch) . " tenants)");
+            
+            foreach ($batch as $sqlFile) {
+                $filename = basename($sqlFile, '.sql');
+                $tenantName = str_replace('tenant_', '', $filename);
+                $tenantDatabase = $prefixDatabase . '_' . $tenantName;
+                $processed++;
 
-                if ($website) {
-                    // Crear usuario de base de datos con contraseña calculada
-                    $this->createTenantDatabaseUser($newUuid, $tenantDatabase, $website);
-                } else {
-                    \Log::warning("Website not found for UUID: {$newUuid}");
+                try {
+                    $this->safeLog("RESTORE: [{$processed}/{$totalTenants}] Restaurando tenant: {$tenantName}");
+                    
+                    // Crear la base de datos si no existe
+                    DB::connection('mysql')->statement("CREATE DATABASE IF NOT EXISTS `{$tenantDatabase}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+
+                    // Buscar el website correspondiente usando el nuevo UUID después del ajuste
+                    $newUuid = $prefixDatabase . '_' . $tenantName;
+                    $website = Website::where('uuid', $newUuid)->first();
+
+                    if ($website) {
+                        // Crear usuario de base de datos con contraseña calculada
+                        $this->createTenantDatabaseUser($newUuid, $tenantDatabase, $website);
+                    } else {
+                        $this->safeLog("RESTORE: Website not found for UUID: {$newUuid}");
+                    }
+
+                    // Restaurar datos desde el archivo SQL
+                    $this->restoreTenantSqlFile($sqlFile, $tenantDatabase, $host, $port, $username, $password, $extractDir, $tenantName);
+                    
+                    $this->safeLog("RESTORE: [{$processed}/{$totalTenants}] Tenant {$tenantName} restaurado exitosamente");
+
+                } catch (\Exception $e) {
+                    // Log error pero continúa con otros tenants
+                    $this->safeLog("RESTORE: Error restaurando tenant {$tenantName}: " . $e->getMessage());
+                    continue;
                 }
-
-                // Restaurar datos desde el archivo SQL
-                $this->restoreTenantSqlFile($sqlFile, $tenantDatabase, $host, $port, $username, $password, $extractDir, $tenantName);
-
-            } catch (\Exception $e) {
-                // Log error pero continúa con otros tenants
-                \Log::error("Error restaurando tenant {$tenantName}: " . $e->getMessage());
-                continue;
             }
+            
+            $this->safeLog("RESTORE: Lote {$batchNumber} completado");
+            $batchNumber++;
         }
+        
+        $this->safeLog("RESTORE: Restauración de todos los tenants completada ({$processed} procesados)");
     }
 
     /**
