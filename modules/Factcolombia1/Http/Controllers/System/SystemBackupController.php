@@ -103,6 +103,9 @@ class SystemBackupController extends Controller
             // 2. Backup de todas las bases de datos de tenants
             $this->createTenantDatabasesBackup($systemBackupDir, $host, $port, $username, $password);
 
+            // 3. Backup de carpetas storage y public
+            $this->backupStorageAndPublicFolders($systemBackupDir);
+
             // Obtener estadísticas de backup
             $systemDbBackupPath = $systemBackupDir . '/system_database.sql';
             $tenantsDir = $systemBackupDir . '/tenants';
@@ -128,7 +131,7 @@ class SystemBackupController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => "Backup completo creado: BD Sistema + {$tenantCount} Tenants",
+                'message' => "Backup completo creado: BD Sistema + {$tenantCount} Tenants + Carpetas",
                 'filename' => $zipFilename,
                 'details' => [
                     'system_database' => $systemDbExists,
@@ -251,13 +254,16 @@ class SystemBackupController extends Controller
             // Restaurar bases de datos de tenants
             $this->restoreTenantDatabases($extractDir, $host, $port, $username, $password);
 
+            // Restaurar carpetas storage y public
+            $this->restoreStorageAndPublicFolders($extractDir);
+
             // Limpiar archivos temporales
             unlink($tempZipFile);
             $this->deleteDirectory($extractDir);
 
             return response()->json([
                 'success' => true,
-                'message' => 'Sistema restaurado exitosamente desde el backup'
+                'message' => 'Sistema restaurado exitosamente: BD + Carpetas + Tenants'
             ]);
 
         } catch (\Exception $e) {
@@ -748,5 +754,213 @@ class SystemBackupController extends Controller
 
         // Si no hay underscore, retornar el UUID completo como nombre del tenant
         return $uuid;
+    }
+
+    /**
+     * Backup storage and public folders
+     */
+    private function backupStorageAndPublicFolders($backupDir)
+    {
+        try {
+            \Log::info("Starting backup of storage and public folders");
+
+            $foldersDir = $backupDir . '/folders';
+            if (!is_dir($foldersDir)) {
+                mkdir($foldersDir, 0755, true);
+            }
+
+            // Backup storage folder (excluding logs and framework cache)
+            $storageSource = storage_path();
+            $storageBackup = $foldersDir . '/storage';
+            
+            if (is_dir($storageSource)) {
+                $this->copyDirectorySelective($storageSource, $storageBackup, [
+                    'logs', 
+                    'framework/cache', 
+                    'framework/sessions', 
+                    'framework/views',
+                    'app/system_backups' // Evitar recursión
+                ]);
+                \Log::info("Storage folder backed up successfully");
+            }
+
+            // Backup public folder (excluding large cache files)
+            $publicSource = public_path();
+            $publicBackup = $foldersDir . '/public';
+            
+            if (is_dir($publicSource)) {
+                $this->copyDirectorySelective($publicSource, $publicBackup, [
+                    'hot',
+                    'mix-manifest.json'
+                ]);
+                \Log::info("Public folder backed up successfully");
+            }
+
+            return true;
+
+        } catch (\Exception $e) {
+            \Log::error("Error backing up folders: " . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    /**
+     * Copy directory with exclusions
+     */
+    private function copyDirectorySelective($source, $destination, $excludePatterns = [])
+    {
+        if (!is_dir($source)) {
+            return false;
+        }
+
+        if (!is_dir($destination)) {
+            mkdir($destination, 0755, true);
+        }
+
+        $iterator = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($source, \RecursiveDirectoryIterator::SKIP_DOTS),
+            \RecursiveIteratorIterator::SELF_FIRST
+        );
+
+        foreach ($iterator as $item) {
+            $relativePath = str_replace($source . DIRECTORY_SEPARATOR, '', $item->getPathname());
+            $relativePath = str_replace('\\', '/', $relativePath); // Normalizar separadores
+
+            // Verificar si debe excluir este archivo/directorio
+            $shouldExclude = false;
+            foreach ($excludePatterns as $pattern) {
+                if (strpos($relativePath, $pattern) === 0) {
+                    $shouldExclude = true;
+                    break;
+                }
+            }
+
+            if ($shouldExclude) {
+                continue;
+            }
+
+            $targetPath = $destination . DIRECTORY_SEPARATOR . $relativePath;
+
+            if ($item->isDir()) {
+                if (!is_dir($targetPath)) {
+                    mkdir($targetPath, 0755, true);
+                }
+            } else {
+                $targetDir = dirname($targetPath);
+                if (!is_dir($targetDir)) {
+                    mkdir($targetDir, 0755, true);
+                }
+                copy($item->getPathname(), $targetPath);
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Restore storage and public folders
+     */
+    private function restoreStorageAndPublicFolders($extractedDir)
+    {
+        try {
+            \Log::info("Starting restoration of storage and public folders");
+
+            $foldersDir = $extractedDir . '/folders';
+            
+            if (!is_dir($foldersDir)) {
+                \Log::info("No folders directory found in backup, skipping folder restoration");
+                return true;
+            }
+
+            // Restore storage folder
+            $storageBackup = $foldersDir . '/storage';
+            $storageTarget = storage_path();
+            
+            if (is_dir($storageBackup)) {
+                $this->restoreDirectorySelective($storageBackup, $storageTarget, [
+                    'logs', 
+                    'framework/cache', 
+                    'framework/sessions', 
+                    'framework/views',
+                    'app/system_backups'
+                ]);
+                \Log::info("Storage folder restored successfully");
+            }
+
+            // Restore public folder
+            $publicBackup = $foldersDir . '/public';
+            $publicTarget = public_path();
+            
+            if (is_dir($publicBackup)) {
+                $this->restoreDirectorySelective($publicBackup, $publicTarget, [
+                    'hot',
+                    'mix-manifest.json'
+                ]);
+                \Log::info("Public folder restored successfully");
+            }
+
+            return true;
+
+        } catch (\Exception $e) {
+            \Log::error("Error restoring folders: " . $e->getMessage());
+            throw $e;
+        }
+    }
+
+    /**
+     * Restore directory with exclusions and safety checks
+     */
+    private function restoreDirectorySelective($source, $destination, $excludePatterns = [])
+    {
+        if (!is_dir($source)) {
+            return false;
+        }
+
+        if (!is_dir($destination)) {
+            mkdir($destination, 0755, true);
+        }
+
+        $iterator = new \RecursiveIteratorIterator(
+            new \RecursiveDirectoryIterator($source, \RecursiveDirectoryIterator::SKIP_DOTS),
+            \RecursiveIteratorIterator::SELF_FIRST
+        );
+
+        foreach ($iterator as $item) {
+            $relativePath = str_replace($source . DIRECTORY_SEPARATOR, '', $item->getPathname());
+            $relativePath = str_replace('\\', '/', $relativePath); // Normalizar separadores
+
+            // Verificar si debe excluir este archivo/directorio
+            $shouldExclude = false;
+            foreach ($excludePatterns as $pattern) {
+                if (strpos($relativePath, $pattern) === 0) {
+                    $shouldExclude = true;
+                    break;
+                }
+            }
+
+            if ($shouldExclude) {
+                continue;
+            }
+
+            $targetPath = $destination . DIRECTORY_SEPARATOR . $relativePath;
+
+            if ($item->isDir()) {
+                if (!is_dir($targetPath)) {
+                    mkdir($targetPath, 0755, true);
+                }
+            } else {
+                $targetDir = dirname($targetPath);
+                if (!is_dir($targetDir)) {
+                    mkdir($targetDir, 0755, true);
+                }
+                
+                // Solo copiar si el archivo no existe o es diferente
+                if (!file_exists($targetPath) || filemtime($item->getPathname()) > filemtime($targetPath)) {
+                    copy($item->getPathname(), $targetPath);
+                }
+            }
+        }
+
+        return true;
     }
 }
