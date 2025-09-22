@@ -618,20 +618,32 @@ class CuentaContableController extends Controller
                         continue;
                     }
 
-                    try {
-                        $cuentaData = [
-                            'codigo' => trim($data[0]),
-                            'nombre' => trim($data[1]),
-                            'tipo_cuenta' => trim($data[2]),
-                            'naturaleza' => trim($data[3]),
-                            'nivel' => intval($data[4]),
-                            'cuenta_padre_id' => !empty(trim($data[5])) ? trim($data[5]) : null,
-                            'descripcion' => trim($data[6] ?? ''),
-                            'activa' => boolval($data[7] ?? 1),
-                            'permite_movimiento' => boolval($data[8] ?? 1)
-                        ];
+                        try {
+                            $cuentaData = [
+                                'codigo' => trim($data[0]),
+                                'nombre' => trim($data[1]),
+                                'tipo_cuenta' => trim($data[2]),
+                                'naturaleza' => trim($data[3]),
+                                'nivel' => intval($data[4]),
+                                'descripcion' => trim($data[6] ?? ''),
+                                'activa' => boolval($data[7] ?? 1),
+                                'permite_movimiento' => boolval($data[8] ?? 1)
+                            ];
 
-                        // Validar datos básicos
+                            // Manejar cuenta_padre_id - buscar por código y convertir a ID
+                            $codigoPadre = !empty(trim($data[5])) ? trim($data[5]) : null;
+                            if ($codigoPadre) {
+                                $cuentaPadre = CuentaContable::where('codigo', $codigoPadre)->first();
+                                if ($cuentaPadre) {
+                                    $cuentaData['cuenta_padre_id'] = $cuentaPadre->id;
+                                } else {
+                                    // Si no existe la cuenta padre, dejamos en null y registramos el error
+                                    $cuentaData['cuenta_padre_id'] = null;
+                                    $errores[] = "Fila $rowNumber: Cuenta padre con código '$codigoPadre' no encontrada";
+                                }
+                            } else {
+                                $cuentaData['cuenta_padre_id'] = null;
+                            }                        // Validar datos básicos
                         if (empty($cuentaData['codigo']) || empty($cuentaData['nombre'])) {
                             $errores[] = "Fila $rowNumber: Código y nombre son obligatorios";
                             continue;
@@ -705,11 +717,25 @@ class CuentaContableController extends Controller
                                 'tipo_cuenta' => trim((string)$row[2]),
                                 'naturaleza' => trim((string)$row[3]),
                                 'nivel' => intval($row[4]),
-                                'cuenta_padre_id' => !empty(trim((string)$row[5])) ? trim((string)$row[5]) : null,
                                 'descripcion' => trim((string)($row[6] ?? '')),
                                 'activa' => boolval($row[7] ?? 1),
                                 'permite_movimiento' => boolval($row[8] ?? 1)
                             ];
+
+                            // Manejar cuenta_padre_id - buscar por código y convertir a ID
+                            $codigoPadre = !empty(trim((string)$row[5])) ? trim((string)$row[5]) : null;
+                            if ($codigoPadre) {
+                                $cuentaPadre = CuentaContable::where('codigo', $codigoPadre)->first();
+                                if ($cuentaPadre) {
+                                    $cuentaData['cuenta_padre_id'] = $cuentaPadre->id;
+                                } else {
+                                    // Si no existe la cuenta padre, dejamos en null y registramos el error
+                                    $cuentaData['cuenta_padre_id'] = null;
+                                    $errores[] = "Fila $rowNumber: Cuenta padre con código '$codigoPadre' no encontrada";
+                                }
+                            } else {
+                                $cuentaData['cuenta_padre_id'] = null;
+                            }
 
                             // Validar datos básicos
                             if (empty($cuentaData['codigo']) || empty($cuentaData['nombre'])) {
@@ -820,5 +846,130 @@ class CuentaContableController extends Controller
                 'message' => 'Error al exportar: ' . $e->getMessage()
             ], 500);
         }
+    }
+
+    /**
+     * Procesar archivo CSV
+     */
+    private function procesarArchivoCsv($file, &$errores)
+    {
+        $cuentas = [];
+        $handle = fopen($file->getPathname(), 'r');
+
+        if ($handle === false) {
+            throw new \Exception('No se pudo abrir el archivo CSV');
+        }
+
+        // Leer encabezados
+        $headers = fgetcsv($handle);
+        if (!$headers) {
+            throw new \Exception('El archivo CSV está vacío o no tiene el formato correcto');
+        }
+
+        $rowNumber = 1;
+        while (($data = fgetcsv($handle)) !== false) {
+            $rowNumber++;
+
+            if (count($data) < 9) {
+                $errores[] = "Fila $rowNumber: Faltan columnas";
+                continue;
+            }
+
+            $cuentaData = $this->validarDatosCuenta($data, $rowNumber, $errores);
+            if ($cuentaData) {
+                $cuentas[] = $cuentaData;
+            }
+        }
+
+        fclose($handle);
+        return $cuentas;
+    }
+
+    /**
+     * Procesar archivo Excel
+     */
+    private function procesarArchivoExcel($file, &$errores)
+    {
+        $cuentas = [];
+        
+        try {
+            $data = Excel::toArray([], $file)[0]; // Obtener la primera hoja
+
+            if (empty($data)) {
+                throw new \Exception('El archivo Excel está vacío');
+            }
+
+            // Eliminar la primera fila (encabezados)
+            array_shift($data);
+
+            $rowNumber = 1;
+            foreach ($data as $row) {
+                $rowNumber++;
+
+                // Verificar que la fila no esté vacía
+                if (empty(array_filter($row))) {
+                    continue;
+                }
+
+                if (count($row) < 9) {
+                    $errores[] = "Fila $rowNumber: Faltan columnas";
+                    continue;
+                }
+
+                // Convertir todos los valores a string para consistencia
+                $row = array_map(function($value) {
+                    return (string)$value;
+                }, $row);
+
+                $cuentaData = $this->validarDatosCuenta($row, $rowNumber, $errores);
+                if ($cuentaData) {
+                    $cuentas[] = $cuentaData;
+                }
+            }
+
+        } catch (\Exception $e) {
+            throw new \Exception('Error al procesar archivo Excel: ' . $e->getMessage());
+        }
+
+        return $cuentas;
+    }
+
+    /**
+     * Validar datos de una cuenta
+     */
+    private function validarDatosCuenta($data, $rowNumber, &$errores)
+    {
+        $cuentaData = [
+            'codigo' => trim($data[0]),
+            'nombre' => trim($data[1]),
+            'tipo_cuenta' => trim($data[2]),
+            'naturaleza' => trim($data[3]),
+            'nivel' => intval($data[4]),
+            'codigo_padre' => !empty(trim($data[5])) ? trim($data[5]) : null,
+            'descripcion' => trim($data[6] ?? ''),
+            'activa' => boolval($data[7] ?? 1),
+            'permite_movimiento' => boolval($data[8] ?? 1),
+            'fila' => $rowNumber
+        ];
+
+        // Validar datos básicos
+        if (empty($cuentaData['codigo']) || empty($cuentaData['nombre'])) {
+            $errores[] = "Fila $rowNumber: Código y nombre son obligatorios";
+            return null;
+        }
+
+        // Validar tipo de cuenta
+        if (!in_array($cuentaData['tipo_cuenta'], ['activo', 'pasivo', 'patrimonio', 'ingreso', 'gasto', 'costo'])) {
+            $errores[] = "Fila $rowNumber: Tipo de cuenta inválido: {$cuentaData['tipo_cuenta']}";
+            return null;
+        }
+
+        // Validar naturaleza
+        if (!in_array($cuentaData['naturaleza'], ['debito', 'credito'])) {
+            $errores[] = "Fila $rowNumber: Naturaleza inválida: {$cuentaData['naturaleza']}";
+            return null;
+        }
+
+        return $cuentaData;
     }
 }

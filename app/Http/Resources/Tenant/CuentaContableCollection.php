@@ -23,6 +23,11 @@ class CuentaContableCollection extends ResourceCollection
                 'naturaleza' => $row->naturaleza,
                 'nivel' => $row->nivel,
                 'cuenta_padre_id' => $row->cuenta_padre_id,
+                'cuenta_padre' => $row->cuentaPadre ? [
+                    'id' => $row->cuentaPadre->id,
+                    'codigo' => $row->cuentaPadre->codigo,
+                    'nombre' => $row->cuentaPadre->nombre
+                ] : null,
                 'cuenta_padre_codigo' => $row->cuentaPadre ? $row->cuentaPadre->codigo : null,
                 'cuenta_padre_nombre' => $row->cuentaPadre ? $row->cuentaPadre->nombre : null,
                 'descripcion' => $row->descripcion,
