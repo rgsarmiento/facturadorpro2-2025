@@ -15,7 +15,7 @@ class RedirectModule
      */
     public function handle($request, Closure $next)
     {
-      
+
         $module = $request->user()->getModule();
         $path = explode('/', $request->path());
         $modules = $request->user()->getModules();
@@ -69,11 +69,11 @@ class RedirectModule
                 return redirect()->route('warehouses.index');
 
             case 'accounting':
-                return redirect()->route('tenant.account.index');
+                return redirect()->route('tenant.cuentas_contables.index');
 
             case 'finance':
                 return redirect()->route('tenant.finances.global_payments.index');
-                
+
             /*case 'ecommerce':
                 return redirect()->route('tenant.ecommerce.index');*/
 
@@ -226,6 +226,9 @@ class RedirectModule
 
         ///* Module accounting */
         elseif($path[0] == "account"){
+            $group = "accounting";
+        }
+        elseif($path[0] == "contabilidad"){
             $group = "accounting";
         }
 

@@ -1365,36 +1365,46 @@ html.horizontal-menu.sidebar-left-collapsed .content {
                     </li>
                     @endif
 
-                    {{-- @if(in_array('accounting', $vc_modules))
+                    @if(in_array('accounting', $vc_modules))
                     <li class="
                         nav-parent
                         {{ ($path[0] === 'account')?'nav-active nav-expanded':'' }}
+                        {{ ($path[0] === 'contabilidad')?'nav-active nav-expanded':'' }}
+                        {{ ($path[0] === 'puc')?'nav-active nav-expanded':'' }}
                         ">
                         <a class="nav-link" href="#">
-                            <span class="float-right badge badge-red badge-danger mr-3">Nuevo</span>
-                            <i class="fas fa-chart-bar" aria-hidden="true"></i>
+                            <span class="float-right badge badge-orange badge-warning mr-3">En construcción</span>
+                            <i class="fas fa-calculator" aria-hidden="true"></i>
                             <span>Contabilidad</span>
                         </a>
                         <ul class="nav nav-children" style="">
+                            <li class="{{(($path[0] === 'contabilidad') && ($path[1] === 'cuentas-contables')) ? 'nav-active' : ''}}">
+                                <a class="nav-link" href="{{ route('tenant.cuentas_contables.index') }}">
+                                    <i class="fas fa-list-alt" aria-hidden="true"></i>
+                                    Plan único de cuentas - PUC
+                                </a>
+                            </li>
                             <li class="{{(($path[0] === 'account') && ($path[1] === 'format')) ? 'nav-active' : ''}}">
                                 <a class="nav-link" href="{{ route('tenant.account_format.index') }}">
+                                    <i class="fas fa-file-export" aria-hidden="true"></i>
                                     Exportar formatos
                                 </a>
                             </li>
                             <li class="{{(($path[0] === 'account') && ($path[1] == ''))   ? 'nav-active' : ''}}">
                                 <a class="nav-link" href="{{ route('tenant.account.index') }}">
-                                    <!-- Exportar SISCONT/CONCAR -->
+                                    <i class="fas fa-file-code" aria-hidden="true"></i>
                                     Exportar formatos - Sis. Contable
                                 </a>
                             </li>
                             <li class="{{(($path[0] === 'account') && ($path[1] == 'summary-report'))   ? 'nav-active' : ''}}">
                                 <a class="nav-link" href="{{ route('tenant.account_summary_report.index') }}">
+                                    <i class="fas fa-chart-line" aria-hidden="true"></i>
                                     Reporte resumido - Ventas
                                 </a>
                             </li>
                         </ul>
                     </li>
-                    @endif --}}
+                    @endif
 
                     @if(in_array('finance', $vc_modules))
                     <li class="nav-parent {{$path[0] === 'finances' && in_array($path[1], [

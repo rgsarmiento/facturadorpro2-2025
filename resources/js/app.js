@@ -375,6 +375,10 @@ Vue.component('tenant-orders-index', require('./views/tenant/orders/index.vue'))
 Vue.component('tenant-account-payment-index', require('./views/tenant/account/payment_index.vue'));
 Vue.component('tenant-account-configuration-index', require('./views/tenant/account/configuration.vue'));
 
+//Cuentas Contables
+Vue.component('tenant-cuentas-contables-index', require('./views/tenant/cuentas_contables/index.vue'));
+Vue.component('tenant-cuentas-contables-form', require('./views/tenant/cuentas_contables/form.vue'));
+
 //auto update
 Vue.component('system-update', require('./views/system/update/index.vue'));
 

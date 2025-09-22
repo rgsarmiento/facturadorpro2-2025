@@ -555,6 +555,33 @@ if ($hostname) {
            Route::post('certificates-qztray/change-status', 'Tenant\CertificateQzTrayController@changeStatus');
         //    Route::get('certificates-qztray/html/document/{id}', 'Tenant\CertificateQzTrayController@getHtmlDocument');
 
+           // Módulo de Contabilidad - Cuentas Contables
+           Route::prefix('contabilidad')->group(function() {
+               // Vista principal y formularios
+               Route::get('cuentas-contables', 'Tenant\CuentaContableController@index')->name('tenant.cuentas_contables.index');
+               Route::get('cuentas-contables/create', 'Tenant\CuentaContableController@create')->name('tenant.cuentas_contables.create');
+               Route::get('cuentas-contables/{id}/edit', 'Tenant\CuentaContableController@edit')->name('tenant.cuentas_contables.edit');
+
+               // API endpoints para AJAX/JSON
+               Route::get('columns', 'Tenant\CuentaContableController@columns');
+               Route::get('cuentas-contables/records', 'Tenant\CuentaContableController@records');
+               Route::get('cuentas-contables/tree', 'Tenant\CuentaContableController@tree');
+               Route::get('cuentas-contables/movimiento', 'Tenant\CuentaContableController@movimiento');
+               Route::get('cuentas-contables/padres', 'Tenant\CuentaContableController@padres');
+               Route::get('cuentas-contables/tables', 'Tenant\CuentaContableController@tables');
+               Route::get('cuentas-contables/download-template', 'Tenant\CuentaContableController@downloadTemplate');
+               Route::get('cuentas-contables/export', 'Tenant\CuentaContableController@export');
+               Route::get('cuentas-contables/{id}', 'Tenant\CuentaContableController@show');
+
+               // CRUD operations
+               Route::post('cuentas-contables', 'Tenant\CuentaContableController@store');
+               Route::put('cuentas-contables/{id}', 'Tenant\CuentaContableController@update');
+               Route::delete('cuentas-contables/{id}', 'Tenant\CuentaContableController@destroy');
+
+               // Importación y exportación
+               Route::post('cuentas-contables/import-puc', 'Tenant\CuentaContableController@importPuc');
+           });
+
         });
     });
 } else {

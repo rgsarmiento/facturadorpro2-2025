@@ -1,0 +1,45 @@
+[2025-09-22 11:33:56] local.INFO: CuentaContable columns requested  
+[2025-09-22 11:33:59] local.INFO: CuentaContable records request: {"column":"codigo","load_all":"false","page":"1","value":null} 
+[2025-09-22 11:34:09] local.INFO: ImportPuc method called {"files":{"archivo":"[object] (Illuminate\\Http\\UploadedFile: C:\\Users\\USER\\AppData\\Local\\Temp\\phpFBC1.tmp)"},"all_data":{"sobreescribir":"0","_token":"QqIPKj9Zf9cemRwHmsboC6Dg1RMOKV2vdtAh308A","archivo":"[object] (Illuminate\\Http\\UploadedFile: C:\\Users\\USER\\AppData\\Local\\Temp\\phpFBC1.tmp)"}} 
+[2025-09-22 11:34:09] local.INFO: Validation passed  
+[2025-09-22 11:34:40] local.INFO: CuentaContable columns requested  
+[2025-09-22 11:34:42] local.INFO: CuentaContable records request: {"column":"codigo","load_all":"false","page":"1","value":null} 
+[2025-09-22 11:35:24] local.INFO: ImportPuc method called {"files":{"archivo":"[object] (Illuminate\\Http\\UploadedFile: C:\\Users\\USER\\AppData\\Local\\Temp\\php1E0B.tmp)"},"all_data":{"sobreescribir":"1","_token":"QqIPKj9Zf9cemRwHmsboC6Dg1RMOKV2vdtAh308A","archivo":"[object] (Illuminate\\Http\\UploadedFile: C:\\Users\\USER\\AppData\\Local\\Temp\\php1E0B.tmp)"}} 
+[2025-09-22 11:35:24] local.INFO: Validation passed  
+[2025-09-22 11:37:08] local.INFO: CuentaContable columns requested  
+[2025-09-22 11:37:10] local.INFO: CuentaContable records request: {"column":"codigo","load_all":"false","page":"1","value":null} 
+[2025-09-22 11:37:29] local.INFO: ImportPuc method called {"files":{"archivo":"[object] (Illuminate\\Http\\UploadedFile: C:\\Users\\USER\\AppData\\Local\\Temp\\php5D7.tmp)"},"all_data":{"sobreescribir":"1","_token":"QqIPKj9Zf9cemRwHmsboC6Dg1RMOKV2vdtAh308A","archivo":"[object] (Illuminate\\Http\\UploadedFile: C:\\Users\\USER\\AppData\\Local\\Temp\\php5D7.tmp)"}} 
+[2025-09-22 11:37:29] local.INFO: Validation passed  
+[2025-09-22 11:37:50] local.INFO: CuentaContable columns requested  
+[2025-09-22 11:37:52] local.INFO: CuentaContable records request: {"column":"codigo","load_all":"false","page":"1","value":null} 
+[2025-09-22 11:39:22] local.INFO: CuentaContable columns requested  
+[2025-09-22 11:39:24] local.INFO: CuentaContable records request: {"column":"codigo","load_all":"false","page":"1","value":null} 
+[2025-09-22 11:40:45] local.DEBUG: "a9089a86fcdaf0af5085a8f5b37b33b4fabe9e23f2045c7060206e4cfe1e8f22"  
+[2025-09-22 11:41:21] local.INFO: CuentaContable columns requested  
+[2025-09-22 11:41:23] local.INFO: CuentaContable records request: {"column":"codigo","load_all":"false","page":"1","value":null} 
+[2025-09-22 11:43:52] local.INFO: CuentaContable columns requested  
+[2025-09-22 11:43:52] local.INFO: CuentaContable records request: {"column":null,"load_all":"false","page":"1","value":null} 
+[2025-09-22 11:43:52] local.INFO: CuentaContable records request: {"column":null,"load_all":"false","page":"1","value":null} 
+[2025-09-22 11:43:54] local.INFO: CuentaContable records request: {"column":"codigo","load_all":"false","page":"1","value":null} 
+[2025-09-22 11:43:55] local.INFO: CuentaContable records request: {"column":"codigo","load_all":"false","page":"1","value":null} 
+[2025-09-22 11:43:57] local.INFO: CuentaContable records request: {"column":"codigo","load_all":"false","page":"1","value":null} 
+[2025-09-22 11:44:21] local.INFO: CuentaContable records request: {"column":"codigo","load_all":"false","page":"1","value":null} 
+[2025-09-22 11:44:22] local.INFO: CuentaContable records request: {"column":"codigo","load_all":"false","page":"1","value":null} 
+[2025-09-22 11:44:25] local.INFO: CuentaContable records request: {"column":"codigo","load_all":"false","page":"1","value":null} 
+[2025-09-22 11:44:27] local.INFO: CuentaContable records request: {"column":"codigo","load_all":"false","page":"1","value":null} 
+[2025-09-22 11:45:33] local.INFO: CuentaContable records request: {"column":"codigo","load_all":"false","page":"1","value":null} 
+[2025-09-22 11:45:34] local.INFO: CuentaContable records request: {"column":"codigo","load_all":"false","page":"1","value":null} 
+[2025-09-22 11:45:37] local.INFO: CuentaContable records request: {"column":"codigo","load_all":"false","page":"1","value":null} 
+[2025-09-22 11:45:39] local.INFO: CuentaContable records request: {"column":"codigo","load_all":"false","page":"1","value":null} 
+[2025-09-22 11:45:54] local.INFO: ImportPuc method called {"files":{"archivo":"[object] (Illuminate\\Http\\UploadedFile: C:\\Users\\USER\\AppData\\Local\\Temp\\phpB782.tmp)"},"all_data":{"sobreescribir":"1","_token":"QqIPKj9Zf9cemRwHmsboC6Dg1RMOKV2vdtAh308A","archivo":"[object] (Illuminate\\Http\\UploadedFile: C:\\Users\\USER\\AppData\\Local\\Temp\\phpB782.tmp)"}} 
+[2025-09-22 11:45:54] local.INFO: Validation passed  
+[2025-09-22 11:45:56] local.INFO: CuentaContable records request: {"column":"codigo","load_all":"false","page":"1","value":null} 
+[2025-09-22 11:45:58] local.INFO: CuentaContable records request: {"column":"codigo","load_all":"false","page":"1","value":null} 
+[2025-09-22 11:46:00] local.INFO: CuentaContable records request: {"column":"codigo","load_all":"false","page":"1","value":null} 
+[2025-09-22 11:46:02] local.INFO: CuentaContable records request: {"column":"codigo","load_all":"false","page":"1","value":null} 
+[2025-09-22 11:46:43] local.INFO: CuentaContable columns requested  
+[2025-09-22 11:46:44] local.INFO: CuentaContable records request: {"column":null,"load_all":"false","page":"1","value":null} 
+[2025-09-22 11:46:45] local.INFO: CuentaContable records request: {"column":null,"load_all":"false","page":"1","value":null} 
+[2025-09-22 11:46:46] local.INFO: CuentaContable records request: {"column":"codigo","load_all":"false","page":"1","value":null} 
+[2025-09-22 11:46:47] local.INFO: CuentaContable records request: {"column":"codigo","load_all":"false","page":"1","value":null} 
+[2025-09-22 11:46:49] local.INFO: CuentaContable records request: {"column":"codigo","load_all":"false","page":"1","value":null} 

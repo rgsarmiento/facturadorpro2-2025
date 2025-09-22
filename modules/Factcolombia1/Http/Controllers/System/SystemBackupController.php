@@ -95,10 +95,10 @@ class SystemBackupController extends Controller
             // Configurar tiempo de ejecución y memoria para instalaciones con muchas empresas
             ini_set('max_execution_time', 7200); // 2 horas
             ini_set('memory_limit', '2G');
-            
+
             // Logging alternativo para evitar problemas de permisos
             $this->safeLog('BACKUP: Iniciando proceso de backup del sistema completo');
-            
+
             $backupsPath = storage_path('app/system_backups');
             if (!is_dir($backupsPath)) {
                 mkdir($backupsPath, 0755, true);
@@ -110,7 +110,7 @@ class SystemBackupController extends Controller
             if (!is_dir($systemBackupDir)) {
                 mkdir($systemBackupDir, 0755, true);
             }
-            
+
             $this->safeLog('BACKUP: Directorio temporal creado: ' . $systemBackupDir);
 
             // Configuración de base de datos
@@ -251,9 +251,9 @@ class SystemBackupController extends Controller
             // Configurar tiempo de ejecución y memoria para restore con muchas empresas
             ini_set('max_execution_time', 7200); // 2 horas
             ini_set('memory_limit', '2G');
-            
+
             $this->safeLog('RESTORE: Iniciando proceso de restauración del sistema');
-            
+
             $request->validate([
                 'backup_file' => 'required|file|max:1048576' // 1GB max
             ]);
@@ -268,7 +268,7 @@ class SystemBackupController extends Controller
             // Guardar archivo ZIP temporal
             $tempZipFile = $backupsPath . '/restore_temp_' . time() . '.zip';
             $file->move($backupsPath, basename($tempZipFile));
-            
+
             $this->safeLog('RESTORE: Archivo ZIP guardado temporalmente: ' . basename($tempZipFile));
 
             // Extraer ZIP
@@ -307,7 +307,7 @@ class SystemBackupController extends Controller
             $this->deleteDirectory($extractDir);
 
             $this->safeLog('RESTORE: Proceso de restauración completado exitosamente');
-            
+
             return response()->json([
                 'success' => true,
                 'message' => 'Sistema restaurado exitosamente: BD + Carpetas + Tenants'
@@ -391,7 +391,7 @@ class SystemBackupController extends Controller
 
         foreach ($batches as $batch) {
             $this->safeLog("BACKUP: Procesando lote {$batchNumber}/" . $batches->count() . " (" . $batch->count() . " tenants)");
-            
+
             foreach ($batch as $website) {
                 // Obtener el hostname principal del website
                 $hostname = $website->hostnames()->first();
@@ -454,11 +454,11 @@ class SystemBackupController extends Controller
                     $this->safeLog("BACKUP: Error en backup de tenant {$tenantName}: " . $process->getErrorOutput());
                 }
             }
-            
+
             $this->safeLog("BACKUP: Lote {$batchNumber} completado");
             $batchNumber++;
         }
-        
+
         $this->safeLog("BACKUP: Backup de tenants completado ({$successfulBackups}/{$totalTenants} exitosos)");
     }
 
@@ -540,7 +540,7 @@ class SystemBackupController extends Controller
 
         foreach ($batches as $batch) {
             $this->safeLog("RESTORE: Procesando lote {$batchNumber}/" . count($batches) . " (" . count($batch) . " tenants)");
-            
+
             foreach ($batch as $sqlFile) {
                 $filename = basename($sqlFile, '.sql');
                 $tenantName = str_replace('tenant_', '', $filename);
@@ -549,7 +549,7 @@ class SystemBackupController extends Controller
 
                 try {
                     $this->safeLog("RESTORE: [{$processed}/{$totalTenants}] Restaurando tenant: {$tenantName}");
-                    
+
                     // Crear la base de datos si no existe
                     DB::connection('mysql')->statement("CREATE DATABASE IF NOT EXISTS `{$tenantDatabase}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
 
@@ -566,7 +566,7 @@ class SystemBackupController extends Controller
 
                     // Restaurar datos desde el archivo SQL
                     $this->restoreTenantSqlFile($sqlFile, $tenantDatabase, $host, $port, $username, $password, $extractDir, $tenantName);
-                    
+
                     $this->safeLog("RESTORE: [{$processed}/{$totalTenants}] Tenant {$tenantName} restaurado exitosamente");
 
                 } catch (\Exception $e) {
@@ -575,11 +575,11 @@ class SystemBackupController extends Controller
                     continue;
                 }
             }
-            
+
             $this->safeLog("RESTORE: Lote {$batchNumber} completado");
             $batchNumber++;
         }
-        
+
         $this->safeLog("RESTORE: Restauración de todos los tenants completada ({$processed} procesados)");
     }
 
@@ -874,12 +874,12 @@ class SystemBackupController extends Controller
             // Backup storage folder (excluding logs and framework cache)
             $storageSource = storage_path();
             $storageBackup = $foldersDir . '/storage';
-            
+
             if (is_dir($storageSource)) {
                 $this->copyDirectorySelective($storageSource, $storageBackup, [
-                    'logs', 
-                    'framework/cache', 
-                    'framework/sessions', 
+                    'logs',
+                    'framework/cache',
+                    'framework/sessions',
                     'framework/views',
                     'app/system_backups' // Evitar recursión
                 ]);
@@ -889,7 +889,7 @@ class SystemBackupController extends Controller
             // Backup public folder (excluding large cache files)
             $publicSource = public_path();
             $publicBackup = $foldersDir . '/public';
-            
+
             if (is_dir($publicSource)) {
                 $this->copyDirectorySelective($publicSource, $publicBackup, [
                     'hot',
@@ -968,7 +968,7 @@ class SystemBackupController extends Controller
             \Log::info("Starting restoration of storage and public folders");
 
             $foldersDir = $extractedDir . '/folders';
-            
+
             if (!is_dir($foldersDir)) {
                 \Log::info("No folders directory found in backup, skipping folder restoration");
                 return true;
@@ -977,12 +977,12 @@ class SystemBackupController extends Controller
             // Restore storage folder
             $storageBackup = $foldersDir . '/storage';
             $storageTarget = storage_path();
-            
+
             if (is_dir($storageBackup)) {
                 $this->restoreDirectorySelective($storageBackup, $storageTarget, [
-                    'logs', 
-                    'framework/cache', 
-                    'framework/sessions', 
+                    'logs',
+                    'framework/cache',
+                    'framework/sessions',
                     'framework/views',
                     'app/system_backups'
                 ]);
@@ -992,7 +992,7 @@ class SystemBackupController extends Controller
             // Restore public folder
             $publicBackup = $foldersDir . '/public';
             $publicTarget = public_path();
-            
+
             if (is_dir($publicBackup)) {
                 $this->restoreDirectorySelective($publicBackup, $publicTarget, [
                     'hot',
@@ -1055,7 +1055,7 @@ class SystemBackupController extends Controller
                 if (!is_dir($targetDir)) {
                     mkdir($targetDir, 0755, true);
                 }
-                
+
                 // Solo copiar si el archivo no existe o es diferente
                 if (!file_exists($targetPath) || filemtime($item->getPathname()) > filemtime($targetPath)) {
                     copy($item->getPathname(), $targetPath);
