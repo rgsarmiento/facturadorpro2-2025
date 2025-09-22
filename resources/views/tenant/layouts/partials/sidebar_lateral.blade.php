@@ -78,12 +78,14 @@
                                     @if(in_array('new_document', $vc_module_levels))
                                         <li class="{{ ($path[0] === 'co-documents'  && $path[1] === 'create')?'nav-active':'' }}">
                                             <a class="nav-link" href="{{route('tenant.co-documents.create')}}">
+                                                <i class="fas fa-plus-circle" aria-hidden="true"></i>
                                                 Nueva Factura Electronica
                                             </a>
                                         </li>
 
                                         <li class="{{ ($path[0] === 'co-documents-contingency-3'  && $path[1] === 'create')?'nav-active':'' }}">
                                             <a class="nav-link" href="{{route('tenant.co-documents-contingency-3.create')}}">
+                                                <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
                                                 Nueva F.E. Contingencia Tipo 3
                                             </a>
                                         </li>
@@ -91,6 +93,7 @@
                                         @if(in_array('invoicehealth', $vc_modules))
                                             <li class="{{ ($path[0] === 'co-documents-health'  && $path[1] === 'create')?'nav-active':'' }}">
                                                 <a class="nav-link" href="{{route('tenant.co-documents-health.create')}}">
+                                                    <i class="fas fa-heartbeat" aria-hidden="true"></i>
                                                     Nueva F.E. Sector Salud
                                                 </a>
                                             </li>
@@ -98,6 +101,7 @@
 
                                         <li class="{{ ($path[0] === 'co-documents-aiu'  && $path[1] === 'create')?'nav-active':'' }}">
                                             <a class="nav-link" href="{{route('tenant.co-documents-aiu.create')}}">
+                                                <i class="fas fa-file-contract" aria-hidden="true"></i>
                                                 Nueva Factura Electronica AIU
                                             </a>
                                         </li>
@@ -128,6 +132,7 @@
 
                                     <li class="{{ ($path[0] === 'co-documents'  && $path[1] != 'create'  )?'nav-active':'' }}">
                                         <a class="nav-link" href="{{route('tenant.co-documents.index')}}">
+                                            <i class="fas fa-file-invoice" aria-hidden="true"></i>
                                             Listado de comprobantes
                                         </a>
                                     </li>
@@ -188,27 +193,32 @@
 
                                             <li class="{{ ($path[0] === 'co-taxes')?'nav-active':'' }}">
                                                 <a class="nav-link" href="{{route('tenant.co-taxes.index')}}">
+                                                    <i class="fas fa-percentage" aria-hidden="true"></i>
                                                     Impuestos colombia
                                                 </a>
                                             </li>
 
                                             <li class="{{ ($path[0] === 'items')?'nav-active':'' }}">
                                                 <a class="nav-link" href="{{route('tenant.items.index')}}">
+                                                    <i class="fas fa-box" aria-hidden="true"></i>
                                                     Productos
                                                 </a>
                                             </li>
                                             <li class="{{ ($path[0] === 'categories')?'nav-active':'' }}">
                                                 <a class="nav-link" href="{{route('tenant.categories.index')}}">
+                                                    <i class="fas fa-tags" aria-hidden="true"></i>
                                                     Categorías
                                                 </a>
                                             </li>
                                             <li class="{{ ($path[0] === 'brands')?'nav-active':'' }}">
                                                 <a class="nav-link" href="{{route('tenant.brands.index')}}">
+                                                    <i class="fas fa-copyright" aria-hidden="true"></i>
                                                     Marcas
                                                 </a>
                                             </li>
                                             <li class="{{ ($path[0] === 'persons' && $path[1] === 'customers')?'nav-active':'' }}">
                                                 <a class="nav-link" href="{{route('tenant.persons.index', ['type' => 'customers'])}}">
+                                                    <i class="fas fa-users" aria-hidden="true"></i>
                                                     Clientes
                                                 </a>
                                             </li>
@@ -355,30 +365,36 @@
                             <ul class="nav nav-children">
                                 <li class="{{ ($path[0] === 'pos'  )?'nav-active':'' }}">
                                     <a class="nav-link" href="{{route('tenant.pos.index')}}">
+                                        <i class="fas fa-shopping-cart" aria-hidden="true"></i>
                                         Punto de venta
                                     </a>
                                 </li>
                                 <li class="{{ ($path[0] === 'cash'  )?'nav-active':'' }}">
                                     <a class="nav-link" href="{{route('tenant.cash.index')}}">
+                                        <i class="fas fa-coins" aria-hidden="true"></i>
                                         Caja chica
                                     </a>
                                 </li>
                                 <li class="{{ ($path[0] === 'item-sets'  )?'nav-active':'' }}">
                                     <a class="nav-link" href="{{route('tenant.item_sets.index')}}">
+                                        <i class="fas fa-cubes" aria-hidden="true"></i>
                                         Conjuntos/Packs/Promociones
                                     </a>
                                 </li>
                                 @if(auth()->user()->type == 'admin')
                                     <li class="{{ ($path[0] === 'item-sets'  )?'nav-active':'' }}">
                                         <a class="nav-link" href="{{route('tenant.pos.configuration')}}">
+                                            <i class="fas fa-cog" aria-hidden="true"></i>
                                             Configuración
                                         </a>
                                     </li>
                                 @endif
                                 <li class="{{ ($path[0] === 'document-pos'  )?'nav-active':'' }}">
                                     <a class="nav-link" href="{{route('tenant.document_pos.index')}}">
+                                        <i class="fas fa-list" aria-hidden="true"></i>
                                         Lista Documentos
                                     </a>
+                                </li>
                                 </li>
                             </ul>
                         </li>
@@ -396,31 +412,37 @@
                         <ul class="nav nav-children">
                             <li class="">
                                 <a class="nav-link" onclick="window.open('{{ route("tenant.ecommerce.index") }}')">
+                                    <i class="fas fa-external-link-alt" aria-hidden="true"></i>
                                     Ir a Tienda
                                 </a>
                             </li>
                             <li class="{{ ($path[0] === 'orders')?'nav-active':'' }}">
                                 <a class="nav-link" href="{{route('tenant_orders_index')}}">
+                                    <i class="fas fa-shopping-bag" aria-hidden="true"></i>
                                     Pedidos
                                 </a>
                             </li>
                             <li class="{{ ($path[0] === 'items_ecommerce')?'nav-active':'' }}">
                                 <a class="nav-link" href="{{route('tenant.items_ecommerce.index')}}">
+                                    <i class="fas fa-boxes" aria-hidden="true"></i>
                                     Productos Tienda Virtual
                                 </a>
                             </li>
                             <li class="{{ ($path[0] === 'tags')?'nav-active':'' }}">
                                 <a class="nav-link" href="{{route('tenant.tags.index')}}">
+                                    <i class="fas fa-hashtag" aria-hidden="true"></i>
                                     Tags - Categorias
                                 </a>
                             </li>
                             <li class="{{ ($path[0] === 'promotions')?'nav-active':'' }}">
                                 <a class="nav-link" href="{{route('tenant.promotion.index')}}">
+                                    <i class="fas fa-percent" aria-hidden="true"></i>
                                     Promociones
                                 </a>
                             </li>
                             <li class="{{ ($path[1] === 'configuration')?'nav-active':'' }}">
                                 <a class="nav-link" href="{{route('tenant_ecommerce_configuration')}}">
+                                    <i class="fas fa-cogs" aria-hidden="true"></i>
                                     Configuración
                                 </a>
                             </li>
@@ -650,6 +672,7 @@
                         <ul class="nav nav-children" style="">
                             <li class="{{(($path[0] === 'reports') && ($path[1] === 'purchases')) ? 'nav-active' : ''}}">
                                 <a class="nav-link" href="{{route('tenant.reports.purchases.index')}}">
+                                    <i class="fas fa-shopping-bag" aria-hidden="true"></i>
                                     Compras
                                 </a>
                             </li>
@@ -659,45 +682,53 @@
                                     'commissions',  'general-items','sales-consolidated', 'user-commissions', 'co-remissions'])) ? 'nav-active nav-expanded' : ''}}">
 
                                 <a class="nav-link" href="#">
+                                    <i class="fas fa-chart-line" aria-hidden="true"></i>
                                     Ventas
                                 </a>
                                 <ul class="nav nav-children">
                                     @if($vc_company->soap_type_id != '03')
                                     <li class="{{(($path[0] === 'reports') && ($path[1] === 'sales')) ? 'nav-active' : ''}}">
                                         <a class="nav-link" href="{{route('tenant.reports.sales.index')}}">
+                                            <i class="fas fa-file-invoice-dollar" aria-hidden="true"></i>
                                             Documentos
                                         </a>
                                     </li>
                                     @endif
                                     <li class="{{(($path[0] === 'reports') && ($path[1] === 'customers')) ? 'nav-active' : ''}}">
                                         <a class="nav-link" href="{{route('tenant.reports.customers.index')}}">
+                                            <i class="fas fa-users" aria-hidden="true"></i>
                                             Clientes
                                         </a>
                                     </li>
 
                                     <li class="{{(($path[0] === 'reports') && ($path[1] === 'document-pos')) ? 'nav-active' : ''}}">
                                         <a class="nav-link" href="{{route('tenant.reports.document_pos.index')}}">
+                                            <i class="fas fa-receipt" aria-hidden="true"></i>
                                             Documentos POS
                                         </a>
                                     </li>
 
                                     <li class="{{(($path[0] === 'reports') && ($path[1] === 'items')) ? 'nav-active' : ''}}">
                                         <a class="nav-link" href="{{route('tenant.reports.items.index')}}">
+                                            <i class="fas fa-search" aria-hidden="true"></i>
                                             Producto - busqueda individual
                                         </a>
                                     </li>
                                     <li class="{{(($path[0] === 'reports') && ($path[1] === 'general-items')) ? 'nav-active' : ''}}">
                                         <a class="nav-link" href="{{route('tenant.reports.general_items.index')}}">
+                                            <i class="fas fa-box" aria-hidden="true"></i>
                                             Productos
                                         </a>
                                     </li>
                                     <li class="{{(($path[0] === 'reports') && ($path[1] == 'quotations')) ? 'nav-active' : ''}}">
                                         <a class="nav-link" href="{{route('tenant.reports.quotations.index')}}">
+                                            <i class="fas fa-file-signature" aria-hidden="true"></i>
                                             Cotizaciones
                                         </a>
                                     </li>
                                     <li class="{{(($path[0] === 'reports') && ($path[1] == 'co-remissions')) ? 'nav-active' : ''}}">
                                         <a class="nav-link" href="{{route('tenant.reports.co-remissions.index')}}">
+                                            <i class="fas fa-truck" aria-hidden="true"></i>
                                             Remisiones
                                         </a>
                                     </li>
@@ -720,18 +751,21 @@
                                         {{ (($path[0] === 'reports') && ($path[1] == 'user-commissions')) ?'nav-active nav-expanded':'' }}
                                         ">
                                         <a class="nav-link" href="#">
+                                            <i class="fas fa-money-bill-wave" aria-hidden="true"></i>
                                             Comisiones
                                         </a>
                                         <ul class="nav nav-children">
 
                                             <li class="{{(($path[0] === 'reports') && ($path[1] == 'user-commissions')) ? 'nav-active' : ''}}">
                                                 <a class="nav-link" href="{{route('tenant.reports.user_commissions.index')}}">
+                                                    <i class="fas fa-chart-pie" aria-hidden="true"></i>
                                                     Utilidad ventas
                                                 </a>
                                             </li>
 
                                             <li class="{{(($path[0] === 'reports') && ($path[1] == 'commissions')) ? 'nav-active' : ''}}">
                                                 <a class="nav-link" href="{{route('tenant.reports.commissions.index')}}">
+                                                    <i class="fas fa-file-invoice-dollar" aria-hidden="true"></i>
                                                     Ventas
                                                 </a>
                                             </li>
@@ -794,18 +828,21 @@
                             </li> -->
                             <li class="{{(($path[0] === 'reports') && ($path[1] === 'report-taxes')) ? 'nav-active' : ''}}">
                                 <a class="nav-link" href="{{route('tenant.reports.taxes')}}">
+                                    <i class="fas fa-percentage" aria-hidden="true"></i>
                                     Impuestos
                                 </a>
                             </li>
 
                             <li class="{{(($path[0] === 'reports') && ($path[1] === 'co-items-sold')) ? 'nav-active' : ''}}">
                                 <a class="nav-link" href="{{route('tenant.co-items-sold.index')}}">
+                                    <i class="fas fa-shopping-basket" aria-hidden="true"></i>
                                     Artículos vendidos
                                 </a>
                             </li>
 
                             <li class="{{(($path[0] === 'reports') && ($path[1] === 'co-sales-book')) ? 'nav-active' : ''}}">
                                 <a class="nav-link" href="{{route('tenant.co-sales-book.index')}}">
+                                    <i class="fas fa-book" aria-hidden="true"></i>
                                     Libro de ventas
                                 </a>
                             </li>
@@ -822,9 +859,9 @@
                         {{ ($path[0] === 'puc')?'nav-active nav-expanded':'' }}
                         ">
                         <a class="nav-link" href="#">
-                            <span class="float-right badge badge-orange badge-warning mr-3">En construcción</span>
                             <i class="fas fa-calculator" aria-hidden="true"></i>
                             <span>Contabilidad</span>
+                            <i class="fas fa-wrench text-warning ml-1" style="font-size: 10px;" title="En construcción"></i>
                         </a>
                         <ul class="nav nav-children" style="">
                             <li class="{{(($path[0] === 'contabilidad') && ($path[1] === 'cuentas-contables')) ? 'nav-active' : ''}}">
@@ -870,37 +907,44 @@
                             @if(auth()->user()->type != 'integrator')
                                 <li class="{{($path[0] === 'finances') ? 'nav-active' : ''}}">
                                     <a class="nav-link" href="{{route('tenant.catalogs.index')}}">
+                                        <i class="fas fa-folder-open" aria-hidden="true"></i>
                                         Catálogos
                                     </a>
                                 </li>
                             @endif
                             <li class="{{(($path[0] === 'finances') && ($path[1] == 'global-payments')) ? 'nav-active' : ''}}">
                                 <a class="nav-link" href="{{route('tenant.finances.global_payments.index')}}">
+                                    <i class="fas fa-credit-card" aria-hidden="true"></i>
                                     Pagos
                                 </a>
                             </li>
                             <li class="{{(($path[0] === 'finances') && ($path[1] == 'balance')) ? 'nav-active' : ''}}">
                                 <a class="nav-link" href="{{route('tenant.finances.balance.index')}}">
+                                    <i class="fas fa-balance-scale" aria-hidden="true"></i>
                                     Balance
                                 </a>
                             </li>
                             <li class="{{(($path[0] === 'finances') && ($path[1] == 'payment-method-types')) ? 'nav-active' : ''}}">
                                 <a class="nav-link" href="{{route('tenant.finances.payment_method_types.index')}}">
+                                    <i class="fas fa-exchange-alt" aria-hidden="true"></i>
                                     Ingresos y Egresos - M. Pago
                                 </a>
                             </li>
                             <li class="{{(($path[0] === 'finances') && ($path[1] == 'unpaid')) ? 'nav-active' : ''}}">
                                 <a class="nav-link" href="{{route('tenant.finances.unpaid.index')}}">
+                                    <i class="fas fa-clock" aria-hidden="true"></i>
                                     Cuentas por cobrar
                                 </a>
                             </li>
                             <li class="{{(($path[0] === 'finances') && ($path[1] == 'to-pay')) ? 'nav-active' : ''}}">
                                 <a class="nav-link" href="{{route('tenant.finances.to_pay.index')}}">
+                                    <i class="fas fa-calendar-times" aria-hidden="true"></i>
                                     Cuentas por pagar
                                 </a>
                             </li>
                             <li class="{{(($path[0] === 'finances') && ($path[1] == 'income')) ? 'nav-active' : ''}}">
                                 <a class="nav-link" href="{{route('tenant.finances.income.index')}}">
+                                    <i class="fas fa-arrow-up" aria-hidden="true"></i>
                                     Ingresos
                                 </a>
                             </li>
@@ -987,16 +1031,19 @@
                         <ul class="nav nav-children">
                             <li class="{{($path[0] === 'co-configuration-change-ambient') ? 'nav-active': ''}}">
                                 <a class="nav-link" href="{{route('tenant.configuration.change.ambient')}}">
+                                    <i class="fas fa-exchange-alt" aria-hidden="true"></i>
                                     Cambiar ambiente
                                 </a>
                             </li>
                             <li class="{{($path[0] === 'co-configuration-documents') ? 'nav-active': ''}}">
                                 <a class="nav-link" href="{{route('tenant.configuration.documents')}}">
+                                    <i class="fas fa-file-alt" aria-hidden="true"></i>
                                     Documentos
                                 </a>
                             </li>
                             <li class="{{($path[0] === 'co-configuration') ? 'nav-active': ''}}">
                                 <a class="nav-link" href="{{route('tenant.configuration')}}">
+                                    <i class="fas fa-building" aria-hidden="true"></i>
                                     Empresa
                                 </a>
                             </li>

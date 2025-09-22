@@ -143,11 +143,12 @@
     z-index: 99998;
 }
 
-/* .horizontal-nav > li:hover .dropdown-menu-horizontal {
+/* Hover habilitado temporalmente para debug */
+.horizontal-nav > li:hover .dropdown-menu-horizontal {
     display: block !important;
     animation: fadeIn 0.2s ease-in-out;
-} */
-/* Deshabilitado para usar solo JavaScript */
+}
+/* Habilitado temporalmente */
 
 @keyframes fadeIn {
     from { opacity: 0; transform: translateY(-10px); }
@@ -475,11 +476,11 @@ html.horizontal-menu.sidebar-left-collapsed .content {
     min-width: 280px !important;
 }
 
-/* Comportamiento básico de hover como respaldo - DESHABILITADO */
-/* .dropdown-menu-horizontal .nav-parent:hover > .dropdown-menu-horizontal {
+/* Comportamiento básico de hover como respaldo - HABILITADO TEMPORALMENTE */
+.horizontal-nav > li.nav-parent:hover > .dropdown-menu-horizontal {
     display: block !important;
-} */
-/* Deshabilitado para usar solo JavaScript */
+}
+/* Habilitado temporalmente para debug */
 
 /* Estilos para submenus flotantes */
 .floating-submenu {
@@ -662,12 +663,14 @@ html.horizontal-menu.sidebar-left-collapsed .content {
                                     @if(in_array('new_document', $vc_module_levels))
                                         <li class="{{ ($path[0] === 'co-documents'  && $path[1] === 'create')?'nav-active':'' }}">
                                             <a class="nav-link" href="{{route('tenant.co-documents.create')}}">
+                                                <i class="fas fa-plus-circle" aria-hidden="true"></i>
                                                 Nueva Factura Electronica
                                             </a>
                                         </li>
 
                                         <li class="{{ ($path[0] === 'co-documents-contingency-3'  && $path[1] === 'create')?'nav-active':'' }}">
                                             <a class="nav-link" href="{{route('tenant.co-documents-contingency-3.create')}}">
+                                                <i class="fas fa-exclamation-triangle" aria-hidden="true"></i>
                                                 Nueva F.E. Contingencia Tipo 3
                                             </a>
                                         </li>
@@ -675,6 +678,7 @@ html.horizontal-menu.sidebar-left-collapsed .content {
                                         @if(in_array('invoicehealth', $vc_modules))
                                             <li class="{{ ($path[0] === 'co-documents-health'  && $path[1] === 'create')?'nav-active':'' }}">
                                                 <a class="nav-link" href="{{route('tenant.co-documents-health.create')}}">
+                                                    <i class="fas fa-heartbeat" aria-hidden="true"></i>
                                                     Nueva F.E. Sector Salud
                                                 </a>
                                             </li>
@@ -682,12 +686,14 @@ html.horizontal-menu.sidebar-left-collapsed .content {
 
                                         <li class="{{ ($path[0] === 'co-documents-aiu'  && $path[1] === 'create')?'nav-active':'' }}">
                                             <a class="nav-link" href="{{route('tenant.co-documents-aiu.create')}}">
+                                                <i class="fas fa-file-contract" aria-hidden="true"></i>
                                                 Nueva Factura Electronica AIU
                                             </a>
                                         </li>
 
                                         <li class="{{ ($path[0] === 'co-documents-unreferenced-note'  && $path[1] === 'create')?'nav-active':'' }}">
                                             <a class="nav-link" href="{{route('tenant.co-documents-unreferenced-note.create')}}">
+                                                <i class="fas fa-sticky-note" aria-hidden="true"></i>
                                                 Nueva Nota Contable Sin Referencia A Factura Electronica
                                             </a>
                                         </li>
@@ -712,6 +718,7 @@ html.horizontal-menu.sidebar-left-collapsed .content {
 
                                     <li class="{{ ($path[0] === 'co-documents'  && $path[1] != 'create'  )?'nav-active':'' }}">
                                         <a class="nav-link" href="{{route('tenant.co-documents.index')}}">
+                                            <i class="fas fa-file-invoice" aria-hidden="true"></i>
                                             Listado de comprobantes
                                         </a>
                                     </li>
@@ -759,26 +766,31 @@ html.horizontal-menu.sidebar-left-collapsed .content {
                                         <ul class="dropdown-menu-horizontal">
                                             <li class="{{ ($path[0] === 'co-taxes')?'nav-active':'' }}">
                                                 <a href="{{route('tenant.co-taxes.index')}}">
+                                                    <i class="fas fa-percentage" aria-hidden="true"></i>
                                                     Impuestos colombia
                                                 </a>
                                             </li>
                                             <li class="{{ ($path[0] === 'items')?'nav-active':'' }}">
                                                 <a href="{{route('tenant.items.index')}}">
+                                                    <i class="fas fa-box" aria-hidden="true"></i>
                                                     Productos
                                                 </a>
                                             </li>
                                             <li class="{{ ($path[0] === 'categories')?'nav-active':'' }}">
                                                 <a href="{{route('tenant.categories.index')}}">
+                                                    <i class="fas fa-tags" aria-hidden="true"></i>
                                                     Categorías
                                                 </a>
                                             </li>
                                             <li class="{{ ($path[0] === 'brands')?'nav-active':'' }}">
                                                 <a href="{{route('tenant.brands.index')}}">
+                                                    <i class="fas fa-copyright" aria-hidden="true"></i>
                                                     Marcas
                                                 </a>
                                             </li>
                                             <li class="{{ ($path[0] === 'persons' && $path[1] === 'customers')?'nav-active':'' }}">
                                                 <a href="{{route('tenant.persons.index', ['type' => 'customers'])}}">
+                                                    <i class="fas fa-users" aria-hidden="true"></i>
                                                     Clientes
                                                 </a>
                                             </li>
@@ -886,11 +898,13 @@ html.horizontal-menu.sidebar-left-collapsed .content {
                                         <ul class="dropdown-menu-horizontal">
                                             <li class="{{ ($path[0] === 'user-commissions')?'nav-active':'' }}">
                                                 <a href="{{route('tenant.user_commissions.index')}}">
+                                                    <i class="fas fa-user-tie" aria-hidden="true"></i>
                                                     Vendedores
                                                 </a>
                                             </li>
                                             <li class="{{ ($path[0] === 'incentives')?'nav-active':'' }}">
                                                 <a href="{{route('tenant.incentives.index')}}">
+                                                    <i class="fas fa-gift" aria-hidden="true"></i>
                                                     Productos
                                                 </a>
                                             </li>
@@ -916,28 +930,33 @@ html.horizontal-menu.sidebar-left-collapsed .content {
                             <ul class="dropdown-menu-horizontal">
                                 <li class="{{ ($path[0] === 'pos'  )?'nav-active':'' }}">
                                     <a class="nav-link" href="{{route('tenant.pos.index')}}">
+                                        <i class="fas fa-shopping-cart" aria-hidden="true"></i>
                                         Punto de venta
                                     </a>
                                 </li>
                                 <li class="{{ ($path[0] === 'cash'  )?'nav-active':'' }}">
                                     <a class="nav-link" href="{{route('tenant.cash.index')}}">
+                                        <i class="fas fa-coins" aria-hidden="true"></i>
                                         Caja chica
                                     </a>
                                 </li>
                                 <li class="{{ ($path[0] === 'item-sets'  )?'nav-active':'' }}">
                                     <a class="nav-link" href="{{route('tenant.item_sets.index')}}">
+                                        <i class="fas fa-cubes" aria-hidden="true"></i>
                                         Conjuntos/Packs/Promociones
                                     </a>
                                 </li>
                                 @if(auth()->user()->type == 'admin')
                                     <li class="{{ ($path[0] === 'item-sets'  )?'nav-active':'' }}">
                                         <a class="nav-link" href="{{route('tenant.pos.configuration')}}">
+                                            <i class="fas fa-cog" aria-hidden="true"></i>
                                             Configuración
                                         </a>
                                     </li>
                                 @endif
                                 <li class="{{ ($path[0] === 'document-pos'  )?'nav-active':'' }}">
                                     <a class="nav-link" href="{{route('tenant.document_pos.index')}}">
+                                        <i class="fas fa-list" aria-hidden="true"></i>
                                         Lista Documentos
                                     </a>
                                 </li>
@@ -946,6 +965,45 @@ html.horizontal-menu.sidebar-left-collapsed .content {
                         @endif
                     @endif
 
+                    @if(in_array('accounting', $vc_modules))
+                    <li class="nav-parent
+                        {{ ($path[0] === 'account')?'nav-active':'' }}
+                        {{ ($path[0] === 'contabilidad')?'nav-active':'' }}
+                        {{ ($path[0] === 'puc')?'nav-active':'' }}
+                        ">
+                        <a href="#">
+                            <i class="fas fa-calculator" aria-hidden="true"></i>
+                            <span>Contabilidad</span>
+                            <i class="fas fa-wrench text-warning ml-1" style="font-size: 10px;" title="En construcción"></i>
+                        </a>
+                        <ul class="dropdown-menu-horizontal">
+                            <li class="{{(($path[0] === 'contabilidad') && ($path[1] === 'cuentas-contables')) ? 'nav-active' : ''}}">
+                                <a href="{{ route('tenant.cuentas_contables.index') }}">
+                                    <i class="fas fa-list-alt" aria-hidden="true"></i>
+                                    Plan único de cuentas - PUC
+                                </a>
+                            </li>
+                            <li class="{{(($path[0] === 'account') && ($path[1] === 'format')) ? 'nav-active' : ''}}">
+                                <a href="{{ route('tenant.account_format.index') }}">
+                                    <i class="fas fa-file-export" aria-hidden="true"></i>
+                                    Exportar formatos
+                                </a>
+                            </li>
+                            <li class="{{(($path[0] === 'account') && ($path[1] == ''))   ? 'nav-active' : ''}}">
+                                <a href="{{ route('tenant.account.index') }}">
+                                    <i class="fas fa-file-code" aria-hidden="true"></i>
+                                    Exportar formatos - Sis. Contable
+                                </a>
+                            </li>
+                            <li class="{{(($path[0] === 'account') && ($path[1] == 'summary-report'))   ? 'nav-active' : ''}}">
+                                <a href="{{ route('tenant.account_summary_report.index') }}">
+                                    <i class="fas fa-chart-bar" aria-hidden="true"></i>
+                                    Reporte resumen cuentas
+                                </a>
+                            </li>
+                        </ul>
+                    </li>
+                    @endif
 
                     @if(in_array('ecommerce', $vc_modules))
                     <li class="nav-parent {{ in_array($path[0], ['ecommerce','items_ecommerce', 'tags', 'promotions', 'orders', 'configuration'])?'nav-active':'' }}">
@@ -1204,6 +1262,7 @@ html.horizontal-menu.sidebar-left-collapsed .content {
                         <ul class="dropdown-menu-horizontal">
                             <li class="{{(($path[0] === 'reports') && ($path[1] === 'purchases')) ? 'nav-active' : ''}}">
                                 <a class="nav-link" href="{{route('tenant.reports.purchases.index')}}">
+                                    <i class="fas fa-shopping-bag" aria-hidden="true"></i>
                                     Compras
                                 </a>
                             </li>
@@ -1219,29 +1278,34 @@ html.horizontal-menu.sidebar-left-collapsed .content {
                                     @if($vc_company->soap_type_id != '03')
                                     <li class="{{(($path[0] === 'reports') && ($path[1] === 'sales')) ? 'nav-active' : ''}}">
                                         <a class="nav-link" href="{{route('tenant.reports.sales.index')}}">
+                                            <i class="fas fa-file-invoice-dollar" aria-hidden="true"></i>
                                             Documentos
                                         </a>
                                     </li>
                                     @endif
                                     <li class="{{(($path[0] === 'reports') && ($path[1] === 'customers')) ? 'nav-active' : ''}}">
                                         <a class="nav-link" href="{{route('tenant.reports.customers.index')}}">
+                                            <i class="fas fa-users" aria-hidden="true"></i>
                                             Clientes
                                         </a>
                                     </li>
 
                                     <li class="{{(($path[0] === 'reports') && ($path[1] === 'document-pos')) ? 'nav-active' : ''}}">
                                         <a class="nav-link" href="{{route('tenant.reports.document_pos.index')}}">
+                                            <i class="fas fa-receipt" aria-hidden="true"></i>
                                             Documentos POS
                                         </a>
                                     </li>
 
                                     <li class="{{(($path[0] === 'reports') && ($path[1] === 'items')) ? 'nav-active' : ''}}">
                                         <a class="nav-link" href="{{route('tenant.reports.items.index')}}">
+                                            <i class="fas fa-search" aria-hidden="true"></i>
                                             Producto - busqueda individual
                                         </a>
                                     </li>
                                     <li class="{{(($path[0] === 'reports') && ($path[1] === 'general-items')) ? 'nav-active' : ''}}">
                                         <a class="nav-link" href="{{route('tenant.reports.general_items.index')}}">
+                                            <i class="fas fa-box-open" aria-hidden="true"></i>
                                             Productos
                                         </a>
                                     </li>
@@ -1365,47 +1429,6 @@ html.horizontal-menu.sidebar-left-collapsed .content {
                     </li>
                     @endif
 
-                    @if(in_array('accounting', $vc_modules))
-                    <li class="
-                        nav-parent
-                        {{ ($path[0] === 'account')?'nav-active nav-expanded':'' }}
-                        {{ ($path[0] === 'contabilidad')?'nav-active nav-expanded':'' }}
-                        {{ ($path[0] === 'puc')?'nav-active nav-expanded':'' }}
-                        ">
-                        <a class="nav-link" href="#">
-                            <span class="float-right badge badge-orange badge-warning mr-3">En construcción</span>
-                            <i class="fas fa-calculator" aria-hidden="true"></i>
-                            <span>Contabilidad</span>
-                        </a>
-                        <ul class="nav nav-children" style="">
-                            <li class="{{(($path[0] === 'contabilidad') && ($path[1] === 'cuentas-contables')) ? 'nav-active' : ''}}">
-                                <a class="nav-link" href="{{ route('tenant.cuentas_contables.index') }}">
-                                    <i class="fas fa-list-alt" aria-hidden="true"></i>
-                                    Plan único de cuentas - PUC
-                                </a>
-                            </li>
-                            <li class="{{(($path[0] === 'account') && ($path[1] === 'format')) ? 'nav-active' : ''}}">
-                                <a class="nav-link" href="{{ route('tenant.account_format.index') }}">
-                                    <i class="fas fa-file-export" aria-hidden="true"></i>
-                                    Exportar formatos
-                                </a>
-                            </li>
-                            <li class="{{(($path[0] === 'account') && ($path[1] == ''))   ? 'nav-active' : ''}}">
-                                <a class="nav-link" href="{{ route('tenant.account.index') }}">
-                                    <i class="fas fa-file-code" aria-hidden="true"></i>
-                                    Exportar formatos - Sis. Contable
-                                </a>
-                            </li>
-                            <li class="{{(($path[0] === 'account') && ($path[1] == 'summary-report'))   ? 'nav-active' : ''}}">
-                                <a class="nav-link" href="{{ route('tenant.account_summary_report.index') }}">
-                                    <i class="fas fa-chart-line" aria-hidden="true"></i>
-                                    Reporte resumido - Ventas
-                                </a>
-                            </li>
-                        </ul>
-                    </li>
-                    @endif
-
                     @if(in_array('finance', $vc_modules))
                     <li class="nav-parent {{$path[0] === 'finances' && in_array($path[1], [
                                                 'global-payments', 'balance','payment-method-types', 'unpaid', 'to-pay', 'income'
@@ -1420,37 +1443,44 @@ html.horizontal-menu.sidebar-left-collapsed .content {
                             @if(auth()->user()->type != 'integrator')
                                 <li class="{{($path[0] === 'finances') ? 'nav-active' : ''}}">
                                     <a class="nav-link" href="{{route('tenant.catalogs.index')}}">
+                                        <i class="fas fa-folder-open" aria-hidden="true"></i>
                                         Catálogos
                                     </a>
                                 </li>
                             @endif
                             <li class="{{(($path[0] === 'finances') && ($path[1] == 'global-payments')) ? 'nav-active' : ''}}">
                                 <a class="nav-link" href="{{route('tenant.finances.global_payments.index')}}">
+                                    <i class="fas fa-credit-card" aria-hidden="true"></i>
                                     Pagos
                                 </a>
                             </li>
                             <li class="{{(($path[0] === 'finances') && ($path[1] == 'balance')) ? 'nav-active' : ''}}">
                                 <a class="nav-link" href="{{route('tenant.finances.balance.index')}}">
+                                    <i class="fas fa-balance-scale" aria-hidden="true"></i>
                                     Balance
                                 </a>
                             </li>
                             <li class="{{(($path[0] === 'finances') && ($path[1] == 'payment-method-types')) ? 'nav-active' : ''}}">
                                 <a class="nav-link" href="{{route('tenant.finances.payment_method_types.index')}}">
+                                    <i class="fas fa-exchange-alt" aria-hidden="true"></i>
                                     Ingresos y Egresos - M. Pago
                                 </a>
                             </li>
                             <li class="{{(($path[0] === 'finances') && ($path[1] == 'unpaid')) ? 'nav-active' : ''}}">
                                 <a class="nav-link" href="{{route('tenant.finances.unpaid.index')}}">
+                                    <i class="fas fa-clock" aria-hidden="true"></i>
                                     Cuentas por cobrar
                                 </a>
                             </li>
                             <li class="{{(($path[0] === 'finances') && ($path[1] == 'to-pay')) ? 'nav-active' : ''}}">
                                 <a class="nav-link" href="{{route('tenant.finances.to_pay.index')}}">
+                                    <i class="fas fa-calendar-times" aria-hidden="true"></i>
                                     Cuentas por pagar
                                 </a>
                             </li>
                             <li class="{{(($path[0] === 'finances') && ($path[1] == 'income')) ? 'nav-active' : ''}}">
                                 <a class="nav-link" href="{{route('tenant.finances.income.index')}}">
+                                    <i class="fas fa-arrow-up" aria-hidden="true"></i>
                                     Ingresos
                                 </a>
                             </li>
@@ -1717,7 +1747,6 @@ document.addEventListener('DOMContentLoaded', function() {
     navItems.forEach(function(item, index) {
         const dropdown = item.querySelector('.dropdown-menu-horizontal');
         const itemText = item.querySelector('span') ? item.querySelector('span').textContent.trim() : 'Sin texto';
-
 
         if (dropdown) {
             let isDropdownOpen = false;
