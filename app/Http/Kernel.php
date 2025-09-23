@@ -21,6 +21,9 @@ class Kernel extends HttpKernel
         \App\Http\Middleware\TrustProxies::class,
         \Barryvdh\Cors\HandleCors::class,
         \App\Http\Middleware\LogRequests::class,
+        // Tenancy middleware
+        \Hyn\Tenancy\Middleware\EagerIdentification::class,
+        \Hyn\Tenancy\Middleware\HostnameActions::class,
     ];
 
     /**

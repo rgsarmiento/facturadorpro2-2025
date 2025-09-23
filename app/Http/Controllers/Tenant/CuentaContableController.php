@@ -118,8 +118,6 @@ class CuentaContableController extends Controller
      */
     public function columns()
     {
-        \Log::info('CuentaContable columns requested');
-
         return response()->json([
             'codigo' => 'Código',
             'nombre' => 'Nombre',
@@ -144,9 +142,10 @@ class CuentaContableController extends Controller
     public function records(Request $request)
     {
         try {
-            \Log::info('CuentaContable records request:', $request->all());
+            // Verificar que la conexión tenant esté configurada
+            $this->ensureTenantConnection();
 
-            $query = CuentaContable::query();
+            $query = CuentaContable::on('tenant');
 
             // Búsqueda por columna específica (patrón DataTable)
             if ($request->has('column') && $request->has('value') && $request->value != '') {
@@ -208,10 +207,6 @@ class CuentaContableController extends Controller
         return new CuentaContableCollection($results);
 
         } catch (\Exception $e) {
-            \Log::error('Error in CuentaContable records:', [
-                'message' => $e->getMessage(),
-                'trace' => $e->getTraceAsString()
-            ]);
             return response()->json([
                 'error' => 'Error al obtener los registros',
                 'message' => $e->getMessage()
@@ -333,16 +328,43 @@ class CuentaContableController extends Controller
     public function store(Request $request)
     {
         try {
-            DB::beginTransaction();
+            // Verificar que la conexión tenant esté configurada
+            $this->ensureTenantConnection();
 
-            // Validaciones básicas
+            DB::connection('tenant')->beginTransaction();
+
+            // Validaciones básicas sin la validación de unicidad
             $rules = CuentaContable::rules();
+            // Remover la regla de unicidad para manejarla manualmente
+            unset($rules['codigo']);
+
             $request->validate($rules);
+
+            // Validar unicidad del código manualmente
+            $codigoExistente = CuentaContable::on('tenant')->where('codigo', $request->codigo)->exists();
+            if ($codigoExistente) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Error de validación',
+                    'errors' => ['codigo' => ['El código ya existe']]
+                ], 422);
+            }
+
+            // Validar código requerido
+            if (!$request->codigo) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Error de validación',
+                    'errors' => ['codigo' => ['El código es requerido']]
+                ], 422);
+            }
 
             // Validaciones adicionales de negocio
             $this->validarReglasNegocio($request);
 
+            // Crear la cuenta usando la conexión tenant explícitamente
             $cuenta = new CuentaContable();
+            $cuenta->setConnection('tenant');
             $cuenta->fill($request->all());
 
             // Auto-asignar naturaleza si no se especifica
@@ -352,7 +374,7 @@ class CuentaContableController extends Controller
 
             $cuenta->save();
 
-            DB::commit();
+            DB::connection('tenant')->commit();
 
             return response()->json([
                 'success' => true,
@@ -361,7 +383,7 @@ class CuentaContableController extends Controller
             ]);
 
         } catch (ValidationException $e) {
-            DB::rollBack();
+            DB::connection('tenant')->rollBack();
             return response()->json([
                 'success' => false,
                 'message' => 'Error de validación',
@@ -369,7 +391,7 @@ class CuentaContableController extends Controller
             ], 422);
 
         } catch (\Exception $e) {
-            DB::rollBack();
+            DB::connection('tenant')->rollBack();
             return response()->json([
                 'success' => false,
                 'message' => 'Error al crear la cuenta contable: ' . $e->getMessage()
@@ -418,6 +440,9 @@ class CuentaContableController extends Controller
     public function update(Request $request, $id)
     {
         try {
+            // Verificar que la conexión tenant esté configurada
+            $this->ensureTenantConnection();
+
             DB::beginTransaction();
 
             $cuenta = CuentaContable::findOrFail($id);
@@ -463,6 +488,9 @@ class CuentaContableController extends Controller
     public function destroy($id)
     {
         try {
+            // Verificar que la conexión tenant esté configurada
+            $this->ensureTenantConnection();
+
             DB::beginTransaction();
 
             $cuenta = CuentaContable::findOrFail($id);
@@ -528,8 +556,10 @@ class CuentaContableController extends Controller
 
         // Validar jerarquía con cuenta padre
         if ($request->cuenta_padre_id) {
-            $cuentaPadre = CuentaContable::find($request->cuenta_padre_id);
-            if ($cuentaPadre) {
+            $cuentaPadre = CuentaContable::on('tenant')->find($request->cuenta_padre_id);
+            if (!$cuentaPadre) {
+                $errores['cuenta_padre_id'] = ["La cuenta padre especificada no existe"];
+            } else {
                 // Validar nivel
                 if ($request->nivel != ($cuentaPadre->nivel + 1)) {
                     $errores['nivel'] = ["El nivel debe ser " . ($cuentaPadre->nivel + 1) . " para mantener la jerarquía"];
@@ -891,7 +921,7 @@ class CuentaContableController extends Controller
     private function procesarArchivoExcel($file, &$errores)
     {
         $cuentas = [];
-        
+
         try {
             $data = Excel::toArray([], $file)[0]; // Obtener la primera hoja
 
@@ -971,5 +1001,37 @@ class CuentaContableController extends Controller
         }
 
         return $cuentaData;
+    }
+
+    /**
+     * Ensure tenant connection is properly configured
+     */
+    private function ensureTenantConnection()
+    {
+        $hostname = app(\Hyn\Tenancy\Contracts\CurrentHostname::class);
+
+        if (!$hostname) {
+            throw new \Exception('No se pudo determinar el hostname del tenant');
+        }
+
+        $website = $hostname->website;
+
+        if (!$website) {
+            throw new \Exception('No se pudo determinar el website del tenant');
+        }
+
+        // Forzar la configuración de la conexión tenant
+        $connection = app(\Hyn\Tenancy\Database\Connection::class);
+        $connection->set($website);
+
+        // Cambiar la conexión por defecto temporalmente
+        config(['database.default' => 'tenant']);
+
+        // Verificar que podemos acceder a la tabla
+        try {
+            $count = DB::connection('tenant')->table('cuentas_contables')->count();
+        } catch (\Exception $e) {
+            throw new \Exception('No se pudo establecer conexión con la base de datos del tenant: ' . $e->getMessage());
+        }
     }
 }

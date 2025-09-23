@@ -26,17 +26,31 @@
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label class="required">Código:</label>
-                                <input type="text"
-                                       class="form-control"
-                                       v-model="form.codigo"
-                                       :class="{ 'is-invalid': errors.codigo }"
-                                       maxlength="20"
-                                       required>
+                                <div class="position-relative">
+                                    <input type="text"
+                                           class="form-control"
+                                           v-model="form.codigo"
+                                           :class="{ 'is-invalid': errors.codigo }"
+                                           @input="onCodigoInput"
+                                           maxlength="20"
+                                           :style="restriccionCodigo ? 'padding-left: ' + ((codigoPadre.length + 3) * 8 + 10) + 'px;' : ''"
+                                           required>
+                                    <div v-if="restriccionCodigo && codigoPadre"
+                                         class="position-absolute"
+                                         style="top: 50%; left: 10px; transform: translateY(-50%); font-weight: bold; color: #495057; pointer-events: none; z-index: 1;">
+                                        {{ codigoPadre }} -
+                                    </div>
+                                </div>
                                 <div v-if="errors.codigo" class="invalid-feedback">
                                     {{ errors.codigo[0] }}
                                 </div>
                                 <small class="form-text text-muted">
-                                    Código único identificador de la cuenta
+                                    <span v-if="restriccionCodigo">
+                                        <strong>{{ codigoPadre }}</strong> + {{ digitosPermitidos }} dígito(s) adicional(es)
+                                    </span>
+                                    <span v-else>
+                                        Código único identificador de la cuenta
+                                    </span>
                                 </small>
                             </div>
                         </div>
@@ -123,6 +137,7 @@
                                 <select class="form-control"
                                         v-model="form.cuenta_padre_id"
                                         :class="{ 'is-invalid': errors.cuenta_padre_id }"
+                                        :disabled="isEdit || restriccionCodigo"
                                         @change="onCuentaPadreChange">
                                     <option value="">Sin cuenta padre (Cuenta raíz)</option>
                                     <option v-for="cuenta in cuentasPadreOptions"
@@ -134,6 +149,9 @@
                                 <div v-if="errors.cuenta_padre_id" class="invalid-feedback">
                                     {{ errors.cuenta_padre_id[0] }}
                                 </div>
+                                <small v-if="isEdit || restriccionCodigo" class="form-text text-muted">
+                                    La cuenta padre no puede modificarse en este contexto
+                                </small>
                             </div>
                         </div>
 
@@ -257,7 +275,10 @@ export default {
             tipos_cuenta: [],
             naturalezas: [],
             naturaleza_por_tipo: {},
-            cuentasPadreOptions: []
+            cuentasPadreOptions: [],
+            // Propiedades para manejo de códigos jerárquicos
+            codigoPadre: null,
+            restriccionCodigo: false
         }
     },
     computed: {
@@ -269,6 +290,10 @@ export default {
         },
         nivelReadonly() {
             return this.form.cuenta_padre_id !== ''
+        },
+        digitosPermitidos() {
+            const nivelHijo = this.form.nivel || (this.cuentaPadreData ? this.cuentaPadreData.nivel + 1 : 1)
+            return (nivelHijo === 1 || nivelHijo === 2) ? 1 : 2
         }
     },
     async created() {
@@ -293,7 +318,7 @@ export default {
                 this.naturalezas = data.naturalezas
                 this.naturaleza_por_tipo = data.naturaleza_por_tipo
             } catch (error) {
-                console.error('Error loading tables:', error)
+                // Error silencioso para producción
             }
         },
         initializeForm() {
@@ -314,7 +339,7 @@ export default {
                 const response = await axios.get('/contabilidad/cuentas-contables/padres', { params })
                 this.cuentasPadreOptions = response.data.data
             } catch (error) {
-                console.error('Error loading parent accounts:', error)
+                // Error silencioso para producción
             }
         },
         onTipoCuentaChange() {
@@ -332,17 +357,114 @@ export default {
                     const response = await axios.get(`/contabilidad/cuentas-contables/${this.form.cuenta_padre_id}`)
                     const cuentaPadre = response.data.data.cuenta
 
+                    // Guardar datos de la cuenta padre
+                    this.cuentaPadreData = cuentaPadre
+
                     // Auto-asignar nivel y tipo
                     this.form.nivel = cuentaPadre.nivel + 1
                     this.form.tipo_cuenta = cuentaPadre.tipo_cuenta
 
+                    // Generar código base para subcuenta
+                    if (!this.isEdit) {
+                        await this.generarSiguienteCodigo(cuentaPadre.codigo)
+                        this.codigoPadre = cuentaPadre.codigo
+                        this.restriccionCodigo = true
+                    }
+
                     // Auto-asignar naturaleza
                     this.onTipoCuentaChange()
                 } catch (error) {
-                    console.error('Error loading parent account:', error)
+                    // Error silencioso para producción
                 }
             } else {
                 this.form.nivel = 1
+                this.form.codigo = ''
+                this.codigoPadre = null
+                this.restriccionCodigo = false
+            }
+        },
+        async generarSiguienteCodigo(codigoPadre) {
+            try {
+                // Determinar cuántos dígitos agregar según el nivel del hijo
+                // Niveles 1 y 2: agregar 1 dígito
+                // Niveles 3+: agregar 2 dígitos
+                const nivelHijo = this.form.nivel || (this.cuentaPadreData ? this.cuentaPadreData.nivel + 1 : 1)
+                const digitosAAgregar = (nivelHijo === 1 || nivelHijo === 2) ? 1 : 2
+                const maxNumero = digitosAAgregar === 1 ? 9 : 99
+
+                // Buscar todas las cuentas hijas de esta cuenta padre
+                const response = await axios.get('/contabilidad/cuentas-contables/records')
+                const todasLasCuentas = response.data.data || []
+
+                // Filtrar solo las cuentas que empiecen con el código padre y tengan exactamente los dígitos esperados
+                const cuentasHijas = todasLasCuentas.filter(cuenta =>
+                    cuenta.codigo.startsWith(codigoPadre) &&
+                    cuenta.codigo.length === codigoPadre.length + digitosAAgregar
+                )
+
+                // Extraer los sufijos numéricos
+                const sufijos = cuentasHijas
+                    .map(cuenta => parseInt(cuenta.codigo.substring(codigoPadre.length)))
+                    .filter(num => !isNaN(num) && num >= 1 && num <= maxNumero)
+                    .sort((a, b) => a - b)
+
+                // Encontrar el siguiente número disponible
+                let siguienteNumero = 1
+                for (let i = 0; i < sufijos.length; i++) {
+                    if (sufijos[i] === siguienteNumero) {
+                        siguienteNumero++
+                    } else {
+                        break
+                    }
+                }
+
+                // Asegurar que no exceda el máximo
+                if (siguienteNumero > maxNumero) {
+                    siguienteNumero = maxNumero
+                }
+
+                // Formatear según el número de dígitos requeridos
+                const sufijo = digitosAAgregar === 1
+                    ? siguienteNumero.toString()
+                    : siguienteNumero.toString().padStart(2, '0')
+
+                // Generar el código completo sin separador para la base de datos
+                const codigoCompleto = codigoPadre + sufijo
+                // Mostrar con separador visual
+                this.form.codigo = codigoPadre + ' - ' + sufijo
+
+            } catch (error) {
+                // Error silencioso para producción - fallback
+                const nivelHijo = this.form.nivel || (this.cuentaPadreData ? this.cuentaPadreData.nivel + 1 : 1)
+                const sufijo = (nivelHijo === 1 || nivelHijo === 2) ? '1' : '01'
+                this.form.codigo = codigoPadre + ' - ' + sufijo
+            }
+        },
+        onCodigoInput() {
+            // Si hay restricción de código (es subcuenta), validar el formato
+            if (this.restriccionCodigo && this.codigoPadre) {
+                const codigoIngresado = this.form.codigo
+                const codigoPadreConSeparador = this.codigoPadre + ' - '
+
+                // Determinar cuántos dígitos se pueden agregar según el nivel del hijo
+                const nivelHijo = this.form.nivel || (this.cuentaPadreData ? this.cuentaPadreData.nivel + 1 : 1)
+                const maxDigitos = (nivelHijo === 1 || nivelHijo === 2) ? 1 : 2
+
+                // Verificar que empiece con el código padre + separador
+                if (!codigoIngresado.startsWith(codigoPadreConSeparador)) {
+                    this.form.codigo = codigoPadreConSeparador
+                } else {
+                    // Extraer solo la parte después del separador
+                    const suffix = codigoIngresado.substring(codigoPadreConSeparador.length)
+                    const digitsOnly = suffix.replace(/\D/g, '') // Solo dígitos
+
+                    if (digitsOnly.length <= maxDigitos) {
+                        this.form.codigo = codigoPadreConSeparador + digitsOnly
+                    } else {
+                        // Limitar al número máximo de dígitos
+                        this.form.codigo = codigoPadreConSeparador + digitsOnly.substring(0, maxDigitos)
+                    }
+                }
             }
         },
         async submit() {
@@ -350,13 +472,19 @@ export default {
             this.errors = {}
 
             try {
+                // Limpiar el separador del código antes de enviar
+                const formData = { ...this.form }
+                if (formData.codigo && formData.codigo.includes(' - ')) {
+                    formData.codigo = formData.codigo.replace(' - ', '')
+                }
+
                 const url = this.isEdit
                     ? `/contabilidad/cuentas-contables/${this.cuenta.id}`
                     : '/contabilidad/cuentas-contables'
 
                 const method = this.isEdit ? 'put' : 'post'
 
-                const response = await axios[method](url, this.form)
+                const response = await axios[method](url, formData)
 
                 this.$message.success(response.data.message)
 

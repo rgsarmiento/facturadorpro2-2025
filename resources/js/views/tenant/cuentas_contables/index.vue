@@ -15,10 +15,13 @@
                     <button type="button" class="btn btn-custom btn-sm mt-2 mr-2" @click.prevent="clickImportPuc()">
                         <i class="fa fa-upload"></i> Importar PUC
                     </button>
+                    <!-- Botón temporalmente oculto - Vista Lista deshabilitada por ahora -->
+                    <!--
                     <button type="button" class="btn btn-custom btn-sm mt-2 mr-2" @click.prevent="toggleViewMode()">
                         <i :class="viewMode === 'tree' ? 'fa fa-list' : 'fa fa-sitemap'"></i>
                         {{ viewMode === 'tree' ? 'Vista Lista' : 'Vista Árbol' }}
                     </button>
+                    -->
                     <button type="button" class="btn btn-custom btn-sm mt-2 mr-2" @click.prevent="clickCreate()">
                         <i class="fa fa-plus-circle"></i> Nueva Cuenta
                     </button>
@@ -201,7 +204,7 @@ export default {
     data() {
         return {
             resource: 'contabilidad/cuentas-contables',
-            viewMode: 'list', // 'list' o 'tree'
+            viewMode: 'tree', // 'list' o 'tree' - Vista árbol por defecto
             treeData: [],
             loading: false,
             importing: false,

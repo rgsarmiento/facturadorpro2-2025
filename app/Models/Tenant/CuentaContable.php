@@ -4,7 +4,6 @@ namespace App\Models\Tenant;
 
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
-use Illuminate\Validation\Rule;
 
 class CuentaContable extends ModelTenant
 {
@@ -180,17 +179,12 @@ class CuentaContable extends ModelTenant
     public static function rules($id = null)
     {
         return [
-            'codigo' => [
-                'required',
-                'string',
-                'max:20',
-                Rule::unique('cuentas_contables')->ignore($id)
-            ],
+            'codigo' => 'required|string|max:20',
             'nombre' => 'required|string|max:255',
             'tipo_cuenta' => 'required|in:' . implode(',', self::TIPOS_CUENTA),
             'naturaleza' => 'required|in:' . implode(',', self::NATURALEZAS),
             'nivel' => 'required|integer|min:1|max:10',
-            'cuenta_padre_id' => 'nullable|exists:cuentas_contables,id',
+            'cuenta_padre_id' => 'nullable|integer',
             'descripcion' => 'nullable|string',
             'activa' => 'boolean',
             'permite_movimiento' => 'boolean',
