@@ -165,7 +165,7 @@ class PosController extends Controller
         $mesaId = $request->input('mesaId');
         $establecimiento = $request->input('establecimiento');
         $customerId = $request->input('customer');
-        $total_venta = 0;
+
         $subtotal = 0;
         $descuento = 0;
         $total_sin_impuestos = 0;
@@ -178,7 +178,9 @@ class PosController extends Controller
             ->get();
 
         $configuracion_imp = AdvancedConfiguration::select('item_tax_included')->first();
-        $tax_included = $configuracion_imp ? $configuracion_imp->item_tax_included : 1; // por defecto 1
+        // Semántica del front: 0 => el precio guardado ya INCLUYE IVA (hay que quitarlo)
+        //                  1 => el precio guardado NO incluye IVA (hay que sumarlo)
+        $tax_included = $configuracion_imp ? (int) $configuracion_imp->item_tax_included : 1;
 
         $sucursal = Establishment::where('id', $establecimiento)->first();
         $customer = Person::where('id', $customerId)->first();
@@ -197,74 +199,81 @@ class PosController extends Controller
         $account = $items->isNotEmpty() ? $items[0]->account : null;
 
         foreach ($items as $product) {
-            $item = Item::find($product->item_id);
+            // precio almacenado en la cuenta (fue el precio cobrado en el momento)
+            $stored_price = isset($product->price) ? (float) $product->price : null;
+            $quantity = (float) $product->quantity;
+            $product->discount = $product->discount ?? 0; // por seguridad
+
+            // traemos item y su tax (si existe)
+            $item = Item::with('tax')->find($product->item_id);
 
             if (!$item) {
                 $item = (object) [
                     'internal_id' => 'N/A',
                     'name' => $product->item_description ?? 'Producto no encontrado',
-                    'sale_unit_price' => $product->price ?? 0,
-                    'tax_id' => null,
+                    'sale_unit_price' => $stored_price ?? 0,
+                    'tax' => null,
                     'presentation' => null
                 ];
             }
 
             $product->item = $item;
 
-            $taxes = Tax::select('id', 'rate', 'name', 'is_retention')
-                ->where('id', $item->tax_id)
-                ->first();
+            // Detectar tasa de tax (soportamos rate o percentage y conversion si existe)
+            $rawRate = 0;
+            $conversion = 100;
+            if ($item->tax) {
+                $rawRate = $item->tax->rate ?? $item->tax->percentage ?? 0;
+                $conversion = $item->tax->conversion ?? 100;
+                if ($conversion == 0) $conversion = 100;
+            }
+            $tax_rate_decimal = ((float)$rawRate) / ((float)$conversion);
 
-            $line_subtotal = $item->sale_unit_price * $product->quantity;
+            $unit_price_source = $stored_price !== null ? $stored_price : (float)$item->sale_unit_price;
 
-            if ($taxes && isset($item->tax_id)) {
-                $line_tax = ($line_subtotal * $taxes->rate) / 100;
-
-                if ($tax_included) {
-                    // precios incluyen impuestos
-                    $product->subtotal = $line_subtotal;
-                    $product->total_tax = $line_tax;
-
-                    $subtotal += $line_subtotal;
-                    $total_impuestos += $line_tax;
-
-                    if (!isset($impuesto[$taxes->id])) {
-                        $impuesto[$taxes->id] = [
-                            'name' => $taxes->name,
-                            'total' => 0,
-                            'is_retention' => $taxes->is_retention ?? false,
-                        ];
-                    }
-                    $impuesto[$taxes->id]['total'] += $line_tax;
+            if ($tax_included === 0) {
+                if ($tax_rate_decimal > 0) {
+                    $base_unit = $unit_price_source / (1 + $tax_rate_decimal);
+                    $line_tax = ($unit_price_source - $base_unit) * $quantity;
+                    $line_subtotal = $base_unit * $quantity;
                 } else {
-                    $product->subtotal = $line_subtotal;
-                    $product->total_tax = 0;
-
-                    $subtotal += $line_subtotal;
-
-                    if (!isset($impuesto[$taxes->id])) {
-                        $impuesto[$taxes->id] = [
-                            'name' => $taxes->name,
-                            'total' => 0,
-                            'is_retention' => $taxes->is_retention ?? false,
-                        ];
-                    }
-                    $impuesto[$taxes->id]['total'] += $line_tax;
-                    $total_impuestos += $line_tax;
+                    $base_unit = $unit_price_source;
+                    $line_tax = 0;
+                    $line_subtotal = $base_unit * $quantity;
                 }
             } else {
-                $product->subtotal = $line_subtotal;
-                $product->total_tax = 0;
-                $subtotal += $line_subtotal;
+                $base_unit = $unit_price_source;
+                $line_subtotal = $base_unit * $quantity;
+                $line_tax = $line_subtotal * $tax_rate_decimal;
+            }
+
+            $line_subtotal = round($line_subtotal, 2);
+            $line_tax = round($line_tax, 2);
+
+            $product->price = $unit_price_source;
+            $product->subtotal = $line_subtotal;
+            $product->total_tax = $line_tax;
+            +$subtotal += $line_subtotal;
+            $total_impuestos += $line_tax;
+
+            if ($item->tax) {
+                $taxId = $item->tax->id;
+                if (!isset($impuesto[$taxId])) {
+                    $impuesto[$taxId] = [
+                        'name' => $item->tax->name ?? 'Impuesto',
+                        'total' => 0,
+                        'is_retention' => $item->tax->is_retention ?? false,
+                    ];
+                }
+                $impuesto[$taxId]['total'] += $line_tax;
             }
         }
 
-        $total_sin_impuestos = $subtotal - $descuento;
-        $total_venta = $tax_included ? $subtotal : $subtotal + $total_impuestos;
+        $total_sin_impuestos = round($subtotal - $descuento, 2);
+        $total_venta = round($subtotal + $total_impuestos, 2);
 
         if ($items->isEmpty()) {
             $mensaje = "La cuenta no tiene productos para mostrar.";
-
             $customPaper = [0, 0, 226, 600];
             $pdf = PDF::loadView(
                 'tenant.pos.account_ticket_empty',
@@ -295,6 +304,8 @@ class PosController extends Controller
 
         return $pdf->stream("ticket.pdf");
     }
+
+
 
     public function transfer_account(Request $request)
     {
