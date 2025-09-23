@@ -11,6 +11,9 @@ class CuentaContable extends ModelTenant
 
     protected $table = 'cuentas_contables';
 
+    // Propiedad estática para deshabilitar validaciones durante importación
+    public static $skipValidationOnSaving = false;
+
     protected $fillable = [
         'codigo',
         'nombre',
@@ -21,6 +24,7 @@ class CuentaContable extends ModelTenant
         'descripcion',
         'activa',
         'permite_movimiento',
+        'requiere_tercero',
         'saldo_inicial',
         'saldo_actual',
         'codigo_niif',
@@ -30,6 +34,7 @@ class CuentaContable extends ModelTenant
     protected $casts = [
         'activa' => 'boolean',
         'permite_movimiento' => 'boolean',
+        'requiere_tercero' => 'boolean',
         'saldo_inicial' => 'decimal:2',
         'saldo_actual' => 'decimal:2',
         'configuracion_adicional' => 'array',
@@ -188,6 +193,7 @@ class CuentaContable extends ModelTenant
             'descripcion' => 'nullable|string',
             'activa' => 'boolean',
             'permite_movimiento' => 'boolean',
+            'requiere_tercero' => 'boolean',
             'saldo_inicial' => 'numeric|between:-999999999999.99,999999999999.99',
             'saldo_actual' => 'numeric|between:-999999999999.99,999999999999.99',
             'codigo_niif' => 'nullable|string|max:20',
@@ -250,6 +256,15 @@ class CuentaContable extends ModelTenant
         parent::boot();
 
         static::saving(function ($cuenta) {
+            // Omitir validaciones si está habilitado el flag de skip
+            if (self::$skipValidationOnSaving) {
+                // Si no se especifica naturaleza, asignar automáticamente
+                if (!$cuenta->naturaleza && $cuenta->tipo_cuenta) {
+                    $cuenta->naturaleza = self::getNaturalezaPorTipo($cuenta->tipo_cuenta);
+                }
+                return;
+            }
+
             // Validar jerarquía antes de guardar
             $errores = $cuenta->validarJerarquia();
             if (!empty($errores)) {

@@ -200,6 +200,38 @@
                             </div>
                         </div>
 
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <div class="form-check">
+                                    <input type="checkbox"
+                                           class="form-check-input"
+                                           v-model="form.requiere_tercero"
+                                           id="requiere_tercero">
+                                    <label class="form-check-label" for="requiere_tercero">
+                                        Requiere Tercero
+                                    </label>
+                                </div>
+                                <small class="form-text text-muted">
+                                    Define si la cuenta requiere información de terceros (clientes, proveedores, etc.)
+                                </small>
+                            </div>
+                        </div>
+
+                        <!-- Código NIIF -->
+                        <div class="col-md-6">
+                            <div class="form-group">
+                                <label>Código NIIF (Opcional):</label>
+                                <input type="text"
+                                       class="form-control"
+                                       v-model="form.codigo_niif"
+                                       :class="{ 'is-invalid': errors.codigo_niif }"
+                                       maxlength="20">
+                                <div v-if="errors.codigo_niif" class="invalid-feedback">
+                                    {{ errors.codigo_niif[0] }}
+                                </div>
+                            </div>
+                        </div>
+
                         <!-- Saldos -->
                         <div class="col-md-6">
                             <div class="form-group">
@@ -211,20 +243,6 @@
                                        step="0.01">
                                 <div v-if="errors.saldo_inicial" class="invalid-feedback">
                                     {{ errors.saldo_inicial[0] }}
-                                </div>
-                            </div>
-                        </div>
-
-                        <div class="col-md-6">
-                            <div class="form-group">
-                                <label>Código NIIF (Opcional):</label>
-                                <input type="text"
-                                       class="form-control"
-                                       v-model="form.codigo_niif"
-                                       :class="{ 'is-invalid': errors.codigo_niif }"
-                                       maxlength="20">
-                                <div v-if="errors.codigo_niif" class="invalid-feedback">
-                                    {{ errors.codigo_niif[0] }}
                                 </div>
                             </div>
                         </div>
@@ -267,6 +285,7 @@ export default {
                 descripcion: '',
                 activa: true,
                 permite_movimiento: true,
+                requiere_tercero: false,
                 saldo_inicial: 0,
                 codigo_niif: ''
             },

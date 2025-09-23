@@ -28,82 +28,31 @@ class CuentaContableController extends Controller
         $format = $request->get('format', 'csv'); // csv o excel
 
         if ($format === 'excel') {
-            // Generar archivo Excel usando Laravel Excel
-            $filename = 'plantilla_puc_' . date('Y-m-d') . '.xlsx';
+            // Generar archivo Excel basado en el archivo original PUC_inicial.xlsx
+            $filename = 'Plan_de_Cuentas_Inicial_' . date('Y-m-d') . '.xlsx';
 
-            return Excel::download(new \App\Exports\PucTemplateExport, $filename);
+            // Usar export que lee el archivo original
+            $export = new \App\Exports\PucInicialExport;
+
+            return Excel::download($export, $filename, \Maatwebsite\Excel\Excel::XLSX, [
+                'Content-Type' => 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
+            ]);
         } else {
-            // Generar archivo CSV
-            $filename = 'plantilla_puc_' . date('Y-m-d') . '.csv';
+            // Generar archivo CSV basado en el archivo original PUC_inicial.xlsx
+            $filename = 'Plan_de_Cuentas_Inicial_' . date('Y-m-d') . '.csv';
 
-            $headers = [
-                'codigo',
-                'nombre',
-                'tipo_cuenta',
-                'naturaleza',
-                'nivel',
-                'cuenta_padre_id',
-                'descripcion',
-                'activa',
-                'permite_movimiento'
-            ];
+            $export = new \App\Exports\PucInicialExport;
+            $csvData = $export->getDataForCSV();
 
-            // Datos de ejemplo básicos del PUC colombiano
-            $ejemplos = [
-                ['1', 'ACTIVO', 'activo', 'debito', '1', '', 'Representa todos los bienes y derechos de la empresa', '1', '0'],
-                ['11', 'DISPONIBLE', 'activo', 'debito', '2', '1', 'Efectivo y equivalentes de efectivo', '1', '0'],
-                ['1105', 'CAJA', 'activo', 'debito', '3', '11', 'Dinero en efectivo en caja', '1', '1'],
-                ['110505', 'CAJA GENERAL', 'activo', 'debito', '4', '1105', 'Caja principal de la empresa', '1', '1'],
-                ['110510', 'CAJAS MENORES', 'activo', 'debito', '4', '1105', 'Cajas menores para gastos menores', '1', '1'],
-                ['1110', 'BANCOS', 'activo', 'debito', '3', '11', 'Cuentas corrientes y de ahorros en bancos', '1', '0'],
-                ['111005', 'MONEDA NACIONAL', 'activo', 'debito', '4', '1110', 'Cuentas bancarias en pesos colombianos', '1', '1'],
-                ['111010', 'MONEDA EXTRANJERA', 'activo', 'debito', '4', '1110', 'Cuentas bancarias en moneda extranjera', '1', '1'],
-                ['12', 'INVERSIONES', 'activo', 'debito', '2', '1', 'Inversiones temporales y permanentes', '1', '0'],
-                ['1205', 'ACCIONES', 'activo', 'debito', '3', '12', 'Inversiones en acciones', '1', '1'],
-                ['13', 'DEUDORES', 'activo', 'debito', '2', '1', 'Cuentas por cobrar a terceros', '1', '0'],
-                ['1305', 'CLIENTES', 'activo', 'debito', '3', '13', 'Cuentas por cobrar a clientes', '1', '1'],
-                ['130505', 'CLIENTES NACIONALES', 'activo', 'debito', '4', '1305', 'Clientes del territorio nacional', '1', '1'],
-                ['130510', 'CLIENTES DEL EXTERIOR', 'activo', 'debito', '4', '1305', 'Clientes del exterior', '1', '1'],
-                ['14', 'INVENTARIOS', 'activo', 'debito', '2', '1', 'Mercancías y materias primas', '1', '0'],
-                ['1435', 'MERCANCÍAS NO FABRICADAS POR LA EMPRESA', 'activo', 'debito', '3', '14', 'Productos para la venta no fabricados', '1', '1'],
-                ['15', 'PROPIEDADES PLANTA Y EQUIPO', 'activo', 'debito', '2', '1', 'Activos fijos tangibles', '1', '0'],
-                ['1504', 'TERRENOS', 'activo', 'debito', '3', '15', 'Terrenos de propiedad de la empresa', '1', '1'],
-                ['1516', 'CONSTRUCCIONES Y EDIFICACIONES', 'activo', 'debito', '3', '15', 'Edificios y construcciones', '1', '1'],
-                ['1520', 'MAQUINARIA Y EQUIPO', 'activo', 'debito', '3', '15', 'Maquinaria y equipos de producción', '1', '1'],
-                ['1524', 'EQUIPO DE OFICINA', 'activo', 'debito', '3', '15', 'Equipos y muebles de oficina', '1', '1'],
-                ['1528', 'EQUIPO DE COMPUTACIÓN Y COMUNICACIÓN', 'activo', 'debito', '3', '15', 'Computadores y equipos de comunicación', '1', '1'],
-                ['2', 'PASIVO', 'pasivo', 'credito', '1', '', 'Obligaciones y deudas de la empresa', '1', '0'],
-                ['21', 'OBLIGACIONES FINANCIERAS', 'pasivo', 'credito', '2', '2', 'Préstamos y obligaciones bancarias', '1', '0'],
-                ['2105', 'BANCOS NACIONALES', 'pasivo', 'credito', '3', '21', 'Obligaciones con bancos nacionales', '1', '1'],
-                ['22', 'PROVEEDORES', 'pasivo', 'credito', '2', '2', 'Cuentas por pagar a proveedores', '1', '0'],
-                ['2205', 'PROVEEDORES NACIONALES', 'pasivo', 'credito', '3', '22', 'Deudas con proveedores nacionales', '1', '1'],
-                ['3', 'PATRIMONIO', 'patrimonio', 'credito', '1', '', 'Capital y utilidades de los socios', '1', '0'],
-                ['31', 'CAPITAL SOCIAL', 'patrimonio', 'credito', '2', '3', 'Aportes de los socios', '1', '0'],
-                ['3115', 'APORTES SOCIALES', 'patrimonio', 'credito', '3', '31', 'Capital aportado por socios', '1', '1'],
-                ['4', 'INGRESOS', 'ingreso', 'credito', '1', '', 'Ingresos operacionales y no operacionales', '1', '0'],
-                ['41', 'OPERACIONALES', 'ingreso', 'credito', '2', '4', 'Ingresos por la actividad principal', '1', '0'],
-                ['4135', 'COMERCIO AL POR MAYOR Y AL POR MENOR', 'ingreso', 'credito', '3', '41', 'Ventas de mercancías', '1', '1'],
-                ['5', 'GASTOS', 'gasto', 'debito', '1', '', 'Gastos operacionales y no operacionales', '1', '0'],
-                ['51', 'OPERACIONALES DE ADMINISTRACIÓN', 'gasto', 'debito', '2', '5', 'Gastos de administración', '1', '0'],
-                ['5105', 'GASTOS DE PERSONAL', 'gasto', 'debito', '3', '51', 'Gastos relacionados con personal', '1', '0'],
-                ['510506', 'SUELDOS', 'gasto', 'debito', '4', '5105', 'Sueldos de empleados', '1', '1'],
-                ['6', 'COSTOS DE VENTAS', 'costo', 'debito', '1', '', 'Costos directos de la mercancía vendida', '1', '0'],
-                ['61', 'COSTO DE VENTAS Y DE PRESTACIÓN DE SERVICIOS', 'costo', 'debito', '2', '6', 'Costo de productos vendidos', '1', '0'],
-                ['6135', 'COMERCIO AL POR MAYOR Y AL POR MENOR', 'costo', 'debito', '3', '61', 'Costo de mercancías vendidas', '1', '1']
-            ];
-
-            return response()->streamDownload(function() use ($headers, $ejemplos) {
+            return response()->streamDownload(function() use ($csvData) {
                 $file = fopen('php://output', 'w');
 
                 // Escribir BOM para UTF-8
                 fwrite($file, "\xEF\xBB\xBF");
 
-                // Escribir encabezados
-                fputcsv($file, $headers);
-
-                // Escribir ejemplos
-                foreach ($ejemplos as $ejemplo) {
-                    fputcsv($file, $ejemplo);
+                // Escribir todos los datos (headers + datos)
+                foreach ($csvData as $row) {
+                    fputcsv($file, $row);
                 }
 
                 fclose($file);
@@ -619,8 +568,11 @@ class CuentaContableController extends Controller
             $cuentasActualizadas = 0;
             $errores = [];
 
+            // Verificar que la conexión tenant esté configurada
+            $this->ensureTenantConnection();
+
             if (in_array($extension, ['csv', 'txt'])) {
-                // Procesar archivo CSV
+                // Procesar archivo CSV en dos fases para manejar jerarquía
                 $handle = fopen($file->getPathname(), 'r');
 
                 if ($handle === false) {
@@ -633,12 +585,18 @@ class CuentaContableController extends Controller
                     throw new \Exception('El archivo está vacío o no tiene el formato correcto');
                 }
 
-                // Mapear encabezados esperados
-                $expectedHeaders = [
-                    'codigo', 'nombre', 'tipo_cuenta', 'naturaleza', 'nivel',
-                    'cuenta_padre_id', 'descripcion', 'activa', 'permite_movimiento'
-                ];
+                // Validar encabezados - esperamos: codigo, nombre, tipo_cuenta, naturaleza, nivel, cuenta_padre_codigo, descripcion, activa, permite_movimiento, requiere_tercero
+                $expectedHeaders = ['codigo', 'nombre', 'tipo_cuenta', 'naturaleza', 'nivel', 'cuenta_padre_codigo', 'descripcion', 'activa', 'permite_movimiento', 'requiere_tercero'];
+                $normalizedHeaders = array_map('trim', array_map('strtolower', $headers));
+                $normalizedExpected = array_map('strtolower', $expectedHeaders);
 
+                if ($normalizedHeaders !== $normalizedExpected) {
+                    fclose($handle);
+                    throw new \Exception('El formato de encabezados del CSV no es válido. Se esperan: ' . implode(', ', $expectedHeaders));
+                }
+
+                // Leer todos los datos primero
+                $cuentasData = [];
                 $rowNumber = 1;
                 while (($data = fgetcsv($handle)) !== false) {
                     $rowNumber++;
@@ -648,74 +606,75 @@ class CuentaContableController extends Controller
                         continue;
                     }
 
-                        try {
-                            $cuentaData = [
-                                'codigo' => trim($data[0]),
-                                'nombre' => trim($data[1]),
-                                'tipo_cuenta' => trim($data[2]),
-                                'naturaleza' => trim($data[3]),
-                                'nivel' => intval($data[4]),
-                                'descripcion' => trim($data[6] ?? ''),
-                                'activa' => boolval($data[7] ?? 1),
-                                'permite_movimiento' => boolval($data[8] ?? 1)
-                            ];
-
-                            // Manejar cuenta_padre_id - buscar por código y convertir a ID
-                            $codigoPadre = !empty(trim($data[5])) ? trim($data[5]) : null;
-                            if ($codigoPadre) {
-                                $cuentaPadre = CuentaContable::where('codigo', $codigoPadre)->first();
-                                if ($cuentaPadre) {
-                                    $cuentaData['cuenta_padre_id'] = $cuentaPadre->id;
-                                } else {
-                                    // Si no existe la cuenta padre, dejamos en null y registramos el error
-                                    $cuentaData['cuenta_padre_id'] = null;
-                                    $errores[] = "Fila $rowNumber: Cuenta padre con código '$codigoPadre' no encontrada";
-                                }
-                            } else {
-                                $cuentaData['cuenta_padre_id'] = null;
-                            }                        // Validar datos básicos
-                        if (empty($cuentaData['codigo']) || empty($cuentaData['nombre'])) {
-                            $errores[] = "Fila $rowNumber: Código y nombre son obligatorios";
-                            continue;
-                        }
-
-                        // Validar tipo de cuenta
-                        if (!in_array($cuentaData['tipo_cuenta'], ['activo', 'pasivo', 'patrimonio', 'ingreso', 'gasto', 'costo'])) {
-                            $errores[] = "Fila $rowNumber: Tipo de cuenta inválido: {$cuentaData['tipo_cuenta']}";
-                            continue;
-                        }
-
-                        // Validar naturaleza
-                        if (!in_array($cuentaData['naturaleza'], ['debito', 'credito'])) {
-                            $errores[] = "Fila $rowNumber: Naturaleza inválida: {$cuentaData['naturaleza']}";
-                            continue;
-                        }
-
-                        // Buscar si ya existe la cuenta
-                        $cuentaExistente = CuentaContable::where('codigo', $cuentaData['codigo'])->first();
-
-                        if ($cuentaExistente) {
-                            if ($sobreescribir) {
-                                $cuentaExistente->update($cuentaData);
-                                $cuentasActualizadas++;
-                            } else {
-                                $errores[] = "Fila $rowNumber: Cuenta {$cuentaData['codigo']} ya existe";
-                                continue;
-                            }
-                        } else {
-                            CuentaContable::create($cuentaData);
-                            $cuentasImportadas++;
-                        }
-
-                    } catch (\Exception $e) {
-                        $errores[] = "Fila $rowNumber: " . $e->getMessage();
+                    // Saltar filas vacías
+                    if (empty(array_filter($data))) {
+                        continue;
                     }
+
+                    // Procesar y normalizar tipos de cuenta
+                    $tipoRaw = trim($data[2]);
+                    $tipo_cuenta = $this->normalizarTexto($tipoRaw); // Usar normalización de caracteres
+
+                    // Mapear tipos de cuenta completos (usando texto normalizado)
+                    $mapeoTipos = [
+                        // Variaciones plurales
+                        'activos' => 'activo',
+                        'pasivos' => 'pasivo',
+                        'ingresos' => 'ingreso',
+                        'gastos' => 'gasto',
+                        'costos' => 'costo',
+                        'egresos' => 'gasto',
+
+                        // Tipos específicos de costos
+                        'costos de venta' => 'costo',
+                        'costos de ventas' => 'costo',
+                        'costo de venta' => 'costo',
+                        'costo de ventas' => 'costo',
+                        'costos de produccion' => 'costo',
+                        'costos de produccion o de operacion' => 'costo',
+                        'costos de operacion' => 'costo',
+
+                        // Cuentas de orden
+                        'cuentas de orden' => 'activo',
+                        'cuentas de orden deudoras' => 'activo',
+                        'cuentas de orden acreedoras' => 'pasivo',
+                        'cuenta de orden' => 'activo',
+                        'cuenta de orden deudora' => 'activo',
+                        'cuenta de orden acreedora' => 'pasivo',
+
+                        // Cadenas UTF-8 corruptas específicas
+                        hex2bin('636f73746f732064652070726f6475636369e3b36e206f206465206f706572616369e3b36e') => 'costo',
+                    ];
+
+                    if (isset($mapeoTipos[$tipo_cuenta])) {
+                        $tipo_cuenta = $mapeoTipos[$tipo_cuenta];
+                    }
+
+                    $cuentasData[] = [
+                        'fila' => $rowNumber,
+                        'codigo' => trim($data[0]),
+                        'nombre' => trim($data[1]),
+                        'tipo_cuenta' => $tipo_cuenta,
+                        'naturaleza' => strtolower(trim($data[3])),
+                        'nivel' => intval($data[4]),
+                        'codigo_padre' => !empty(trim($data[5])) ? trim($data[5]) : null,
+                        'descripcion' => trim($data[6] ?? ''),
+                        'activa' => boolval($data[7] ?? 1),
+                        'permite_movimiento' => boolval($data[8] ?? 1),
+                        'requiere_tercero' => boolval($data[9] ?? 0)
+                    ];
                 }
 
                 fclose($handle);
 
+                // Procesar en dos fases
+                $resultado = $this->procesarCuentasEnDosFases($cuentasData, $sobreescribir);
+                $cuentasImportadas = $resultado['cuentasImportadas'];
+                $cuentasActualizadas = $resultado['cuentasActualizadas'];
+                $errores = array_merge($errores, $resultado['errores']);
+
             } elseif (in_array($extension, ['xlsx', 'xls'])) {
-                // Procesar archivo Excel usando Laravel Excel
+                // Procesar archivo Excel usando Laravel Excel en dos fases
                 try {
                     $data = Excel::toArray([], $file)[0]; // Obtener la primera hoja
 
@@ -723,9 +682,29 @@ class CuentaContableController extends Controller
                         throw new \Exception('El archivo Excel está vacío');
                     }
 
+                    // Validar encabezados (primera fila) - sea flexible con el formato
+                    $headers = $data[0] ?? [];
+                    $normalizedHeaders = array_map('trim', array_map('strtolower', $headers));
+
+                    // Headers esperados (flexible)
+                    $requiredHeaders = ['codigo', 'nombre', 'tipo_cuenta', 'naturaleza', 'nivel'];
+                    $missingHeaders = array_diff($requiredHeaders, $normalizedHeaders);
+
+                    if (!empty($missingHeaders)) {
+                        throw new \Exception('Faltan headers requeridos en el Excel: ' . implode(', ', $missingHeaders));
+                    }
+
+                    // Mapear posiciones de columnas
+                    $columnMap = [];
+                    foreach ($normalizedHeaders as $index => $header) {
+                        $columnMap[$header] = $index;
+                    }
+
                     // Eliminar la primera fila (encabezados)
                     array_shift($data);
 
+                    // Preparar todos los datos
+                    $cuentasData = [];
                     $rowNumber = 1;
                     foreach ($data as $row) {
                         $rowNumber++;
@@ -735,76 +714,95 @@ class CuentaContableController extends Controller
                             continue;
                         }
 
-                        if (count($row) < 9) {
-                            $errores[] = "Fila $rowNumber: Faltan columnas";
-                            continue;
+                        // Extraer datos usando el mapeo de columnas
+                        $codigo = trim((string)($row[$columnMap['codigo']] ?? ''));
+                        $nombre = trim((string)($row[$columnMap['nombre']] ?? ''));
+                        $tipoRaw = trim((string)($row[$columnMap['tipo_cuenta']] ?? ''));
+                        $naturalezaRaw = trim((string)($row[$columnMap['naturaleza']] ?? ''));
+                        $nivel = intval($row[$columnMap['nivel']] ?? 0);
+
+                        // Normalizar tipo de cuenta y naturaleza
+                        $tipo_cuenta = $this->normalizarTexto($tipoRaw); // Usar normalización de caracteres
+                        $naturaleza = strtolower($naturalezaRaw);
+
+                        // Mapear tipos de cuenta completos (usando texto normalizado)
+                        $mapeoTipos = [
+                            // Variaciones plurales
+                            'activos' => 'activo',
+                            'pasivos' => 'pasivo',
+                            'ingresos' => 'ingreso',
+                            'gastos' => 'gasto',
+                            'costos' => 'costo',
+                            'egresos' => 'gasto',
+
+                            // Tipos específicos de costos
+                            'costos de venta' => 'costo',
+                            'costos de ventas' => 'costo',
+                            'costo de venta' => 'costo',
+                            'costo de ventas' => 'costo',
+                            'costos de produccion' => 'costo',
+                            'costos de produccion o de operacion' => 'costo',
+                            'costos de operacion' => 'costo',
+
+                            // Cuentas de orden
+                            'cuentas de orden' => 'activo',
+                            'cuentas de orden deudoras' => 'activo',
+                            'cuentas de orden acreedoras' => 'pasivo',
+                            'cuenta de orden' => 'activo',
+                            'cuenta de orden deudora' => 'activo',
+                            'cuenta de orden acreedora' => 'pasivo',
+
+                            // Cadenas UTF-8 corruptas específicas
+                            hex2bin('636f73746f732064652070726f6475636369e3b36e206f206465206f706572616369e3b36e') => 'costo',
+                        ];
+
+                        if (isset($mapeoTipos[$tipo_cuenta])) {
+                            $tipo_cuenta = $mapeoTipos[$tipo_cuenta];
                         }
 
-                        try {
-                            $cuentaData = [
-                                'codigo' => trim((string)$row[0]),
-                                'nombre' => trim((string)$row[1]),
-                                'tipo_cuenta' => trim((string)$row[2]),
-                                'naturaleza' => trim((string)$row[3]),
-                                'nivel' => intval($row[4]),
-                                'descripcion' => trim((string)($row[6] ?? '')),
-                                'activa' => boolval($row[7] ?? 1),
-                                'permite_movimiento' => boolval($row[8] ?? 1)
-                            ];
-
-                            // Manejar cuenta_padre_id - buscar por código y convertir a ID
-                            $codigoPadre = !empty(trim((string)$row[5])) ? trim((string)$row[5]) : null;
-                            if ($codigoPadre) {
-                                $cuentaPadre = CuentaContable::where('codigo', $codigoPadre)->first();
-                                if ($cuentaPadre) {
-                                    $cuentaData['cuenta_padre_id'] = $cuentaPadre->id;
-                                } else {
-                                    // Si no existe la cuenta padre, dejamos en null y registramos el error
-                                    $cuentaData['cuenta_padre_id'] = null;
-                                    $errores[] = "Fila $rowNumber: Cuenta padre con código '$codigoPadre' no encontrada";
-                                }
-                            } else {
-                                $cuentaData['cuenta_padre_id'] = null;
-                            }
-
-                            // Validar datos básicos
-                            if (empty($cuentaData['codigo']) || empty($cuentaData['nombre'])) {
-                                $errores[] = "Fila $rowNumber: Código y nombre son obligatorios";
-                                continue;
-                            }
-
-                            // Validar tipo de cuenta
-                            if (!in_array($cuentaData['tipo_cuenta'], ['activo', 'pasivo', 'patrimonio', 'ingreso', 'gasto', 'costo'])) {
-                                $errores[] = "Fila $rowNumber: Tipo de cuenta inválido: {$cuentaData['tipo_cuenta']}";
-                                continue;
-                            }
-
-                            // Validar naturaleza
-                            if (!in_array($cuentaData['naturaleza'], ['debito', 'credito'])) {
-                                $errores[] = "Fila $rowNumber: Naturaleza inválida: {$cuentaData['naturaleza']}";
-                                continue;
-                            }
-
-                            // Buscar si ya existe la cuenta
-                            $cuentaExistente = CuentaContable::where('codigo', $cuentaData['codigo'])->first();
-
-                            if ($cuentaExistente) {
-                                if ($sobreescribir) {
-                                    $cuentaExistente->update($cuentaData);
-                                    $cuentasActualizadas++;
-                                } else {
-                                    $errores[] = "Fila $rowNumber: Cuenta {$cuentaData['codigo']} ya existe";
-                                    continue;
-                                }
-                            } else {
-                                CuentaContable::create($cuentaData);
-                                $cuentasImportadas++;
-                            }
-
-                        } catch (\Exception $e) {
-                            $errores[] = "Fila $rowNumber: " . $e->getMessage();
+                        // Obtener cuenta padre
+                        $codigoPadre = null;
+                        if (isset($columnMap['cuenta_padre_codigo'])) {
+                            $codigoPadre = !empty(trim((string)$row[$columnMap['cuenta_padre_codigo']])) ?
+                                          trim((string)$row[$columnMap['cuenta_padre_codigo']]) : null;
+                        } elseif (isset($columnMap['cuenta_padre_id'])) {
+                            $codigoPadre = !empty(trim((string)$row[$columnMap['cuenta_padre_id']])) ?
+                                          trim((string)$row[$columnMap['cuenta_padre_id']]) : null;
                         }
+
+                        $descripcion = isset($columnMap['descripcion']) ?
+                                      trim((string)($row[$columnMap['descripcion']] ?? '')) : '';
+                        $activa = isset($columnMap['activa']) ?
+                                 boolval($row[$columnMap['activa']] ?? 1) : true;
+                        $permite_movimiento = isset($columnMap['permite_movimiento']) ?
+                                             boolval($row[$columnMap['permite_movimiento']] ?? 1) : true;
+                        $requiere_tercero = isset($columnMap['requiere_tercero']) ?
+                                           boolval($row[$columnMap['requiere_tercero']] ?? 0) : false;
+
+                        if (empty($codigo)) {
+                            continue; // Saltar filas sin código
+                        }
+
+                        $cuentasData[] = [
+                            'fila' => $rowNumber,
+                            'codigo' => $codigo,
+                            'nombre' => $nombre,
+                            'tipo_cuenta' => $tipo_cuenta,
+                            'naturaleza' => $naturaleza,
+                            'nivel' => $nivel,
+                            'codigo_padre' => $codigoPadre,
+                            'descripcion' => $descripcion,
+                            'activa' => $activa,
+                            'permite_movimiento' => $permite_movimiento,
+                            'requiere_tercero' => $requiere_tercero
+                        ];
                     }
+
+                    // Procesar en dos fases
+                    $resultado = $this->procesarCuentasEnDosFases($cuentasData, $sobreescribir);
+                    $cuentasImportadas = $resultado['cuentasImportadas'];
+                    $cuentasActualizadas = $resultado['cuentasActualizadas'];
+                    $errores = array_merge($errores, $resultado['errores']);
 
                 } catch (\Exception $e) {
                     throw new \Exception('Error al procesar archivo Excel: ' . $e->getMessage());
@@ -821,6 +819,15 @@ class CuentaContableController extends Controller
             }
             if (!empty($errores)) {
                 $mensaje .= ". " . count($errores) . " errores encontrados";
+
+                // Agregar algunos ejemplos de errores al mensaje
+                if (count($errores) > 0) {
+                    $ejemplosErrores = array_slice($errores, 0, 3);
+                    $mensaje .= ". Ejemplos: " . implode('; ', $ejemplosErrores);
+                    if (count($errores) > 3) {
+                        $mensaje .= " (y " . (count($errores) - 3) . " más...)";
+                    }
+                }
             }
 
             return response()->json([
@@ -829,7 +836,8 @@ class CuentaContableController extends Controller
                 'data' => [
                     'importadas' => $cuentasImportadas,
                     'actualizadas' => $cuentasActualizadas,
-                    'errores' => $errores
+                    'errores' => $errores,
+                    'resumen_errores' => array_slice($errores, 0, 20) // Primeros 20 errores para mostrar al usuario
                 ]
             ]);
 
@@ -1033,5 +1041,207 @@ class CuentaContableController extends Controller
         } catch (\Exception $e) {
             throw new \Exception('No se pudo establecer conexión con la base de datos del tenant: ' . $e->getMessage());
         }
+    }
+
+    // Procesar cuentas en dos fases para manejar jerarquía
+    protected function procesarCuentasEnDosFases($cuentasData, $sobreescribir = false)
+    {
+        $cuentasImportadas = 0;
+        $cuentasActualizadas = 0;
+        $errores = [];
+
+        // Deshabilitar validaciones del modelo durante la importación
+        CuentaContable::$skipValidationOnSaving = true;
+
+        try {
+            // Ordenar cuentas por nivel para garantizar que las cuentas padre se creen primero
+            usort($cuentasData, function($a, $b) {
+                if ($a['nivel'] == $b['nivel']) {
+                    // Si tienen el mismo nivel, ordenar por código para mantener consistencia
+                    return strcmp($a['codigo'], $b['codigo']);
+                }
+                return $a['nivel'] - $b['nivel'];
+            });
+
+            // Ajustar automáticamente los niveles basados en la estructura jerárquica
+            $cuentasData = $this->ajustarNiveles($cuentasData);
+
+            // FASE 1: Crear todas las cuentas sin cuenta_padre_id
+            foreach ($cuentasData as $index => $cuentaData) {
+                try {
+                    // Validar datos básicos
+                    if (empty($cuentaData['codigo']) || empty($cuentaData['nombre'])) {
+                        $error = "Fila {$cuentaData['fila']}: Código y nombre son obligatorios";
+                        $errores[] = $error;
+                        continue;
+                    }                // Validación especial para cuentas raíz (sin padre)
+                if (empty($cuentaData['codigo_padre'])) {
+                    // Las cuentas sin padre deben ser nivel 1
+                    if ($cuentaData['nivel'] != 1) {
+                        $cuentaData['nivel'] = 1;
+                    }
+                } else {
+                    // Para cuentas con padre, validar que el nivel sea coherente
+                    // pero no generar error si no lo es, solo advertencia
+                    if ($cuentaData['nivel'] <= 1) {
+                        // Silently continue
+                    }
+                }
+
+                // Validar tipo de cuenta
+                if (!in_array($cuentaData['tipo_cuenta'], ['activo', 'pasivo', 'patrimonio', 'ingreso', 'gasto', 'costo'])) {
+                    $error = "Fila {$cuentaData['fila']}: Tipo de cuenta inválido: {$cuentaData['tipo_cuenta']}";
+                    $errores[] = $error;
+                    continue;
+                }
+
+                // Validar naturaleza
+                if (!in_array($cuentaData['naturaleza'], ['debito', 'credito'])) {
+                    $error = "Fila {$cuentaData['fila']}: Naturaleza inválida: {$cuentaData['naturaleza']}";
+                    $errores[] = $error;
+                    continue;
+                }
+
+                // Buscar si ya existe la cuenta
+                $cuentaExistente = CuentaContable::on('tenant')->where('codigo', $cuentaData['codigo'])->first();
+
+                // Preparar datos sin cuenta_padre_id
+                $datosParaCreacion = [
+                    'codigo' => $cuentaData['codigo'],
+                    'nombre' => $cuentaData['nombre'],
+                    'tipo_cuenta' => $cuentaData['tipo_cuenta'],
+                    'naturaleza' => $cuentaData['naturaleza'],
+                    'nivel' => $cuentaData['nivel'],
+                    'descripcion' => $cuentaData['descripcion'],
+                    'activa' => $cuentaData['activa'],
+                    'permite_movimiento' => $cuentaData['permite_movimiento'],
+                    'requiere_tercero' => $cuentaData['requiere_tercero'],
+                    'cuenta_padre_id' => null // Se asignará en fase 2
+                ];
+
+                if ($cuentaExistente) {
+                    if ($sobreescribir) {
+                        $cuentaExistente->update($datosParaCreacion);
+                        $cuentasActualizadas++;
+                    } else {
+                        $error = "Fila {$cuentaData['fila']}: Cuenta {$cuentaData['codigo']} ya existe";
+                        $errores[] = $error;
+                        continue;
+                    }
+                } else {
+                    $cuenta = new CuentaContable();
+                    $cuenta->setConnection('tenant');
+                    $cuenta->fill($datosParaCreacion);
+                    $cuenta->save();
+                    $cuentasImportadas++;
+                }
+
+            } catch (\Exception $e) {
+                $error = "Fila {$cuentaData['fila']}: " . $e->getMessage();
+                $errores[] = $error;
+            }
+        }
+
+        // FASE 2: Asignar relaciones padre-hijo
+        foreach ($cuentasData as $cuentaData) {
+            if (!empty($cuentaData['codigo_padre'])) {
+                try {
+                    $cuenta = CuentaContable::on('tenant')->where('codigo', $cuentaData['codigo'])->first();
+                    $cuentaPadre = CuentaContable::on('tenant')->where('codigo', $cuentaData['codigo_padre'])->first();
+
+                    if (!$cuenta) {
+                        $error = "Fila {$cuentaData['fila']}: No se pudo encontrar la cuenta {$cuentaData['codigo']} para asignar padre";
+                        $errores[] = $error;
+                        continue;
+                    }
+
+                    if ($cuentaPadre) {
+                        $cuenta->cuenta_padre_id = $cuentaPadre->id;
+                        $cuenta->save();
+                    } else {
+                        $error = "Fila {$cuentaData['fila']}: Cuenta padre con código '{$cuentaData['codigo_padre']}' no encontrada";
+                        $errores[] = $error;
+                    }
+
+                } catch (\Exception $e) {
+                    $error = "Fila {$cuentaData['fila']}: Error al asignar padre - " . $e->getMessage();
+                    $errores[] = $error;
+                }
+            }
+        }
+
+        } finally {
+            // Reestablecer validaciones del modelo
+            CuentaContable::$skipValidationOnSaving = false;
+        }
+
+        return [
+            'cuentasImportadas' => $cuentasImportadas,
+            'cuentasActualizadas' => $cuentasActualizadas,
+            'errores' => $errores
+        ];
+    }
+
+    // Helper para normalizar texto eliminando tildes y caracteres especiales
+    protected function normalizarTexto($texto)
+    {
+        $texto = strtolower(trim((string)$texto));
+
+        // Reemplazar caracteres con tildes
+        $caracteresConTildes = [
+            'á' => 'a', 'à' => 'a', 'ä' => 'a', 'â' => 'a', 'ª' => 'a',
+            'é' => 'e', 'è' => 'e', 'ë' => 'e', 'ê' => 'e',
+            'í' => 'i', 'ì' => 'i', 'ï' => 'i', 'î' => 'i',
+            'ó' => 'o', 'ò' => 'o', 'ö' => 'o', 'ô' => 'o', 'º' => 'o',
+            'ú' => 'u', 'ù' => 'u', 'ü' => 'u', 'û' => 'u',
+            'ñ' => 'n'
+        ];
+
+        return strtr($texto, $caracteresConTildes);
+    }
+
+    // Ajustar automáticamente los niveles basados en la estructura jerárquica
+    protected function ajustarNiveles($cuentasData)
+    {
+
+        // Crear un mapa de códigos para búsquedas rápidas
+        $cuentasPorCodigo = [];
+        foreach ($cuentasData as $index => $cuenta) {
+            $cuentasPorCodigo[$cuenta['codigo']] = $index;
+        }
+
+        $ajustes = 0;
+
+        foreach ($cuentasData as $index => &$cuenta) {
+            if (empty($cuenta['codigo_padre'])) {
+                // Cuenta sin padre = nivel 1
+                if ($cuenta['nivel'] != 1) {
+                    $cuenta['nivel'] = 1;
+                    $ajustes++;
+                }
+            } else {
+                // Cuenta con padre = calcular nivel basado en el padre
+                if (isset($cuentasPorCodigo[$cuenta['codigo_padre']])) {
+                    $indicePadre = $cuentasPorCodigo[$cuenta['codigo_padre']];
+                    $nivelPadre = $cuentasData[$indicePadre]['nivel'];
+                    $nivelEsperado = $nivelPadre + 1;
+
+                    if ($cuenta['nivel'] != $nivelEsperado) {
+                        $cuenta['nivel'] = $nivelEsperado;
+                        $ajustes++;
+                    }
+                }
+            }
+        }
+
+        // Reordenar después de los ajustes
+        usort($cuentasData, function($a, $b) {
+            if ($a['nivel'] == $b['nivel']) {
+                return strcmp($a['codigo'], $b['codigo']);
+            }
+            return $a['nivel'] - $b['nivel'];
+        });
+
+        return $cuentasData;
     }
 }
