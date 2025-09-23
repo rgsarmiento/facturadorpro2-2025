@@ -59,7 +59,9 @@
                         >
                             <i class="fa fa-receipt"></i>
                             {{
-                                modoMesasActivo ? "Ocultar Mesas" : "Mostrar Mesas"
+                                modoMesasActivo
+                                    ? "Ocultar Mesas"
+                                    : "Mostrar Mesas"
                             }}
                         </button>
                         <button
@@ -290,7 +292,9 @@
                                         <div class="d-flex align-items-center">
                                             <el-input
                                                 min="0"
-                                                v-model="item.edit_sale_unit_price"
+                                                v-model="
+                                                    item.edit_sale_unit_price
+                                                "
                                                 class="flex-grow-1"
                                                 size="mini"
                                                 style="margin-right: 8px;"
@@ -301,14 +305,22 @@
                                                     type="primary"
                                                     size="mini"
                                                     style="padding: 4px 6px; margin-right: 4px; line-height: 1;"
-                                                    @click="clickEditUnitPriceItem(index)"
+                                                    @click="
+                                                        clickEditUnitPriceItem(
+                                                            index
+                                                        )
+                                                    "
                                                 />
                                                 <el-button
                                                     icon="el-icon-close"
                                                     type="danger"
                                                     size="mini"
                                                     style="padding: 4px 6px; line-height: 1;"
-                                                    @click="clickCancelUnitPriceItem(index)"
+                                                    @click="
+                                                        clickCancelUnitPriceItem(
+                                                            index
+                                                        )
+                                                    "
                                                 />
                                             </div>
                                         </div>
@@ -363,7 +375,13 @@
                                                 </button>
                                             </el-tooltip>
                                         </el-col>
-                                        <el-col :span="6" v-if="localConfiguration && localConfiguration.show_purchase_history_pos">
+                                        <el-col
+                                            :span="6"
+                                            v-if="
+                                                localConfiguration &&
+                                                    localConfiguration.show_purchase_history_pos
+                                            "
+                                        >
                                             <el-tooltip
                                                 class="item"
                                                 effect="dark"
@@ -580,7 +598,13 @@
                         <!-- Nombre del usuario -->
                         <div class="row py-2 m-0 p-0">
                             <div class="col-12 text-right">
-                                <span class="text-muted" style="font-size: 14px;"><strong>Usuario: {{ user.name }}</strong></span>
+                                <span
+                                    class="text-muted"
+                                    style="font-size: 14px;"
+                                    ><strong
+                                        >Usuario: {{ user.name }}</strong
+                                    ></span
+                                >
                             </div>
                         </div>
                         <div class="row py-3 border-bottom m-0 p-0">
@@ -2069,7 +2093,7 @@ export default {
             showExpenseFormModal: false,
             pdfUrl: null,
             pdfLoaded: false,
-            localConfiguration: null,
+            localConfiguration: null
         };
     },
 
@@ -2152,10 +2176,12 @@ export default {
     methods: {
         async loadAdvancedConfiguration() {
             try {
-                const response = await this.$http.get("/co-advanced-configuration/record");
+                const response = await this.$http.get(
+                    "/co-advanced-configuration/record"
+                );
                 this.localConfiguration = response.data.data;
             } catch (error) {
-                console.log('Error cargando configuración avanzada:', error);
+                console.log("Error cargando configuración avanzada:", error);
                 // Establecer valores por defecto si no se puede cargar
                 this.localConfiguration = {
                     show_purchase_history_pos: true
@@ -2761,7 +2787,6 @@ export default {
             }
         },
         regresarAModalProductos() {
-
             // Usar eventos nativos en lugar de jQuery
             try {
                 // Cerrar modal actual
@@ -2802,7 +2827,6 @@ export default {
             }
         },
         regresarAModalCategorias() {
-
             // Usar eventos nativos en lugar de jQuery
             try {
                 // Cerrar modal actual
@@ -2866,7 +2890,6 @@ export default {
             document.body.classList.remove("modal-open");
         },
         regresarAMesas() {
-
             // Cerrar modal de categorías y regresar a vista de mesas
             try {
                 const modalCategorias = document.getElementById(
@@ -2972,7 +2995,6 @@ export default {
             }
         },
         regresarDesdeCarritoAProductos() {
-
             // Cerrar modal carrito y regresar al modal de productos
             try {
                 const modalCarrito = document.getElementById(
@@ -4121,42 +4143,64 @@ export default {
                         "Error al obtener los datos del producto."
                     );
                 }
+                return;
             }
 
             const item = itemResponse.data.data;
             const presentation = item.presentation;
+
             if (this.type_refund) {
                 let formItem = JSON.parse(JSON.stringify(this.form_item));
-
-                formItem.id = itemId;
-                formItem.item = itemId;
-                formItem.unit_price_value = item.sale_unit_price;
-                formItem.unit_price = item.sale_unit_price;
-                formItem.quantity = quantity;
-                formItem.aux_quantity = quantity;
-
                 formItem.item = { ...item };
 
-                // Convertir calculate_quantity a booleano para evitar el warning de Element UI
                 if (formItem.item.calculate_quantity !== undefined) {
                     formItem.item.calculate_quantity = Boolean(
                         formItem.item.calculate_quantity
                     );
                 }
 
-                formItem.item.unit_price = item.sale_unit_price;
+                formItem.id = itemId;
+                formItem.unit_price_value = item.sale_unit_price;
+                formItem.quantity = quantity;
+                formItem.aux_quantity = quantity;
+
+                let unit_price = formItem.unit_price_value;
+
+                try {
+                    const response = await this.$http.get(
+                        "/co-advanced-configuration/record"
+                    );
+                    this.localConfiguration = response.data.data;
+
+                    if (!this.localConfiguration.item_tax_included) {
+                        if (
+                            formItem.item.tax &&
+                            formItem.item.tax.rate &&
+                            formItem.item.tax.conversion
+                        ) {
+                            const taxRate = parseFloat(formItem.item.tax.rate);
+                            const conversion = parseFloat(
+                                formItem.item.tax.conversion
+                            );
+                            unit_price =
+                                unit_price / (1 + taxRate / conversion);
+                        }
+                        formItem.item.sale_unit_price = unit_price;
+                    }
+                } catch (error) {}
+
+                formItem.unit_price = unit_price;
+                formItem.item.unit_price = unit_price;
                 formItem.item.presentation = null;
 
-                formItem.item_id = item.item_id;
-                formItem.unit_type_id = item.unit_type_id;
+                formItem.item_id = formItem.item.item_id;
+                formItem.unit_type_id = formItem.item.unit_type_id;
                 formItem.tax_id =
                     this.taxes.length > 0
-                        ? item.tax
-                            ? item.tax.id
-                            : null
+                        ? formItem.item.tax?.id ?? null
                         : null;
                 formItem.tax = _.find(this.taxes, { id: formItem.tax_id });
-                formItem.unit_type = item.unit_type;
+                formItem.unit_type = formItem.item.unit_type;
                 formItem.refund = true;
                 formItem.sale_unit_price_with_tax =
                     -1 * item.sale_unit_price_with_tax;
@@ -4173,22 +4217,52 @@ export default {
 
                 let formItem = JSON.parse(JSON.stringify(this.form_item));
                 formItem.item = { ...item };
+
+                if (formItem.item.calculate_quantity !== undefined) {
+                    formItem.item.calculate_quantity = Boolean(
+                        formItem.item.calculate_quantity
+                    );
+                }
+
                 formItem.id = itemId;
                 formItem.unit_price_value = item.sale_unit_price;
-                formItem.item.edit_sale_unit_price = item.sale_unit_price;
-                formItem.unit_price = item.sale_unit_price_with_tax;
-                formItem.item.unit_price = item.sale_unit_price_with_tax;
-
                 formItem.quantity = quantity;
                 formItem.aux_quantity = quantity;
                 formItem.item.aux_quantity = quantity;
 
-                formItem.item_id = item.item_id;
+                let unit_price = formItem.unit_price_value;
+
+                try {
+                    const configResponse = await this.$http.get(
+                        "/co-advanced-configuration/record"
+                    );
+                    this.localConfiguration = configResponse.data.data;
+
+                    if (!this.localConfiguration.item_tax_included) {
+                        if (
+                            formItem.item.tax &&
+                            formItem.item.tax.rate &&
+                            formItem.item.tax.conversion
+                        ) {
+                            const taxRate = parseFloat(formItem.item.tax.rate);
+                            const conversion = parseFloat(
+                                formItem.item.tax.conversion
+                            );
+                            unit_price =
+                                unit_price / (1 + taxRate / conversion);
+                        }
+                        formItem.item.sale_unit_price = unit_price;
+                    }
+                } catch (error) {}
+
+                formItem.item.edit_sale_unit_price = unit_price;
+                formItem.unit_price = unit_price;
+                formItem.item.unit_price = unit_price;
+
+                formItem.item_id = formItem.item.item_id;
                 formItem.tax_id =
                     this.taxes.length > 0
-                        ? item.tax
-                            ? item.tax.id
-                            : null
+                        ? formItem.item.tax?.id ?? null
                         : null;
                 formItem.tax = _.find(this.taxes, { id: formItem.tax_id });
                 formItem.db_Id = dbId;
@@ -4242,42 +4316,65 @@ export default {
                         "Error al obtener los datos del producto."
                     );
                 }
+                return;
             }
 
             const item = itemResponse.data.data;
             const presentation = item.presentation;
+
             if (this.type_refund) {
                 let formItem = JSON.parse(JSON.stringify(this.form_item));
-
-                formItem.id = itemId;
-                formItem.item = itemId;
-                formItem.unit_price_value = item.sale_unit_price;
-                formItem.unit_price = item.sale_unit_price;
-                formItem.quantity = quantity;
-                formItem.aux_quantity = quantity;
-
                 formItem.item = { ...item };
 
-                // Convertir calculate_quantity a booleano para evitar el warning de Element UI
+                // Convertir calculate_quantity a booleano
                 if (formItem.item.calculate_quantity !== undefined) {
                     formItem.item.calculate_quantity = Boolean(
                         formItem.item.calculate_quantity
                     );
                 }
 
-                formItem.item.unit_price = item.sale_unit_price;
+                formItem.unit_price_value = formItem.item.sale_unit_price;
+                formItem.quantity = quantity;
+                formItem.aux_quantity = quantity;
+
+                let unit_price = formItem.unit_price_value;
+
+                try {
+                    const response = await this.$http.get(
+                        "/co-advanced-configuration/record"
+                    );
+                    this.localConfiguration = response.data.data;
+
+                    // Si item_tax_included es false, recalcular precio base sin IVA
+                    if (!this.localConfiguration.item_tax_included) {
+                        if (
+                            formItem.item.tax &&
+                            formItem.item.tax.rate &&
+                            formItem.item.tax.conversion
+                        ) {
+                            const taxRate = parseFloat(formItem.item.tax.rate);
+                            const conversion = parseFloat(
+                                formItem.item.tax.conversion
+                            );
+                            unit_price =
+                                unit_price / (1 + taxRate / conversion);
+                        }
+                        formItem.item.sale_unit_price = unit_price;
+                    }
+                } catch (error) {}
+
+                formItem.unit_price = unit_price;
+                formItem.item.unit_price = unit_price;
                 formItem.item.presentation = null;
 
-                formItem.item_id = item.item_id;
-                formItem.unit_type_id = item.unit_type_id;
+                formItem.item_id = formItem.item.item_id;
+                formItem.unit_type_id = formItem.item.unit_type_id;
                 formItem.tax_id =
                     this.taxes.length > 0
-                        ? item.tax
-                            ? item.tax.id
-                            : null
+                        ? formItem.item.tax?.id ?? null
                         : null;
                 formItem.tax = _.find(this.taxes, { id: formItem.tax_id });
-                formItem.unit_type = item.unit_type;
+                formItem.unit_type = formItem.item.unit_type;
                 formItem.refund = true;
                 formItem.sale_unit_price_with_tax =
                     -1 * item.sale_unit_price_with_tax;
@@ -4293,7 +4390,6 @@ export default {
                 let formItem = JSON.parse(JSON.stringify(this.form_item));
                 formItem.item = { ...item };
 
-                // Convertir calculate_quantity a booleano para evitar el warning de Element UI
                 if (formItem.item.calculate_quantity !== undefined) {
                     formItem.item.calculate_quantity = Boolean(
                         formItem.item.calculate_quantity
@@ -4302,20 +4398,42 @@ export default {
 
                 formItem.id = itemId;
                 formItem.unit_price_value = item.sale_unit_price;
-                formItem.item.edit_sale_unit_price = item.sale_unit_price;
-                formItem.unit_price = item.sale_unit_price_with_tax;
-                formItem.item.unit_price = item.sale_unit_price_with_tax;
-
                 formItem.quantity = quantity;
                 formItem.aux_quantity = quantity;
                 formItem.item.aux_quantity = quantity;
 
-                formItem.item_id = item.item_id;
+                let unit_price = formItem.unit_price_value;
+
+                try {
+                    const configResponse = await this.$http.get(
+                        "/co-advanced-configuration/record"
+                    );
+                    this.localConfiguration = configResponse.data.data;
+
+                    if (!this.localConfiguration.item_tax_included) {
+                        if (
+                            formItem.item.tax &&
+                            formItem.item.tax.rate &&
+                            formItem.item.tax.conversion
+                        ) {
+                            const taxRate = parseFloat(formItem.item.tax.rate);
+                            const conversion = parseFloat(
+                                formItem.item.tax.conversion
+                            );
+                            unit_price =
+                                unit_price / (1 + taxRate / conversion);
+                        }
+                        formItem.item.sale_unit_price = unit_price;
+                    }
+                } catch (error) {}
+
+                formItem.unit_price = unit_price;
+                formItem.item.unit_price = unit_price;
+
+                formItem.item_id = formItem.item.item_id;
                 formItem.tax_id =
                     this.taxes.length > 0
-                        ? item.tax
-                            ? item.tax.id
-                            : null
+                        ? formItem.item.tax?.id ?? null
                         : null;
                 formItem.tax = _.find(this.taxes, { id: formItem.tax_id });
                 formItem.db_Id = dbId;

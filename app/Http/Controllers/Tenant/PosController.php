@@ -396,15 +396,6 @@ class PosController extends Controller
 
         $tax_percentage = $item->tax ? $item->tax->percentage : 0;
 
-        $configuracion_imp = AdvancedConfiguration::select('item_tax_included')->first();
-        $tax_included = $configuracion_imp ? $configuracion_imp->item_tax_included : 1;
-
-        if (!$tax_included) {
-            $item->sale_unit_price_with_tax = $item->sale_unit_price;
-        } else {
-            $item->sale_unit_price_with_tax = round($item->sale_unit_price * (1 + ($tax_percentage / 100)), 2);
-        }
-
         $id_user = auth()->user()->id;
         $profile = User::select('type')->where('id', $id_user)->first();
 
