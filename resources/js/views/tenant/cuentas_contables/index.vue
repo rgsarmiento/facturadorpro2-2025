@@ -63,7 +63,7 @@
                         <input type="text" class="form-control" v-model="filters.search" @keyup="debounceSearch" placeholder="Código o nombre...">
                     </div>
                 </div>
-                
+
                 <!-- Botón para limpiar filtros -->
                 <div class="row mb-3">
                     <div class="col-md-12 text-right">
@@ -231,9 +231,9 @@ export default {
     },
     computed: {
         hasActiveFilters() {
-            return this.filters.tipo_cuenta || 
-                   this.filters.naturaleza || 
-                   this.filters.activa !== '' || 
+            return this.filters.tipo_cuenta ||
+                   this.filters.naturaleza ||
+                   this.filters.activa !== '' ||
                    this.filters.search
         }
     },
@@ -331,7 +331,7 @@ export default {
             try {
                 // Construir parámetros de filtro
                 const params = new URLSearchParams()
-                
+
                 if (this.filters.tipo_cuenta) {
                     params.append('tipo_cuenta', this.filters.tipo_cuenta)
                 }

@@ -34,9 +34,9 @@
                         </template>
                     </div>
                     <div class="col-lg-3 col-md-4 col-sm-12 pb-2" v-if="resource.includes('co-documents')">
-                        <el-button 
-                            type="info" 
-                            size="small" 
+                        <el-button
+                            type="info"
+                            size="small"
                             @click="toggleLoadAll"
                             :loading="loadingAll">
                             {{ loadAll ? 'Ver últimos 3 meses' : 'Cargar todos los registros' }}

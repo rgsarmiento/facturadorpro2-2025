@@ -133,7 +133,7 @@ class CuentaContableController extends Controller
 
         if ($request->has('search') && $request->search != '') {
             $search = $request->search;
-            
+
             // Buscar cuentas que coincidan con el criterio
             $matchingAccountIds = CuentaContable::on('tenant')
                 ->where(function($q) use ($search) {
@@ -147,26 +147,26 @@ class CuentaContableController extends Controller
             if (!empty($matchingAccountIds)) {
                 // Para cada cuenta encontrada, incluir toda su jerarquía (padres y hijos)
                 $allRelatedIds = [];
-                
+
                 foreach ($matchingAccountIds as $accountId) {
                     $account = CuentaContable::on('tenant')->find($accountId);
                     if ($account) {
                         // Agregar la cuenta actual
                         $allRelatedIds[] = $accountId;
-                        
+
                         // Agregar todos los ancestros (padres, abuelos, etc.)
                         $current = $account;
                         while ($current && $current->cuenta_padre_id) {
                             $allRelatedIds[] = $current->cuenta_padre_id;
                             $current = $current->cuentaPadre;
                         }
-                        
+
                         // Agregar todos los descendientes
                         $descendants = $this->getAllDescendants($accountId);
                         $allRelatedIds = array_merge($allRelatedIds, $descendants);
                     }
                 }
-                
+
                 $allRelatedIds = array_unique($allRelatedIds);
                 $query->whereIn('id', $allRelatedIds);
             } else {
@@ -207,9 +207,9 @@ class CuentaContableController extends Controller
         if ($request->has('search') && $request->search != '') {
             return $this->treeWithSearch($request);
         }
-        
+
         $query = CuentaContable::raiz();
-        
+
         // Aplicar filtros si están presentes
         if ($request->has('tipo_cuenta') && $request->tipo_cuenta != '') {
             $query->where('tipo_cuenta', $request->tipo_cuenta);
@@ -241,7 +241,7 @@ class CuentaContableController extends Controller
                 } else {
                     $queryDesc->where('activa', true);
                 }
-                
+
                 if ($request->has('tipo_cuenta') && $request->tipo_cuenta != '') {
                     $queryDesc->where('tipo_cuenta', $request->tipo_cuenta);
                 }
@@ -276,22 +276,22 @@ class CuentaContableController extends Controller
         return $cuentas->map(function($cuenta) use ($filters) {
             // Obtener hijas con filtros aplicados
             $hijasQuery = $cuenta->cuentasHijas()->orderBy('codigo');
-            
+
             // Aplicar filtros a las cuentas hijas
             if (isset($filters['activa']) && $filters['activa'] !== '') {
                 $hijasQuery->where('activa', $filters['activa'] == '1');
             } else {
                 $hijasQuery->activas();
             }
-            
+
             if (isset($filters['tipo_cuenta']) && $filters['tipo_cuenta'] != '') {
                 $hijasQuery->where('tipo_cuenta', $filters['tipo_cuenta']);
             }
-            
+
             if (isset($filters['naturaleza']) && $filters['naturaleza'] != '') {
                 $hijasQuery->where('naturaleza', $filters['naturaleza']);
             }
-            
+
             if (isset($filters['search']) && $filters['search'] != '') {
                 $search = $filters['search'];
                 $hijasQuery->where(function($q) use ($search) {
@@ -300,9 +300,9 @@ class CuentaContableController extends Controller
                       ->orWhere('descripcion', 'like', "%{$search}%");
                 });
             }
-            
+
             $hijas = $hijasQuery->get();
-            
+
             return [
                 'id' => $cuenta->id,
                 'codigo' => $cuenta->codigo,
@@ -1367,12 +1367,12 @@ class CuentaContableController extends Controller
     {
         $descendants = [];
         $children = CuentaContable::on('tenant')->where('cuenta_padre_id', $accountId)->pluck('id')->toArray();
-        
+
         foreach ($children as $childId) {
             $descendants[] = $childId;
             $descendants = array_merge($descendants, $this->getAllDescendants($childId));
         }
-        
+
         return $descendants;
     }
 
@@ -1382,7 +1382,7 @@ class CuentaContableController extends Controller
     private function treeWithSearch(Request $request)
     {
         $search = $request->search;
-        
+
         // Buscar cuentas que coincidan con el criterio
         $matchingAccounts = CuentaContable::on('tenant')
             ->where(function($q) use ($search) {
@@ -1401,25 +1401,25 @@ class CuentaContableController extends Controller
 
         // Recopilar todas las cuentas relacionadas (ancestros y descendientes)
         $allRelatedIds = [];
-        
+
         foreach ($matchingAccounts as $account) {
             // Agregar la cuenta actual
             $allRelatedIds[] = $account->id;
-            
+
             // Agregar todos los ancestros
             $current = $account;
             while ($current && $current->cuenta_padre_id) {
                 $allRelatedIds[] = $current->cuenta_padre_id;
                 $current = $current->cuentaPadre;
             }
-            
+
             // Agregar todos los descendientes
             $descendants = $this->getAllDescendants($account->id);
             $allRelatedIds = array_merge($allRelatedIds, $descendants);
         }
-        
+
         $allRelatedIds = array_unique($allRelatedIds);
-        
+
         // Obtener todas las cuentas relacionadas
         $allRelatedAccounts = CuentaContable::on('tenant')
             ->whereIn('id', $allRelatedIds)
