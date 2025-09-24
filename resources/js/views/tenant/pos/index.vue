@@ -863,7 +863,7 @@
                                         <td class="font-weight-semibold">:</td>
                                         <td class="text-right text-blue">
                                             {{ currency.symbol }}
-                                            {{ getFormatDecimal(form.sale) }}
+                                            {{ getFormatDecimal(form.sale || 0) }}
                                         </td>
                                     </tr>
                                     <tr
@@ -878,7 +878,7 @@
                                             {{ currency.symbol }}
                                             {{
                                                 getFormatDecimal(
-                                                    form.total_discount
+                                                    form.total_discount || 0
                                                 )
                                             }}
                                         </td>
@@ -903,7 +903,7 @@
                                             <td class="text-right text-blue">
                                                 {{ currency.symbol }}
                                                 {{
-                                                    getFormatDecimal(tax.total)
+                                                    getFormatDecimal(tax.total || 0)
                                                 }}
                                             </td>
                                         </tr>
@@ -919,7 +919,7 @@
                                         <td class="text-right text-blue">
                                             {{ currency.symbol }}
                                             {{
-                                                getFormatDecimal(form.subtotal)
+                                                getFormatDecimal(form.subtotal || 0)
                                             }}
                                         </td>
                                     </tr>
@@ -940,7 +940,7 @@
                             <div class="col-6 text-center">
                                 <h5 class="font-weight-semibold h5">
                                     {{ currency.symbol }}
-                                    {{ getFormatDecimal(form.total) }}
+                                    {{ getFormatDecimal(form.total || 0) }}
                                 </h5>
                             </div>
                         </div>
@@ -5058,9 +5058,19 @@ export default {
             }
         },
         getFormatDecimal(value) {
-            // Validar si value es null, undefined o una cadena vacía
-            if (value === null || value === undefined || value === '') {
-                console.warn('No se pudo convertir la cadena a un número. Valor recibido:', value);
+            // Manejar casos especiales primero
+            if (value === undefined) {
+                console.warn('No se pudo convertir la cadena a un número. Valor recibido: undefined');
+                return '0.00';
+            }
+
+            if (value === null) {
+                console.warn('No se pudo convertir la cadena a un número. Valor recibido: null');
+                return '0.00';
+            }
+
+            if (value === '') {
+                console.warn('No se pudo convertir la cadena a un número. Valor recibido: cadena vacía');
                 return '0.00';
             }
 
