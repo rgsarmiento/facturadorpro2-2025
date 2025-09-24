@@ -218,7 +218,10 @@
                             <label class="control-label">Módulos</label>
                             <div class="row">
                                 <div class="col-4" v-for="(module,ind) in form.modules" :key="ind">
-                                    <el-checkbox v-model="module.checked">{{ module.description }}</el-checkbox>
+                                    <div class="d-flex align-items-center">
+                                        <el-checkbox v-model="module.checked">{{ module.description }}</el-checkbox>
+                                        <span v-if="module.id === 9" class="badge badge-warning ml-2" style="font-size: 10px;">En construcción</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -430,6 +433,37 @@
         padding: 15px;
     }
 }
+
+/* Badge de construcción para módulos */
+.badge-warning {
+    background-color: #f39c12 !important;
+    color: white;
+    font-size: 10px;
+    padding: 2px 6px;
+    border-radius: 10px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.7; }
+    100% { opacity: 1; }
+}
+
+.d-flex {
+    display: flex;
+}
+
+.align-items-center {
+    align-items: center;
+}
+
+.ml-2 {
+    margin-left: 8px;
+}
 </style>
 
 <script>
@@ -566,15 +600,12 @@
 
             },
             async submit() {
-
                 // console.log(this.form)
-
                 if(!this.form.is_update){
                     let has_modules = await this.hasModules()
                     if(!has_modules)
                         return this.$message.error('Debe seleccionar al menos un módulo')
                 }
-
 
                 this.button_text = (this.form.is_update) ? 'Actualizando compañia...':'Creando base de datos...'
                 this.loading_submit = true

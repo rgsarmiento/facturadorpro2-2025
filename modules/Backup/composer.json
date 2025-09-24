@@ -1,0 +1,25 @@
+{
+    "name": "facturador/backup",
+    "description": "Módulo de copias de seguridad y restauración de base de datos",
+    "authors": [
+        {
+            "name": "Facturador PRO",
+            "email": "support@facturador.com"
+        }
+    ],
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Modules\\Backup\\Providers\\BackupServiceProvider"
+            ],
+            "aliases": {
+
+            }
+        }
+    },
+    "autoload": {
+        "psr-4": {
+            "Modules\\Backup\\": ""
+        }
+    }
+}

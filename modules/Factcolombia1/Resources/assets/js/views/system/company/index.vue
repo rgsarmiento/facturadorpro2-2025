@@ -18,6 +18,13 @@
                         <i class="fas fa-plus mr-2"></i>
                         Nueva Compañía
                     </button>
+                    <button
+                        type="button"
+                        class="btn btn-success btn-modern ml-2"
+                        @click.prevent="goToSystemBackup()">
+                        <i class="fas fa-database mr-2"></i>
+                        Backup del Sistema
+                    </button>
                 </div>
             </div>
         </div>
@@ -346,6 +353,11 @@ export default {
             if (typeof value === 'string') return value === '1' || value.toLowerCase() === 'true';
             if (typeof value === 'number') return value === 1;
             return false;
+        },
+
+        // Navegar al sistema de backup
+        goToSystemBackup() {
+            window.location.href = '/co-companies/system-backup/';
         },
 
         // Procesar datos para convertir valores de switches a booleanos

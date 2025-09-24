@@ -14,7 +14,9 @@ class TenantAddFieldPrefixToUsers extends Migration
     public function up()
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->string('prefix', 10)->nullable()->after('telephone');
+            if (!Schema::hasColumn('users', 'prefix')) {
+                $table->string('prefix', 10)->nullable()->after('telephone');
+            }
         });
     }
 
@@ -26,7 +28,9 @@ class TenantAddFieldPrefixToUsers extends Migration
     public function down()
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->dropColumn('prefix');
+            if (Schema::hasColumn('users', 'prefix')) {
+                $table->dropColumn('prefix');
+            }
         });
     }
 }

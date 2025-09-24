@@ -1,0 +1,123 @@
+codigo,nombre,tipo_cuenta,naturaleza,nivel,cuenta_padre_id,descripcion,activa,permite_movimiento
+1,ACTIVO,activo,debito,1,,Representa todos los bienes y derechos de la empresa,1,0
+11,DISPONIBLE,activo,debito,2,1,Efectivo y equivalentes de efectivo,1,0
+1105,CAJA,activo,debito,3,11,Dinero en efectivo en caja,1,1
+110505,CAJA GENERAL,activo,debito,4,1105,Caja principal de la empresa,1,1
+110510,CAJAS MENORES,activo,debito,4,1105,Cajas menores para gastos menores,1,1
+1110,BANCOS,activo,debito,3,11,Cuentas corrientes y de ahorros en bancos,1,0
+111005,MONEDA NACIONAL,activo,debito,4,1110,Cuentas bancarias en pesos colombianos,1,1
+111010,MONEDA EXTRANJERA,activo,debito,4,1110,Cuentas bancarias en moneda extranjera,1,1
+12,INVERSIONES,activo,debito,2,1,Inversiones temporales y permanentes,1,0
+1205,ACCIONES,activo,debito,3,12,Inversiones en acciones,1,1
+13,DEUDORES,activo,debito,2,1,Cuentas por cobrar a terceros,1,0
+1305,CLIENTES,activo,debito,3,13,Cuentas por cobrar a clientes,1,1
+130505,CLIENTES NACIONALES,activo,debito,4,1305,Clientes del territorio nacional,1,1
+130510,CLIENTES DEL EXTERIOR,activo,debito,4,1305,Clientes del exterior,1,1
+14,INVENTARIOS,activo,debito,2,1,Mercancías y materias primas,1,0
+1435,MERCANCÍAS NO FABRICADAS POR LA EMPRESA,activo,debito,3,14,Productos para la venta no fabricados,1,1
+15,PROPIEDADES PLANTA Y EQUIPO,activo,debito,2,1,Activos fijos tangibles,1,0
+1504,TERRENOS,activo,debito,3,15,Terrenos de propiedad de la empresa,1,1
+1516,CONSTRUCCIONES Y EDIFICACIONES,activo,debito,3,15,Edificios y construcciones,1,1
+1520,MAQUINARIA Y EQUIPO,activo,debito,3,15,Maquinaria y equipos de producción,1,1
+1524,EQUIPO DE OFICINA,activo,debito,3,15,Equipos y muebles de oficina,1,1
+1528,EQUIPO DE COMPUTACIÓN Y COMUNICACIÓN,activo,debito,3,15,Computadores y equipos de comunicación,1,1
+1592,DEPRECIACIÓN ACUMULADA,activo,credito,3,15,Depreciación acumulada de activos fijos,1,0
+159205,CONSTRUCCIONES Y EDIFICACIONES,activo,credito,4,1592,Depreciación acumulada edificaciones,1,1
+159220,MAQUINARIA Y EQUIPO,activo,credito,4,1592,Depreciación acumulada maquinaria,1,1
+2,PASIVO,pasivo,credito,1,,Obligaciones y deudas de la empresa,1,0
+21,OBLIGACIONES FINANCIERAS,pasivo,credito,2,2,Préstamos y obligaciones bancarias,1,0
+2105,BANCOS NACIONALES,pasivo,credito,3,21,Obligaciones con bancos nacionales,1,1
+2110,BANCOS DEL EXTERIOR,pasivo,credito,3,21,Obligaciones con bancos del exterior,1,1
+22,PROVEEDORES,pasivo,credito,2,2,Cuentas por pagar a proveedores,1,0
+2205,PROVEEDORES NACIONALES,pasivo,credito,3,22,Deudas con proveedores nacionales,1,1
+2210,PROVEEDORES DEL EXTERIOR,pasivo,credito,3,22,Deudas con proveedores extranjeros,1,1
+23,CUENTAS POR PAGAR,pasivo,credito,2,2,Otras obligaciones por pagar,1,0
+2335,COSTOS Y GASTOS POR PAGAR,pasivo,credito,3,23,Servicios recibidos pendientes de pago,1,1
+2365,RETENCIÓN EN LA FUENTE,pasivo,credito,3,23,Retenciones practicadas pendientes de pago,1,1
+2367,IMPUESTO A LAS VENTAS RETENIDO,pasivo,credito,3,23,IVA retenido pendiente de pago,1,1
+24,IMPUESTOS GRAVÁMENES Y TASAS,pasivo,credito,2,2,Impuestos por pagar al estado,1,0
+2404,DE RENTA Y COMPLEMENTARIOS,pasivo,credito,3,24,Impuesto de renta por pagar,1,1
+2408,IMPUESTO A LAS VENTAS POR PAGAR,pasivo,credito,3,24,IVA por pagar,1,1
+2412,DE INDUSTRIA Y COMERCIO,pasivo,credito,3,24,Impuesto de industria y comercio,1,1
+25,OBLIGACIONES LABORALES,pasivo,credito,2,2,Obligaciones con empleados,1,0
+2505,SALARIOS POR PAGAR,pasivo,credito,3,25,Sueldos pendientes de pago,1,1
+2510,CESANTÍAS CONSOLIDADAS,pasivo,credito,3,25,Cesantías de empleados,1,1
+2515,INTERESES SOBRE CESANTÍAS,pasivo,credito,3,25,Intereses sobre cesantías,1,1
+2520,PRIMA DE SERVICIOS,pasivo,credito,3,25,Prima de servicios de empleados,1,1
+2525,VACACIONES CONSOLIDADAS,pasivo,credito,3,25,Vacaciones causadas,1,1
+3,PATRIMONIO,patrimonio,credito,1,,Capital y utilidades de los socios,1,0
+31,CAPITAL SOCIAL,patrimonio,credito,2,3,Aportes de los socios,1,0
+3115,APORTES SOCIALES,patrimonio,credito,3,31,Capital aportado por socios,1,1
+32,SUPERÁVIT DE CAPITAL,patrimonio,credito,2,3,Primas y valorizaciones,1,0
+3205,PRIMA EN COLOCACIÓN DE ACCIONES,patrimonio,credito,3,32,Prima en colocación de acciones,1,1
+33,RESERVAS,patrimonio,credito,2,3,Reservas legales y estatutarias,1,0
+3305,RESERVAS OBLIGATORIAS,patrimonio,credito,3,33,Reserva legal,1,1
+3310,RESERVAS ESTATUTARIAS,patrimonio,credito,3,33,Reservas según estatutos,1,1
+36,RESULTADOS DEL EJERCICIO,patrimonio,credito,2,3,Utilidad o pérdida del período,1,0
+3605,UTILIDAD DEL EJERCICIO,patrimonio,credito,3,36,Utilidad del ejercicio actual,1,1
+3610,PÉRDIDA DEL EJERCICIO,patrimonio,debito,3,36,Pérdida del ejercicio actual,1,1
+37,RESULTADOS DE EJERCICIOS ANTERIORES,patrimonio,credito,2,3,Utilidades o pérdidas acumuladas,1,0
+3705,UTILIDADES ACUMULADAS,patrimonio,credito,3,37,Utilidades de ejercicios anteriores,1,1
+3710,PÉRDIDAS ACUMULADAS,patrimonio,debito,3,37,Pérdidas de ejercicios anteriores,1,1
+4,INGRESOS,ingreso,credito,1,,Ingresos operacionales y no operacionales,1,0
+41,OPERACIONALES,ingreso,credito,2,4,Ingresos por la actividad principal,1,0
+4135,COMERCIO AL POR MAYOR Y AL POR MENOR,ingreso,credito,3,41,Ventas de mercancías,1,1
+413550,VENTA DE MERCANCÍAS,ingreso,credito,4,4135,Ingresos por venta de productos,1,1
+42,NO OPERACIONALES,ingreso,credito,2,4,Ingresos por actividades secundarias,1,0
+4210,FINANCIEROS,ingreso,credito,3,42,Ingresos financieros,1,0
+421005,INTERESES,ingreso,credito,4,4210,Intereses ganados,1,1
+421010,DESCUENTOS,ingreso,credito,4,4210,Descuentos obtenidos,1,1
+4240,ARRENDAMIENTOS,ingreso,credito,3,42,Ingresos por arrendamientos,1,1
+4245,COMISIONES,ingreso,credito,3,42,Ingresos por comisiones,1,1
+5,GASTOS,gasto,debito,1,,Gastos operacionales y no operacionales,1,0
+51,OPERACIONALES DE ADMINISTRACIÓN,gasto,debito,2,5,Gastos de administración,1,0
+5105,GASTOS DE PERSONAL,gasto,debito,3,51,Gastos relacionados con personal,1,0
+510506,SUELDOS,gasto,debito,4,5105,Sueldos de empleados,1,1
+510515,HORAS EXTRAS Y RECARGOS,gasto,debito,4,5105,Pago de horas extras,1,1
+510518,COMISIONES,gasto,debito,4,5105,Comisiones a empleados,1,1
+510521,VIÁTICOS,gasto,debito,4,5105,Gastos de viaje de empleados,1,1
+510527,AUXILIO DE TRANSPORTE,gasto,debito,4,5105,Subsidio de transporte,1,1
+510530,CESANTÍAS,gasto,debito,4,5105,Cesantías de empleados,1,1
+510533,INTERESES SOBRE CESANTÍAS,gasto,debito,4,5105,Intereses sobre cesantías,1,1
+510536,PRIMA DE SERVICIOS,gasto,debito,4,5105,Prima de servicios,1,1
+510539,VACACIONES,gasto,debito,4,5105,Vacaciones de empleados,1,1
+5110,HONORARIOS,gasto,debito,3,51,Honorarios profesionales,1,1
+5115,IMPUESTOS,gasto,debito,3,51,Impuestos de administración,1,1
+5120,ARRENDAMIENTOS,gasto,debito,3,51,Arrendamientos pagados,1,1
+5125,CONTRIBUCIONES Y AFILIACIONES,gasto,debito,3,51,Afiliaciones y contribuciones,1,1
+5130,SEGUROS,gasto,debito,3,51,Primas de seguros,1,1
+5135,SERVICIOS,gasto,debito,3,51,Servicios públicos y otros,1,0
+513505,ASEO Y VIGILANCIA,gasto,debito,4,5135,Servicios de aseo y vigilancia,1,1
+513510,TEMPORALES,gasto,debito,4,5135,Servicios temporales,1,1
+513515,ASISTENCIA TÉCNICA,gasto,debito,4,5135,Asistencia técnica,1,1
+513520,PROCESAMIENTO ELECTRÓNICO DE DATOS,gasto,debito,4,5135,Servicios informáticos,1,1
+513525,ACUEDUCTO Y ALCANTARILLADO,gasto,debito,4,5135,Servicios de agua,1,1
+513530,ENERGÍA ELÉCTRICA,gasto,debito,4,5135,Servicios de energía,1,1
+513535,TELÉFONO,gasto,debito,4,5135,Servicios telefónicos,1,1
+513540,CORREO PORTES Y TELEGRAMAS,gasto,debito,4,5135,Servicios postales,1,1
+513545,FAX Y TÉLEX,gasto,debito,4,5135,Servicios de fax,1,1
+513550,INTERNET,gasto,debito,4,5135,Servicios de internet,1,1
+5140,GASTOS LEGALES,gasto,debito,3,51,Gastos notariales y legales,1,1
+5145,MANTENIMIENTO Y REPARACIONES,gasto,debito,3,51,Mantenimiento de activos,1,1
+5150,ADECUACIÓN E INSTALACIÓN,gasto,debito,3,51,Adecuaciones de oficina,1,1
+5155,GASTOS DE VIAJE,gasto,debito,3,51,Gastos de viaje,1,1
+5160,DEPRECIACIONES,gasto,debito,3,51,Depreciación de activos,1,0
+516005,CONSTRUCCIONES Y EDIFICACIONES,gasto,debito,4,5160,Depreciación edificaciones,1,1
+516020,MAQUINARIA Y EQUIPO,gasto,debito,4,5160,Depreciación maquinaria,1,1
+516025,EQUIPO DE OFICINA,gasto,debito,4,5160,Depreciación equipo oficina,1,1
+516030,EQUIPO DE COMPUTACIÓN Y COMUNICACIÓN,gasto,debito,4,5160,Depreciación equipos cómputo,1,1
+5165,AMORTIZACIONES,gasto,debito,3,51,Amortización de diferidos,1,1
+5195,DIVERSOS,gasto,debito,3,51,Gastos diversos,1,0
+519505,COMBUSTIBLES Y LUBRICANTES,gasto,debito,4,5195,Combustibles y lubricantes,1,1
+519510,ENVASES Y EMPAQUES,gasto,debito,4,5195,Envases y empaques,1,1
+519515,TAXIS Y BUSES,gasto,debito,4,5195,Transportes urbanos,1,1
+519520,ELEMENTOS DE ASEO Y CAFETERÍA,gasto,debito,4,5195,Elementos de aseo,1,1
+519525,ÚTILES PAPELERÍA Y FOTOCOPIAS,gasto,debito,4,5195,Papelería y útiles,1,1
+519530,CASINO Y RESTAURANTE,gasto,debito,4,5195,Gastos de casino,1,1
+519535,PARQUEADEROS,gasto,debito,4,5195,Parqueaderos,1,1
+519540,MEDICINAS Y DROGAS,gasto,debito,4,5195,Medicamentos,1,1
+519545,ELEMENTOS DE ASEO,gasto,debito,4,5195,Elementos de limpieza,1,1
+6,COSTOS DE VENTAS,costo,debito,1,,Costos directos de la mercancía vendida,1,0
+61,COSTO DE VENTAS Y DE PRESTACIÓN DE SERVICIOS,costo,debito,2,6,Costo de productos vendidos,1,0
+6135,COMERCIO AL POR MAYOR Y AL POR MENOR,costo,debito,3,61,Costo de mercancías vendidas,1,1
+613550,COSTO DE MERCANCÍAS,costo,debito,4,6135,Costo directo de productos,1,1

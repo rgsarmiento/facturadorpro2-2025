@@ -306,6 +306,7 @@
               </div>
             </section>
           </div>
+
           <!-- <div class="col-xl-6 col-md-6">
             <section class="card card-featured-left card-featured-secondary">
               <div class="card-body" v-if="general">
@@ -775,6 +776,7 @@ export default {
     await this.loadAll();
     await this.filterItems();
     await this.getResolutions();
+    // Removed automatic backup loading to avoid 404 on startup
 
     // this.$eventHub.$on("reloadDataUnpaid", () => {
     //   this.loadAll();
@@ -902,7 +904,7 @@ export default {
         this.customers = response.data.data.customers;
         this.items = response.data.data.items;
       });
-      this.$http.get(`/command/df`).then(response => {
+      this.$http.get(`/${this.resource}/command/df`).then(response => {
         if (response.data[0] != 'error'){
           this.disc.used = Number(response.data[0].replace(/[^0-9\.]+/g,""));
           this.disc.avail = Number(response.data[1].match(/\d/g).join(""));

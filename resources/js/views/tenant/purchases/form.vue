@@ -554,7 +554,7 @@
                     if (item.discount == null || item.discount == "" || item.discount > (item.unit_price * item.quantity)) {
                         this.$set(item, "discount", 0);
                     }
-                    
+
                     // DEBUG: Log valores antes del cálculo de descuento
                     if (item.from_xml) {
                         console.log(`setDataTotals - ${item.description}:`, {
@@ -566,7 +566,7 @@
                             quantity: item.quantity
                         });
                     }
-                    
+
                     // defino el total de descuento
                     let total_discount = 0;
                     if(item.discount_type === 'percentage') {
@@ -574,7 +574,7 @@
                     } else {
                         total_discount = item.discount
                     }
-                    
+
                     this.$set( item, "discount", Number(total_discount).toFixed(2));
 
                     item.total_tax = 0;
@@ -1272,7 +1272,7 @@
                                 tax_amount: xmlItem.tax_amount
                             });
                         });
-                        
+
                         if (purchaseData.monetary_totals) {
                             console.log('Totales monetarios:', {
                                 allowance_total_amount: purchaseData.monetary_totals.allowance_total_amount,
@@ -1504,16 +1504,16 @@
                         const lineExtensionAmount = parseFloat(xmlItem.line_extension_amount) || 0;
                         const quantity = parseFloat(xmlItem.quantity) || 1;
                         const priceAmount = parseFloat(xmlItem.price_amount) || 0;
-                        
+
                         // Calcular el precio unitario sin impuestos basado en LineExtensionAmount
                         if (lineExtensionAmount > 0 && quantity > 0) {
                             item.unit_price = lineExtensionAmount / quantity;
-                            
+
                             // Solo detectar descuento si hay información explícita de descuento en el XML
                             if (xmlItem.has_discount && (xmlItem.discount_amount > 0 || xmlItem.discount_percentage > 0)) {
                                 const discountAmount = parseFloat(xmlItem.discount_amount) || 0;
                                 const discountPercentage = parseFloat(xmlItem.discount_percentage) || 0;
-                                
+
                                 if (discountAmount > 0) {
                                     item.discount_type = 'fixed';
                                     item.discount = discountAmount;
@@ -1532,7 +1532,7 @@
                             // Fallback al método anterior si no hay LineExtensionAmount válido
                             let xmlPrice = parseFloat(xmlItem.price_amount) || 0;
                             let xmlPriceAlt = parseFloat(xmlItem.price_amount_alt) || 0;
-                            
+
                             if (xmlPriceAlt > 0 && (xmlPriceAlt > xmlPrice || xmlPrice === 0)) {
                                 const taxRate = parseFloat(xmlItem.tax_percent) || 0;
                                 const priceWithTax = xmlPriceAlt;
@@ -1572,7 +1572,7 @@
                         // FORZAR: Solo procesar descuentos si hay valores reales significativos
                         const hasSignificantDiscountAmount = item.discount_fixed_from_xml > 0.01;
                         const hasSignificantDiscountPercentage = item.discount_multiplier_from_xml > 0.001;
-                        
+
                         console.log(`Evaluando descuentos para ${item.description}:`, {
                             has_discount_flag: item.has_discount,
                             discount_amount: item.discount_fixed_from_xml,
@@ -1614,14 +1614,14 @@
                     this.$nextTick(async () => {
                         // Esperar un poco más para que la sincronización de items sea completa
                         await new Promise(resolve => setTimeout(resolve, 200));
-                        
+
                         // Recalcular totales después de que todo esté sincronizado
                         this.calculateTotal();
-                        
+
                         // Forzar actualización de la vista
                         this.$forceUpdate();
 
-                        
+
                         // Emitir evento global para asegurar que todos los modales estén actualizados
                         this.$eventHub.$emit('itemsUpdated');
                     });
@@ -1679,7 +1679,7 @@
 
                         // IMPORTANTE: Forzar Vue a procesar cambios reactivos
                         this.$forceUpdate();
-                        
+
                         // Esperar que Vue procese los cambios
                         await this.$nextTick();
 
@@ -1703,7 +1703,7 @@
 
                     // Redondear el precio a 2 decimales para evitar errores SQL de precisión
                     const roundedPrice = Math.round(priceWithoutTax * 100) / 100;
-                    
+
                     // Asegurar que el precio esté dentro del rango válido para decimal(12,4)
                     // Máximo: 99999999.9999 (8 dígitos enteros, 4 decimales)
                     const safePrice = Math.min(roundedPrice, 99999999.99);
@@ -1712,16 +1712,16 @@
                     const timestamp = Date.now();
                     const randomSuffix = Math.floor(Math.random() * 1000);
                     const safeInternalId = xmlItem.sellers_item_identification || `XML-${timestamp}-${randomSuffix}`;
-                    
+
                     // Limpiar y validar nombre y descripción
                     const cleanName = (xmlItem.item_description || 'Producto Importado')
                         .replace(/[^\w\s\-\.]/g, '') // Remover caracteres especiales
                         .substring(0, 80) // Límite más conservador
                         .trim();
-                    
+
                     const cleanDescription = (xmlItem.item_description || 'Producto importado desde XML DIAN')
-                        .replace(/[^\w\s\-\.]/g, '') 
-                        .substring(0, 200) // Límite más conservador  
+                        .replace(/[^\w\s\-\.]/g, '')
+                        .substring(0, 200) // Límite más conservador
                         .trim();
 
                     const newItemData = {
@@ -1813,7 +1813,7 @@
 
                             // IMPORTANTE: Forzar Vue a procesar todos los cambios reactivos inmediatamente
                             this.$forceUpdate();
-                            
+
                             // Esperar que Vue procese todos los cambios
                             await this.$nextTick();
 
@@ -1835,14 +1835,14 @@
                         }
                     } catch (createError) {
                         console.error('Error al crear producto:', createError);
-                        
+
                         // Capturar más información del error
                         if (createError.response) {
                             console.error('Error response:', createError.response.data);
                             console.error('Status:', createError.response.status);
                             console.error('Headers:', createError.response.headers);
                         }
-                        
+
                         // El item se mantendrá sin ID, mostrando "Producto no disponible"
                     }
 

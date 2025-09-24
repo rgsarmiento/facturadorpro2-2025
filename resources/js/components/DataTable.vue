@@ -34,9 +34,9 @@
                         </template>
                     </div>
                     <div class="col-lg-3 col-md-4 col-sm-12 pb-2" v-if="resource.includes('co-documents')">
-                        <el-button 
-                            type="info" 
-                            size="small" 
+                        <el-button
+                            type="info"
+                            size="small"
                             @click="toggleLoadAll"
                             :loading="loadingAll">
                             {{ loadAll ? 'Ver últimos 3 meses' : 'Cargar todos los registros' }}
@@ -84,6 +84,10 @@
                 type: Boolean,
                 default: true,
                 required: false
+            },
+            externalFilters: {
+                type: Object,
+                default: () => ({})
             }
         },
 
@@ -102,6 +106,17 @@
         },
 
         computed: {
+        },
+
+        watch: {
+            externalFilters: {
+                handler() {
+                    // Resetear a la primera página cuando cambien los filtros
+                    this.pagination.current_page = 1
+                    this.getRecords()
+                },
+                deep: true
+            }
         },
 
         created() {
@@ -139,7 +154,8 @@
                     page: this.pagination.current_page,
                     limit: this.limit,
                     load_all: this.loadAll,
-                    ...this.search
+                    ...this.search,
+                    ...this.externalFilters
                 })
             },
 

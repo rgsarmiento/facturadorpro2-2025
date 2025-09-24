@@ -114,8 +114,6 @@ class DashboardController extends Controller
         $array[] = str_replace("\n","",$disc_pcent);
 
         return $array;
-
-
     }
 
 }

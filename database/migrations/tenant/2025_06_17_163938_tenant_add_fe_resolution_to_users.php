@@ -14,8 +14,10 @@ class TenantAddFeResolutionToUsers extends Migration
     public function up()
     {
          Schema::table('users', function (Blueprint $table) {
-            $table->unsignedInteger('fe_resolution_id')->nullable()->default(null)->after('establishment_id');
-            $table->foreign('fe_resolution_id')->references('id')->on('co_type_documents')->onDelete('set null')->onUpdate('cascade');
+            if (!Schema::hasColumn('users', 'fe_resolution_id')) {
+                $table->unsignedInteger('fe_resolution_id')->nullable()->default(null)->after('establishment_id');
+                $table->foreign('fe_resolution_id')->references('id')->on('co_type_documents')->onDelete('set null')->onUpdate('cascade');
+            }
         });
     }
 
@@ -27,7 +29,9 @@ class TenantAddFeResolutionToUsers extends Migration
     public function down()
     {
         Schema::table('users', function (Blueprint $table) {
-            $table->dropColumn('fe_resolution_id');
+            if (Schema::hasColumn('users', 'fe_resolution_id')) {
+                $table->dropColumn('fe_resolution_id');
+            }
         });
     }
 }

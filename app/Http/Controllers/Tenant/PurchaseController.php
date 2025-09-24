@@ -864,7 +864,7 @@ class PurchaseController extends Controller
                 '//sts:AuthorizedInvoices//sts:Prefix',
                 '//sts:Prefix'
             ];
-            
+
             foreach ($series_paths as $path) {
                 $series = $this->getXmlValue($xpath, $path);
                 if ($series) {
@@ -872,7 +872,7 @@ class PurchaseController extends Controller
                     break;
                 }
             }
-            
+
             // Si no se encuentra en extensiones, intentar extraer de los primeros caracteres del número
             if (!$series) {
                 $full_number = $this->getXmlValue($xpath, '//cbc:ID');
@@ -887,7 +887,7 @@ class PurchaseController extends Controller
             // Extraer número completo y quitar la serie para obtener solo el número
             $full_number = $this->getXmlValue($xpath, '//cbc:ID');
             $number_only = $full_number;
-            
+
             // Si existe una serie, removerla del número completo
             if ($series && $full_number) {
                 // Si el número completo empieza con la serie, removerla
@@ -902,7 +902,7 @@ class PurchaseController extends Controller
                     \Log::info("Serie y número extraídos por regex - Serie: {$series}, Número: {$number_only}");
                 }
             }
-            
+
             \Log::info("Extracción final - Número completo: {$full_number}, Serie: {$series}, Número solo: {$number_only}");
 
             // Extraer fechas específicas
@@ -913,7 +913,7 @@ class PurchaseController extends Controller
                 '//cbc:PaymentDueDate',
                 '//cbc:DueDate'
             ];
-            
+
             $due_date = null;
             foreach ($due_date_paths as $path) {
                 $due_date = $this->getXmlValue($xpath, $path);
@@ -922,11 +922,11 @@ class PurchaseController extends Controller
                     break;
                 }
             }
-            
+
             if (!$due_date) {
                 \Log::warning("No se pudo encontrar la fecha de vencimiento en el XML");
             }
-            
+
             \Log::info("Fecha de emisión: {$issue_date}, Fecha de vencimiento: {$due_date}");
 
             // Extraer datos básicos del documento
@@ -942,15 +942,15 @@ class PurchaseController extends Controller
 
                 // Datos del proveedor
                 'supplier' => [
-                    'identification_number' => $this->getXmlValue($xpath, '//cac:AccountingSupplierParty//cac:Party//cac:PartyIdentification//cbc:ID') ?? 
+                    'identification_number' => $this->getXmlValue($xpath, '//cac:AccountingSupplierParty//cac:Party//cac:PartyIdentification//cbc:ID') ??
                                               $this->getXmlValue($xpath, '//cac:AccountingSupplierParty//cbc:CompanyID'),
-                    'name' => $this->getXmlValue($xpath, '//cac:AccountingSupplierParty//cac:Party//cac:PartyLegalEntity//cbc:RegistrationName') ?? 
+                    'name' => $this->getXmlValue($xpath, '//cac:AccountingSupplierParty//cac:Party//cac:PartyLegalEntity//cbc:RegistrationName') ??
                              $this->getXmlValue($xpath, '//cac:AccountingSupplierParty//cbc:RegistrationName'),
-                    'address' => $this->getXmlValue($xpath, '//cac:AccountingSupplierParty//cac:Party//cac:PhysicalLocation//cac:Address//cbc:Line') ?? 
+                    'address' => $this->getXmlValue($xpath, '//cac:AccountingSupplierParty//cac:Party//cac:PhysicalLocation//cac:Address//cbc:Line') ??
                                 $this->getXmlValue($xpath, '//cac:AccountingSupplierParty//cac:PhysicalLocation//cac:Address//cbc:Line'),
-                    'city' => $this->getXmlValue($xpath, '//cac:AccountingSupplierParty//cac:Party//cac:PhysicalLocation//cac:Address//cbc:CityName') ?? 
+                    'city' => $this->getXmlValue($xpath, '//cac:AccountingSupplierParty//cac:Party//cac:PhysicalLocation//cac:Address//cbc:CityName') ??
                              $this->getXmlValue($xpath, '//cac:AccountingSupplierParty//cac:PhysicalLocation//cac:Address//cbc:CityName'),
-                    'country' => $this->getXmlValue($xpath, '//cac:AccountingSupplierParty//cac:Party//cac:PhysicalLocation//cac:Address//cac:Country//cbc:IdentificationCode') ?? 
+                    'country' => $this->getXmlValue($xpath, '//cac:AccountingSupplierParty//cac:Party//cac:PhysicalLocation//cac:Address//cac:Country//cbc:IdentificationCode') ??
                                 $this->getXmlValue($xpath, '//cac:AccountingSupplierParty//cac:PhysicalLocation//cac:Address//cac:Country//cbc:IdentificationCode'),
                 ],
 
@@ -1035,7 +1035,7 @@ class PurchaseController extends Controller
             if ($allowanceAmount > 0 || $allowanceMultiplier > 0) {
                 \Log::info("Descuento extraído para '{$itemDescription}': Amount={$allowanceAmount}, Multiplier={$allowanceMultiplier}, Reason='{$allowanceReason}'");
             }
-            
+
             // Log para debugging de precios
             $priceAmount = $this->getXmlValue($xpath_item, './/cac:Price//cbc:PriceAmount', 0, $item_node);
             $priceAmountAlt = $this->getXmlValue($xpath_item, './/cac:PricingReference//cac:AlternativeConditionPrice//cbc:PriceAmount', 0, $item_node);

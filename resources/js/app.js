@@ -135,6 +135,7 @@ Vue.component('tenant-configurations-pdf', require('./views/tenant/configuration
 // Vue.component('tenant-establishments-form', require('./views/tenant/establishments/form.vue'));
 // Vue.component('tenant-series-form', require('./views/tenant/series/form.vue'));
 Vue.component('tenant-bank_accounts-index', require('./views/tenant/bank_accounts/index.vue'));
+Vue.component('tenant-backup-index', require('../../modules/Backup/Resources/assets/js/views/index.vue'));
 Vue.component('tenant-items-index', require('./views/tenant/items/index.vue'));
 Vue.component('tenant-persons-index', require('./views/tenant/persons/index.vue'));
 // Vue.component('tenant-customers-index', require('./views/tenant/customers/index.vue'));
@@ -373,6 +374,10 @@ Vue.component('tenant-orders-index', require('./views/tenant/orders/index.vue'))
 //Cuenta
 Vue.component('tenant-account-payment-index', require('./views/tenant/account/payment_index.vue'));
 Vue.component('tenant-account-configuration-index', require('./views/tenant/account/configuration.vue'));
+
+//Cuentas Contables
+Vue.component('tenant-cuentas-contables-index', require('./views/tenant/cuentas_contables/index.vue'));
+Vue.component('tenant-cuentas-contables-form', require('./views/tenant/cuentas_contables/form.vue'));
 
 //auto update
 Vue.component('system-update', require('./views/system/update/index.vue'));
