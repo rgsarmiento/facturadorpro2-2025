@@ -5049,6 +5049,29 @@ export default {
             } catch (error) {
                 this.$message.error("Error crítico del sistema", 3);
             }
+        },
+        getFormatDecimal(value) {
+            // Validar si value es null, undefined o una cadena vacía
+            if (value === null || value === undefined || value === '') {
+                console.warn('No se pudo convertir la cadena a un número.');
+                return '0.00';
+            }
+
+            // Convertir a número
+            const numericValue = parseFloat(value);
+
+            // Validar si la conversión resultó en NaN
+            if (isNaN(numericValue)) {
+                console.warn('No se pudo convertir la cadena a un número.');
+                return '0.00';
+            }
+
+            // Formatear el número
+            return numericValue.toLocaleString('en-US', {
+                style: 'decimal',
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            });
         }
     }
 };
