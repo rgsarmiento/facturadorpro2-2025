@@ -283,7 +283,7 @@
                                             {{ currency.symbol }}
                                             {{
                                                 getFormatDecimal(
-                                                    item.sale_unit_price_with_tax
+                                                    item.sale_unit_price_with_tax || 0
                                                 )
                                             }}
                                         </h5>
@@ -4879,7 +4879,14 @@ export default {
             this.input_item = null;
         },
         filterItems() {
-            this.items = this.all_items;
+            // Asegurar que todos los items tengan las propiedades necesarias inicializadas
+            this.items = this.all_items.map(item => {
+                return {
+                    ...item,
+                    sale_unit_price_with_tax: item.sale_unit_price_with_tax || 0,
+                    quantity: item.quantity || 1
+                };
+            });
         },
         reloadDataCustomers(customer_id) {
             this.$http
@@ -5053,7 +5060,7 @@ export default {
         getFormatDecimal(value) {
             // Validar si value es null, undefined o una cadena vacía
             if (value === null || value === undefined || value === '') {
-                console.warn('No se pudo convertir la cadena a un número.');
+                console.warn('No se pudo convertir la cadena a un número. Valor recibido:', value);
                 return '0.00';
             }
 
@@ -5062,7 +5069,7 @@ export default {
 
             // Validar si la conversión resultó en NaN
             if (isNaN(numericValue)) {
-                console.warn('No se pudo convertir la cadena a un número.');
+                console.warn('No se pudo convertir la cadena a un número. Valor recibido:', value, 'Tipo:', typeof value);
                 return '0.00';
             }
 
