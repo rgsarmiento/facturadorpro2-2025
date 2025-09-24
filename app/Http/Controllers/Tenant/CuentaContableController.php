@@ -133,11 +133,46 @@ class CuentaContableController extends Controller
 
         if ($request->has('search') && $request->search != '') {
             $search = $request->search;
-            $query->where(function($q) use ($search) {
-                $q->where('codigo', 'like', "%{$search}%")
-                  ->orWhere('nombre', 'like', "%{$search}%")
-                  ->orWhere('descripcion', 'like', "%{$search}%");
-            });
+            
+            // Buscar cuentas que coincidan con el criterio
+            $matchingAccountIds = CuentaContable::on('tenant')
+                ->where(function($q) use ($search) {
+                    $q->where('codigo', 'like', "%{$search}%")
+                      ->orWhere('nombre', 'like', "%{$search}%")
+                      ->orWhere('descripcion', 'like', "%{$search}%");
+                })
+                ->pluck('id')
+                ->toArray();
+
+            if (!empty($matchingAccountIds)) {
+                // Para cada cuenta encontrada, incluir toda su jerarquía (padres y hijos)
+                $allRelatedIds = [];
+                
+                foreach ($matchingAccountIds as $accountId) {
+                    $account = CuentaContable::on('tenant')->find($accountId);
+                    if ($account) {
+                        // Agregar la cuenta actual
+                        $allRelatedIds[] = $accountId;
+                        
+                        // Agregar todos los ancestros (padres, abuelos, etc.)
+                        $current = $account;
+                        while ($current && $current->cuenta_padre_id) {
+                            $allRelatedIds[] = $current->cuenta_padre_id;
+                            $current = $current->cuentaPadre;
+                        }
+                        
+                        // Agregar todos los descendientes
+                        $descendants = $this->getAllDescendants($accountId);
+                        $allRelatedIds = array_merge($allRelatedIds, $descendants);
+                    }
+                }
+                
+                $allRelatedIds = array_unique($allRelatedIds);
+                $query->whereIn('id', $allRelatedIds);
+            } else {
+                // Si no se encuentran coincidencias, no mostrar nada
+                $query->where('id', -1);
+            }
         }
 
         // Incluir relación con cuenta padre
@@ -166,28 +201,108 @@ class CuentaContableController extends Controller
     /**
      * Get records in tree structure
      */
-    public function tree()
+    public function tree(Request $request)
     {
-        $cuentasRaiz = CuentaContable::raiz()
-            ->activas()
-            ->with(['descendientes' => function($query) {
-                $query->where('activa', true);
+        // Si hay búsqueda, cambiar estrategia para mostrar jerarquía completa
+        if ($request->has('search') && $request->search != '') {
+            return $this->treeWithSearch($request);
+        }
+        
+        $query = CuentaContable::raiz();
+        
+        // Aplicar filtros si están presentes
+        if ($request->has('tipo_cuenta') && $request->tipo_cuenta != '') {
+            $query->where('tipo_cuenta', $request->tipo_cuenta);
+        }
+
+        if ($request->has('naturaleza') && $request->naturaleza != '') {
+            $query->where('naturaleza', $request->naturaleza);
+        }
+
+        if ($request->has('activa') && $request->activa != '') {
+            $query->where('activa', $request->activa == '1');
+        } else {
+            $query->activas(); // Por defecto solo mostrar activas
+        }
+
+        if ($request->has('search') && $request->search != '') {
+            $search = $request->search;
+            $query->where(function($q) use ($search) {
+                $q->where('codigo', 'like', "%{$search}%")
+                  ->orWhere('nombre', 'like', "%{$search}%")
+                  ->orWhere('descripcion', 'like', "%{$search}%");
+            });
+        }
+
+        $cuentasRaiz = $query->with(['descendientes' => function($queryDesc) use ($request) {
+                // Aplicar los mismos filtros a los descendientes
+                if ($request->has('activa') && $request->activa != '') {
+                    $queryDesc->where('activa', $request->activa == '1');
+                } else {
+                    $queryDesc->where('activa', true);
+                }
+                
+                if ($request->has('tipo_cuenta') && $request->tipo_cuenta != '') {
+                    $queryDesc->where('tipo_cuenta', $request->tipo_cuenta);
+                }
+
+                if ($request->has('naturaleza') && $request->naturaleza != '') {
+                    $queryDesc->where('naturaleza', $request->naturaleza);
+                }
+
+                if ($request->has('search') && $request->search != '') {
+                    $search = $request->search;
+                    $queryDesc->where(function($q) use ($search) {
+                        $q->where('codigo', 'like', "%{$search}%")
+                          ->orWhere('nombre', 'like', "%{$search}%")
+                          ->orWhere('descripcion', 'like', "%{$search}%");
+                    });
+                }
             }])
             ->orderBy('codigo')
             ->get();
 
         return response()->json([
             'success' => true,
-            'data' => $this->buildTree($cuentasRaiz)
+            'data' => $this->buildTree($cuentasRaiz, $request->all())
         ]);
     }
 
     /**
      * Build hierarchical tree structure
      */
-    private function buildTree($cuentas)
+    private function buildTree($cuentas, $filters = [])
     {
-        return $cuentas->map(function($cuenta) {
+        return $cuentas->map(function($cuenta) use ($filters) {
+            // Obtener hijas con filtros aplicados
+            $hijasQuery = $cuenta->cuentasHijas()->orderBy('codigo');
+            
+            // Aplicar filtros a las cuentas hijas
+            if (isset($filters['activa']) && $filters['activa'] !== '') {
+                $hijasQuery->where('activa', $filters['activa'] == '1');
+            } else {
+                $hijasQuery->activas();
+            }
+            
+            if (isset($filters['tipo_cuenta']) && $filters['tipo_cuenta'] != '') {
+                $hijasQuery->where('tipo_cuenta', $filters['tipo_cuenta']);
+            }
+            
+            if (isset($filters['naturaleza']) && $filters['naturaleza'] != '') {
+                $hijasQuery->where('naturaleza', $filters['naturaleza']);
+            }
+            
+            if (isset($filters['search']) && $filters['search'] != '') {
+                $search = $filters['search'];
+                $hijasQuery->where(function($q) use ($search) {
+                    $q->where('codigo', 'like', "%{$search}%")
+                      ->orWhere('nombre', 'like', "%{$search}%")
+                      ->orWhere('descripcion', 'like', "%{$search}%");
+                });
+            }
+            
+            $hijas = $hijasQuery->get();
+            
             return [
                 'id' => $cuenta->id,
                 'codigo' => $cuenta->codigo,
@@ -199,7 +314,7 @@ class CuentaContableController extends Controller
                 'permite_movimiento' => $cuenta->permite_movimiento,
                 'saldo_actual' => $cuenta->saldo_actual,
                 'es_cuenta_movimiento' => $cuenta->esCuentaMovimiento(),
-                'children' => $this->buildTree($cuenta->cuentasHijas()->activas()->orderBy('codigo')->get())
+                'children' => $this->buildTree($hijas, $filters)
             ];
         });
     }
@@ -1243,5 +1358,115 @@ class CuentaContableController extends Controller
         });
 
         return $cuentasData;
+    }
+
+    /**
+     * Get all descendant IDs for a given account
+     */
+    private function getAllDescendants($accountId)
+    {
+        $descendants = [];
+        $children = CuentaContable::on('tenant')->where('cuenta_padre_id', $accountId)->pluck('id')->toArray();
+        
+        foreach ($children as $childId) {
+            $descendants[] = $childId;
+            $descendants = array_merge($descendants, $this->getAllDescendants($childId));
+        }
+        
+        return $descendants;
+    }
+
+    /**
+     * Get tree structure with search functionality
+     */
+    private function treeWithSearch(Request $request)
+    {
+        $search = $request->search;
+        
+        // Buscar cuentas que coincidan con el criterio
+        $matchingAccounts = CuentaContable::on('tenant')
+            ->where(function($q) use ($search) {
+                $q->where('codigo', 'like', "%{$search}%")
+                  ->orWhere('nombre', 'like', "%{$search}%")
+                  ->orWhere('descripcion', 'like', "%{$search}%");
+            })
+            ->get();
+
+        if ($matchingAccounts->isEmpty()) {
+            return response()->json([
+                'success' => true,
+                'data' => []
+            ]);
+        }
+
+        // Recopilar todas las cuentas relacionadas (ancestros y descendientes)
+        $allRelatedIds = [];
+        
+        foreach ($matchingAccounts as $account) {
+            // Agregar la cuenta actual
+            $allRelatedIds[] = $account->id;
+            
+            // Agregar todos los ancestros
+            $current = $account;
+            while ($current && $current->cuenta_padre_id) {
+                $allRelatedIds[] = $current->cuenta_padre_id;
+                $current = $current->cuentaPadre;
+            }
+            
+            // Agregar todos los descendientes
+            $descendants = $this->getAllDescendants($account->id);
+            $allRelatedIds = array_merge($allRelatedIds, $descendants);
+        }
+        
+        $allRelatedIds = array_unique($allRelatedIds);
+        
+        // Obtener todas las cuentas relacionadas
+        $allRelatedAccounts = CuentaContable::on('tenant')
+            ->whereIn('id', $allRelatedIds)
+            ->get()
+            ->keyBy('id');
+
+        // Construir la estructura de árbol solo con las cuentas raíz que tienen relación
+        $rootAccounts = $allRelatedAccounts->filter(function($account) {
+            return is_null($account->cuenta_padre_id);
+        })->sortBy('codigo');
+
+        return response()->json([
+            'success' => true,
+            'data' => $this->buildFilteredTree($rootAccounts, $allRelatedAccounts)
+        ]);
+    }
+
+    /**
+     * Build tree structure with filtered accounts
+     */
+    private function buildFilteredTree($accounts, $allRelatedAccounts)
+    {
+        return $accounts->map(function($account) use ($allRelatedAccounts) {
+            $accountData = [
+                'id' => $account->id,
+                'codigo' => $account->codigo,
+                'nombre' => $account->nombre,
+                'tipo_cuenta' => $account->tipo_cuenta,
+                'naturaleza' => $account->naturaleza,
+                'nivel' => $account->nivel,
+                'activa' => $account->activa,
+                'permite_movimiento' => $account->permite_movimiento,
+                'saldo_actual' => $account->saldo_actual,
+                'es_cuenta_movimiento' => $account->esCuentaMovimiento(),
+                'children' => []
+            ];
+
+            // Obtener hijos que estén en las cuentas relacionadas
+            $children = $allRelatedAccounts->filter(function($child) use ($account) {
+                return $child->cuenta_padre_id == $account->id;
+            })->sortBy('codigo');
+
+            if ($children->count() > 0) {
+                $accountData['children'] = $this->buildFilteredTree($children, $allRelatedAccounts);
+            }
+
+            return $accountData;
+        })->values();
     }
 }

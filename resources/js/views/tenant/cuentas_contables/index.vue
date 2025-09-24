@@ -50,14 +50,7 @@
                             <option v-for="naturaleza in naturalezas" :key="naturaleza" :value="naturaleza">{{ naturaleza | capitalize }}</option>
                         </select>
                     </div>
-                    <div class="col-md-2">
-                        <label>Nivel:</label>
-                        <select class="form-control" v-model="filters.nivel" @change="loadRecords">
-                            <option value="">Todos</option>
-                            <option v-for="i in 6" :key="i" :value="i">{{ i }}</option>
-                        </select>
-                    </div>
-                    <div class="col-md-2">
+                    <div class="col-md-3">
                         <label>Estado:</label>
                         <select class="form-control" v-model="filters.activa" @change="loadRecords">
                             <option value="">Todos</option>
@@ -65,9 +58,21 @@
                             <option value="0">Inactivas</option>
                         </select>
                     </div>
-                    <div class="col-md-2">
+                    <div class="col-md-3">
                         <label>Búsqueda:</label>
                         <input type="text" class="form-control" v-model="filters.search" @keyup="debounceSearch" placeholder="Código o nombre...">
+                    </div>
+                </div>
+                
+                <!-- Botón para limpiar filtros -->
+                <div class="row mb-3">
+                    <div class="col-md-12 text-right">
+                        <button type="button" class="btn btn-outline-secondary btn-sm" @click="clearFilters">
+                            <i class="fa fa-times"></i> Limpiar Filtros
+                        </button>
+                        <small class="ml-2 text-muted" v-if="hasActiveFilters">
+                            Filtros activos
+                        </small>
                     </div>
                 </div>
 
@@ -89,7 +94,7 @@
 
                 <!-- Vista Lista -->
                 <div v-else>
-                    <data-table ref="dataTable" :resource="resource" @clicked="clickActions">
+                    <data-table ref="dataTable" :resource="resource" :external-filters="filters" @clicked="clickActions">
                         <tr slot="heading">
                             <th>Código</th>
                             <th>Nombre</th>
@@ -213,7 +218,6 @@ export default {
             filters: {
                 tipo_cuenta: '',
                 naturaleza: '',
-                nivel: '',
                 activa: '',
                 search: ''
             },
@@ -223,6 +227,14 @@ export default {
             importOptions: {
                 sobreescribir: false
             }
+        }
+    },
+    computed: {
+        hasActiveFilters() {
+            return this.filters.tipo_cuenta || 
+                   this.filters.naturaleza || 
+                   this.filters.activa !== '' || 
+                   this.filters.search
         }
     },
     async created() {
@@ -264,9 +276,13 @@ export default {
             }
         },
         async loadRecords() {
-            // Para vista lista, se usa el data-table component automáticamente
+            // Para vista lista, refrescar el data-table con los filtros actuales
             if (this.viewMode === 'tree') {
                 await this.loadTreeData()
+            } else {
+                if (this.$refs.dataTable) {
+                    await this.$refs.dataTable.getRecords()
+                }
             }
         },
         async refreshData() {
@@ -313,7 +329,24 @@ export default {
         async loadTreeData() {
             this.loading = true
             try {
-                const response = await axios.get('/contabilidad/cuentas-contables/tree')
+                // Construir parámetros de filtro
+                const params = new URLSearchParams()
+                
+                if (this.filters.tipo_cuenta) {
+                    params.append('tipo_cuenta', this.filters.tipo_cuenta)
+                }
+                if (this.filters.naturaleza) {
+                    params.append('naturaleza', this.filters.naturaleza)
+                }
+                if (this.filters.activa !== '') {
+                    params.append('activa', this.filters.activa)
+                }
+                if (this.filters.search) {
+                    params.append('search', this.filters.search)
+                }
+
+                const url = '/contabilidad/cuentas-contables/tree' + (params.toString() ? '?' + params.toString() : '')
+                const response = await axios.get(url)
                 this.treeData = response.data.data
             } catch (error) {
                 console.error('Error loading tree data:', error)
@@ -333,6 +366,15 @@ export default {
             this.searchTimeout = setTimeout(() => {
                 this.loadRecords()
             }, 500)
+        },
+        clearFilters() {
+            this.filters = {
+                tipo_cuenta: '',
+                naturaleza: '',
+                activa: '',
+                search: ''
+            }
+            this.loadRecords()
         },
         clickCreate() {
             window.location.href = '/contabilidad/cuentas-contables/create'
@@ -461,8 +503,11 @@ export default {
 
 <style scoped>
 .tree-view {
-    max-height: 600px;
+    max-height: 70vh;
     overflow-y: auto;
+    border: 1px solid #dee2e6;
+    border-radius: 0.25rem;
+    padding: 10px;
 }
 
 .disable_color {
@@ -471,5 +516,66 @@ export default {
 
 .table-warning {
     background-color: rgba(255, 193, 7, 0.1);
+}
+
+/* Estilos para la tabla con scroll */
+.table-responsive {
+    max-height: 70vh;
+    overflow-y: auto;
+    overflow-x: auto;
+    border: 1px solid #dee2e6;
+    border-radius: 0.25rem;
+    position: relative;
+}
+
+.table-responsive .table {
+    margin-bottom: 0;
+    min-width: 100%;
+}
+
+.table-responsive .table thead th {
+    position: sticky;
+    top: 0;
+    background-color: #f8f9fa;
+    z-index: 10;
+    border-bottom: 2px solid #dee2e6;
+    box-shadow: 0 2px 2px -1px rgba(0, 0, 0, 0.1);
+}
+
+/* Mejorar la apariencia de la barra de desplazamiento */
+.table-responsive::-webkit-scrollbar {
+    width: 12px;
+    height: 12px;
+}
+
+.table-responsive::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 6px;
+}
+
+.table-responsive::-webkit-scrollbar-thumb {
+    background: #c0c0c0;
+    border-radius: 6px;
+    border: 2px solid #f1f1f1;
+}
+
+.table-responsive::-webkit-scrollbar-thumb:hover {
+    background: #a0a0a0;
+}
+
+.table-responsive::-webkit-scrollbar-corner {
+    background: #f1f1f1;
+}
+
+/* Mejorar filtros */
+.mb-3 .form-control {
+    border-radius: 0.25rem;
+    border: 1px solid #ced4da;
+}
+
+.mb-3 label {
+    font-weight: 600;
+    color: #495057;
+    margin-bottom: 5px;
 }
 </style>
