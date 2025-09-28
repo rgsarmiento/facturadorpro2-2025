@@ -7,12 +7,12 @@ if($current_hostname) {
         Route::middleware(['auth', 'locked.tenant'])->group(function () {
 
             // Route::redirect('/', '/dashboard');
-            
+
             Route::prefix('support-documents')->group(function () {
 
                 Route::get('', 'SupportDocumentController@index')->name('tenant.support-documents.index');
                 Route::get('create', 'SupportDocumentController@create')->name('tenant.support-documents.create');
-                
+
                 Route::get('columns', 'SupportDocumentController@columns');
                 Route::get('records', 'SupportDocumentController@records');
                 Route::get('tables', 'SupportDocumentController@tables');
@@ -79,7 +79,7 @@ if($current_hostname) {
 
             });
 
-            
+
             Route::prefix('fixed-asset')->group(function () {
 
                 Route::get('items', 'FixedAssetItemController@index')->name('tenant.fixed_asset_items.index');
@@ -104,6 +104,13 @@ if($current_hostname) {
                 Route::get('purchases/voided/{id}', 'FixedAssetPurchaseController@voided');
                 Route::delete('purchases/delete/{id}', 'FixedAssetPurchaseController@delete');
                 Route::get('purchases/item/tables', 'FixedAssetPurchaseController@item_tables');
+            });
+
+            // Rutas para DIAN UUIDs
+            Route::prefix('dian-uuids')->group(function () {
+                Route::get('', 'DianUuidController@index')->name('tenant.dian-uuids.index');
+                Route::post('search', 'DianUuidController@search')->name('tenant.dian-uuids.search');
+                Route::post('export', 'DianUuidController@export')->name('tenant.dian-uuids.export');
             });
 
         });

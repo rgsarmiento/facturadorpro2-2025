@@ -26,7 +26,7 @@ class DatabaseSeeder extends Seeder
         DB::connection('system')->table('plan_documents')->updateOrInsert(['id' => 2,], ['description' => 'Guias de remisión']);
         DB::connection('system')->table('plan_documents')->updateOrInsert(['id' => 3,], ['description' => 'Retenciones']);
         DB::connection('system')->table('plan_documents')->updateOrInsert(['id' => 4,], ['description' => 'Percepciones']);
-	
+
         App\Models\System\Plan::updateOrCreate(
 			[
 				'name' => 'Ilimitado',
@@ -40,6 +40,9 @@ class DatabaseSeeder extends Seeder
 			]
 		);
 
-        $this->call([DataServiceMasterSeeder::class]);
+        $this->call([
+            DataServiceMasterSeeder::class,
+            TipoComprobantesContablesSeeder::class
+        ]);
     }
 }

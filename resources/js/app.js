@@ -7,7 +7,7 @@
 
 require('./bootstrap');
 
-// window.Vue = require('vue');
+window.Vue = require('vue');
 import Vue from 'vue'
 import ElementUI from 'element-ui'
 import Axios from 'axios'
@@ -382,10 +382,750 @@ Vue.component('tenant-cuentas-contables-form', require('./views/tenant/cuentas_c
 //auto update
 Vue.component('system-update', require('./views/system/update/index.vue'));
 
+// Componente de Asientos Contables
+Vue.component('asiento-form-component', {
+    template: `
+        <form @submit.prevent="saveAsiento">
+            <div class="row">
+                <!-- Información básica del asiento -->
+                <div class="col-md-8">
+                    <h5>Información del Asiento</h5>
 
+                        <div class="form-group">
+                            <label>Tipo de Comprobante *</label>
+                            <select ref="tipoComprobanteSelect"
+                                    class="form-control select2-search"
+                                    required>
+                                <option value="">Seleccionar tipo de comprobante</option>
+                            </select>
+                            <small v-if="proximoConsecutivo" class="form-text text-muted">
+                                Próximo consecutivo: <strong>#<span v-text="proximoConsecutivo"></span></strong>
+                            </small>
+                        </div>                    <div class="form-group">
+                        <label>Fecha del Asiento *</label>
+                        <input type="date"
+                               v-model="form.fecha_asiento"
+                               class="form-control"
+                               required>
+                    </div>
 
+                    <div class="form-group">
+                        <label>Concepto *</label>
+                        <textarea v-model="form.concepto"
+                                  class="form-control"
+                                  rows="3"
+                                  placeholder="Descripción del asiento contable"
+                                  required></textarea>
+                    </div>
+                </div>
 
+                <!-- Balance Info -->
+                <div class="col-md-6">
+                    <h5>Resumen Balance</h5>
+                    <div class="balance-info" :class="balanceClass">
+                        <div class="row">
+                            <div class="col-md-4">
+                                <strong>Total Débitos:</strong><br>
+                                $<span v-text="formatNumber(totalDebitos)"></span>
+                            </div>
+                            <div class="col-md-4">
+                                <strong>Total Créditos:</strong><br>
+                                $<span v-text="formatNumber(totalCreditos)"></span>
+                            </div>
+                            <div class="col-md-4">
+                                <strong>Diferencia:</strong><br>
+                                $<span v-text="formatNumber(diferencia)"></span>
+                            </div>
+                        </div>
+                        <div class="mt-2">
+                            <i :class="balanceIcon"></i>
+                            <strong v-text="balanceText"></strong>
+                        </div>
+                    </div>
+                </div>
+            </div>
 
+            <!-- Detalles del asiento -->
+            <div class="row mt-4">
+                <div class="col-md-8">
+                    <h5>Detalles del Asiento</h5>
+
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th width="30%">Cuenta Contable *</th>
+                                    <th width="20%">Tercero</th>
+                                    <th width="12%">Débito</th>
+                                    <th width="12%">Crédito</th>
+                                    <th width="18%">Concepto</th>
+                                    <th width="8%">Acciones</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <tr v-for="(detalle, index) in form.detalles" :key="index">
+                                    <td>
+                                        <select :ref="'cuentaSelect' + index"
+                                                class="form-control form-control-sm cuenta-select"
+                                                :data-index="index"
+                                                required>
+                                            <option value="">Seleccionar cuenta</option>
+                                        </select>
+                                    </td>
+                                    <td>
+                                        <select v-if="detalle.requiere_tercero"
+                                                v-model="detalle.tercero_id"
+                                                class="form-control form-control-sm">
+                                            <option value="">Sin tercero</option>
+                                            <option v-for="tercero in terceros"
+                                                    :key="tercero.id"
+                                                    :value="tercero.id"
+                                                    v-text="tercero.name + ' (' + tercero.number + ')'">
+                                            </option>
+                                        </select>
+                                        <span v-else class="text-muted small">N/A</span>
+                                    </td>
+                                    <td>
+                                        <input type="number"
+                                               v-model="detalle.debito"
+                                               @input="onDebitoChanged(index)"
+                                               @focus="onInputFocus"
+                                               class="form-control form-control-sm"
+                                               step="0.01"
+                                               min="0"
+                                               placeholder="0.00">
+                                    </td>
+                                    <td>
+                                        <input type="number"
+                                               v-model="detalle.credito"
+                                               @input="onCreditoChanged(index)"
+                                               @focus="onInputFocus"
+                                               class="form-control form-control-sm"
+                                               step="0.01"
+                                               min="0"
+                                               placeholder="0.00">
+                                    </td>
+                                    <td>
+                                        <input type="text"
+                                               v-model="detalle.concepto"
+                                               class="form-control form-control-sm"
+                                               placeholder="Concepto del detalle">
+                                    </td>
+                                    <td class="text-center">
+                                        <button type="button"
+                                                @click="removeDetalle(index)"
+                                                class="btn btn-danger btn-sm"
+                                                v-if="form.detalles.length > 2"
+                                                title="Eliminar línea">
+                                            <i class="fa fa-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+
+                    <div class="mt-2">
+                        <button type="button"
+                                @click="addDetalle"
+                                class="btn btn-success btn-sm">
+                            <i class="fa fa-plus"></i> Agregar Detalle
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Columna derecha para archivos adjuntos -->
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h6 class="mb-0"><i class="fa fa-paperclip"></i> Archivos Adjuntos</h6>
+                        </div>
+                        <div class="card-body">
+                            <input type="file"
+                                   ref="fileInput"
+                                   @change="onFilesSelected"
+                                   class="form-control-file"
+                                   multiple
+                                   accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx"
+                                   style="display: none;">
+                            <button type="button"
+                                    @click="$refs.fileInput.click()"
+                                    class="btn btn-outline-primary btn-block">
+                                <i class="fa fa-upload"></i> Seleccionar Archivos
+                            </button>
+                            <small class="form-text text-muted mt-2">Máximo 5MB por archivo</small>
+
+                            <!-- Lista de archivos seleccionados -->
+                            <div v-if="adjuntosFiles.length > 0" class="mt-3">
+                                <small class="text-muted">Archivos seleccionados:</small>
+                                <div class="mt-2">
+                                    <div v-for="(file, index) in adjuntosFiles"
+                                         :key="index"
+                                         class="d-flex justify-content-between align-items-center p-2 border rounded mb-1">
+                                        <div class="flex-grow-1">
+                                            <small><i class="fa fa-file text-muted mr-1"></i>{{ file.name }}</small><br>
+                                            <small class="text-muted">{{ formatFileSize(file.size) }}</small>
+                                        </div>
+                                        <button type="button"
+                                                @click="removeFile(index)"
+                                                class="btn btn-danger btn-sm ml-2">
+                                            <i class="fa fa-times"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <button type="submit"
+                                    class="btn btn-primary btn-block mt-3"
+                                    :disabled="saving || !isBalanced">
+                                <i v-if="saving" class="fa fa-spinner fa-spin"></i>
+                                <i v-else class="fa fa-save"></i>
+                                {{ saving ? 'Guardando...' : 'Guardar Asiento' }}
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </form>
+    `,
+    data() {
+        return {
+            form: {
+                tipo_comprobante_id: '',
+                fecha_asiento: new Date().toISOString().substr(0, 10),
+                concepto: '',
+                detalles: [
+                    {
+                        cuenta_contable_id: '',
+                        cuenta_contable: null,
+                        tercero_id: '',
+                        tercero: null,
+                        requiere_tercero: false,
+                        debito: '0.00',
+                        credito: '0.00',
+                        concepto: ''
+                    },
+                    {
+                        cuenta_contable_id: '',
+                        cuenta_contable: null,
+                        tercero_id: '',
+                        tercero: null,
+                        requiere_tercero: false,
+                        debito: '0.00',
+                        credito: '0.00',
+                        concepto: ''
+                    }
+                ]
+            },
+            tiposComprobantes: [],
+            cuentasContables: [],
+            terceros: [],
+            proximoConsecutivo: null,
+            saving: false,
+            adjuntosFiles: []
+        }
+    },
+    computed: {
+        totalDebitos() {
+            return this.form.detalles.reduce((sum, detalle) => {
+                return sum + (parseFloat(detalle.debito) || 0);
+            }, 0);
+        },
+        totalCreditos() {
+            return this.form.detalles.reduce((sum, detalle) => {
+                return sum + (parseFloat(detalle.credito) || 0);
+            }, 0);
+        },
+        diferencia() {
+            return Math.abs(this.totalDebitos - this.totalCreditos);
+        },
+        balanceado() {
+            // Si no hay montos ingresados, considerar como neutral (no mostrar error)
+            const hayDatos = this.totalDebitos > 0 || this.totalCreditos > 0;
+            if (!hayDatos) return true; // Neutral cuando no hay datos
+
+            return this.diferencia < 0.01;
+        },
+        balanceClass() {
+            const hayDatos = this.totalDebitos > 0 || this.totalCreditos > 0;
+            if (!hayDatos) return ''; // Sin clase especial cuando no hay datos
+
+            return this.balanceado ? 'balance-balanceado' : 'balance-desbalanceado';
+        },
+        balanceIcon() {
+            const hayDatos = this.totalDebitos > 0 || this.totalCreditos > 0;
+            if (!hayDatos) return 'fa fa-info-circle';
+
+            return this.balanceado ? 'fa fa-check-circle' : 'fa fa-exclamation-triangle';
+        },
+        balanceText() {
+            const hayDatos = this.totalDebitos > 0 || this.totalCreditos > 0;
+            if (!hayDatos) return 'Ingrese los montos';
+
+            return this.balanceado ? 'Asiento Balanceado' : 'Asiento Desbalanceado';
+        }
+    },
+    async mounted() {
+        await this.loadTiposComprobantes();
+        await this.loadCuentasContables();
+        this.loadTerceros();
+
+        // Esperar a que Select2 esté disponible y luego inicializar
+        this.$nextTick(() => {
+            this.waitForSelect2AndInitialize();
+        });
+    },
+    methods: {
+        async loadTiposComprobantes() {
+            try {
+                console.log('Loading tipos comprobantes...');
+                const response = await axios.get('/contabilidad/asientos-contables/tipos-comprobantes');
+                console.log('Tipos comprobantes response:', response.data);
+
+                if (response.data.success) {
+                    this.tiposComprobantes = response.data.data;
+                    console.log('Loaded tipos comprobantes:', this.tiposComprobantes);
+
+                    // Reinicializar Select2 después de cargar los datos
+                    this.$nextTick(() => {
+                        if (this.$refs.tipoComprobanteSelect) {
+                            this.initTipoComprobanteSelect2();
+                        }
+                    });
+                } else {
+                    console.error('Error from API:', response.data.message);
+                }
+            } catch (error) {
+                console.error('Error loading tipos comprobantes:', error);
+                console.error('Error response:', error.response);
+            }
+        },
+        async loadCuentasContables() {
+            try {
+                console.log('Loading cuentas contables...');
+                const response = await axios.get('/contabilidad/asientos-contables/cuentas-contables');
+                console.log('Cuentas contables response:', response.data);
+
+                if (response.data.success) {
+                    this.cuentasContables = response.data.data;
+                    console.log('Loaded cuentas contables:', this.cuentasContables);
+
+                    // Reinicializar Select2 después de cargar los datos
+                    this.$nextTick(() => {
+                        this.initCuentasContablesSelect2();
+                    });
+                } else {
+                    console.error('Error from API:', response.data.message);
+                }
+            } catch (error) {
+                console.error('Error loading cuentas contables:', error);
+                console.error('Error response:', error.response);
+            }
+        },
+        async loadTerceros() {
+            try {
+                console.log('Loading terceros...');
+                const response = await axios.get('/contabilidad/asientos-contables/terceros');
+                console.log('Terceros response:', response.data);
+
+                if (response.data.success) {
+                    this.terceros = response.data.data;
+                    console.log('Loaded terceros:', this.terceros);
+                } else {
+                    console.error('Error from API:', response.data.message);
+                }
+            } catch (error) {
+                console.error('Error loading terceros:', error);
+                console.error('Error response:', error.response);
+            }
+        },
+        onTipoComprobanteChanged() {
+            if (this.form.tipo_comprobante_id) {
+                this.loadProximoConsecutivo();
+            }
+        },
+        async loadProximoConsecutivo() {
+            try {
+                const response = await axios.get('/contabilidad/asientos-contables/proximo-consecutivo', {
+                    params: { tipo_comprobante_id: this.form.tipo_comprobante_id }
+                });
+                console.log('Proximo consecutivo response:', response.data);
+
+                if (response.data.success) {
+                    this.proximoConsecutivo = response.data.data.proximo_consecutivo;
+                } else {
+                    console.error('Error from API:', response.data.message);
+                }
+            } catch (error) {
+                console.error('Error loading proximo consecutivo:', error);
+            }
+        },
+        onCuentaChanged(index) {
+            const cuenta = this.cuentasContables.find(c => c.id == this.form.detalles[index].cuenta_contable_id);
+            if (cuenta) {
+                this.form.detalles[index].cuenta_contable = cuenta;
+                this.form.detalles[index].requiere_tercero = cuenta.requiere_tercero;
+                if (!cuenta.requiere_tercero) {
+                    this.form.detalles[index].tercero_id = '';
+                    this.form.detalles[index].tercero = null;
+                }
+            }
+        },
+        onMontoChanged(index) {
+            // Lógica adicional si es necesaria
+        },
+        addDetalle() {
+            this.form.detalles.push({
+                cuenta_contable_id: '',
+                cuenta_contable: null,
+                tercero_id: '',
+                tercero: null,
+                requiere_tercero: false,
+                debito: '0.00',
+                credito: '0.00',
+                concepto: ''
+            });
+
+            // Actualizar Select2 después de agregar el detalle
+            this.updateCuentasContablesSelect2();
+        },
+        removeDetalle(index) {
+            this.form.detalles.splice(index, 1);
+        },
+        async saveAsiento() {
+            const hayDatos = this.totalDebitos > 0 || this.totalCreditos > 0;
+
+            if (!hayDatos) {
+                alert('Debe ingresar al menos un monto en débito o crédito.');
+                return;
+            }
+
+            if (!this.balanceado) {
+                alert('El asiento debe estar balanceado para poder guardarlo.');
+                return;
+            }
+
+            this.saving = true;
+            try {
+                const response = await axios.post('/contabilidad/asientos-contables', this.form);
+                console.log('Save response:', response.data);
+
+                if (response.data.success) {
+                    alert('Asiento guardado exitosamente');
+                    // Redireccionar o limpiar formulario
+                    window.location.href = '/contabilidad/asientos-contables';
+                } else {
+                    alert('Error: ' + response.data.message);
+                }
+            } catch (error) {
+                console.error('Error saving asiento:', error);
+                const message = error.response?.data?.message || 'Error al guardar el asiento';
+                alert('Error: ' + message);
+            } finally {
+                this.saving = false;
+            }
+        },
+        initializeSelect2() {
+            this.initTipoComprobanteSelect2();
+            this.initCuentasContablesSelect2();
+        },
+        waitForSelect2AndInitialize(attempts = 0) {
+            // Verificar si jQuery está disponible
+            if (typeof $ === 'undefined') {
+                if (attempts < 50) {
+                    setTimeout(() => {
+                        this.waitForSelect2AndInitialize(attempts + 1);
+                    }, 100);
+                }
+                return;
+            }
+
+            // Verificar si Select2 está disponible
+            if (typeof $.fn.select2 === 'undefined') {
+                if (attempts < 50) {
+                    setTimeout(() => {
+                        this.waitForSelect2AndInitialize(attempts + 1);
+                    }, 100);
+                } else {
+                    this.initializeWithoutSelect2();
+                }
+                return;
+            }
+
+            this.initializeSelect2();
+        },
+        initializeWithoutSelect2() {
+            this.initBasicSelects();
+        },
+        initBasicSelects() {
+            // Inicializar selects básicos sin Select2
+            const vm = this;
+
+            // Inicializar select de tipo de comprobante
+            const $tipoSelect = $(this.$refs.tipoComprobanteSelect);
+            if ($tipoSelect.length) {
+                $tipoSelect.empty().append('<option value="">Seleccionar tipo de comprobante</option>');
+                this.tiposComprobantes.forEach(tipo => {
+                    $tipoSelect.append(new Option(tipo.codigo + ' - ' + tipo.nombre, tipo.id));
+                });
+                $tipoSelect.on('change', function() {
+                    vm.form.tipo_comprobante_id = $(this).val();
+                    vm.onTipoComprobanteChanged();
+                });
+            }
+
+            // Inicializar selects de cuentas contables
+            $('.cuenta-select').each(function() {
+                const $select = $(this);
+                const index = parseInt($select.data('index'));
+
+                $select.empty().append('<option value="">Seleccionar cuenta</option>');
+                vm.cuentasContables.forEach(cuenta => {
+                    $select.append(new Option(cuenta.codigo + ' - ' + cuenta.descripcion, cuenta.id));
+                });
+
+                $select.on('change', function() {
+                    vm.form.detalles[index].cuenta_contable_id = $(this).val();
+                    vm.onCuentaChanged(index);
+                });
+            });
+        },
+        initTipoComprobanteSelect2() {
+            if (typeof $.fn.select2 === 'undefined') {
+                return;
+            }
+
+            const vm = this;
+            const $select = $(this.$refs.tipoComprobanteSelect);
+
+            if (!$select.length) {
+                return;
+            }
+
+            // Limpiar opciones existentes
+            $select.empty().append('<option value="">Seleccionar tipo de comprobante</option>');
+
+            // Agregar opciones
+            this.tiposComprobantes.forEach(tipo => {
+                $select.append(new Option(tipo.codigo + ' - ' + tipo.nombre, tipo.id));
+            });
+
+            // Inicializar Select2
+            $select.select2({
+                theme: 'bootstrap',
+                placeholder: 'Buscar tipo de comprobante...',
+                allowClear: true,
+                matcher: function(params, data) {
+                    // Si no hay término de búsqueda, mostrar todo
+                    if ($.trim(params.term) === '') {
+                        return data;
+                    }
+
+                    // Si no hay texto, null
+                    if (typeof data.text === 'undefined') {
+                        return null;
+                    }
+
+                    // Buscar en el texto completo (código + nombre)
+                    if (data.text.toLowerCase().indexOf(params.term.toLowerCase()) > -1) {
+                        return data;
+                    }
+
+                    return null;
+                }
+            }).on('change', function() {
+                vm.form.tipo_comprobante_id = $(this).val();
+                vm.onTipoComprobanteChanged();
+            });
+        },
+        initCuentasContablesSelect2() {
+            if (typeof $.fn.select2 === 'undefined') {
+                return;
+            }
+
+            const vm = this;
+
+            $('.cuenta-select').each(function() {
+                const $select = $(this);
+                const index = parseInt($select.data('index'));
+
+                // Obtener cuentas ya utilizadas en otros detalles (excluyendo el actual)
+                const cuentasUsadas = vm.form.detalles
+                    .map((detalle, idx) => idx !== index ? detalle.cuenta_contable_id : null)
+                    .filter(id => id && id !== '');
+
+                // Limpiar opciones existentes
+                $select.empty().append('<option value="">Seleccionar cuenta</option>');
+
+                // Agregar opciones disponibles (excluyendo las ya usadas)
+                vm.cuentasContables.forEach(cuenta => {
+                    if (!cuentasUsadas.includes(cuenta.id.toString())) {
+                        $select.append(new Option(cuenta.codigo + ' - ' + cuenta.descripcion, cuenta.id));
+                    }
+                });
+
+                // Si la cuenta actual ya está seleccionada, mantenerla disponible
+                const currentValue = vm.form.detalles[index].cuenta_contable_id;
+                if (currentValue && !$select.find('option[value="' + currentValue + '"]').length) {
+                    const currentCuenta = vm.cuentasContables.find(c => c.id.toString() === currentValue.toString());
+                    if (currentCuenta) {
+                        $select.append(new Option(currentCuenta.codigo + ' - ' + currentCuenta.descripcion, currentCuenta.id));
+                    }
+                }
+
+                // Inicializar Select2
+                $select.select2({
+                    theme: 'bootstrap',
+                    placeholder: 'Buscar cuenta contable...',
+                    allowClear: true,
+                    matcher: function(params, data) {
+                        // Si no hay término de búsqueda, mostrar todo
+                        if ($.trim(params.term) === '') {
+                            return data;
+                        }
+
+                        // Si no hay texto, null
+                        if (typeof data.text === 'undefined') {
+                            return null;
+                        }
+
+                        // Buscar en el texto completo (código + descripción)
+                        if (data.text.toLowerCase().indexOf(params.term.toLowerCase()) > -1) {
+                            return data;
+                        }
+
+                        return null;
+                    }
+                }).on('change', function() {
+                    vm.form.detalles[index].cuenta_contable_id = $(this).val();
+                    vm.onCuentaChanged(index);
+                    // Actualizar otros selects para reflejar el cambio
+                    vm.$nextTick(() => {
+                        vm.updateCuentasContablesSelect2();
+                    });
+                });
+
+                // Establecer el valor seleccionado si existe
+                if (currentValue) {
+                    $select.val(currentValue).trigger('change.select2');
+                }
+            });
+        },
+        updateCuentasContablesSelect2() {
+            // Actualizar todos los selects de cuentas cuando se agregue un nuevo detalle
+            this.$nextTick(() => {
+                if (typeof $.fn.select2 !== 'undefined') {
+                    this.initCuentasContablesSelect2();
+                } else {
+                    this.initBasicCuentasSelects();
+                }
+            });
+        },
+        initBasicCuentasSelects() {
+            // Inicializar selects básicos para cuentas contables
+            const vm = this;
+
+            $('.cuenta-select').each(function() {
+                const $select = $(this);
+                const index = parseInt($select.data('index'));
+
+                // Solo procesar si no tiene opciones o necesita actualización
+                if ($select.find('option').length <= 1) {
+                    // Obtener cuentas ya utilizadas en otros detalles (excluyendo el actual)
+                    const cuentasUsadas = vm.form.detalles
+                        .map((detalle, idx) => idx !== index ? detalle.cuenta_contable_id : null)
+                        .filter(id => id && id !== '');
+
+                    // Limpiar y agregar opción por defecto
+                    $select.empty().append('<option value="">Seleccionar cuenta</option>');
+
+                    // Agregar opciones disponibles (excluyendo las ya usadas)
+                    vm.cuentasContables.forEach(cuenta => {
+                        if (!cuentasUsadas.includes(cuenta.id.toString())) {
+                            $select.append(new Option(cuenta.codigo + ' - ' + cuenta.descripcion, cuenta.id));
+                        }
+                    });
+
+                    // Si la cuenta actual ya está seleccionada, mantenerla disponible
+                    const currentValue = vm.form.detalles[index].cuenta_contable_id;
+                    if (currentValue && !$select.find('option[value="' + currentValue + '"]').length) {
+                        const currentCuenta = vm.cuentasContables.find(c => c.id.toString() === currentValue.toString());
+                        if (currentCuenta) {
+                            $select.append(new Option(currentCuenta.codigo + ' - ' + currentCuenta.descripcion, currentCuenta.id));
+                        }
+                    }
+
+                    // Establecer el valor seleccionado si existe
+                    if (currentValue) {
+                        $select.val(currentValue);
+                    }
+
+                    // Añadir evento change si no lo tiene
+                    $select.off('change.cuentaSelect').on('change.cuentaSelect', function() {
+                        vm.form.detalles[index].cuenta_contable_id = $(this).val();
+                        vm.onCuentaChanged(index);
+                        // Actualizar otros selects para reflejar el cambio
+                        vm.$nextTick(() => {
+                            vm.updateCuentasContablesSelect2();
+                        });
+                    });
+                }
+            });
+        },
+        formatNumber(number) {
+            return new Intl.NumberFormat('es-CO', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }).format(number);
+        },
+        // Métodos para manejo de inputs débito/crédito
+        onDebitoChanged(index) {
+            if (this.form.detalles[index].debito && parseFloat(this.form.detalles[index].debito) > 0) {
+                this.form.detalles[index].credito = '0.00';
+            }
+        },
+        onCreditoChanged(index) {
+            if (this.form.detalles[index].credito && parseFloat(this.form.detalles[index].credito) > 0) {
+                this.form.detalles[index].debito = '0.00';
+            }
+        },
+        onInputFocus(event) {
+            event.target.select();
+        },
+        // Métodos para manejo de archivos adjuntos
+        onFilesSelected(event) {
+            const files = Array.from(event.target.files);
+            files.forEach(file => {
+                // Validar tipo de archivo
+                const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+                if (!allowedTypes.includes(file.type)) {
+                    alert('Tipo de archivo no permitido: ' + file.name);
+                    return;
+                }
+
+                // Validar tamaño (5MB máximo)
+                if (file.size > 5 * 1024 * 1024) {
+                    alert('El archivo es muy grande (máximo 5MB): ' + file.name);
+                    return;
+                }
+
+                this.adjuntosFiles.push(file);
+            });
+            // Limpiar el input
+            event.target.value = '';
+        },
+        removeFile(index) {
+            this.adjuntosFiles.splice(index, 1);
+        },
+        formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+    }
+});
 
 const app = new Vue({
     el: '#main-wrapper',

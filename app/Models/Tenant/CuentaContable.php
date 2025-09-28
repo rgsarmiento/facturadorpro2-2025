@@ -27,6 +27,7 @@ class CuentaContable extends ModelTenant
         'requiere_tercero',
         'saldo_inicial',
         'saldo_actual',
+        'saldo',
         'codigo_niif',
         'configuracion_adicional'
     ];
@@ -37,6 +38,7 @@ class CuentaContable extends ModelTenant
         'requiere_tercero' => 'boolean',
         'saldo_inicial' => 'decimal:2',
         'saldo_actual' => 'decimal:2',
+        'saldo' => 'decimal:2',
         'configuracion_adicional' => 'array',
         'nivel' => 'integer'
     ];
@@ -80,6 +82,14 @@ class CuentaContable extends ModelTenant
     public function cuentasHijas()
     {
         return $this->hasMany(CuentaContable::class, 'cuenta_padre_id');
+    }
+
+    /**
+     * Relación con detalles de asientos contables
+     */
+    public function detallesAsientos()
+    {
+        return $this->hasMany(DetalleAsientoContable::class, 'cuenta_contable_id');
     }
 
     /**

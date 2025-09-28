@@ -21,6 +21,9 @@ if ($hostname) {
         Route::middleware(['auth', 'redirect.module', 'locked.tenant'])->group(function() {
             Route::get('catalogs', 'Tenant\CatalogController@index')->name('tenant.catalogs.index');
             Route::get('advanced', 'Tenant\AdvancedController@index')->name('tenant.advanced.index');
+            Route::get('test-vue', function () {
+                return view('tenant.test_vue');
+            })->name('tenant.test_vue');
             Route::get('tasks', 'Tenant\TaskController@index')->name('tenant.tasks.index');
             Route::post('tasks/commands', 'Tenant\TaskController@listsCommand');
             Route::post('tasks/tables', 'Tenant\TaskController@tables');
@@ -555,14 +558,14 @@ if ($hostname) {
            Route::post('certificates-qztray/change-status', 'Tenant\CertificateQzTrayController@changeStatus');
         //    Route::get('certificates-qztray/html/document/{id}', 'Tenant\CertificateQzTrayController@getHtmlDocument');
 
-           // Módulo de Contabilidad - Cuentas Contables
+           // Módulo de Contabilidad
            Route::prefix('contabilidad')->group(function() {
-               // Vista principal y formularios
+               // Cuentas Contables - Vista principal y formularios
                Route::get('cuentas-contables', 'Tenant\CuentaContableController@index')->name('tenant.cuentas_contables.index');
                Route::get('cuentas-contables/create', 'Tenant\CuentaContableController@create')->name('tenant.cuentas_contables.create');
                Route::get('cuentas-contables/{id}/edit', 'Tenant\CuentaContableController@edit')->name('tenant.cuentas_contables.edit');
 
-               // API endpoints para AJAX/JSON
+               // Cuentas Contables - API endpoints para AJAX/JSON
                Route::get('columns', 'Tenant\CuentaContableController@columns');
                Route::get('cuentas-contables/records', 'Tenant\CuentaContableController@records');
                Route::get('cuentas-contables/tree', 'Tenant\CuentaContableController@tree');
@@ -573,13 +576,36 @@ if ($hostname) {
                Route::get('cuentas-contables/export', 'Tenant\CuentaContableController@export');
                Route::get('cuentas-contables/{id}', 'Tenant\CuentaContableController@show');
 
-               // CRUD operations
+               // Cuentas Contables - CRUD operations
                Route::post('cuentas-contables', 'Tenant\CuentaContableController@store');
                Route::put('cuentas-contables/{id}', 'Tenant\CuentaContableController@update');
                Route::delete('cuentas-contables/{id}', 'Tenant\CuentaContableController@destroy');
 
-               // Importación y exportación
+               // Cuentas Contables - Importación y exportación
                Route::post('cuentas-contables/import-puc', 'Tenant\CuentaContableController@importPuc');
+
+               // Asientos Contables - API endpoints para AJAX/JSON (DEBEN IR ANTES QUE LAS RUTAS CON {id})
+               Route::get('asientos-contables/records', 'Tenant\AsientoContableController@records');
+               Route::get('asientos-contables/tipos-comprobantes', 'Tenant\AsientoContableController@getTiposComprobantes');
+               Route::get('asientos-contables/cuentas-contables', 'Tenant\AsientoContableController@getCuentasContables');
+               Route::get('asientos-contables/terceros', 'Tenant\AsientoContableController@getTerceros');
+               Route::get('asientos-contables/proximo-consecutivo', 'Tenant\AsientoContableController@getProximoConsecutivo');
+               Route::get('asientos-contables/create', 'Tenant\AsientoContableController@create')->name('tenant.asientos_contables.create');
+
+               // Asientos Contables - Vista principal y formularios
+               Route::get('asientos-contables', 'Tenant\AsientoContableController@index')->name('tenant.asientos_contables.index');
+               Route::get('asientos-contables/{id}/edit', 'Tenant\AsientoContableController@edit')->name('tenant.asientos_contables.edit');
+               Route::get('asientos-contables/{id}', 'Tenant\AsientoContableController@show')->name('tenant.asientos_contables.show');
+
+               // Asientos Contables - CRUD operations
+               Route::post('asientos-contables', 'Tenant\AsientoContableController@store');
+               Route::put('asientos-contables/{id}', 'Tenant\AsientoContableController@update');
+               Route::delete('asientos-contables/{id}', 'Tenant\AsientoContableController@destroy');
+
+               // Asientos Contables - Operaciones especiales
+               Route::post('asientos-contables/{id}/confirmar', 'Tenant\AsientoContableController@confirmar');
+               Route::post('asientos-contables/{id}/anular', 'Tenant\AsientoContableController@anular');
+               Route::delete('asientos-adjuntos/{id}', 'Tenant\AsientoContableController@eliminarAdjunto');
            });
 
         });
