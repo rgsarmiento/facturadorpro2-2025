@@ -1,0 +1,67 @@
+/* Estilos para el módulo de Asientos Contables */
+
+/* Eliminar bordes de las filas de la tabla */
+.asientos-table tbody tr td {
+    border-top: none !important;
+    border-bottom: none !important;
+}
+
+.asientos-table thead th {
+    border-bottom: 1px solid #dee2e6;
+}
+
+/* Estilos para el resumen de balance */
+.balance-info {
+    padding: 15px;
+    border-radius: 5px;
+    background-color: #f8f9fa;
+    border: 1px solid #e9ecef;
+}
+
+.balance-info.text-success {
+    background-color: #d4edda;
+    color: #155724;
+    border-color: #c3e6cb;
+}
+
+.balance-info.text-danger {
+    background-color: #f8d7da;
+    color: #721c24;
+    border-color: #f5c6cb;
+}
+
+.balance-info.text-warning {
+    background-color: #fff3cd;
+    color: #856404;
+    border-color: #ffeaa7;
+}
+
+/* Estilos para los archivos adjuntos */
+.attachments-section {
+    max-height: 400px;
+    overflow-y: auto;
+}
+
+.file-item {
+    transition: all 0.2s ease;
+}
+
+.file-item:hover {
+    background-color: #f8f9fa;
+}
+
+/* Mejorar el espaciado de los formularios */
+.form-row {
+    margin-bottom: 1rem;
+}
+
+/* Responsive para pantallas pequeñas */
+@media (max-width: 768px) {
+    .balance-info {
+        margin-bottom: 1rem;
+    }
+    
+    .attachments-section {
+        max-height: 300px;
+    }
+}

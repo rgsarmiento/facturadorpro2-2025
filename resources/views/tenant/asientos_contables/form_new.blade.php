@@ -1,6 +1,7 @@
 @extends('tenant.layouts.app')
 
 @push('styles')
+<link rel="stylesheet" href="{{ asset('css/asientos-contables.css') }}">
 <style>
     .content-header-left h1 {
         display: flex;

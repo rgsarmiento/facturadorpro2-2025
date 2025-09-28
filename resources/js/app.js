@@ -419,27 +419,46 @@ Vue.component('asiento-form-component', {
                     </div>
                 </div>
 
-                <!-- Balance Info -->
-                <div class="col-md-6">
-                    <h5>Resumen Balance</h5>
-                    <div class="balance-info" :class="balanceClass">
-                        <div class="row">
-                            <div class="col-md-4">
-                                <strong>Total Débitos:</strong><br>
-                                $<span v-text="formatNumber(totalDebitos)"></span>
-                            </div>
-                            <div class="col-md-4">
-                                <strong>Total Créditos:</strong><br>
-                                $<span v-text="formatNumber(totalCreditos)"></span>
-                            </div>
-                            <div class="col-md-4">
-                                <strong>Diferencia:</strong><br>
-                                $<span v-text="formatNumber(diferencia)"></span>
-                            </div>
+                <!-- Archivos Adjuntos -->
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h6 class="mb-0"><i class="fa fa-paperclip"></i> Archivos Adjuntos</h6>
                         </div>
-                        <div class="mt-2">
-                            <i :class="balanceIcon"></i>
-                            <strong v-text="balanceText"></strong>
+                        <div class="card-body">
+                            <input type="file"
+                                   ref="fileInput"
+                                   @change="onFilesSelected"
+                                   class="form-control-file"
+                                   multiple
+                                   accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx"
+                                   style="display: none;">
+                            <button type="button"
+                                    @click="$refs.fileInput.click()"
+                                    class="btn btn-outline-primary btn-block">
+                                <i class="fa fa-upload"></i> Seleccionar Archivos
+                            </button>
+                            <small class="form-text text-muted mt-2">Máximo 5MB por archivo</small>
+
+                            <!-- Lista de archivos seleccionados -->
+                            <div v-if="adjuntosFiles.length > 0" class="mt-3">
+                                <small class="text-muted">Archivos seleccionados:</small>
+                                <div class="mt-2">
+                                    <div v-for="(file, index) in adjuntosFiles"
+                                         :key="index"
+                                         class="d-flex justify-content-between align-items-center p-2 border rounded mb-1">
+                                        <div class="flex-grow-1">
+                                            <small><i class="fa fa-file text-muted mr-1"></i>{{ file.name }}</small><br>
+                                            <small class="text-muted">{{ formatFileSize(file.size) }}</small>
+                                        </div>
+                                        <button type="button"
+                                                @click="removeFile(index)"
+                                                class="btn btn-danger btn-sm ml-2">
+                                            <i class="fa fa-times"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -451,7 +470,7 @@ Vue.component('asiento-form-component', {
                     <h5>Detalles del Asiento</h5>
 
                     <div class="table-responsive">
-                        <table class="table table-sm">
+                        <table class="table table-sm asientos-table" style="border-collapse: separate; border-spacing: 0;">
                             <thead>
                                 <tr>
                                     <th width="30%">Cuenta Contable *</th>
@@ -463,7 +482,7 @@ Vue.component('asiento-form-component', {
                                 </tr>
                             </thead>
                             <tbody>
-                                <tr v-for="(detalle, index) in form.detalles" :key="index">
+                                <tr v-for="(detalle, index) in form.detalles" :key="index" style="border-bottom: none;">
                                     <td>
                                         <select :ref="'cuentaSelect' + index"
                                                 class="form-control form-control-sm cuenta-select"
@@ -534,12 +553,41 @@ Vue.component('asiento-form-component', {
                     </div>
                 </div>
 
-                <!-- Columna derecha para archivos adjuntos -->
+                <!-- Columna derecha para resumen balance -->
                 <div class="col-md-4">
                     <div class="card">
                         <div class="card-header">
-                            <h6 class="mb-0"><i class="fa fa-paperclip"></i> Archivos Adjuntos</h6>
+                            <h6 class="mb-0"><i class="fa fa-calculator"></i> Resumen Balance</h6>
                         </div>
+                        <div class="card-body">
+                            <div class="balance-info" :class="balanceClass">
+                                <div class="mb-2">
+                                    <strong>Total Débitos:</strong><br>
+                                    $<span v-text="formatNumber(totalDebitos)"></span>
+                                </div>
+                                <div class="mb-2">
+                                    <strong>Total Créditos:</strong><br>
+                                    $<span v-text="formatNumber(totalCreditos)"></span>
+                                </div>
+                                <div class="mb-2">
+                                    <strong>Diferencia:</strong><br>
+                                    $<span v-text="formatNumber(diferencia)"></span>
+                                </div>
+                                <div class="text-center mt-3">
+                                    <i :class="balanceIcon"></i>
+                                    <strong v-text="balanceText"></strong>
+                                </div>
+                            </div>
+                            
+                            <button type="submit"
+                                    class="btn btn-primary btn-block mt-3"
+                                    :disabled="saving || !balanceado">
+                                <i v-if="saving" class="fa fa-spinner fa-spin"></i>
+                                <i v-else class="fa fa-save"></i>
+                                {{ saving ? 'Guardando...' : 'Guardar Asiento' }}
+                            </button>
+                        </div>
+                    </div>
                         <div class="card-body">
                             <input type="file"
                                    ref="fileInput"
@@ -663,6 +711,9 @@ Vue.component('asiento-form-component', {
             if (!hayDatos) return 'Ingrese los montos';
 
             return this.balanceado ? 'Asiento Balanceado' : 'Asiento Desbalanceado';
+        },
+        isBalanced() {
+            return this.balanceado;
         }
     },
     async mounted() {
@@ -676,6 +727,9 @@ Vue.component('asiento-form-component', {
         });
     },
     methods: {
+        getCuentaById(id) {
+            return this.cuentasContables.find(cuenta => cuenta.id == id) || null;
+        },
         async loadTiposComprobantes() {
             try {
                 console.log('Loading tipos comprobantes...');
