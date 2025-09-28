@@ -578,7 +578,7 @@ Vue.component('asiento-form-component', {
                                     <strong v-text="balanceText"></strong>
                                 </div>
                             </div>
-                            
+
                             <button type="submit"
                                     class="btn btn-primary btn-block mt-3"
                                     :disabled="saving || !balanceado">
