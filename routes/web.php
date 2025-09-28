@@ -586,6 +586,7 @@ if ($hostname) {
 
                // Asientos Contables - API endpoints para AJAX/JSON (DEBEN IR ANTES QUE LAS RUTAS CON {id})
                Route::get('asientos-contables/records', 'Tenant\AsientoContableController@records');
+
                Route::get('asientos-contables/tipos-comprobantes', 'Tenant\AsientoContableController@getTiposComprobantes');
                Route::get('asientos-contables/cuentas-contables', 'Tenant\AsientoContableController@getCuentasContables');
                Route::get('asientos-contables/terceros', 'Tenant\AsientoContableController@getTerceros');

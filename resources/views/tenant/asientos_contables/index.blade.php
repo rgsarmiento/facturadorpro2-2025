@@ -185,11 +185,12 @@
 
         // Verificar si Vue está disponible
         if (typeof Vue !== 'undefined') {
-            document.getElementById('vue-status').textContent = 'Vue disponible - versión: ' + Vue.version;
+            const vueStatus = document.getElementById('vue-status');
+            if (vueStatus) vueStatus.textContent = 'Vue disponible - versión: ' + Vue.version;
 
             // Intentar inicializar Vue
             try {
-                new Vue({
+                window.app = new Vue({
                     el: '#asientos-contables-app',
                     data: {
                         records: [],
@@ -249,6 +250,8 @@
                                 if (response.data.success) {
                                     this.records = response.data.data.records;
                                     this.pagination = response.data.data.pagination;
+                                    this.renderRecords();
+                                    this.renderPagination();
                                 }
                             } catch (error) {
                                 if (typeof Swal !== 'undefined') {
@@ -260,6 +263,116 @@
                         },
                         searchRecords() {
                             this.loadRecords(1);
+                        },
+                        renderRecords() {
+                            const tbody = document.getElementById('records-tbody');
+                            if (!tbody) return;
+
+                            if (this.records.length === 0) {
+                                tbody.innerHTML = `
+                                    <tr>
+                                        <td colspan="8" class="text-center">
+                                            No se encontraron asientos contables
+                                        </td>
+                                    </tr>
+                                `;
+                                return;
+                            }
+
+                            let html = '';
+                            this.records.forEach(record => {
+                                const estadoBadge = this.getEstadoBadge(record.estado);
+                                const tipoComprobante = record.tipo_comprobante ? record.tipo_comprobante.nombre : 'N/A';
+                                const usuarioCreacion = record.usuario_creacion ? record.usuario_creacion.name : 'N/A';
+                                const fechaFormateada = this.formatDate(record.fecha_asiento);
+                                const fechaCreacion = this.formatDateTime(record.fecha_creacion);
+
+                                html += `
+                                    <tr>
+                                        <td>${record.numero_comprobante}</td>
+                                        <td>${fechaFormateada}</td>
+                                        <td>${tipoComprobante}</td>
+                                        <td>${record.concepto}</td>
+                                        <td class="text-right">$${this.formatNumber(record.total_debito)}</td>
+                                        <td>${estadoBadge}</td>
+                                        <td>${usuarioCreacion}</td>
+                                        <td>
+                                            <div class="btn-group btn-group-sm">
+                                                <a href="/contabilidad/asientos-contables/${record.id}" class="btn btn-primary btn-sm" title="Ver">
+                                                    <i class="fa fa-eye"></i>
+                                                </a>
+                                                <a href="/contabilidad/asientos-contables/${record.id}/edit" class="btn btn-warning btn-sm" title="Editar">
+                                                    <i class="fa fa-edit"></i>
+                                                </a>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                `;
+                            });
+
+                            tbody.innerHTML = html;
+                        },
+                        renderPagination() {
+                            const paginationSection = document.getElementById('pagination-section');
+                            const paginationInfo = document.getElementById('pagination-info');
+                            const paginationControls = document.getElementById('pagination-controls');
+
+                            if (!paginationSection || !paginationInfo || !paginationControls) return;
+
+                            if (this.pagination.total > 0) {
+                                paginationSection.style.display = 'flex';
+
+                                // Update info
+                                paginationInfo.textContent = `Mostrando ${this.paginationStart} a ${this.paginationEnd} de ${this.pagination.total} registros`;
+
+                                // Update controls
+                                let controlsHtml = '';
+
+                                // Previous button
+                                if (this.pagination.current_page > 1) {
+                                    controlsHtml += `<li class="page-item"><a class="page-link" href="#" onclick="app.loadRecords(${this.pagination.current_page - 1})">Anterior</a></li>`;
+                                }
+
+                                // Page numbers
+                                for (let i = 1; i <= this.pagination.last_page; i++) {
+                                    const activeClass = i === this.pagination.current_page ? 'active' : '';
+                                    controlsHtml += `<li class="page-item ${activeClass}"><a class="page-link" href="#" onclick="app.loadRecords(${i})">${i}</a></li>`;
+                                }
+
+                                // Next button
+                                if (this.pagination.current_page < this.pagination.last_page) {
+                                    controlsHtml += `<li class="page-item"><a class="page-link" href="#" onclick="app.loadRecords(${this.pagination.current_page + 1})">Siguiente</a></li>`;
+                                }
+
+                                paginationControls.innerHTML = controlsHtml;
+                            } else {
+                                paginationSection.style.display = 'none';
+                            }
+                        },
+                        getEstadoBadge(estado) {
+                            const badges = {
+                                'BORRADOR': '<span class="badge badge-secondary">Borrador</span>',
+                                'CONFIRMADO': '<span class="badge badge-success">Confirmado</span>',
+                                'ANULADO': '<span class="badge badge-danger">Anulado</span>'
+                            };
+                            return badges[estado] || `<span class="badge badge-light">${estado}</span>`;
+                        },
+                        formatDate(dateString) {
+                            if (!dateString) return 'N/A';
+                            const date = new Date(dateString);
+                            return date.toLocaleDateString('es-ES');
+                        },
+                        formatDateTime(dateString) {
+                            if (!dateString) return 'N/A';
+                            const date = new Date(dateString);
+                            return date.toLocaleString('es-ES');
+                        },
+                        formatNumber(number) {
+                            if (!number) return '0.00';
+                            return parseFloat(number).toLocaleString('es-ES', {
+                                minimumFractionDigits: 2,
+                                maximumFractionDigits: 2
+                            });
                         }
                     },
                     computed: {
@@ -273,12 +386,15 @@
                 });
             } catch (error) {
                 console.error('Error initializing Vue:', error);
-                document.getElementById('vue-status').textContent = 'Error en Vue: ' + error.message;
+                const vueStatus = document.getElementById('vue-status');
+                if (vueStatus) vueStatus.textContent = 'Error en Vue: ' + error.message;
             }
         } else {
             console.error('Vue is not defined!');
-            document.getElementById('vue-status').textContent = 'Vue NO está disponible';
-            document.getElementById('filters-status').textContent = 'Usando JavaScript básico';
+            const vueStatus = document.getElementById('vue-status');
+            const filtersStatus = document.getElementById('filters-status');
+            if (vueStatus) vueStatus.textContent = 'Vue NO está disponible';
+            if (filtersStatus) filtersStatus.textContent = 'Usando JavaScript básico';
 
             // Fallback con JavaScript básico
             document.getElementById('search-button').addEventListener('click', function() {

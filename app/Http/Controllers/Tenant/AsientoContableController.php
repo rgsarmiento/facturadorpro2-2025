@@ -59,6 +59,8 @@ class AsientoContableController extends Controller
             // Verificar que la conexión tenant esté configurada
             $this->ensureTenantConnection();
 
+
+
             $records = AsientoContable::on('tenant')->with(['tipoComprobante', 'usuarioCreacion'])
                 ->when($request->fecha_inicio, function ($query, $fecha) {
                     return $query->where('fecha_asiento', '>=', $fecha);
@@ -81,7 +83,11 @@ class AsientoContableController extends Controller
                 ->orderBy('fecha_asiento', 'desc')
                 ->orderBy('id', 'desc')
                 ->paginate(15);
+
+
+
         } catch (\Exception $e) {
+
             return [
                 'success' => false,
                 'message' => 'Error al cargar registros: ' . $e->getMessage()
@@ -114,18 +120,31 @@ class AsientoContableController extends Controller
             // Validar el tipo de comprobante
             $tipoComprobante = TipoComprobanteContable::on('tenant')->findOrFail($request->tipo_comprobante_id);
 
+            // Obtener el próximo consecutivo
+            $consecutivo = $this->obtenerProximoConsecutivo($tipoComprobante->id);
+
+            // Calcular totales de débito y crédito
+            $totalDebito = 0;
+            $totalCredito = 0;
+            if ($request->has('detalles')) {
+                foreach ($request->detalles as $detalle) {
+                    $totalDebito += floatval($detalle['debito'] ?? 0);
+                    $totalCredito += floatval($detalle['credito'] ?? 0);
+                }
+            }
+
             // Crear el asiento contable
             $asiento = AsientoContable::on('tenant')->create([
                 'fecha_asiento' => $request->fecha_asiento,
                 'tipo_comprobante_id' => $request->tipo_comprobante_id,
-                'numero_comprobante' => $this->generarNumeroComprobante($tipoComprobante),
+                'numero_comprobante' => $consecutivo,
+                'consecutivo' => $consecutivo,
                 'concepto' => $request->concepto,
-                'total_debe' => $request->total_debe,
-                'total_haber' => $request->total_haber,
-                'estado' => 'borrador',
-                'usuario_creacion_id' => Auth::id(),
+                'total_debito' => $totalDebito,
+                'total_credito' => $totalCredito,
+                'estado' => 'BORRADOR',
+                'usuario_creacion' => Auth::id(),
                 'fecha_creacion' => now(),
-                'empresa_id' => 1, // O como corresponda según tu lógica
             ]);
 
             // Crear los detalles
@@ -496,5 +515,18 @@ class AsientoContableController extends Controller
         } catch (Exception $e) {
             throw new Exception('No se pudo establecer conexión con la base de datos del tenant: ' . $e->getMessage());
         }
+    }
+
+    /**
+     * Obtener el próximo consecutivo para un tipo de comprobante
+     */
+    private function obtenerProximoConsecutivo($tipoComprobanteId)
+    {
+        // Obtener el último consecutivo para este tipo de comprobante
+        $ultimoConsecutivo = AsientoContable::on('tenant')
+            ->where('tipo_comprobante_id', $tipoComprobanteId)
+            ->max('consecutivo');
+
+        return ($ultimoConsecutivo ?? 0) + 1;
     }
 }
