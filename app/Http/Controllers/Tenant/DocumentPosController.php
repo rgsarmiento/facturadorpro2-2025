@@ -1361,7 +1361,7 @@ class DocumentPosController extends Controller
 //        \Log::debug($data);
 //        \Log::debug($company->api_token);
 //        \Log::debug("{$base_url}ubl2.1/credit-note");
-        \Log::debug($response);
+//        \Log::debug($response);
         return json_decode($response);
     }
 

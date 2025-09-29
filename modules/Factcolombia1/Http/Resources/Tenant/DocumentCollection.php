@@ -19,17 +19,20 @@ class DocumentCollection extends ResourceCollection
 
             $base_url_api = config('tenant.service_fact');
             
+            // Determinar el prefijo correcto según el tipo de documento
+            $document_prefix = $this->getDocumentPrefix($row->type_document_id, $row->type_document->name);
+            
             // Si response_api no está disponible (optimización), usar enlaces por defecto
             if(isset($row->response_api) && $row->response_api_invoice && $row->response_api_invoice->urlinvoicexml) {
                 $download_xml = "{$base_url_api}download/{$company->identification_number}/{$row->response_api_invoice->urlinvoicexml}";
             } else {
-                $download_xml = "{$base_url_api}download/{$company->identification_number}/FES-{$row->prefix}{$row->number}.xml";
+                $download_xml = "{$base_url_api}download/{$company->identification_number}/{$document_prefix}-{$row->prefix}{$row->number}.xml";
             }
             
             if(isset($row->response_api) && $row->response_api_invoice && $row->response_api_invoice->urlinvoicepdf) {
                 $download_pdf = "{$base_url_api}download/{$company->identification_number}/{$row->response_api_invoice->urlinvoicepdf}";
             } else {
-                $download_pdf = "{$base_url_api}download/{$company->identification_number}/FES-{$row->prefix}{$row->number}.pdf";
+                $download_pdf = "{$base_url_api}download/{$company->identification_number}/{$document_prefix}-{$row->prefix}{$row->number}.pdf";
             }
 
             //mostrar el boton consultar si el estado es registrado y el entorno es habilitacion
@@ -67,5 +70,30 @@ class DocumentCollection extends ResourceCollection
             ];
 
         });
+    }
+    
+    /**
+     * Obtiene el prefijo correcto para el tipo de documento
+     */
+    private function getDocumentPrefix($type_document_id, $type_document_name)
+    {
+        \Log::info("DocumentCollection DEBUG - type_document_id: {$type_document_id}, type_document_name: {$type_document_name}");
+        
+        // Usar el nombre del tipo de documento para determinar el prefijo correcto
+        $document_name_lower = strtolower($type_document_name);
+        
+        if (strpos($document_name_lower, 'nota') !== false && strpos($document_name_lower, 'crédito') !== false) {
+            \Log::info("DocumentCollection - Detectado 'nota crédito' en nombre, asignando NCS");
+            return 'NCS';
+        }
+        
+        if (strpos($document_name_lower, 'nota') !== false && strpos($document_name_lower, 'débito') !== false) {
+            \Log::info("DocumentCollection - Detectado 'nota débito' en nombre, asignando NDS");
+            return 'NDS';
+        }
+        
+        // Si contiene "factura" o no es nota, usar FES
+        \Log::info("DocumentCollection - Asignando FES para documento: {$type_document_name}");
+        return 'FES';
     }
 }
