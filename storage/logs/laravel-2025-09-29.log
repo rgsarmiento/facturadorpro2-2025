@@ -1,0 +1,49 @@
+[2025-09-29 09:00:19] local.ERROR: Uncaught Error: Call to undefined method App\Http\Kernel::getRouteMiddleware() in Command line code:1
+Stack trace:
+#0 {main}
+  thrown {"exception":"[object] (Symfony\\Component\\Debug\\Exception\\FatalErrorException(code: 1): Uncaught Error: Call to undefined method App\\Http\\Kernel::getRouteMiddleware() in Command line code:1
+Stack trace:
+#0 {main}
+  thrown at Command line code:1)
+[stacktrace]
+#0 {main}
+"} 
+[2025-09-29 09:02:24] production.ERROR: It is unsafe to run Dusk in production. {"exception":"[object] (Exception(code: 0): It is unsafe to run Dusk in production. at C:\\laragon\\www\\facturadorpro2\\vendor\\laravel\\dusk\\src\\DuskServiceProvider.php:43)
+[stacktrace]
+#0 C:\\laragon\\www\\facturadorpro2\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Application.php(598): Laravel\\Dusk\\DuskServiceProvider->register()
+#1 C:\\laragon\\www\\facturadorpro2\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\ProviderRepository.php(75): Illuminate\\Foundation\\Application->register(Object(Laravel\\Dusk\\DuskServiceProvider))
+#2 C:\\laragon\\www\\facturadorpro2\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Application.php(574): Illuminate\\Foundation\\ProviderRepository->load(Array)
+#3 C:\\laragon\\www\\facturadorpro2\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Bootstrap\\RegisterProviders.php(17): Illuminate\\Foundation\\Application->registerConfiguredProviders()
+#4 C:\\laragon\\www\\facturadorpro2\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Application.php(211): Illuminate\\Foundation\\Bootstrap\\RegisterProviders->bootstrap(Object(Illuminate\\Foundation\\Application))
+#5 C:\\laragon\\www\\facturadorpro2\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Http\\Kernel.php(162): Illuminate\\Foundation\\Application->bootstrapWith(Array)
+#6 C:\\laragon\\www\\facturadorpro2\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Http\\Kernel.php(146): Illuminate\\Foundation\\Http\\Kernel->bootstrap()
+#7 C:\\laragon\\www\\facturadorpro2\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Http\\Kernel.php(116): Illuminate\\Foundation\\Http\\Kernel->sendRequestThroughRouter(Object(Illuminate\\Http\\Request))
+#8 C:\\laragon\\www\\facturadorpro2\\public\\index.php(55): Illuminate\\Foundation\\Http\\Kernel->handle(Object(Illuminate\\Http\\Request))
+#9 {main}
+"} 
+[2025-09-29 09:02:24] production.ERROR: Call to a member function middleware() on null {"exception":"[object] (Symfony\\Component\\Debug\\Exception\\FatalThrowableError(code: 0): Call to a member function middleware() on null at C:\\laragon\\www\\facturadorpro2\\app\\Exceptions\\Handler.php:105)
+[stacktrace]
+#0 C:\\laragon\\www\\facturadorpro2\\app\\Exceptions\\Handler.php(82): App\\Exceptions\\Handler->isFrontend(Object(Illuminate\\Http\\Request))
+#1 C:\\laragon\\www\\facturadorpro2\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Http\\Kernel.php(326): App\\Exceptions\\Handler->render(Object(Illuminate\\Http\\Request), Object(Exception))
+#2 C:\\laragon\\www\\facturadorpro2\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Http\\Kernel.php(120): Illuminate\\Foundation\\Http\\Kernel->renderException(Object(Illuminate\\Http\\Request), Object(Exception))
+#3 C:\\laragon\\www\\facturadorpro2\\public\\index.php(55): Illuminate\\Foundation\\Http\\Kernel->handle(Object(Illuminate\\Http\\Request))
+#4 {main}
+"} 
+[2025-09-29 09:02:24] production.ERROR: Uncaught Error: Call to a member function middleware() on null in C:\laragon\www\facturadorpro2\app\Exceptions\Handler.php:105
+Stack trace:
+#0 C:\laragon\www\facturadorpro2\app\Exceptions\Handler.php(82): App\Exceptions\Handler->isFrontend(Object(Illuminate\Http\Request))
+#1 C:\laragon\www\facturadorpro2\vendor\laravel\framework\src\Illuminate\Foundation\Bootstrap\HandleExceptions.php(112): App\Exceptions\Handler->render(Object(Illuminate\Http\Request), Object(Symfony\Component\Debug\Exception\FatalThrowableError))
+#2 C:\laragon\www\facturadorpro2\vendor\laravel\framework\src\Illuminate\Foundation\Bootstrap\HandleExceptions.php(89): Illuminate\Foundation\Bootstrap\HandleExceptions->renderHttpResponse(Object(Symfony\Component\Debug\Exception\FatalThrowableError))
+#3 [internal function]: Illuminate\Foundation\Bootstrap\HandleExceptions->handleException(Object(Symfony\Component\Debug\Exception\FatalThrowableError))
+#4 {main}
+  thrown {"exception":"[object] (Symfony\\Component\\Debug\\Exception\\FatalErrorException(code: 1): Uncaught Error: Call to a member function middleware() on null in C:\\laragon\\www\\facturadorpro2\\app\\Exceptions\\Handler.php:105
+Stack trace:
+#0 C:\\laragon\\www\\facturadorpro2\\app\\Exceptions\\Handler.php(82): App\\Exceptions\\Handler->isFrontend(Object(Illuminate\\Http\\Request))
+#1 C:\\laragon\\www\\facturadorpro2\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Bootstrap\\HandleExceptions.php(112): App\\Exceptions\\Handler->render(Object(Illuminate\\Http\\Request), Object(Symfony\\Component\\Debug\\Exception\\FatalThrowableError))
+#2 C:\\laragon\\www\\facturadorpro2\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Bootstrap\\HandleExceptions.php(89): Illuminate\\Foundation\\Bootstrap\\HandleExceptions->renderHttpResponse(Object(Symfony\\Component\\Debug\\Exception\\FatalThrowableError))
+#3 [internal function]: Illuminate\\Foundation\\Bootstrap\\HandleExceptions->handleException(Object(Symfony\\Component\\Debug\\Exception\\FatalThrowableError))
+#4 {main}
+  thrown at C:\\laragon\\www\\facturadorpro2\\app\\Exceptions\\Handler.php:105)
+[stacktrace]
+#0 {main}
+"} 

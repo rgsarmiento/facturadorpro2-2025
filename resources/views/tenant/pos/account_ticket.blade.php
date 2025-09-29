@@ -136,6 +136,9 @@
                     @if($row->discount > 0)
                     <br>{{ $row->discount }}
                     @endif
+                    @if(!empty($row->comentario))
+                        <br><strong>Nota:</strong> {{ $row->comentario }}
+                    @endif
                 </td>
             </tr>
             <tr>
