@@ -1368,7 +1368,7 @@
                                 </button>
                             </div>
                         </div>
-                        
+
                         <!-- Campo de comentario -->
                         <div class="mb-3">
                             <label for="comentarioProducto" class="form-label">Comentario (opcional)</label>

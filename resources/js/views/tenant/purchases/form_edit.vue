@@ -190,11 +190,11 @@
                                     <tbody>
                                     <tr v-for="(row, index) in form.items" :key="index">
                                         <td>{{ index + 1 }}</td>
-                                        <td>{{ row.item.name }}<br/>
-                                            <small>{{row.tax ? row.tax.name:row.item.tax.name}}</small>
+                                        <td>{{ row.item && row.item.name ? row.item.name : 'N/A' }}<br/>
+                                            <small>{{row.tax ? row.tax.name : (row.item && row.item.tax ? row.item.tax.name : 'Sin impuesto')}}</small>
                                         </td>
                                         <td class="text-left">{{ (row.warehouse_description) ? row.warehouse_description : row.warehouse.description  }}</td>
-                                        <td class="text-center">{{ row.item.unit_type.name }}</td>
+                                        <td class="text-center">{{ row.item && row.item.unit_type ? row.item.unit_type.name : 'N/A' }}</td>
                                         <td class="text-right">{{ row.quantity }}</td>
                                         <!-- <td class="text-right">{{ currency_type.symbol }} {{ row.unit_price }}</td> -->
                                         <td class="text-right">{{ ratePrefix() }} {{ getFormatUnitPriceRow(row.unit_price) }}</td>
@@ -225,7 +225,7 @@
                                 <template v-for="(tax, index) in form.taxes">
                                     <tr v-if="((tax.total > 0) && (!tax.is_retention))" :key="index">
                                         <td >
-                                            {{tax.name}}(+)
+                                            {{tax && tax.name ? tax.name : 'Impuesto'}}(+)
                                         </td>
                                         <td>:</td>
                                         <td class="text-right">{{ratePrefix()}} {{Number(tax.total).toFixed(2)}}</td>
@@ -240,7 +240,7 @@
                                 <template v-for="(tax, index) in form.taxes">
                                     <tr v-if="((tax.is_retention) && (tax.apply))" :key="index">
 
-                                        <td>{{tax.name}}(-)</td>
+                                        <td>{{tax && tax.name ? tax.name : 'Retención'}}(-)</td>
                                         <td>:</td>
                                         <!-- <td class="text-right">
                                             {{ratePrefix()}} {{Number(tax.retention).toFixed(2)}}
@@ -318,6 +318,8 @@
         <purchase-form-item :showDialog.sync="showDialogAddItem"
                            :currency-type-id-active="form.currency_type_id"
                            :exchange-rate-sale="form.exchange_rate_sale"
+                           :taxes="taxes"
+                           :record-item="null"
                            @add="addRow"></purchase-form-item>
 
         <person-form :showDialog.sync="showDialogNewPerson"

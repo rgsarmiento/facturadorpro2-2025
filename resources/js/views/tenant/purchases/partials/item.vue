@@ -493,7 +493,7 @@
                 this.form.item_unit_types = this.form.item.item_unit_types || []
 
                 this.form.unit_type_id = this.form.item.unit_type_id
-                this.form.tax_id = (this.taxes.length > 0) ? this.form.item.purchase_tax_id: null
+                this.form.tax_id = (this.taxes && this.taxes.length > 0) ? this.form.item.purchase_tax_id: null
 
             },
             async clickAddItem() {
