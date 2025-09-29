@@ -42,11 +42,12 @@
                 <div class="col-md-5">
                     <div class="d-flex flex-wrap">
                         <button
-                            v-if="tables_quantity > 0"
                             ref="mesas"
-                            title="Cuentas"
+                            v-show="true"
+                            :title="tables_quantity > 0 ? 'Cuentas' : 'Para activar este botón, modifique el establecimiento asignando una cantidad de mesas mayor que cero'"
                             type="button"
                             :data-quantity="tables_quantity"
+                            :disabled="tables_quantity <= 0"
                             :class="[
                                 'btn',
                                 'btn-sm',
@@ -1367,6 +1368,20 @@
                                 </button>
                             </div>
                         </div>
+
+                        <!-- Campo de comentario -->
+                        <div class="mb-3">
+                            <label for="comentarioProducto" class="form-label">Comentario (opcional)</label>
+                            <textarea
+                                id="comentarioProducto"
+                                v-model="selectedComment"
+                                class="form-control"
+                                rows="2"
+                                placeholder="Ej: Sin cebolla, extra salsa, bien cocido..."
+                                maxlength="200"
+                            ></textarea>
+                            <small class="text-muted">{{ selectedComment.length }}/200 caracteres</small>
+                        </div>
                         <button
                             class="btn btn-primary w-100"
                             @click="agregarProducto(selected_table)"
@@ -1471,6 +1486,7 @@
                                     <th>Producto</th>
                                     <th>Cant</th>
                                     <th>Precio</th>
+                                    <th>Comentario</th>
                                     <th>Acción</th>
                                 </tr>
                             </thead>
@@ -1483,6 +1499,12 @@
                                     <td>{{ producto.quantity }}</td>
                                     <td>
                                         {{ formatearPrecio(producto.price) }}
+                                    </td>
+                                    <td class="text-left">
+                                        <small v-if="producto.comentario" style="font-style: italic;">
+                                            {{ producto.comentario }}
+                                        </small>
+                                        <span v-else class="text-muted">-</span>
                                     </td>
                                     <td>
                                         <template v-if="producto.state !== 'R'">
@@ -1603,6 +1625,7 @@
                                     <th>Producto</th>
                                     <th>Cantidad</th>
                                     <th>Precio</th>
+                                    <th>Comentario</th>
                                     <th>Acción</th>
                                 </tr>
                             </thead>
@@ -1615,6 +1638,12 @@
                                     <td>{{ producto.quantity }}</td>
                                     <td>
                                         {{ formatearPrecio(producto.price) }}
+                                    </td>
+                                    <td class="text-left">
+                                        <small v-if="producto.comentario" style="font-style: italic;">
+                                            {{ producto.comentario }}
+                                        </small>
+                                        <span v-else class="text-muted">-</span>
                                     </td>
                                     <td>
                                         <button
@@ -2081,6 +2110,7 @@ export default {
             electronic: false,
             selectedProduct: null,
             selectedQuantity: 1,
+            selectedComment: '',
             searchQueryProductos: "",
             mesaSeleccionada: null,
             selectedTableChange: null,
@@ -2725,6 +2755,7 @@ export default {
                 this.selected_table = selected_table;
                 this.selectedProduct = producto;
                 this.selectedQuantity = 1;
+                this.selectedComment = '';
 
                 const modalElement = document.getElementById(
                     "modal_agregar_producto"
@@ -3049,6 +3080,7 @@ export default {
                 nombre: this.selectedProduct.name,
                 precio: this.selectedProduct.sale_unit_price_with_tax,
                 cantidad: this.selectedQuantity,
+                comentario: this.selectedComment,
                 mesa: selected_table,
                 establecimiento: establishment
             };
@@ -5109,11 +5141,31 @@ export default {
     margin-top: 0px !important;
 }
 
+/* SOLUCIÓN ESPECÍFICA PARA BOTÓN DE MESAS */
+.page-header .col-md-5 .d-flex button[ref="mesas"] {
+    min-width: 130px !important;
+    flex-shrink: 0 !important;
+    flex-grow: 0 !important;
+    flex-basis: auto !important;
+    width: 130px !important;
+}
+
+/* Asegurar que botón desactivado mantenga el mismo ancho */
+.page-header .col-md-5 .d-flex button[ref="mesas"]:disabled {
+    min-width: 130px !important;
+    flex-shrink: 0 !important;
+    flex-grow: 0 !important;
+    flex-basis: auto !important;
+    width: 130px !important;
+    opacity: 0.6 !important;
+}
+
 /* Optimizar botones para que quepan en una sola fila */
 .page-header .col-md-5 .d-flex {
     flex-wrap: nowrap !important;
     gap: 1px !important;
     overflow: hidden !important;
+    align-items: flex-start !important;
 }
 
 .page-header .btn-sm {

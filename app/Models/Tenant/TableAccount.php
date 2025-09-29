@@ -18,6 +18,7 @@ class TableAccount extends ModelTenant
         'quantity',
         'item_id',
         'item_descripcion',
+        'comentario',
         'created_at',
         'updated_at',
         'user_id'
