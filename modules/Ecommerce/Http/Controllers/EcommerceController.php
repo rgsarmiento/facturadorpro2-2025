@@ -241,7 +241,7 @@ class EcommerceController extends Controller
     public function paymentCash(Request $request)
     {
         $validator = Validator::make($request->customer, [
-            'identification_number' => 'required|numeric',
+            'identification_number' => 'required|numeric|digits_between:1,15',
             'telephone' => 'required|numeric',
             'address' => 'required',
         ]);
@@ -356,7 +356,7 @@ class EcommerceController extends Controller
         }
 
         if ($request->identification_number) {
-            $user->telephone = $request->identification_number;
+            $user->number = $request->identification_number;
         }
 
         $user->save();
