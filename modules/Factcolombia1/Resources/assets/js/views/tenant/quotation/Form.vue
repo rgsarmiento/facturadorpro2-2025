@@ -33,7 +33,7 @@
                                         <v-data-table :headers="columnItems" :items="document.items" hide-actions>
                                             <template slot="items" slot-scope="props">
                                                 <td>{{props.item.name}}</td>
-                                                <td>{{props.item.type_unit.name}}</td>
+                                                <td>{{props.item.type_unit ? props.item.type_unit.name : 'N/A'}}</td>
                                                 <td>{{props.item.quantity | numberFormat}}</td>
                                                 <td>{{ratePrefix()}}{{props.item.price | numberFormat}}</td>
                                                 <td><v-autocomplete v-model="props.item.tax_id" :suffix="`${ratePrefix()}${props.item.total_tax}`" :counter="255" :items="itemTaxes" item-text="name" item-value="id"></v-autocomplete></td>
