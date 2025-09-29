@@ -1,5 +1,0 @@
-[2025-09-28 13:24:38] local.INFO: Total de asientos contables activos: 1  
-[2025-09-28 13:24:38] local.INFO: Total de asientos contables con eliminados: 1  
-[2025-09-28 13:24:38] local.INFO: Primeros 5 registros (raw): [{"id":1,"numero_comprobante":"1","concepto":"PRUEBA","estado":"BORRADOR","usuario_creacion":1,"deleted_at":null}]  
-[2025-09-28 13:24:38] local.INFO: Registros encontrados después de filtros: 1  
-[2025-09-28 13:24:38] local.INFO: Filtros aplicados: {"page":"1","search":null,"fecha_inicio":null,"fecha_fin":null,"tipo_comprobante_id":null,"estado":null}  
