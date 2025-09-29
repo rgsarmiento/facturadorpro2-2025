@@ -11,38 +11,38 @@
                 font-family: sans-serif;
                 font-size: 12px;
             }
-            
+
             table {
                 width: 100%;
                 border-spacing: 0;
                 border: 1px solid black;
             }
-            
+
             .celda {
                 text-align: center;
                 padding: 5px;
                 border: 0.1px solid black;
             }
-            
+
             th {
                 padding: 5px;
                 text-align: center;
                 border-color: #0088cc;
                 border: 0.1px solid black;
             }
-            
+
             .title {
                 font-weight: bold;
                 padding: 5px;
                 font-size: 20px !important;
                 text-decoration: underline;
             }
-            
+
             p>strong {
                 margin-left: 5px;
                 font-size: 13px;
             }
-            
+
             thead {
                 font-weight: bold;
                 background: #0088cc;
@@ -70,7 +70,7 @@
                         <p><strong>Ruc: </strong>{{$company->number}}</p>
                     </td>
                     <td>
-                        <p><strong>Establecimiento: </strong>{{$establishment->address}} - {{$establishment->department->description}} - {{$establishment->district->description}}</p>
+                        <p><strong>Establecimiento: </strong>{{$establishment->address}}@if($establishment->department && $establishment->department->description) - {{$establishment->department->description}}@endif@if($establishment->city && $establishment->city->description) - {{$establishment->city->description}}@endif</p>
                     </td>
                 </tr>
             </table>
@@ -97,14 +97,14 @@
                                     <td class="celda">{{$value->created_at}}</td>
                                     <td class="celda">
                                         @switch($value->type)
-                                            @case('sale') 
+                                            @case('sale')
                                                 {{($value->sale_note_id) ? "Nota de Venta" : (($value->quantity >= 0) ? "Venta" : "Anulación")}}
                                                 @break
                                             @case('purchase')
-                                                {{"Compra"}}                                                    
+                                                {{"Compra"}}
                                                 @break
-                                            @default                                                    
-                                                {{"Stock Inicial"}}                                                    
+                                            @default
+                                                {{"Stock Inicial"}}
                                             @break
                                         @endswitch
                                     </td>
@@ -114,13 +114,13 @@
                                                 {{($value->document_id) ? "{$value->document->series}-{$value->document->number}" : "{$value->sale_note->prefix}-{$value->sale_note->id}"}}
                                                 @break
                                             @case('purchase')
-                                                {{"{$value->purchase->series}-{$value->purchase->number}"}}                                                    
+                                                {{"{$value->purchase->series}-{$value->purchase->number}"}}
                                                 @break
-                                            @default                                                    
-                                                {{"-"}}                                                    
+                                            @default
+                                                {{"-"}}
                                             @break
                                         @endswitch
-                                    </td>    
+                                    </td>
                                     <td class="celda">{{($value->type == 'purchase' || !$value->type) ? number_format($value->quantity, 4) : number_format(0, 4)}}</td>
                                     <td class="celda">{{($value->type == 'sale') ? number_format($value->quantity, 4) : number_format(0, 4)}}</td>
                                     @php
