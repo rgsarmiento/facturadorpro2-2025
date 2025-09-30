@@ -40,7 +40,7 @@
         background-color: #dc3545;
         color: #fff;
     }
-    
+
     /* Header actions - mejorado */
     .card-header {
         display: flex !important;
@@ -48,84 +48,84 @@
         align-items: center !important;
         flex-wrap: wrap !important;
     }
-    
+
     .card-tools {
         margin-left: auto !important;
         display: flex !important;
         gap: 8px !important;
         align-items: center !important;
     }
-    
+
     .header-actions {
         display: flex !important;
         gap: 8px !important;
         align-items: center !important;
         flex-wrap: wrap !important;
     }
-    
+
     .header-actions .btn {
         white-space: nowrap !important;
         margin: 0 !important;
     }
-    
+
     /* Estilos para botones disabled */
     .btn.disabled, .btn:disabled {
         opacity: 0.5;
         cursor: not-allowed;
         pointer-events: auto; /* Permitir eventos para mostrar tooltip */
     }
-    
+
     .btn.disabled:hover, .btn:disabled:hover {
         opacity: 0.5;
         transform: none;
     }
-    
+
     /* Table styling - más compacto */
     .table td, .table th {
         padding: 0.35rem 0.5rem;
         font-size: 0.9em;
         line-height: 1.2;
     }
-    
+
     .table-sm td, .table-sm th {
         padding: 0.25rem 0.5rem;
         font-size: 0.85em;
     }
-    
+
     /* Hacer la vista más compacta */
     .card {
         margin-bottom: 0.75rem;
     }
-    
+
     .card-body {
         padding: 0.75rem;
     }
-    
+
     .row {
         margin-bottom: 0.35rem;
     }
-    
+
     .table-borderless td, .table-borderless th {
         padding: 0.25rem 0.5rem;
         border: none;
     }
-    
+
     .card-header {
         padding: 0.5rem 0.75rem;
     }
-    
+
     .card-title {
         margin-bottom: 0;
         font-size: 1rem;
     }
-    
+
     /* Adjuntos section */
     .adjuntos-container {
         border-radius: 8px;
         padding: 15px;
         margin-top: 15px;
     }
-    
+
     .adjunto-item {
         display: flex;
         justify-content: space-between;
@@ -137,55 +137,55 @@
         transition: all 0.3s ease;
         box-shadow: 0 2px 4px rgba(0,0,0,0.05);
     }
-    
+
     .adjunto-item:hover {
         transform: translateY(-2px);
         box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     }
-    
+
     .adjunto-info {
         display: flex;
         align-items: center;
         flex-grow: 1;
     }
-    
+
     .adjunto-icon {
         font-size: 2.5em;
         margin-right: 15px;
         width: 50px;
         text-align: center;
     }
-    
+
     .adjunto-details h6 {
         margin: 0;
         font-weight: 600;
     }
-    
+
     .adjunto-meta {
         font-size: 0.875em;
         margin-top: 5px;
     }
-    
+
     .adjunto-actions {
         display: flex;
         gap: 8px;
     }
-    
+
     .btn-adjunto {
         padding: 8px 12px;
         border-radius: 6px;
         transition: all 0.3s ease;
     }
-    
+
     .btn-adjunto:hover {
         transform: translateY(-1px);
     }
-    
+
     .empty-adjuntos {
         text-align: center;
         padding: 40px;
     }
-    
+
     .empty-adjuntos i {
         font-size: 3em;
         margin-bottom: 15px;
@@ -210,32 +210,32 @@
                     <a href="{{ route('tenant.asientos_contables.index') }}" class="btn btn-sm btn-secondary">
                         <i class="fas fa-arrow-left"></i> Volver
                     </a>
-                    
+
                     <!-- Botones siempre visibles, disabled si no es BORRADOR -->
                     <!-- Debug: Estado actual del asiento: {{ $asiento->estado }} -->
-                    <a href="{{ route('tenant.asientos_contables.edit', $asiento->id) }}" 
+                    <a href="{{ route('tenant.asientos_contables.edit', $asiento->id) }}"
                        class="btn btn-sm btn-primary {{ strtolower($asiento->estado) !== 'borrador' ? 'disabled' : '' }}"
                        {{ strtolower($asiento->estado) !== 'borrador' ? 'aria-disabled=true tabindex=-1' : '' }}
                        title="{{ strtolower($asiento->estado) !== 'borrador' ? 'Solo se puede editar en estado BORRADOR' : 'Editar asiento contable' }}">
                         <i class="fas fa-edit"></i> Editar
                     </a>
-                    
-                    <button type="button" 
-                            id="btn-aprobar" 
+
+                    <button type="button"
+                            id="btn-aprobar"
                             class="btn btn-sm btn-success"
                             {{ strtolower($asiento->estado) !== 'borrador' ? 'disabled' : '' }}
                             title="{{ strtolower($asiento->estado) !== 'borrador' ? 'Solo se puede aprobar en estado BORRADOR' : 'Aprobar asiento contable' }}">
                         <i class="fas fa-check"></i> Aprobar
                     </button>
-                    
-                    <button type="button" 
-                            id="btn-eliminar" 
+
+                    <button type="button"
+                            id="btn-eliminar"
                             class="btn btn-sm btn-danger"
                             {{ strtolower($asiento->estado) !== 'borrador' ? 'disabled' : '' }}
                             title="{{ strtolower($asiento->estado) !== 'borrador' ? 'Solo se puede eliminar en estado BORRADOR' : 'Eliminar asiento contable' }}">
                         <i class="fas fa-trash"></i> Eliminar
                     </button>
-                    
+
                     <!-- Botón Anular solo visible para estados aprobado/confirmado -->
                     @if(strtolower($asiento->estado) === 'confirmado' || strtolower($asiento->estado) === 'aprobado')
                         <button type="button" id="btn-anular" class="btn btn-sm btn-warning">
@@ -441,7 +441,7 @@
                                             </div>
                                             <div class="adjunto-actions">
                                                 @if($adjunto->esImagen())
-                                                    <button type="button" class="btn btn-outline-info btn-adjunto" 
+                                                    <button type="button" class="btn btn-outline-info btn-adjunto"
                                                             onclick="previewImage('{{ route('tenant.asientos_contables.adjuntos.descargar', $adjunto->id) }}', '{{ $adjunto->nombre_archivo }}')"
                                                             title="Vista previa">
                                                         <i class="fas fa-eye"></i>
@@ -487,11 +487,11 @@
         const btnAprobar = document.getElementById('btn-aprobar');
         const btnAnular = document.getElementById('btn-anular');
         const btnEliminar = document.getElementById('btn-eliminar');
-        
+
         // Botones de test
         const btnAprobarTest = document.getElementById('btn-aprobar-test');
         const btnEliminarTest = document.getElementById('btn-eliminar-test');
-        
+
         console.log('Botones encontrados:', { btnAprobar, btnAnular, btnEliminar, btnAprobarTest, btnEliminarTest });
 
         // Prevenir navegación en enlace de editar si está disabled
@@ -509,7 +509,7 @@
                 if (this.disabled) {
                     return;
                 }
-                
+
                 const result = await Swal.fire({
                     title: '¿Aprobar asiento?',
                     text: 'Una vez aprobado, el asiento no podrá modificarse',
@@ -593,7 +593,7 @@
                 if (this.disabled) {
                     return;
                 }
-                
+
                 const result = await Swal.fire({
                     title: '¿Eliminar asiento?',
                     text: 'Esta acción no se puede deshacer. El asiento será eliminado permanentemente.',
@@ -627,7 +627,7 @@
                 }
             });
         }
-        
+
         // Event listeners para botones de test (siempre visibles)
         if (btnAprobarTest) {
             btnAprobarTest.addEventListener('click', function() {
@@ -640,7 +640,7 @@
                 }
             });
         }
-        
+
         if (btnEliminarTest) {
             btnEliminarTest.addEventListener('click', function() {
                 if (btnEliminar) {
