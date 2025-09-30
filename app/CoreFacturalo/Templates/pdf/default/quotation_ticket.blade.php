@@ -225,6 +225,7 @@
             <td class="text-center desc-9 align-top">{{ $row->item->unit_type->name }}</td>
             <td class="text-left desc-9 align-top">
                 {!!$row->item->name!!} @if (!empty($row->item->presentation)) {!!$row->item->presentation->description!!} @endif
+                @if($row->notes) <br><small style="font-style: italic; color: #666;">{{$row->notes}}</small> @endif
                 @if($row->attributes)
                     @foreach($row->attributes as $attr)
                         <br/>{!! $attr->description !!} : {{ $attr->value }}

@@ -211,6 +211,10 @@
                                                         {{ row.item.presentation.hasOwnProperty('description') ?
                                                         row.item.presentation.description : ''}}
                                                     </template>
+                                                    <template v-if="row.notes">
+                                                        <br />
+                                                        <small class="text-muted"><i>{{ row.notes }}</i></small>
+                                                    </template>
                                                     <br />
                                                     <small>{{ row.tax ? row.tax.name : 'EXCLUIDO' }}</small>
                                                 </td>

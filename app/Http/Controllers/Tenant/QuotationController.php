@@ -553,7 +553,13 @@ class QuotationController extends Controller
     }
 
     public function download($external_id, $format) {
+        // Primero intentar buscar por external_id
         $quotation = Quotation::where('external_id', $external_id)->first();
+
+        // Si no encuentra por external_id, intentar buscar por id regular
+        if (!$quotation && is_numeric($external_id)) {
+            $quotation = Quotation::find($external_id);
+        }
 
         if (!$quotation) throw new Exception("El código {$external_id} es inválido, no se encontro la cotización relacionada");
 
@@ -563,7 +569,18 @@ class QuotationController extends Controller
     }
 
     public function toPrint($external_id, $format) {
+        // Validar que no sea 'null' como string
+        if ($external_id === 'null' || $external_id === null || empty($external_id)) {
+            throw new Exception("ID de cotización inválido: {$external_id}");
+        }
+
+        // Primero intentar buscar por external_id
         $quotation = Quotation::where('external_id', $external_id)->first();
+
+        // Si no encuentra por external_id, intentar buscar por id regular
+        if (!$quotation && is_numeric($external_id)) {
+            $quotation = Quotation::find($external_id);
+        }
 
         if (!$quotation) throw new Exception("El código {$external_id} es inválido, no se encontro la cotización relacionada");
 

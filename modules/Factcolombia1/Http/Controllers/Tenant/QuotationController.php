@@ -113,7 +113,8 @@ class QuotationController extends Controller
                     'total_tax' => $item['total_tax'],
                     'subtotal' => $item['subtotal'],
                     'discount' => $item['discount'],
-                    'total' => $item['total']
+                    'total' => $item['total'],
+                    'notes' => isset($item['notes']) ? $item['notes'] : null
                 ]);
             }
         }
@@ -176,7 +177,8 @@ class QuotationController extends Controller
                     'total_tax' => $item['total_tax'],
                     'subtotal' => $item['subtotal'],
                     'discount' => $item['discount'],
-                    'total' => $item['total']
+                    'total' => $item['total'],
+                    'notes' => isset($item['notes']) ? $item['notes'] : null
                 ]);
             }
         }

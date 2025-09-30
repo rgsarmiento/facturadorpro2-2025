@@ -16,8 +16,10 @@
             type="button"
             class="btn btn-lg btn-info waves-effect waves-light"
             @click="clickToPrint('a4')"
+            :disabled="dataLoading"
           >
-            <i class="fa fa-file-alt"></i>
+            <i class="fa fa-file-alt" v-if="!dataLoading"></i>
+            <i class="fa fa-spinner fa-spin" v-if="dataLoading"></i>
           </button>
         </div>
         <div class="col-lg-4 col-md-4 col-sm-4 text-center font-weight-bold">
@@ -26,8 +28,10 @@
             type="button"
             class="btn btn-lg btn-info waves-effect waves-light"
             @click="clickToPrint('a5')"
+            :disabled="dataLoading"
           >
-            <i class="fa fa-file-alt"></i>
+            <i class="fa fa-file-alt" v-if="!dataLoading"></i>
+            <i class="fa fa-spinner fa-spin" v-if="dataLoading"></i>
           </button>
         </div>
         <div class="col-lg-4 col-md-4 col-sm-4 text-center font-weight-bold">
@@ -36,8 +40,10 @@
             type="button"
             class="btn btn-lg btn-info waves-effect waves-light"
             @click="clickToPrint('ticket')"
+            :disabled="dataLoading"
           >
-            <i class="fa fa-receipt"></i>
+            <i class="fa fa-receipt" v-if="!dataLoading"></i>
+            <i class="fa fa-spinner fa-spin" v-if="dataLoading"></i>
           </button>
         </div>
       </div>
@@ -209,6 +215,7 @@ export default {
       customer_email: "",
       titleDialog: null,
       loading: false,
+      dataLoading: true,
       resource: "quotations",
       resource_documents: "co-documents",
       errors: {},
@@ -260,6 +267,7 @@ export default {
     initForm() {
       this.generate = this.showGenerate ? true : false;
       this.errors = {};
+      this.dataLoading = true;
       this.form = {
         id: null,
         external_id: null,
@@ -426,19 +434,26 @@ export default {
     },
 
     async create() {
-      await this.$http.get(`/${this.resource}/option/tables`).then(response => {
-        this.type_documents = response.data.type_documents;
-      });
-
-      await this.$http
-        .get(`/${this.resource}/record2/${this.recordId}`)
-        .then(response => {
-          this.form = response.data.data;
-          // this.document.payments = response.data.data.quotation.payments;
-          // this.getCustomer();
-          let type = this.type == "edit" ? "editada" : "registrada";
-          this.titleDialog = `Cotización ${type}: ` + this.form.identifier;
+      this.dataLoading = true;
+      try {
+        await this.$http.get(`/${this.resource}/option/tables`).then(response => {
+          this.type_documents = response.data.type_documents;
         });
+
+        await this.$http
+          .get(`/${this.resource}/record2/${this.recordId}`)
+          .then(response => {
+            this.form = response.data.data;
+            // this.document.payments = response.data.data.quotation.payments;
+            // this.getCustomer();
+            let type = this.type == "edit" ? "editada" : "registrada";
+            this.titleDialog = `Cotización ${type}: ` + this.form.identifier;
+          });
+        this.dataLoading = false;
+      } catch (error) {
+        this.$message.error('Error al cargar los datos de la cotización');
+        this.dataLoading = false;
+      }
     },
     async getRecord(){
 
@@ -501,8 +516,28 @@ export default {
       this.resetDocument();
     },
     clickToPrint(format) {
+      // Verificar que los datos estén cargados
+      if (this.dataLoading) {
+        this.$message.warning('Cargando datos de la cotización. Espere un momento e intente nuevamente.');
+        return;
+      }
+      
+      if (!this.form || !this.form.id) {
+        this.$message.error('Datos de la cotización aún no cargados. Intente nuevamente.');
+        return;
+      }
+      
+      // Usar external_id si existe y no es null, sino usar id regular
+      const quotationId = (this.form.external_id && this.form.external_id !== null) ? this.form.external_id : this.form.id;
+      
+      // Validar que tenemos un ID válido
+      if (!quotationId) {
+        this.$message.error('No se puede generar el PDF: ID de cotización no válido');
+        return;
+      }
+      
       window.open(
-        `/${this.resource}/print/${this.form.external_id}/${format}`,
+        `/${this.resource}/print/${quotationId}/${format}`,
         "_blank"
       );
     },
