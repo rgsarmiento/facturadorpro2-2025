@@ -256,7 +256,7 @@
                                 <table class="table table-borderless table-sm">
                                     <tr>
                                         <th width="40%">Tipo de Comprobante:</th>
-                                        <td>{{ $asiento->tipoComprobante ? $asiento->tipoComprobante->descripcion : 'No definido' }}</td>
+                                        <td>{{ $asiento->tipoComprobante ? $asiento->tipoComprobante->nombre : 'No definido' }}</td>
                                     </tr>
                                     <tr>
                                         <th>Número:</th>

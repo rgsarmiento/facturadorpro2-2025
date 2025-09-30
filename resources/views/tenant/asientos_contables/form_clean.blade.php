@@ -147,10 +147,10 @@
                 </div>
             </div>
             <div class="card-body">
-                <asiento-form-component
+                <asiento-form-vue-component
                     :asiento-data="{{ isset($asiento) ? $asiento->toJson() : 'null' }}"
                     :is-editing="{{ isset($asiento) ? 'true' : 'false' }}">
-                </asiento-form-component>
+                </asiento-form-vue-component>
             </div>
         </div>
     </div>

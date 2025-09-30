@@ -383,7 +383,7 @@ Vue.component('tenant-cuentas-contables-form', require('./views/tenant/cuentas_c
 Vue.component('system-update', require('./views/system/update/index.vue'));
 
 // Componente de Asientos Contables
-Vue.component('asiento-form-component', require('@components/asientos-contables/AsientoForm.vue'));
+Vue.component('asiento-form-vue-component', require('@components/asientos-contables/AsientoForm.vue'));
 
 
 const app = new Vue({

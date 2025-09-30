@@ -55,7 +55,7 @@
             </div>
             <div class="card-body">
                 <div id="asiento-form-app">
-                    <asiento-form-component></asiento-form-component>
+                    <asiento-form-vue-component></asiento-form-vue-component>
                 </div>
             </div>
         </div>
@@ -66,7 +66,7 @@
 @push('scripts-after-vue')
 <script>
     // Componente para el formulario de asientos contables
-    Vue.component('asiento-form-component', {
+    Vue.component('asiento-form-vue-component', {
         template: `
             <form @submit.prevent="saveAsiento">
                 <div class="row">

@@ -103,7 +103,6 @@
 
 @section('content')
 <!-- DEBUG: Sección content iniciada -->
-<script>console.log('DEBUG: Content section is being rendered');</script>
 <div class="row">
     <div class="col-md-12">
         <div class="card">
@@ -120,10 +119,10 @@
             </div>
             <div class="card-body">
                 <div id="asiento-form-app">
-                    <asiento-form-component
+                    <asiento-form-vue-component
                         :asiento-data="{{ isset($asiento) ? $asiento->toJson() : 'null' }}"
                         :is-editing="{{ isset($asiento) ? 'true' : 'false' }}">
-                    </asiento-form-component>
+                    </asiento-form-vue-component>
                 </div>
 
                 <!-- Template para el componente -->
