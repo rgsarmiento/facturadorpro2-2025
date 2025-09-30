@@ -11,7 +11,14 @@
         color: #ff9800;
         font-size: 20px;
     }
-    .estado-badge {
+    .es                    <div class="col-md-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="card-title mb-0">Detalles del Asiento</h5>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-bordered table-striped table-sm">ge {
         font-size: 0.9em;
         padding: 5px 12px;
         border-radius: 15px;
@@ -25,69 +32,164 @@
         background-color: #28a745;
         color: #fff;
     }
+    .estado-aprobado {
+        background-color: #17a2b8;
+        color: #fff;
+    }
     .estado-anulado {
         background-color: #dc3545;
         color: #fff;
     }
-    .info-card {
-        background-color: #f8f9fa;
-        border: 1px solid #dee2e6;
-        border-radius: 5px;
+    
+    /* Header actions - mejorado */
+    .card-header {
+        display: flex !important;
+        justify-content: space-between !important;
+        align-items: center !important;
+        flex-wrap: wrap !important;
+    }
+    
+    .card-tools {
+        margin-left: auto !important;
+        display: flex !important;
+        gap: 8px !important;
+        align-items: center !important;
+    }
+    
+    .header-actions {
+        display: flex !important;
+        gap: 8px !important;
+        align-items: center !important;
+        flex-wrap: wrap !important;
+    }
+    
+    .header-actions .btn {
+        white-space: nowrap !important;
+        margin: 0 !important;
+    }
+    
+    /* Estilos para botones disabled */
+    .btn.disabled, .btn:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+        pointer-events: auto; /* Permitir eventos para mostrar tooltip */
+    }
+    
+    .btn.disabled:hover, .btn:disabled:hover {
+        opacity: 0.5;
+        transform: none;
+    }
+    
+    /* Table styling - más compacto */
+    .table td, .table th {
+        padding: 0.35rem 0.5rem;
+        font-size: 0.9em;
+        line-height: 1.2;
+    }
+    
+    .table-sm td, .table-sm th {
+        padding: 0.25rem 0.5rem;
+        font-size: 0.85em;
+    }
+    
+    /* Hacer la vista más compacta */
+    .card {
+        margin-bottom: 0.75rem;
+    }
+    
+    .card-body {
+        padding: 0.75rem;
+    }
+    
+    .row {
+        margin-bottom: 0.35rem;
+    }
+    
+    .table-borderless td, .table-borderless th {
+        padding: 0.25rem 0.5rem;
+        border: none;
+    }
+    
+    .card-header {
+        padding: 0.5rem 0.75rem;
+    }
+    
+    .card-title {
+        margin-bottom: 0;
+        font-size: 1rem;
+    }
+    
+    /* Adjuntos section */
+    .adjuntos-container {
+        border-radius: 8px;
         padding: 15px;
-        margin-bottom: 20px;
+        margin-top: 15px;
     }
-    .balance-summary {
-        background-color: #e8f5e8;
-        border: 1px solid #c3e6cb;
-        border-radius: 5px;
-        padding: 15px;
-        text-align: center;
-    }
-    .detalle-table th {
-        background-color: #f8f9fa;
-        font-weight: bold;
-    }
+    
     .adjunto-item {
         display: flex;
         justify-content: space-between;
         align-items: center;
-        padding: 8px 12px;
-        border: 1px solid #dee2e6;
-        border-radius: 4px;
-        margin-bottom: 5px;
+        padding: 15px;
+        border-radius: 8px;
+        margin-bottom: 10px;
         background-color: #fff;
+        transition: all 0.3s ease;
+        box-shadow: 0 2px 4px rgba(0,0,0,0.05);
     }
+    
     .adjunto-item:hover {
-        background-color: #f8f9fa;
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0,0,0,0.15);
     }
-    .timeline-item {
-        padding: 10px 0;
-        border-bottom: 1px solid #eee;
-    }
-    .timeline-item:last-child {
-        border-bottom: none;
-    }
-    .timeline-icon {
-        width: 30px;
-        height: 30px;
-        border-radius: 50%;
-        display: inline-flex;
+    
+    .adjunto-info {
+        display: flex;
         align-items: center;
-        justify-content: center;
-        margin-right: 10px;
-        font-size: 14px;
+        flex-grow: 1;
     }
-    .timeline-creacion {
-        background-color: #007bff;
-        color: white;
+    
+    .adjunto-icon {
+        font-size: 2.5em;
+        margin-right: 15px;
+        width: 50px;
+        text-align: center;
     }
-    .timeline-confirmacion {
-        background-color: #28a745;
-        color: white;
+    
+    .adjunto-details h6 {
+        margin: 0;
+        font-weight: 600;
     }
-    .timeline-anulacion {
-        background-color: #dc3545;
-        color: white;
+    
+    .adjunto-meta {
+        font-size: 0.875em;
+        margin-top: 5px;
+    }
+    
+    .adjunto-actions {
+        display: flex;
+        gap: 8px;
+    }
+    
+    .btn-adjunto {
+        padding: 8px 12px;
+        border-radius: 6px;
+        transition: all 0.3s ease;
+    }
+    
+    .btn-adjunto:hover {
+        transform: translateY(-1px);
+    }
+    
+    .empty-adjuntos {
+        text-align: center;
+        padding: 40px;
+    }
+    
+    .empty-adjuntos i {
+        font-size: 3em;
+        margin-bottom: 15px;
+        opacity: 0.5;
     }
 </style>
 @endpush
@@ -95,252 +197,280 @@
 @section('content')
 <div class="row">
     <div class="col-md-12">
-        <div class="card card-primary">
+        <div class="card">
             <div class="card-header">
-                <div class="d-flex justify-content-between align-items-center">
-                    <h3 class="card-title">
-                        Asiento Contable {{ $asiento->numero_comprobante }}
-                        <i class="fas fa-tools construction-icon" title="Módulo en construcción"></i>
-                    </h3>
-                    <div class="card-tools">
-                        <div class="btn-group" role="group">
-                            <a href="{{ route('tenant.asientos_contables.index') }}" class="btn btn-sm btn-secondary">
-                                <i class="fas fa-arrow-left"></i> Volver
-                            </a>
-                            @if($asiento->puedeEditarse())
-                                <a href="{{ route('tenant.asientos_contables.edit', $asiento->id) }}" class="btn btn-sm btn-warning">
-                                    <i class="fas fa-edit"></i> Editar
-                                </a>
-                            @endif
-                            @if($asiento->esBorrador())
-                                <button id="btn-confirmar" class="btn btn-sm btn-success">
-                                    <i class="fas fa-check"></i> Confirmar
-                                </button>
-                            @endif
-                            @if($asiento->puedeAnularse())
-                                <button id="btn-anular" class="btn btn-sm btn-danger">
-                                    <i class="fas fa-ban"></i> Anular
-                                </button>
-                            @endif
-                        </div>
-                    </div>
+                <h3 class="card-title">
+                    Detalle del Asiento Contable #{{ $asiento->numero_comprobante }}
+                    <span class="estado-badge estado-{{ strtolower($asiento->estado) }}">
+                        {{ ucfirst($asiento->estado) }}
+                    </span>
+                    <i class="fas fa-tools construction-icon" title="Módulo en construcción"></i>
+                </h3>
+                <div class="card-tools header-actions">
+                    <a href="{{ route('tenant.asientos_contables.index') }}" class="btn btn-sm btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Volver
+                    </a>
+                    
+                    <!-- Botones siempre visibles, disabled si no es BORRADOR -->
+                    <!-- Debug: Estado actual del asiento: {{ $asiento->estado }} -->
+                    <a href="{{ route('tenant.asientos_contables.edit', $asiento->id) }}" 
+                       class="btn btn-sm btn-primary {{ strtolower($asiento->estado) !== 'borrador' ? 'disabled' : '' }}"
+                       {{ strtolower($asiento->estado) !== 'borrador' ? 'aria-disabled=true tabindex=-1' : '' }}
+                       title="{{ strtolower($asiento->estado) !== 'borrador' ? 'Solo se puede editar en estado BORRADOR' : 'Editar asiento contable' }}">
+                        <i class="fas fa-edit"></i> Editar
+                    </a>
+                    
+                    <button type="button" 
+                            id="btn-aprobar" 
+                            class="btn btn-sm btn-success"
+                            {{ strtolower($asiento->estado) !== 'borrador' ? 'disabled' : '' }}
+                            title="{{ strtolower($asiento->estado) !== 'borrador' ? 'Solo se puede aprobar en estado BORRADOR' : 'Aprobar asiento contable' }}">
+                        <i class="fas fa-check"></i> Aprobar
+                    </button>
+                    
+                    <button type="button" 
+                            id="btn-eliminar" 
+                            class="btn btn-sm btn-danger"
+                            {{ strtolower($asiento->estado) !== 'borrador' ? 'disabled' : '' }}
+                            title="{{ strtolower($asiento->estado) !== 'borrador' ? 'Solo se puede eliminar en estado BORRADOR' : 'Eliminar asiento contable' }}">
+                        <i class="fas fa-trash"></i> Eliminar
+                    </button>
+                    
+                    <!-- Botón Anular solo visible para estados aprobado/confirmado -->
+                    @if(strtolower($asiento->estado) === 'confirmado' || strtolower($asiento->estado) === 'aprobado')
+                        <button type="button" id="btn-anular" class="btn btn-sm btn-warning">
+                            <i class="fas fa-times"></i> Anular
+                        </button>
+                    @endif
                 </div>
             </div>
             <div class="card-body">
-                <!-- Información general -->
-                <div class="row">
+                <!-- Información del asiento -->
+                <div class="row mb-2">
                     <div class="col-md-6">
-                        <div class="info-card">
-                            <h5>Información General</h5>
-                            <table class="table table-sm">
-                                <tr>
-                                    <td><strong>Número:</strong></td>
-                                    <td>{{ $asiento->numero_comprobante }}</td>
-                                </tr>
-                                <tr>
-                                    <td><strong>Tipo:</strong></td>
-                                    <td>{{ $asiento->tipoComprobante->codigo }} - {{ $asiento->tipoComprobante->nombre }}</td>
-                                </tr>
-                                <tr>
-                                    <td><strong>Fecha:</strong></td>
-                                    <td>{{ $asiento->fecha_asiento->format('d/m/Y') }}</td>
-                                </tr>
-                                <tr>
-                                    <td><strong>Estado:</strong></td>
-                                    <td>
-                                        <span class="estado-badge estado-{{ strtolower($asiento->estado) }}">
-                                            {{ $asiento->estado }}
-                                        </span>
-                                    </td>
-                                </tr>
-                                <tr>
-                                    <td><strong>Concepto:</strong></td>
-                                    <td>{{ $asiento->concepto }}</td>
-                                </tr>
-                            </table>
+                        <div class="card">
+                            <div class="card-header py-2">
+                                <h6 class="mb-0">Información General</h6>
+                            </div>
+                            <div class="card-body py-2">
+                                <table class="table table-borderless table-sm">
+                                    <tr>
+                                        <th width="40%">Tipo de Comprobante:</th>
+                                        <td>{{ $asiento->tipoComprobante ? $asiento->tipoComprobante->descripcion : 'No definido' }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Número:</th>
+                                        <td>{{ $asiento->numero_comprobante }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Fecha:</th>
+                                        <td>{{ $asiento->fecha_asiento ? $asiento->fecha_asiento->format('d/m/Y') : 'No definida' }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Concepto:</th>
+                                        <td>{{ $asiento->concepto ?? 'Sin concepto' }}</td>
+                                    </tr>
+                                    <tr>
+                                        <th>Estado:</th>
+                                        <td>
+                                            <span class="estado-badge estado-{{ strtolower($asiento->estado) }}">
+                                                {{ ucfirst($asiento->estado) }}
+                                            </span>
+                                        </td>
+                                    </tr>
+                                </table>
+                            </div>
                         </div>
                     </div>
-
                     <div class="col-md-6">
-                        <div class="balance-summary">
-                            <h5>Resumen Contable</h5>
-                            <div class="row">
-                                <div class="col-md-6">
-                                    <h6>Total Débitos</h6>
-                                    <h4 class="text-primary">{{ number_format($asiento->total_debito, 0, ',', '.') }}</h4>
-                                </div>
-                                <div class="col-md-6">
-                                    <h6>Total Créditos</h6>
-                                    <h4 class="text-success">{{ number_format($asiento->total_credito, 0, ',', '.') }}</h4>
-                                </div>
+                        <div class="card">
+                            <div class="card-header py-2">
+                                <h6 class="mb-0">Resumen del Asiento</h6>
                             </div>
-                            <hr>
-                            <div class="d-flex justify-content-center align-items-center">
-                                <i class="fas fa-check-circle text-success mr-2"></i>
-                                <span class="text-success"><strong>Asiento Balanceado</strong></span>
+                            <div class="card-body py-2 text-center">
+                                <div class="row">
+                                    <div class="col-md-6">
+                                        <h6>Total Débito</h6>
+                                        <h4 class="text-danger">
+                                            ${{ number_format($asiento->total_debito, 0, ',', '.') }}
+                                        </h4>
+                                    </div>
+                                    <div class="col-md-6">
+                                        <h6>Total Crédito</h6>
+                                        <h4 class="text-success">
+                                            ${{ number_format($asiento->total_credito, 0, ',', '.') }}
+                                        </h4>
+                                    </div>
+                                </div>
+                                <hr>
+                                <div class="row">
+                                    <div class="col-md-12">
+                                        <h6>Diferencia</h6>
+                                        @php $diferencia = $asiento->total_debito - $asiento->total_credito; @endphp
+                                        <h4 class="{{ $diferencia == 0 ? 'text-success' : 'text-danger' }}">
+                                            ${{ number_format(abs($diferencia), 0, ',', '.') }}
+                                            @if($diferencia == 0)
+                                                <i class="fas fa-check-circle"></i>
+                                            @else
+                                                <i class="fas fa-exclamation-triangle"></i>
+                                            @endif
+                                        </h4>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
 
                 <!-- Detalles del asiento -->
-                <div class="row mt-4">
+                <div class="row mb-2">
                     <div class="col-md-12">
-                        <h5>Detalles del Asiento</h5>
-                        <div class="table-responsive">
-                            <table class="table table-bordered detalle-table">
-                                <thead>
-                                    <tr>
-                                        <th>Cuenta Contable</th>
-                                        <th>Tercero</th>
-                                        <th>Concepto</th>
-                                        <th class="text-right">Débito</th>
-                                        <th class="text-right">Crédito</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    @foreach($asiento->detalles as $detalle)
-                                    <tr>
-                                        <td>
-                                            <strong>{{ $detalle->cuentaContable->codigo }}</strong><br>
-                                            <small>{{ $detalle->cuentaContable->nombre }}</small>
-                                        </td>
-                                        <td>
-                                            @if($detalle->tercero)
-                                                <strong>{{ $detalle->tercero->number }}</strong><br>
-                                                <small>{{ $detalle->tercero->name }}</small>
-                                            @else
-                                                <span class="text-muted">No aplica</span>
-                                            @endif
-                                        </td>
-                                        <td>{{ $detalle->concepto }}</td>
-                                        <td class="text-right">
-                                            @if($detalle->debito > 0)
-                                                <strong class="text-primary">
-                                                    ${{ number_format($detalle->debito, 0, ',', '.') }}
-                                                </strong>
-                                            @else
-                                                <span class="text-muted">-</span>
-                                            @endif
-                                        </td>
-                                        <td class="text-right">
-                                            @if($detalle->credito > 0)
-                                                <strong class="text-success">
-                                                    ${{ number_format($detalle->credito, 0, ',', '.') }}
-                                                </strong>
-                                            @else
-                                                <span class="text-muted">-</span>
-                                            @endif
-                                        </td>
-                                    </tr>
-                                    @endforeach
-                                </tbody>
-                                <tfoot class="table-dark">
-                                    <tr>
-                                        <th colspan="3" class="text-right">TOTALES:</th>
-                                        <th class="text-right">
-                                            ${{ number_format($asiento->total_debito, 0, ',', '.') }}
-                                        </th>
-                                        <th class="text-right">
-                                            ${{ number_format($asiento->total_credito, 0, ',', '.') }}
-                                        </th>
-                                    </tr>
-                                </tfoot>
-                            </table>
+                        <div class="card">
+                            <div class="card-header py-2">
+                                <h6 class="mb-0">Detalles del Asiento</h6>
+                            </div>
+                            <div class="card-body py-2">
+                                <div class="table-responsive">
+                                    <table class="table table-bordered table-striped table-sm">
+                                        <thead class="table-dark">
+                                            <tr>
+                                                <th>Cuenta Contable</th>
+                                                <th>Tercero</th>
+                                                <th>Concepto</th>
+                                                <th class="text-right">Débito</th>
+                                                <th class="text-right">Crédito</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            @foreach($asiento->detalles as $detalle)
+                                            <tr>
+                                                <td>
+                                                    @if($detalle->cuentaContable)
+                                                        <strong>{{ $detalle->cuentaContable->codigo }}</strong><br>
+                                                        <small>{{ $detalle->cuentaContable->descripcion }}</small>
+                                                    @else
+                                                        <span class="text-muted">Cuenta no definida</span>
+                                                    @endif
+                                                </td>
+                                                <td>
+                                                    @if($detalle->tercero)
+                                                        <strong>{{ $detalle->tercero->number }}</strong><br>
+                                                        <small>{{ $detalle->tercero->name }}</small>
+                                                    @else
+                                                        <span class="text-muted">-</span>
+                                                    @endif
+                                                </td>
+                                                <td>{{ $detalle->concepto ?? 'Sin concepto' }}</td>
+                                                <td class="text-right">
+                                                    @if($detalle->debito > 0)
+                                                        <strong class="text-danger">
+                                                            ${{ number_format($detalle->debito, 0, ',', '.') }}
+                                                        </strong>
+                                                    @else
+                                                        <span class="text-muted">-</span>
+                                                    @endif
+                                                </td>
+                                                <td class="text-right">
+                                                    @if($detalle->credito > 0)
+                                                        <strong class="text-success">
+                                                            ${{ number_format($detalle->credito, 0, ',', '.') }}
+                                                        </strong>
+                                                    @else
+                                                        <span class="text-muted">-</span>
+                                                    @endif
+                                                </td>
+                                            </tr>
+                                            @endforeach
+                                        </tbody>
+                                        <tfoot class="table-dark">
+                                            <tr>
+                                                <th colspan="3" class="text-right">TOTALES:</th>
+                                                <th class="text-right">
+                                                    ${{ number_format($asiento->total_debito, 0, ',', '.') }}
+                                                </th>
+                                                <th class="text-right">
+                                                    ${{ number_format($asiento->total_credito, 0, ',', '.') }}
+                                                </th>
+                                            </tr>
+                                        </tfoot>
+                                    </table>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
 
                 <!-- Archivos adjuntos -->
-                @if($asiento->adjuntos->count() > 0)
-                <div class="row mt-4">
+                <div class="row mb-2">
                     <div class="col-md-12">
-                        <h5>Documentos Adjuntos</h5>
-                        <div class="row">
-                            @foreach($asiento->adjuntos as $adjunto)
-                            <div class="col-md-6 col-lg-4 mb-2">
-                                <div class="adjunto-item">
-                                    <div>
-                                        <i class="fas fa-file{{ $adjunto->esPDF() ? '-pdf text-danger' : ($adjunto->esImagen() ? '-image text-success' : ' text-secondary') }}"></i>
-                                        <strong>{{ $adjunto->nombre_archivo }}</strong><br>
-                                        <small class="text-muted">
-                                            {{ $adjunto->getTamañoHumano() }} -
-                                            {{ $adjunto->fecha_carga->format('d/m/Y H:i') }}
-                                        </small>
-                                    </div>
-                                    <div class="ml-2">
-                                        <a href="{{ Storage::url($adjunto->ruta_archivo) }}"
-                                           target="_blank"
-                                           class="btn btn-sm btn-outline-primary">
-                                            <i class="fas fa-download"></i>
-                                        </a>
-                                    </div>
-                                </div>
+                        <div class="card">
+                            <div class="card-header py-2">
+                                <h6 class="mb-0">
+                                    <i class="fas fa-paperclip mr-2"></i>
+                                    Documentos Adjuntos
+                                    <span class="badge badge-secondary ml-2">{{ $asiento->adjuntos->count() }}</span>
+                                </h6>
                             </div>
-                            @endforeach
-                        </div>
-                    </div>
-                </div>
-                @endif
-
-                <!-- Histórico de estados -->
-                <div class="row mt-4">
-                    <div class="col-md-12">
-                        <h5>Histórico de Estados</h5>
-                        <div class="timeline">
-                            <!-- Creación -->
-                            <div class="timeline-item">
-                                <div class="d-flex align-items-center">
-                                    <div class="timeline-icon timeline-creacion">
-                                        <i class="fas fa-plus"></i>
+                            <div class="card-body py-2 adjuntos-container">
+                                @if($asiento->adjuntos->count() > 0)
+                                    <div class="adjuntos-grid">
+                                        @foreach($asiento->adjuntos as $adjunto)
+                                        <div class="adjunto-item border" data-adjunto-id="{{ $adjunto->id }}">
+                                            <div class="adjunto-info">
+                                                <div class="adjunto-icon">
+                                                    @if($adjunto->esPDF())
+                                                        <i class="fas fa-file-pdf text-danger"></i>
+                                                    @elseif($adjunto->esImagen())
+                                                        <i class="fas fa-file-image text-success"></i>
+                                                    @elseif($adjunto->esExcel())
+                                                        <i class="fas fa-file-excel text-success"></i>
+                                                    @elseif($adjunto->esWord())
+                                                        <i class="fas fa-file-word text-primary"></i>
+                                                    @else
+                                                        <i class="fas fa-file text-secondary"></i>
+                                                    @endif
+                                                </div>
+                                                <div class="adjunto-details">
+                                                    <h6>{{ $adjunto->nombre_archivo }}</h6>
+                                                    <div class="adjunto-meta text-muted">
+                                                        <i class="fas fa-weight-hanging mr-1"></i> {{ $adjunto->getTamañoHumano() }}
+                                                        <span class="mx-2">|</span>
+                                                        <i class="fas fa-calendar mr-1"></i> {{ $adjunto->fecha_carga ? $adjunto->fecha_carga->format('d/m/Y H:i') : 'Fecha no disponible' }}
+                                                    </div>
+                                                </div>
+                                            </div>
+                                            <div class="adjunto-actions">
+                                                @if($adjunto->esImagen())
+                                                    <button type="button" class="btn btn-outline-info btn-adjunto" 
+                                                            onclick="previewImage('{{ route('tenant.asientos_contables.adjuntos.descargar', $adjunto->id) }}', '{{ $adjunto->nombre_archivo }}')"
+                                                            title="Vista previa">
+                                                        <i class="fas fa-eye"></i>
+                                                    </button>
+                                                @endif
+                                                <a href="{{ route('tenant.asientos_contables.adjuntos.descargar', $adjunto->id) }}"
+                                                   class="btn btn-outline-primary btn-adjunto"
+                                                   title="Descargar">
+                                                    <i class="fas fa-download"></i>
+                                                </a>
+                                                @if($asiento->puedeEditarse())
+                                                    <button type="button" class="btn btn-outline-danger btn-adjunto"
+                                                            onclick="eliminarAdjunto({{ $adjunto->id }})"
+                                                            title="Eliminar">
+                                                        <i class="fas fa-trash"></i>
+                                                    </button>
+                                                @endif
+                                            </div>
+                                        </div>
+                                        @endforeach
                                     </div>
-                                    <div>
-                                        <strong>Asiento Creado</strong><br>
-                                        <small class="text-muted">
-                                            {{ $asiento->fecha_creacion->format('d/m/Y H:i:s') }} por {{ $asiento->usuarioCreacion->name }}
-                                        </small>
+                                @else
+                                    <div class="empty-adjuntos text-muted">
+                                        <i class="fas fa-folder-open"></i>
+                                        <h6>No hay documentos adjuntos</h6>
+                                        <p>Los documentos que se adjunten a este asiento aparecerán aquí.</p>
                                     </div>
-                                </div>
+                                @endif
                             </div>
-
-                            <!-- Confirmación -->
-                            @if($asiento->fecha_confirmacion)
-                            <div class="timeline-item">
-                                <div class="d-flex align-items-center">
-                                    <div class="timeline-icon timeline-confirmacion">
-                                        <i class="fas fa-check"></i>
-                                    </div>
-                                    <div>
-                                        <strong>Asiento Confirmado</strong><br>
-                                        <small class="text-muted">
-                                            {{ $asiento->fecha_confirmacion->format('d/m/Y H:i:s') }} por {{ $asiento->usuarioConfirmacion->name }}
-                                        </small>
-                                    </div>
-                                </div>
-                            </div>
-                            @endif
-
-                            <!-- Anulación -->
-                            @if($asiento->fecha_anulacion)
-                            <div class="timeline-item">
-                                <div class="d-flex align-items-center">
-                                    <div class="timeline-icon timeline-anulacion">
-                                        <i class="fas fa-ban"></i>
-                                    </div>
-                                    <div>
-                                        <strong>Asiento Anulado</strong><br>
-                                        <small class="text-muted">
-                                            {{ $asiento->fecha_anulacion->format('d/m/Y H:i:s') }} por {{ $asiento->usuarioAnulacion->name }}
-                                        </small>
-                                        @if($asiento->motivo_anulacion)
-                                        <br><small class="text-danger">
-                                            <strong>Motivo:</strong> {{ $asiento->motivo_anulacion }}
-                                        </small>
-                                        @endif
-                                    </div>
-                                </div>
-                            </div>
-                            @endif
                         </div>
                     </div>
                 </div>
@@ -353,23 +483,45 @@
 @push('scripts')
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        const btnConfirmar = document.getElementById('btn-confirmar');
+        console.log('DOM loaded, inicializando botones...');
+        const btnAprobar = document.getElementById('btn-aprobar');
         const btnAnular = document.getElementById('btn-anular');
+        const btnEliminar = document.getElementById('btn-eliminar');
+        
+        // Botones de test
+        const btnAprobarTest = document.getElementById('btn-aprobar-test');
+        const btnEliminarTest = document.getElementById('btn-eliminar-test');
+        
+        console.log('Botones encontrados:', { btnAprobar, btnAnular, btnEliminar, btnAprobarTest, btnEliminarTest });
 
-        if (btnConfirmar) {
-            btnConfirmar.addEventListener('click', async function() {
+        // Prevenir navegación en enlace de editar si está disabled
+        const btnEditar = document.querySelector('a[href*="edit"]:not(#btn-aprobar-test)');
+        if (btnEditar && btnEditar.classList.contains('disabled')) {
+            btnEditar.addEventListener('click', function(e) {
+                e.preventDefault();
+                return false;
+            });
+        }
+
+        if (btnAprobar) {
+            btnAprobar.addEventListener('click', async function() {
+                // Verificar si el botón está disabled
+                if (this.disabled) {
+                    return;
+                }
+                
                 const result = await Swal.fire({
-                    title: '¿Confirmar asiento?',
-                    text: 'Una vez confirmado, el asiento no podrá modificarse',
+                    title: '¿Aprobar asiento?',
+                    text: 'Una vez aprobado, el asiento no podrá modificarse',
                     icon: 'question',
                     showCancelButton: true,
-                    confirmButtonText: 'Sí, confirmar',
+                    confirmButtonText: 'Sí, aprobar',
                     cancelButtonText: 'Cancelar'
                 });
 
                 if (result.isConfirmed) {
                     try {
-                        const response = await axios.post('/contabilidad/asientos-contables/{{ $asiento->id }}/confirmar');
+                        const response = await axios.post('{{ url("/") }}/contabilidad/asientos-contables/{{ $asiento->id }}/aprobar');
 
                         if (response.data.success) {
                             Swal.fire({
@@ -385,7 +537,8 @@
                             Swal.fire('Error', response.data.message, 'error');
                         }
                     } catch (error) {
-                        Swal.fire('Error', 'Error al confirmar el asiento', 'error');
+                        console.error('Error:', error);
+                        Swal.fire('Error', 'Error al aprobar el asiento', 'error');
                     }
                 }
             });
@@ -410,7 +563,7 @@
 
                 if (motivo) {
                     try {
-                        const response = await axios.post('/contabilidad/asientos-contables/{{ $asiento->id }}/anular', {
+                        const response = await axios.post('{{ url("/") }}/contabilidad/asientos-contables/{{ $asiento->id }}/anular', {
                             motivo: motivo
                         });
 
@@ -433,6 +586,139 @@
                 }
             });
         }
+
+        if (btnEliminar) {
+            btnEliminar.addEventListener('click', async function() {
+                // Verificar si el botón está disabled
+                if (this.disabled) {
+                    return;
+                }
+                
+                const result = await Swal.fire({
+                    title: '¿Eliminar asiento?',
+                    text: 'Esta acción no se puede deshacer. El asiento será eliminado permanentemente.',
+                    icon: 'warning',
+                    showCancelButton: true,
+                    confirmButtonText: 'Sí, eliminar',
+                    cancelButtonText: 'Cancelar',
+                    confirmButtonColor: '#dc3545'
+                });
+
+                if (result.isConfirmed) {
+                    try {
+                        const response = await axios.delete('{{ url("/") }}/contabilidad/asientos-contables/{{ $asiento->id }}');
+
+                        if (response.data.success) {
+                            Swal.fire({
+                                title: 'Eliminado',
+                                text: 'El asiento ha sido eliminado exitosamente',
+                                icon: 'success',
+                                timer: 2000,
+                                showConfirmButton: false
+                            }).then(() => {
+                                window.location.href = '{{ route("tenant.asientos_contables.index") }}';
+                            });
+                        } else {
+                            Swal.fire('Error', response.data.message, 'error');
+                        }
+                    } catch (error) {
+                        Swal.fire('Error', 'Error al eliminar el asiento', 'error');
+                    }
+                }
+            });
+        }
+        
+        // Event listeners para botones de test (siempre visibles)
+        if (btnAprobarTest) {
+            btnAprobarTest.addEventListener('click', function() {
+                if (btnAprobar) {
+                    btnAprobar.click();
+                } else {
+                    // Ejecutar directamente si el botón principal no existe
+                    console.log('Ejecutando aprobar desde botón test');
+                    // Aquí puedes duplicar la lógica de aprobar si es necesario
+                }
+            });
+        }
+        
+        if (btnEliminarTest) {
+            btnEliminarTest.addEventListener('click', function() {
+                if (btnEliminar) {
+                    btnEliminar.click();
+                } else {
+                    // Ejecutar directamente si el botón principal no existe
+                    console.log('Ejecutando eliminar desde botón test');
+                    // Aquí puedes duplicar la lógica de eliminar si es necesario
+                }
+            });
+        }
     });
+
+    // Función para previsualizar imágenes
+    function previewImage(url, filename) {
+        Swal.fire({
+            title: filename,
+            imageUrl: url,
+            imageAlt: filename,
+            showConfirmButton: false,
+            showCloseButton: true,
+            width: '80%',
+            customClass: {
+                image: 'img-fluid'
+            }
+        });
+    }
+
+    // Función para eliminar adjuntos
+    async function eliminarAdjunto(adjuntoId) {
+        const result = await Swal.fire({
+            title: '¿Eliminar archivo?',
+            text: 'Esta acción no se puede deshacer',
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Sí, eliminar',
+            cancelButtonText: 'Cancelar',
+            confirmButtonColor: '#dc3545'
+        });
+
+        if (result.isConfirmed) {
+            try {
+                const response = await axios.delete(`/contabilidad/asientos-contables/adjuntos/${adjuntoId}`);
+
+                if (response.data.success) {
+                    // Remover el elemento del DOM
+                    const adjuntoElement = document.querySelector(`[data-adjunto-id="${adjuntoId}"]`);
+                    if (adjuntoElement) {
+                        adjuntoElement.remove();
+                    }
+
+                    // Actualizar contador
+                    const badge = document.querySelector('.badge-secondary');
+                    if (badge) {
+                        const currentCount = parseInt(badge.textContent);
+                        badge.textContent = currentCount - 1;
+                    }
+
+                    // Mostrar mensaje vacío si no hay más adjuntos
+                    const adjuntosGrid = document.querySelector('.adjuntos-grid');
+                    if (adjuntosGrid && adjuntosGrid.children.length === 0) {
+                        location.reload(); // Recargar para mostrar el mensaje de "no hay adjuntos"
+                    }
+
+                    Swal.fire({
+                        title: 'Eliminado',
+                        text: 'El archivo ha sido eliminado exitosamente',
+                        icon: 'success',
+                        timer: 2000,
+                        showConfirmButton: false
+                    });
+                } else {
+                    Swal.fire('Error', response.data.message, 'error');
+                }
+            } catch (error) {
+                Swal.fire('Error', 'Error al eliminar el archivo', 'error');
+            }
+        }
+    }
 </script>
 @endpush

@@ -53,4 +53,14 @@ class AsientoAdjunto extends Model
     {
         return strtolower($this->tipo_archivo) === 'pdf';
     }
+
+    public function esExcel()
+    {
+        return in_array(strtolower($this->tipo_archivo), ['xls', 'xlsx']);
+    }
+
+    public function esWord()
+    {
+        return in_array(strtolower($this->tipo_archivo), ['doc', 'docx']);
+    }
 }

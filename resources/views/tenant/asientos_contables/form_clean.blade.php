@@ -147,9 +147,10 @@
                 </div>
             </div>
             <div class="card-body">
-                <div id="asiento-form-app">
-                    <asiento-form-component></asiento-form-component>
-                </div>
+                <asiento-form-component
+                    :asiento-data="{{ isset($asiento) ? $asiento->toJson() : 'null' }}"
+                    :is-editing="{{ isset($asiento) ? 'true' : 'false' }}">
+                </asiento-form-component>
             </div>
         </div>
     </div>
@@ -158,6 +159,7 @@
 
 @push('scripts-after-vue')
 <script>
-    // Script para asientos contables
+    // Script específico para asientos contables si es necesario
+    console.log('Vista de asientos contables cargada');
 </script>
 @endpush
