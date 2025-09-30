@@ -11,38 +11,38 @@
                 font-family: sans-serif;
                 font-size: 12px;
             }
-            
+
             table {
                 width: 100%;
                 border-spacing: 0;
                 border: 1px solid black;
             }
-            
+
             .celda {
                 text-align: center;
                 padding: 5px;
                 border: 0.1px solid black;
             }
-            
+
             th {
                 padding: 5px;
                 text-align: center;
                 border-color: #0088cc;
                 border: 0.1px solid black;
             }
-            
+
             .title {
                 font-weight: bold;
                 padding: 5px;
                 font-size: 20px !important;
                 text-decoration: underline;
             }
-            
+
             p>strong {
                 margin-left: 5px;
                 font-size: 13px;
             }
-            
+
             thead {
                 font-weight: bold;
                 background: #0088cc;
@@ -67,7 +67,7 @@
                 </tr>
                 <tr>
                     <td>
-                        <p><strong>Establecimiento: </strong>{{$establishment->address}} - {{$establishment->department->description}} - {{$establishment->district->description}}</p>
+                        <p><strong>Establecimiento: </strong>{{$establishment->address}}@if($establishment->department && $establishment->department->description) - {{$establishment->department->description}}@endif@if($establishment->city && $establishment->city->description) - {{$establishment->city->description}}@endif</p>
                     </td>
                     <td>
                     </td>
@@ -77,8 +77,8 @@
         @if(!empty($records))
             <div class="">
                 <div class=" ">
-                    @php 
-                        $acum_total=0; 
+                    @php
+                        $acum_total=0;
                     @endphp
                     <table class="">
                         <thead>
@@ -93,8 +93,8 @@
                                 <tr>
                                     <td class="celda">{{$loop->iteration}}</td>
                                     <td class="celda">{{$value->item->description}}</td>
-                                    <td class="celda">{{$value->quantity}}</td> 
-                                </tr> 
+                                    <td class="celda">{{$value->quantity}}</td>
+                                </tr>
 
                                 @php
                                     $acum_total += $value->quantity;
@@ -104,7 +104,7 @@
                                 <td class="celda" colspan="1"></td>
                                 <td class="celda" ><strong>Total</strong></td>
                                 <td class="celda">{{$acum_total}}</td>
-                            </tr> 
+                            </tr>
                         </tbody>
                     </table>
                 </div>

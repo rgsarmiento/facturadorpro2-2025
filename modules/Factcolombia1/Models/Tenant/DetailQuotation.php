@@ -11,8 +11,8 @@ class DetailQuotation extends Model
     use SoftDeletes, UsesTenantConnection;
 
     protected $table = 'co_detail_quotations';
-    
-    
+
+
     /**
      * The attributes that should be cast to native types.
      *
@@ -22,15 +22,15 @@ class DetailQuotation extends Model
         'item' => 'object',
         'tax' => 'object'
     ];
-    
-    
+
+
     /**
      * The attributes that are mass assignable.
      *
      * @var array
      */
-    protected $fillable = ['quotation_id', 'item_id', 'item', 'type_unit_id', 'quantity', 'price', 'tax_id', 'tax', 'total_tax', 'subtotal', 'discount', 'total'];
-    
+    protected $fillable = ['quotation_id', 'item_id', 'item', 'type_unit_id', 'quantity', 'price', 'tax_id', 'tax', 'total_tax', 'subtotal', 'discount', 'total', 'notes'];
+
     /**
      * The attributes that should be mutated to dates.
      *

@@ -564,6 +564,12 @@
                     this.form.tax_id = (this.taxes.length > 0 && this.form.item.tax && this.form.item.tax.id) ? this.form.item.tax.id : null;
                     this.form.price = this.form.item.sale_unit_price;
                     this.form.quantity = 1;
+
+                    // Cargar automáticamente la descripción del item en el campo notas
+                    if (this.form.item.description) {
+                        this.form.notes = this.form.item.description;
+                    }
+
                     this.cleanTotalItem();
                     this.showListStock = true;
                     this.form.lots_group = this.form.item.lots_group;

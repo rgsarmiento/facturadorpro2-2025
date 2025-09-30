@@ -36,7 +36,7 @@
                     <td>
                         <p><strong>Establecimiento: </strong></p>
                     </td>
-                    <td align="center">{{$establishment->address}} - {{$establishment->department->description}} - {{$establishment->district->description}}</td>
+                    <td align="center">{{$establishment->address}}@if($establishment->department && $establishment->department->description) - {{$establishment->department->description}}@endif@if($establishment->city && $establishment->city->description) - {{$establishment->city->description}}@endif</td>
                 </tr>
             </table>
         </div>

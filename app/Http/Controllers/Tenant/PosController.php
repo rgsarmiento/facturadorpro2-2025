@@ -126,6 +126,7 @@ class PosController extends Controller
         $registro->quantity = $data['cantidad'];
         $registro->item_id = $data['id'];
         $registro->item_description = $data['nombre'];
+        $registro->comentario = $data['comentario'] ?? null;
         $registro->created_at = Carbon::now();
         $registro->updated_at = Carbon::now();
         $registro->user_id = $user;
@@ -146,7 +147,7 @@ class PosController extends Controller
             ->where('table_number', $data['mesa'])
             ->where('id', $data['mesaId'])->first();
 
-        $products = TableAccount::select('item_description', 'price', 'quantity', 'account', 'id', 'item_id', 'state')
+        $products = TableAccount::select('item_description', 'price', 'quantity', 'account', 'id', 'item_id', 'state', 'comentario')
             ->where('account', $table->id)->whereIn('state', ['A', 'R'])->get();
 
         if ($products->isEmpty()) {
@@ -172,7 +173,7 @@ class PosController extends Controller
         $impuesto = [];
         $total_impuestos = 0;
 
-        $items = TableAccount::select('item_description', 'price', 'quantity', 'account', 'id', 'item_id', 'state')
+        $items = TableAccount::select('item_description', 'price', 'quantity', 'account', 'id', 'item_id', 'state', 'comentario')
             ->where('account', $mesaId)
             ->whereIn('state', ['A', 'R'])
             ->get();
@@ -373,7 +374,7 @@ class PosController extends Controller
         $table = Table::select('id')->where('establishment_id', $data['establecimiento'])
             ->where('table_number', $data['mesa'])->first();
 
-        $products = TableAccount::select('item_description', 'price', 'quantity', 'account', 'id')
+        $products = TableAccount::select('item_description', 'price', 'quantity', 'account', 'id', 'comentario')
             ->where('account', $table->id)->whereIn('state', ['A', 'R'])->get();
 
         if ($products->isEmpty()) {

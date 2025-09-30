@@ -129,7 +129,7 @@
 
                 <div class="form-group" :class="{'text-danger': errors.identification_number}">
                     <label for="email">N° Identificación:</label>
-                    <input v-model="form_contact.identification_number" onkeypress="return isNumberKey(event)" maxlength="8" type="text" autocomplete="off" class="form-control" placeholder="Ingrese N° Identificación">
+                    <input v-model="form_contact.identification_number" onkeypress="return isNumberKey(event)" maxlength="15" type="text" autocomplete="off" class="form-control" placeholder="Ingrese N° Identificación">
                     <small class="form-control-feedback" v-if="errors.identification_number" v-text="errors.identification_number[0]"></small>
                 </div>
                 <div class="form-group" :class="{'text-danger': errors.telephone}">

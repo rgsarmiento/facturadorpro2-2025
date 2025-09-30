@@ -76,7 +76,7 @@ $establishment = $cash->user->establishment;
                         <p><strong>N° Documento: </strong>{{$company->number}}</p>
                     </td>
                     <td class="td-custom">
-                        <p><strong>Establecimiento: </strong>{{$establishment->address}} - {{$establishment->department->description}} - {{$establishment->district->description}}</p>
+                        <p><strong>Establecimiento: </strong>{{$establishment->address}}@if($establishment->department && $establishment->department->description) - {{$establishment->department->description}}@endif@if($establishment->city && $establishment->city->description) - {{$establishment->city->description}}@endif</p>
                     </td>
                 </tr>
 

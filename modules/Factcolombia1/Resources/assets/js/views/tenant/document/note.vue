@@ -537,12 +537,12 @@
                     email: this.note ? this.note.customer.email : null,
                     merchant_registration: "0000-00",
                     type_document_identification_id: this.note ? this.note.customer.identity_document_type_id : null,
-                    type_organization_id: this.note ? this.note.customer.type_person_id : null,
-                    municipality_id_fact: this.note ? this.note.customer.city_id : null,
-                    type_regime_id: this.note ? this.note.customer.type_regime_id : null
+                    type_organization_id: this.note && this.note.customer ? this.note.customer.type_person_id : null,
+                    municipality_id_fact: this.note && this.note.customer && this.note.customer.city_id ? this.note.customer.city_id : null,
+                    type_regime_id: this.note && this.note.customer ? this.note.customer.type_regime_id : null
                 }
 
-                if(this.note){
+                if(this.note && this.note.customer){
                     if (this.note.customer.type_person_id == 1) {
                         this.noteService.customer.dv = this.note.customer.dv;
                     }
@@ -823,6 +823,30 @@
             },
 
             changeCustomer() {
+                if (this.form.customer_id) {
+                    // Buscar el customer seleccionado en la lista de customers
+                    const selectedCustomer = this.customers.find(customer => customer.id === this.form.customer_id);
+                    if (selectedCustomer) {
+                        // Actualizar noteService.customer con la información del customer seleccionado
+                        this.noteService.customer = {
+                            identification_number: selectedCustomer.number,
+                            name: selectedCustomer.name,
+                            phone: selectedCustomer.phone,
+                            address: selectedCustomer.address,
+                            email: selectedCustomer.email,
+                            merchant_registration: "000000",
+                            type_document_identification_id: selectedCustomer.identity_document_type_id || 3, // Default CC
+                            type_organization_id: selectedCustomer.type_person_id,
+                            municipality_id_fact: selectedCustomer.city_id,
+                            type_regime_id: selectedCustomer.type_regime_id
+                        };
+
+                        // Agregar dv si es persona jurídica
+                        if (selectedCustomer.type_person_id == 2) {
+                            this.noteService.customer.dv = selectedCustomer.dv;
+                        }
+                    }
+                }
             },
 
             async submit() {
@@ -885,7 +909,11 @@
                 this.noteService.date = "";
                 this.noteService.time = "";
                 if(!this.note){
-                    this.noteService.type_operation_id = "8"
+                    if(this.noteService.type_document_id == 4)
+                        this.noteService.type_operation_id = "8"
+                    else
+                        if(this.noteService.type_document_id == 5)
+                            this.noteService.type_operation_id = "5"
                     this.noteService.invoice_period = {
                         start_date: moment(this.form.start_invoice_period).format('YYYY-MM-DD'),
                         end_date: moment(this.form.end_invoice_period).format('YYYY-MM-DD')
@@ -930,7 +958,12 @@
                     phone: customer.phone,
                     address: customer.address,
                     email: customer.email,
-                    merchant_registration: "000000"
+                    merchant_registration: "000000",
+                    // Campos requeridos para Colombian invoicing
+                    type_document_identification_id: customer.identity_document_type_id || 3, // Default CC
+                    type_organization_id: customer.type_person_id,
+                    municipality_id_fact: customer.city_id,
+                    type_regime_id: customer.type_regime_id
                 };
                 this.form.customer_id = customer.id
                 if (customer.type_person_id == 2) {

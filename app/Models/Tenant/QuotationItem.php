@@ -24,6 +24,7 @@ class QuotationItem extends ModelTenant
         'total_tax',
         'subtotal',
         'discount',
+        'notes',
     ];
 
     protected $casts = [
@@ -49,6 +50,6 @@ class QuotationItem extends ModelTenant
     {
         return $this->belongsTo(Quotation::class);
     }
-    
+
 
 }

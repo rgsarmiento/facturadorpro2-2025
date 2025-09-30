@@ -211,10 +211,14 @@
                                                         {{ row.item.presentation.hasOwnProperty('description') ?
                                                         row.item.presentation.description : ''}}
                                                     </template>
+                                                    <template v-if="row.notes">
+                                                        <br />
+                                                        <small class="text-muted"><i>{{ row.notes }}</i></small>
+                                                    </template>
                                                     <br />
-                                                    <small>{{ row.tax.name }}</small>
+                                                    <small>{{ row.tax ? row.tax.name : 'EXCLUIDO' }}</small>
                                                 </td>
-                                                <td class="text-center">{{ row.item.unit_type.name }}</td>
+                                                <td class="text-center">{{ row.item.unit_type ? row.item.unit_type.name : 'N/A' }}</td>
                                                 <td class="text-right">{{ row.quantity }}</td>
                                                 <td class="text-right">{{ ratePrefix() }} {{
                                                     getFormatUnitPriceRow(row.unit_price) }}</td>
@@ -410,7 +414,7 @@ export default {
         this.$eventHub.$on('reloadDataPersons', (customer_id) => {
             this.reloadDataCustomers(customer_id)
         })
-        
+
         // Realiza la petición a la configuración avanzada
         const response = await this.$http.get('/co-advanced-configuration/record');
         // Guarda la configuración en la propiedad local
@@ -588,7 +592,7 @@ export default {
                 console.warn("Faltan datos de configuración avanzada o de impuesto.");
                 row.unit_price = row.price;
             }
-            
+
             // Se agrega el ítem a la cotización
             if (this.recordItem) {
                 this.form.items[this.recordItem.indexi] = row;
@@ -596,7 +600,7 @@ export default {
             } else {
                 this.form.items.push(JSON.parse(JSON.stringify(row)));
             }
-            
+
             this.calculateTotal();
         },
         clickRemoveItem(index) {
@@ -713,8 +717,11 @@ export default {
                 return this.$message.error('La fecha de emisión no puede ser posterior a la de vencimiento');
             if (this.form.date_of_issue > this.form.delivery_date)
                 return this.$message.error('La fecha de emisión no puede ser posterior a la de entrega');
-            this.loading_submit = true
             // await this.changePaymentMethodType(false)
+            if(!this.form.customer_id){
+                return this.$message.error('Debe seleccionar un cliente')
+            }
+            this.loading_submit = true
             await this.$http.post(`/${this.resource}`, this.form).then(response => {
                 if (response.data.success) {
                     this.resetForm();
@@ -730,8 +737,17 @@ export default {
                     this.$message.error(response.data.message);
                 }
             }).catch(error => {
+                console.error('Error 422 - Detalles de validación:', error.response.data);
                 if (error.response.status === 422) {
                     this.errors = error.response.data;
+                    if (error.response.data.errors) {
+                        console.log('Errores de validación específicos:', error.response.data.errors);
+                        // Mostrar el primer error encontrado
+                        const firstError = Object.values(error.response.data.errors)[0];
+                        if (firstError && firstError[0]) {
+                            this.$message.error(firstError[0]);
+                        }
+                    }
                 }
                 else {
                     this.$message.error(error.response.data.message);

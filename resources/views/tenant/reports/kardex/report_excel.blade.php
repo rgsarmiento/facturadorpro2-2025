@@ -36,7 +36,7 @@
                     <td>
                         <p><strong>Establecimiento: </strong></p>
                     </td>
-                    <td align="center">{{$establishment->address}} - {{$establishment->department->description}} - {{$establishment->district->description}}</td>
+                    <td align="center">{{$establishment->address}}@if($establishment->department && $establishment->department->description) - {{$establishment->department->description}}@endif@if($establishment->city && $establishment->city->description) - {{$establishment->city->description}}@endif</td>
                 </tr>
             </table>
         </div>
@@ -64,13 +64,13 @@
                                 <td class="celda">
                                     @switch($value->type)
                                         @case('sale')
-                                            {{($value->sale_note_id) ? "Nota de Venta" : (($value->quantity >= 0) ? "Venta" : "Anulación")}}                                        
+                                            {{($value->sale_note_id) ? "Nota de Venta" : (($value->quantity >= 0) ? "Venta" : "Anulación")}}
                                             @break
                                         @case('purchase')
-                                            {{"Compra"}}                                                    
+                                            {{"Compra"}}
                                             @break
-                                        @default                                                    
-                                            {{"Stock Inicial"}}                                                    
+                                        @default
+                                            {{"Stock Inicial"}}
                                         @break
                                     @endswitch
                                 </td>
@@ -80,13 +80,13 @@
                                             {{($value->document_id) ? "{$value->document->series}-{$value->document->number}" : "{$value->sale_note->prefix}-{$value->sale_note->id}"}}
                                             @break
                                         @case('purchase')
-                                            {{"{$value->purchase->series}-{$value->purchase->number}"}}                                                    
+                                            {{"{$value->purchase->series}-{$value->purchase->number}"}}
                                             @break
-                                        @default                                                    
-                                            {{"-"}}                                                    
+                                        @default
+                                            {{"-"}}
                                         @break
                                     @endswitch
-                                </td>     
+                                </td>
                                 <td class="celda">{{($value->type == 'purchase' || !$value->type) ? number_format($value->quantity, 4) : number_format(0, 4)}}</td>
                                 <td class="celda">{{($value->type == 'sale') ? number_format($value->quantity, 4) : number_format(0, 4)}}</td>
                                 @php

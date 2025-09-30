@@ -409,7 +409,7 @@ strong{
                         E-mail: {{$company->email}}<br>
                     </div>
                 </div>
-            </div>    
+            </div>
         </div>
         <br/><br/>
 
@@ -423,8 +423,8 @@ strong{
                             Ciudad:<br>
                             Telefono:<br>
                             E-mail:<br>
-                </p>    
-            </div>    
+                </p>
+            </div>
 
             <div class="col-sm-3">
                 <p>
@@ -462,7 +462,12 @@ strong{
                         @foreach($document->detail_quotations as $item)
                             <tr>
                                 <td>{{$item->item->code}}</td>
-                                <td>{{$item->item->name}}</td>
+                                <td>
+                                    {{$item->item->name}}
+                                    @if($item->notes)
+                                        <br><small style="font-style: italic; color: #666;">{{$item->notes}}</small>
+                                    @endif
+                                </td>
                                 <td class="text-right">{{number_format($item->quantity, 2)}}</td>
                                 <td class="text-right">{{$item->item->type_unit->name}}</td>
                                 <td class="text-right">{{number_format($item->price, 2)}}</td>
@@ -510,7 +515,7 @@ strong{
                                                         <td>{{$item->rate}}%</td>
                                                         <td>{{number_format($item->total, 2)}}</td>
                                                     </tr>
-                                                @endif    
+                                                @endif
                                             @endforeach
                                         @endif
                                     </tbody>
@@ -538,7 +543,7 @@ strong{
                                                         <td>{{$item->rate}}%</td>
                                                         <td>{{number_format($item->retention, 2)}}</td>
                                                     </tr>
-                                                @endif    
+                                                @endif
                                             @endforeach
                                         @endif
                                     </tbody>
@@ -609,6 +614,6 @@ strong{
         <div id="footer">
             <p id='mi-texto'>Cotizacion No: {{$document->id}} - Fecha: {{Carbon\Carbon::parse($document->date_issue)->format('Y-m-d')}}<br></p>
         </div>
-    </div>   
+    </div>
 </body>
 </html>

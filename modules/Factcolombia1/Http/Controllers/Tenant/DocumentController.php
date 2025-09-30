@@ -200,7 +200,7 @@ class DocumentController extends Controller
     {
         // Verificar si se requieren todos los registros (convierte string 'true'/'false' a boolean)
         $loadAll = filter_var($request->get('load_all', 'false'), FILTER_VALIDATE_BOOLEAN);
-        
+
         // Excluir response_api y otros campos JSON pesados para optimizar
         // data_json, health_fields, order_reference también son longtext que ralentizan
         $records = Document::select([
@@ -209,7 +209,7 @@ class DocumentController extends Controller
             'soap_type_id', 'calculationrate', 'prefix', 'number', 'xml', 'cufe',
             'acknowledgment_received', 'type_invoice_id', 'currency_id', 'date_expiration',
             'observation', 'reference_id', 'note_concept_id', 'sale', 'taxes', 'total_tax',
-            'subtotal', 'version_ubl_id', 'ambient_id', 
+            'subtotal', 'version_ubl_id', 'ambient_id',
             'payment_form_id', 'payment_method_id',
             'time_days_credit', 'correlative_api', 'response_api_status', 'date_of_issue',
             'time_of_issue', 'customer_id', 'customer', 'quotation_id', 'sale_note_id',
@@ -222,7 +222,7 @@ class DocumentController extends Controller
 
         // Determinar si hay una búsqueda activa
         $hasSearch = $request->filled('value');
-        
+
         // Solo aplicar búsqueda si realmente hay un valor
         if ($hasSearch) {
             // Si hay búsqueda, buscar en TODA la base de datos (sin límite de fecha)
@@ -928,16 +928,38 @@ class DocumentController extends Controller
                 $service_invoice['payment_form']['duration_measure'] = $request->time_days_credit;
             }
 //\Log::debug(json_encode($service_invoice));
-            if(in_array($service_invoice['customer']['type_document_identification_id'], [1, 2, 3, 6, 10]))
+            // Verificar que existe el campo type_document_identification_id o usar valor por defecto
+            $type_document_id = isset($service_invoice['customer']['type_document_identification_id'])
+                ? $service_invoice['customer']['type_document_identification_id']
+                : 3; // Valor por defecto para cédula de ciudadanía
+
+            if(in_array($type_document_id, [1, 2, 3, 6, 10]))
                 $service_invoice['customer']['dv'] = $this->validarDigVerifDIAN($service_invoice['customer']['identification_number']);
             else{
                 $city = City::where('id', $service_invoice['customer']['municipality_name'])->first();
-                $service_invoice['customer']['municipality_name'] = $city->name;
-                $state = Department::where('id', $city->department_id)->first();
-                $service_invoice['customer']['state_name'] = $state->name;
-                $country = ServiceCountry::where('code', 'like', '%'.Country::where('id', $state->country_id)->first()->code.'%')->first();
-//                \Log::debug($country);
-                $service_invoice['customer']['country_id'] = $country->id;
+                if($city) {
+                    $service_invoice['customer']['municipality_name'] = $city->name;
+                    $state = Department::where('id', $city->department_id)->first();
+                    if($state) {
+                        $service_invoice['customer']['state_name'] = $state->name;
+                        $country = ServiceCountry::where('code', 'like', '%'.Country::where('id', $state->country_id)->first()->code.'%')->first();
+                        if($country) {
+                            $service_invoice['customer']['country_id'] = $country->id;
+                        } else {
+                            \Log::warning('No se encontró country para state_id: ' . $state->country_id);
+                            $service_invoice['customer']['country_id'] = 1; // Valor por defecto
+                        }
+                    } else {
+                        \Log::warning('No se encontró department para city_id: ' . $city->department_id);
+                        $service_invoice['customer']['state_name'] = 'No definido';
+                        $service_invoice['customer']['country_id'] = 1; // Valor por defecto
+                    }
+                } else {
+                    \Log::warning('No se encontró city para municipality_name: ' . $service_invoice['customer']['municipality_name']);
+                    $service_invoice['customer']['municipality_name'] = 'No definido';
+                    $service_invoice['customer']['state_name'] = 'No definido';
+                    $service_invoice['customer']['country_id'] = 1; // Valor por defecto
+                }
             }
 //            \Log::debug("A");
             $id_test = $company->test_id;
@@ -1511,16 +1533,39 @@ class DocumentController extends Controller
             else
                 $service_invoice['payment_form']['payment_due_date'] = date('Y-m-d', strtotime($request->date_expiration));
             $service_invoice['payment_form']['duration_measure'] = $request->time_days_credit;
-            if(in_array($service_invoice['customer']['type_document_identification_id'], [1, 2, 3, 6, 10]))
+
+            // Verificar que existe el campo type_document_identification_id o usar valor por defecto
+            $type_document_id = isset($service_invoice['customer']['type_document_identification_id'])
+                ? $service_invoice['customer']['type_document_identification_id']
+                : 3; // Valor por defecto para cédula de ciudadanía
+
+            if(in_array($type_document_id, [1, 2, 3, 6, 10]))
                 $service_invoice['customer']['dv'] = $this->validarDigVerifDIAN($service_invoice['customer']['identification_number']);
             else{
                 $city = City::where('id', $service_invoice['customer']['municipality_name'])->first();
-                $service_invoice['customer']['municipality_name'] = $city->name;
-                $state = Department::where('id', $city->department_id)->first();
-                $service_invoice['customer']['state_name'] = $state->name;
-                $country = ServiceCountry::where('code', 'like', '%'.Country::where('id', $state->country_id)->first()->code.'%')->first();
-//                \Log::debug($country);
-                $service_invoice['customer']['country_id'] = $country->id;
+                if($city) {
+                    $service_invoice['customer']['municipality_name'] = $city->name;
+                    $state = Department::where('id', $city->department_id)->first();
+                    if($state) {
+                        $service_invoice['customer']['state_name'] = $state->name;
+                        $country = ServiceCountry::where('code', 'like', '%'.Country::where('id', $state->country_id)->first()->code.'%')->first();
+                        if($country) {
+                            $service_invoice['customer']['country_id'] = $country->id;
+                        } else {
+                            \Log::warning('No se encontró country para state_id: ' . $state->country_id);
+                            $service_invoice['customer']['country_id'] = 1; // Valor por defecto
+                        }
+                    } else {
+                        \Log::warning('No se encontró department para city_id: ' . $city->department_id);
+                        $service_invoice['customer']['state_name'] = 'No definido';
+                        $service_invoice['customer']['country_id'] = 1; // Valor por defecto
+                    }
+                } else {
+                    \Log::warning('No se encontró city para municipality_name: ' . $service_invoice['customer']['municipality_name']);
+                    $service_invoice['customer']['municipality_name'] = 'No definido';
+                    $service_invoice['customer']['state_name'] = 'No definido';
+                    $service_invoice['customer']['country_id'] = 1; // Valor por defecto
+                }
             }
             if($request->currency_id != 170)
                 $service_invoice['currency_id'] = TypeCurrency::where('code', 'like', Currency::where('id', $request->currency_id)->first()['code'].'%')->first()['id'];
@@ -1647,23 +1692,61 @@ class DocumentController extends Controller
                 $note_service['establishment_phone'] = $sucursal->telephone;
             $note_service['establishment_email'] = $sucursal->email;
 
-            if(in_array($note_service['customer']['type_document_identification_id'], [1, 2, 3, 6, 10]))
+            // Verificar que existe el campo type_document_identification_id o usar valor por defecto
+            $type_document_id = isset($note_service['customer']['type_document_identification_id'])
+                ? $note_service['customer']['type_document_identification_id']
+                : 3; // Valor por defecto para cédula de ciudadanía
+
+            if(in_array($type_document_id, [1, 2, 3, 6, 10]))
                 $note_service['customer']['dv'] = $this->validarDigVerifDIAN($note_service['customer']['identification_number']);
             else{
-                $city = City::where('id', $note_service['customer']['municipality_id_fact'])->first();
-                $note_service['customer']['municipality_name'] = $city->name;
-                $state = Department::where('id', $city->department_id)->first();
-                $note_service['customer']['state_name'] = $state->name;
-                $country = ServiceCountry::where('code', 'like', '%'.Country::where('id', $state->country_id)->first()->code.'%')->first();
-//                \Log::debug($country);
-                $note_service['customer']['country_id'] = $country->id;
+                // Verificar que municipality_id_fact existe y tiene un valor válido
+                if(!isset($note_service['customer']['municipality_id_fact']) || empty($note_service['customer']['municipality_id_fact'])) {
+                    \Log::warning('municipality_id_fact no está definido o está vacío en note_service[customer]');
+                    $note_service['customer']['municipality_name'] = 'No definido';
+                    $note_service['customer']['state_name'] = 'No definido';
+                    $note_service['customer']['country_id'] = 1; // Valor por defecto Colombia
+                } else {
+                    \Log::debug('Buscando city con municipality_id_fact: ' . $note_service['customer']['municipality_id_fact']);
+                    $city = City::where('id', $note_service['customer']['municipality_id_fact'])->first();
+                    if($city) {
+                        \Log::debug('City encontrada: ' . $city->name);
+                        $note_service['customer']['municipality_name'] = $city->name;
+                        $state = Department::where('id', $city->department_id)->first();
+                        if($state) {
+                            \Log::debug('Department encontrado: ' . $state->name);
+                            $note_service['customer']['state_name'] = $state->name;
+                            $country = ServiceCountry::where('code', 'like', '%'.Country::where('id', $state->country_id)->first()->code.'%')->first();
+                            if($country) {
+                                \Log::debug('Country encontrado: ' . $country->id);
+                                $note_service['customer']['country_id'] = $country->id;
+                            } else {
+                                \Log::warning('No se encontró country para state_id: ' . $state->country_id);
+                                $note_service['customer']['country_id'] = 1; // Valor por defecto
+                            }
+                        } else {
+                            \Log::warning('No se encontró department para city_id: ' . $city->department_id);
+                            $note_service['customer']['state_name'] = 'No definido';
+                            $note_service['customer']['country_id'] = 1; // Valor por defecto
+                        }
+                    } else {
+                        \Log::warning('No se encontró city para municipality_id_fact: ' . $note_service['customer']['municipality_id_fact']);
+                        $note_service['customer']['municipality_name'] = 'No definido';
+                        $note_service['customer']['state_name'] = 'No definido';
+                        $note_service['customer']['country_id'] = 1; // Valor por defecto
+                    }
+                }
                 unset($note_service['customer']['municipality_id_fact']);
                 unset($note_service['customer']['dv']);
             }
-
-            $billing_reference_number = explode('-', $note_service['billing_reference']['number']);
-            $document_source = Document::where('prefix', $billing_reference_number[0])->where('number', $billing_reference_number[1])->first();
-
+            if(isset($note_service['billing_reference'])){
+                $billing_reference_number = explode('-', $note_service['billing_reference']['number']);
+                $document_source = Document::where('prefix', $billing_reference_number[0])->where('number', $billing_reference_number[1])->first();
+            }
+            else{
+                $billing_reference_number = null;
+                $document_source = null;
+            }
             if($request->currency_id != 170)
                 $note_service['currency_id'] = TypeCurrency::where('code', 'like', Currency::where('id', $request->currency_id)->first()['code'].'%')->first()['id'];
             else
@@ -1701,6 +1784,7 @@ class DocumentController extends Controller
                 $note_service['k_supplement_national']['ReteIcaCop'] = "0.00";
                 $note_service['k_supplement_national']['TotAnticiposCop'] = "0.00";
             }
+
             $data_document_foreign_currency = json_encode($this->multiplyMonetaryValues($note_service, $calculationRate));
             $note_service['foot_note'] = "Modo de operación: Software Propio - by ".env('APP_NAME', 'TORRE SOFTWARE');
             $id_test = $company->test_id;
@@ -1711,10 +1795,10 @@ class DocumentController extends Controller
                 $ch = curl_init("{$base_url}ubl2.1/{$url_name_note}");
             $data_document = json_encode($note_service);
 
-//\Log::debug("{$base_url}ubl2.1/{$url_name_note}");
-//\Log::debug($company->api_token);
-//\Log::debug($correlative_api);
-//\Log::debug($data_document);
+\Log::debug("{$base_url}ubl2.1/{$url_name_note}");
+\Log::debug($company->api_token);
+\Log::debug($correlative_api);
+\Log::debug($data_document);
 //\Log::debug($data_document_foreign_currency);
 //            return $data_document;
 //            return "";
@@ -1733,7 +1817,7 @@ class DocumentController extends Controller
             ));
             $response = curl_exec($ch);
             curl_close($ch);
-//\Log::debug($response);
+\Log::debug($response);
 //return "";
 
             $response_model = json_decode($response);
@@ -2089,9 +2173,9 @@ class DocumentController extends Controller
         }
 
         $company = ServiceTenantCompany::firstOrFail();
-        \Log::debug('getCorrelativeInvoice - type_service: ' . $type_service . ', prefix: ' . $prefix . ', ignore_state: ' . ($ignore_state_document_id ? 'true' : 'false'));
+//        \Log::debug('getCorrelativeInvoice - type_service: ' . $type_service . ', prefix: ' . $prefix . ', ignore_state: ' . ($ignore_state_document_id ? 'true' : 'false'));
         $url = $this->getBaseUrlCorrelativeInvoice($type_service, $prefix, $ignore_state_document_id);
-        \Log::debug('URL generada para correlativo: ' . $url);
+//        \Log::debug('URL generada para correlativo: ' . $url);
         $ch2 = curl_init($url);
 //        dd($url, $ch2);
         curl_setopt($ch2, CURLOPT_RETURNTRANSFER, true);
@@ -2107,9 +2191,9 @@ class DocumentController extends Controller
         $err = curl_error($ch2);
         curl_close($ch2);
         $response_encode = json_decode($response_data);
-        \Log::debug($url);
-        \Log::debug($company->api_token);
-        \Log::debug($response_data);
+//        \Log::debug($url);
+//        \Log::debug($company->api_token);
+//        \Log::debug($response_data);
         if($err){
             return null;
         }
@@ -2888,12 +2972,14 @@ class DocumentController extends Controller
             $service_invoice['prefix'] = $request->prefix;
             $service_invoice['resolution_number'] = $request->resolution_number;
 
-            if ($request->order_reference)
-            {
-                if (isset($request['order_reference']['issue_date_order']) && isset($request['order_reference']['id_order']))
+            if(isset($request['order_reference'])){
+                if ($request->order_reference)
                 {
-                    $service_invoice['order_reference']['id_order'] = $request['order_reference']['id_order'];
-                    $service_invoice['order_reference']['issue_date_order'] = $request['order_reference']['issue_date_order'];
+                    if (isset($request['order_reference']['issue_date_order']) && isset($request['order_reference']['id_order']))
+                    {
+                        $service_invoice['order_reference']['id_order'] = $request['order_reference']['id_order'];
+                        $service_invoice['order_reference']['issue_date_order'] = $request['order_reference']['issue_date_order'];
+                    }
                 }
             }
 

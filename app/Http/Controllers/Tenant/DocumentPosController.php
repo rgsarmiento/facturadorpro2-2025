@@ -1285,7 +1285,19 @@ class DocumentPosController extends Controller
 
     public function setJsonAnulate($document) {
         $company = Company::active();
-        $request_api = json_decode($document->request_api);
+
+        $request_api = json_decode($document->request_api, true); // decodificar como array
+        $invoice_lines = $request_api['invoice_lines'];
+        $tax_exclusive_amount = 0;
+        foreach ($invoice_lines as $line) {
+            if (isset($line['tax_totals'])) {
+                foreach ($line['tax_totals'] as $tax_total) {
+                    $tax_exclusive_amount += floatval($tax_total['taxable_amount']);
+                }
+            }
+        }
+
+        $request_api = json_decode($document->request_api); // decodificar como objeto
         if($request_api->type_document_id == 15)
             $document_type = TypeDocument::where('code', 26)->first();
         else
@@ -1325,6 +1337,7 @@ class DocumentPosController extends Controller
             'legal_monetary_totals' => $request_api->legal_monetary_totals,
             'credit_note_lines' => $request_api->invoice_lines
         ];
+        $json['legal_monetary_totals']->tax_exclusive_amount = (string)$tax_exclusive_amount;
         return $json;
     }
 
