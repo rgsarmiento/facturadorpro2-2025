@@ -1,0 +1,10 @@
+[2025-09-30 16:05:29] local.ERROR: Uncaught Error: Call to undefined method App\Http\Kernel::getRouteMiddleware() in Command line code:1
+Stack trace:
+#0 {main}
+  thrown {"exception":"[object] (Symfony\\Component\\Debug\\Exception\\FatalErrorException(code: 1): Uncaught Error: Call to undefined method App\\Http\\Kernel::getRouteMiddleware() in Command line code:1
+Stack trace:
+#0 {main}
+  thrown at Command line code:1)
+[stacktrace]
+#0 {main}
+"} 
