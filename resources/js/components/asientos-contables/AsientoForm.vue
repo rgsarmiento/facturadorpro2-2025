@@ -77,6 +77,23 @@
                             <i class="fa fa-arrow-left"></i>
                             Cancelar / Volver al Listado
                         </a>
+
+                        <!-- Debug button (development only) -->
+                        <button type="button"
+                                class="btn btn-warning btn-block mt-2"
+                                @click="debugAsientoData()">
+                            <i class="fa fa-bug"></i>
+                            Debug Estado
+                        </button>
+
+                        <!-- Botón de debug temporal -->
+                        <button v-if="isEditing"
+                                type="button"
+                                @click="debugAsientoData"
+                                class="btn btn-info btn-block btn-sm mt-2">
+                            <i class="fa fa-bug"></i>
+                            Debug: Ver datos del asiento
+                        </button>
                     </div>
                 </div>
             </div>
@@ -302,6 +319,7 @@ export default {
                 tipo_comprobante_id: '',
                 fecha_asiento: new Date().toISOString().substr(0, 10),
                 concepto: '',
+                estado: 'borrador', // Estado por defecto
                 detalles: [
                     {
                         cuenta_contable_id: '',
@@ -489,6 +507,24 @@ export default {
                 if (!this.form.concepto || this.form.concepto.trim() === '') {
                     alert('Debe ingresar el concepto del asiento.');
                     return;
+                }
+
+                // Validar que el asiento esté en estado borrador si estamos editando
+                if (this.isEditing) {
+                    console.log('Validando estado del asiento:');
+                    console.log('- Estado actual:', this.form.estado);
+                    console.log('- Tipo de estado:', typeof this.form.estado);
+                    console.log('- Es borrador?:', this.form.estado === 'borrador');
+
+                    const estadosPermitidos = ['borrador', 'draft', 'BORRADOR', 'DRAFT', null, undefined, ''];
+                    const puedeEditar = estadosPermitidos.includes(this.form.estado);
+
+                    console.log('- Puede editar?:', puedeEditar);
+
+                    if (!puedeEditar) {
+                        alert(`Solo se pueden modificar asientos en estado borrador. Estado actual: "${this.form.estado}"`);
+                        return;
+                    }
                 }                // Preparar FormData para enviar archivos
                 const formData = new FormData();
 
@@ -497,10 +533,42 @@ export default {
                 formData.append('fecha_asiento', this.form.fecha_asiento);
                 formData.append('concepto', this.form.concepto);
 
+                // Normalizar estado a minúsculas para el servidor
+                const estadoParaServidor = this.form.estado ? this.form.estado.toLowerCase() : 'borrador';
+                formData.append('estado', estadoParaServidor);
+
+                // También agregar con nombres alternativos que el backend podría esperar
+                formData.append('fecha', this.form.fecha_asiento); // Backend might expect 'fecha'
+                formData.append('descripcion', this.form.concepto); // Backend might expect 'descripcion'
+
+                console.log('=== FORMDATA DEBUG ===');
+                console.log('estado original:', this.form.estado);
+                console.log('estado normalizado:', estadoParaServidor);
+                console.log('isEditing:', this.isEditing);
+
                 // Si estamos editando, agregar el ID
                 if (this.isEditing && this.form.id) {
                     formData.append('id', this.form.id);
                     formData.append('_method', 'PUT');
+
+                    // Asegurar que los totales sean números válidos
+                    const totalDebitoNum = parseFloat(this.totalDebito) || 0;
+                    const totalCreditoNum = parseFloat(this.totalCredito) || 0;
+
+                    console.log('Totales calculados:', {
+                        totalDebito: totalDebitoNum,
+                        totalCredito: totalCreditoNum,
+                        totalDebito_type: typeof totalDebitoNum,
+                        totalCredito_type: typeof totalCreditoNum
+                    });
+
+                    // Para el update, el servidor espera total_debito y total_credito
+                    formData.append('total_debito', totalDebitoNum.toFixed(2));
+                    formData.append('total_credito', totalCreditoNum.toFixed(2));
+
+                    // También enviar con nombres alternativos por compatibilidad
+                    formData.append('total_debe', totalDebitoNum.toFixed(2));
+                    formData.append('total_haber', totalCreditoNum.toFixed(2));
                 }
 
                 // Agregar detalles válidos (que tengan cuenta y valor)
@@ -509,31 +577,87 @@ export default {
                     (parseFloat(detalle.debito) > 0 || parseFloat(detalle.credito) > 0)
                 );
 
+                console.log('Detalles válidos a enviar:', detallesValidos.map(d => ({
+                    cuenta_contable_id: d.cuenta_contable_id,
+                    tercero_id: d.tercero_id,
+                    concepto: d.concepto,
+                    debito: d.debito,
+                    credito: d.credito,
+                    requiere_tercero: d.requiere_tercero
+                })));
+
+                // Validación: verificar que todos los conceptos estén completos
+                const conceptosVacios = detallesValidos.filter(detalle =>
+                    !detalle.concepto || detalle.concepto.trim() === ''
+                );
+
+                if (conceptosVacios.length > 0) {
+                    alert('Error: Todos los detalles deben tener un concepto. Por favor complete todos los campos de concepto.');
+                    this.saving = false;
+                    return;
+                }
+
                 // Enviar detalles de forma estructurada para Laravel
                 detallesValidos.forEach((detalle, index) => {
                     formData.append(`detalles[${index}][cuenta_contable_id]`, detalle.cuenta_contable_id);
-                    formData.append(`detalles[${index}][tercero_id]`, detalle.tercero_id || '');
-                    formData.append(`detalles[${index}][debito]`, detalle.debito || '0.00');
-                    formData.append(`detalles[${index}][credito]`, detalle.credito || '0.00');
-                    formData.append(`detalles[${index}][concepto]`, detalle.concepto || '');
+
+                    // Solo enviar tercero_id si tiene valor válido
+                    if (detalle.tercero_id && detalle.tercero_id !== '' && detalle.tercero_id !== null) {
+                        formData.append(`detalles[${index}][tercero_id]`, detalle.tercero_id);
+                    }
+
+                    // Asegurar que siempre enviamos valores numéricos válidos
+                    const debitoValue = parseFloat(detalle.debito) || 0;
+                    const creditoValue = parseFloat(detalle.credito) || 0;
+
+                    // El servidor espera 'debe' y 'haber' en lugar de 'debito' y 'credito'
+                    formData.append(`detalles[${index}][debe]`, debitoValue.toFixed(2));
+                    formData.append(`detalles[${index}][haber]`, creditoValue.toFixed(2));
+
+                    formData.append(`detalles[${index}][concepto]`, detalle.concepto.trim());
+
+                    // También mantener los nombres originales por compatibilidad
+                    formData.append(`detalles[${index}][debito]`, debitoValue.toFixed(2));
+                    formData.append(`detalles[${index}][credito]`, creditoValue.toFixed(2));
+
+                    // Log individual de cada detalle que se envía
+                    console.log(`Detalle ${index}:`, {
+                        cuenta_contable_id: detalle.cuenta_contable_id,
+                        tercero_id: detalle.tercero_id,
+                        debe: debitoValue.toFixed(2),
+                        haber: creditoValue.toFixed(2),
+                        concepto: detalle.concepto.trim()
+                    });
                 });
 
                 // Agregar archivos adjuntos
                 this.adjuntosFiles.forEach((file, index) => {
                     formData.append(`adjuntos[${index}]`, file);
                 });                console.log('Enviando datos del asiento:', {
+                    id: this.form.id,
                     tipo_comprobante_id: this.form.tipo_comprobante_id,
                     fecha_asiento: this.form.fecha_asiento,
                     concepto: this.form.concepto,
+                    estado: this.form.estado,
+                    isEditing: this.isEditing,
                     detalles: detallesValidos,
                     adjuntos: this.adjuntosFiles.length
                 });
 
-                // Debug: Mostrar qué se está enviando en FormData
+                // Debug: Mostrar qué se está enviando al servidor
+                console.log('=== SENDING TO SERVER ===');
+                console.log('URL:', this.isEditing
+                    ? `/contabilidad/asientos-contables/${this.form.id}`
+                    : '/contabilidad/asientos-contables');
+                console.log('Method:', this.isEditing ? 'POST (with _method=PUT)' : 'POST');
+                console.log('Estado being sent:', estadoParaServidor);
+
+                // Log completo del FormData para debugging
                 console.log('FormData contents:');
                 for (let pair of formData.entries()) {
                     console.log(pair[0] + ': ' + (pair[1] instanceof File ? `FILE: ${pair[1].name}` : pair[1]));
                 }
+                console.log('========================');
 
                 // Determinar URL según si estamos creando o editando
                 const url = this.isEditing
@@ -558,7 +682,13 @@ export default {
                 }
 
             } catch (error) {
-                console.error('Error saving asiento:', error);
+                console.error('=== ERROR SAVING ASIENTO ===');
+                console.error('Error object:', error);
+                console.error('Error response:', error.response);
+                console.error('Error response data:', error.response?.data);
+                console.error('Error response status:', error.response?.status);
+                console.error('Error message:', error.message);
+                console.error('========================');
 
                 if (error.response && error.response.data) {
                     // Mostrar errores de validación del servidor
@@ -671,10 +801,18 @@ export default {
 
             console.log('=== LOADING ASIENTO DATA ===');
             console.log('Asiento completo:', asiento);
+            console.log('Estado del asiento:', asiento.estado);
 
             // Cargar datos básicos del asiento
             this.form.id = asiento.id;
             this.form.tipo_comprobante_id = asiento.tipo_comprobante_id || '';
+            this.form.estado = asiento.estado || 'borrador'; // Cargar el estado
+
+            console.log('Estado cargado:', {
+                original: asiento.estado,
+                asignado: this.form.estado,
+                tipo: typeof this.form.estado
+            });
 
             let fechaAsiento = asiento.fecha_asiento || new Date().toISOString().substr(0, 10);
             if (fechaAsiento.includes(' ')) {
@@ -1072,6 +1210,17 @@ export default {
                     });
                 }
             });
+        },
+        debugAsientoData() {
+            console.log('=== DEBUG ASIENTO DATA ===');
+            console.log('Estado actual:', this.form.estado);
+            console.log('Estado type:', typeof this.form.estado);
+            console.log('ID del asiento:', this.form.id);
+            console.log('Is estado acceptable?', ['borrador', 'draft', 'BORRADOR', 'DRAFT', null, undefined, ''].includes(this.form.estado));
+            console.log('=== END DEBUG ===');
+
+            // También mostrar alerta para que sea visible sin consola
+            alert(`Estado: "${this.form.estado}" (${typeof this.form.estado})\nID: ${this.form.id}\nEs acceptable: ${['borrador', 'draft', 'BORRADOR', 'DRAFT', null, undefined, ''].includes(this.form.estado)}`);
         }
     }
 }

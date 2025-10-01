@@ -149,15 +149,25 @@ class AsientoContableController extends Controller
 
             // Crear los detalles
             if ($request->has('detalles')) {
+                // Validar que todos los detalles tengan concepto
+                foreach ($request->detalles as $index => $detalle) {
+                    if (empty($detalle['concepto']) || trim($detalle['concepto']) === '') {
+                        return [
+                            'success' => false,
+                            'message' => "El detalle " . ($index + 1) . " debe tener un concepto válido"
+                        ];
+                    }
+                }
+
                 $orden = 1;
                 foreach ($request->detalles as $detalle) {
                     DetalleAsientoContable::on('tenant')->create([
                         'asiento_contable_id' => $asiento->id,
                         'cuenta_contable_id' => $detalle['cuenta_contable_id'],
-                        'person_id' => $detalle['tercero_id'] ?? null, // Mapear tercero_id a person_id
-                        'concepto' => $detalle['concepto'],
-                        'debito' => $detalle['debito'] ?? 0,
-                        'credito' => $detalle['credito'] ?? 0,
+                        'person_id' => !empty($detalle['tercero_id']) ? $detalle['tercero_id'] : null, // Mapear tercero_id a person_id
+                        'concepto' => trim($detalle['concepto']),
+                        'debito' => floatval($detalle['debito'] ?? 0),
+                        'credito' => floatval($detalle['credito'] ?? 0),
                         'orden' => $orden++,
                     ]);
                 }
@@ -196,20 +206,18 @@ class AsientoContableController extends Controller
 
             $asiento = AsientoContable::on('tenant')->findOrFail($id);
 
-            // Solo permitir edición si está en borrador
-            if ($asiento->estado !== 'borrador') {
+            // Solo permitir edición si está en borrador (case-insensitive)
+            if (strtolower(trim($asiento->estado)) !== 'borrador') {
                 return [
                     'success' => false,
                     'message' => 'Solo se pueden modificar asientos en estado borrador'
                 ];
             }
 
-            // Actualizar datos del asiento
+            // Actualizar datos del asiento (sin los totales, se actualizarán después)
             $asiento->update([
                 'fecha_asiento' => $request->fecha_asiento,
                 'concepto' => $request->concepto,
-                'total_debe' => $request->total_debe,
-                'total_haber' => $request->total_haber,
                 'fecha_modificacion' => now(),
             ]);
 
@@ -217,18 +225,103 @@ class AsientoContableController extends Controller
             $asiento->detalles()->delete();
 
             if ($request->has('detalles')) {
-                foreach ($request->detalles as $detalle) {
-                    DetalleAsientoContable::on('tenant')->create([
-                        'asiento_contable_id' => $asiento->id,
-                        'cuenta_contable_id' => $detalle['cuenta_contable_id'],
-                        'tercero_id' => $detalle['tercero_id'] ?? null,
-                        'concepto' => $detalle['concepto'],
-                        'debe' => $detalle['debe'] ?? 0,
-                        'haber' => $detalle['haber'] ?? 0,
-                        'base_gravable' => $detalle['base_gravable'] ?? 0,
-                        'centro_costo_id' => $detalle['centro_costo_id'] ?? null,
-                    ]);
+                \Log::info('Detalles recibidos en update', $request->detalles);
+
+                // Validar que todos los detalles tengan concepto
+                foreach ($request->detalles as $index => $detalle) {
+                    if (empty($detalle['concepto']) || trim($detalle['concepto']) === '') {
+                        return [
+                            'success' => false,
+                            'message' => "El detalle " . ($index + 1) . " debe tener un concepto válido"
+                        ];
+                    }
                 }
+
+                // Calcular totales antes de crear los detalles
+                $totalDebito = 0;
+                $totalCredito = 0;
+                $orden = 1; // Inicializar contador de orden
+
+                foreach ($request->detalles as $detalle) {
+                    // Debug: mostrar los valores exactos recibidos
+                    \Log::info('Detalle recibido RAW', [
+                        'cuenta_contable_id' => $detalle['cuenta_contable_id'] ?? 'NULL',
+                        'tercero_id' => $detalle['tercero_id'] ?? 'NULL',
+                        'concepto' => $detalle['concepto'] ?? 'NULL',
+                        'debe_raw' => $detalle['debe'] ?? 'NULL',
+                        'haber_raw' => $detalle['haber'] ?? 'NULL',
+                        'debito_raw' => $detalle['debito'] ?? 'NULL',
+                        'credito_raw' => $detalle['credito'] ?? 'NULL',
+                        'orden' => $orden
+                    ]);
+
+                    // Limpiar y convertir valores numéricos de forma más robusta
+                    $debitoValue = 0;
+                    $creditoValue = 0;
+
+                    // Priorizar debe/haber, luego debito/credito
+                    if (isset($detalle['debe']) && $detalle['debe'] !== '' && $detalle['debe'] !== null) {
+                        $debitoValue = floatval(str_replace(',', '', $detalle['debe']));
+                    } elseif (isset($detalle['debito']) && $detalle['debito'] !== '' && $detalle['debito'] !== null) {
+                        $debitoValue = floatval(str_replace(',', '', $detalle['debito']));
+                    }
+
+                    if (isset($detalle['haber']) && $detalle['haber'] !== '' && $detalle['haber'] !== null) {
+                        $creditoValue = floatval(str_replace(',', '', $detalle['haber']));
+                    } elseif (isset($detalle['credito']) && $detalle['credito'] !== '' && $detalle['credito'] !== null) {
+                        $creditoValue = floatval(str_replace(',', '', $detalle['credito']));
+                    }
+
+                    // Acumular totales
+                    $totalDebito += $debitoValue;
+                    $totalCredito += $creditoValue;
+
+                    $detalleCreado = [
+                        'asiento_contable_id' => $asiento->id,
+                        'cuenta_contable_id' => intval($detalle['cuenta_contable_id']),
+                        'person_id' => !empty($detalle['tercero_id']) ? intval($detalle['tercero_id']) : null,
+                        'concepto' => trim($detalle['concepto']),
+                        'debito' => $debitoValue,
+                        'credito' => $creditoValue,
+                        'orden' => $orden, // Usar el contador consecutivo
+                    ];
+
+                    \Log::info('Detalle a crear (procesado)', $detalleCreado);
+
+                    try {
+                        DetalleAsientoContable::on('tenant')->create($detalleCreado);
+                        \Log::info('Detalle creado exitosamente');
+                        $orden++; // Incrementar orden para el siguiente detalle
+                    } catch (Exception $e) {
+                        \Log::error('Error creando detalle', [
+                            'error' => $e->getMessage(),
+                            'data' => $detalleCreado
+                        ]);
+                        throw $e;
+                    }
+                }
+
+                // Actualizar los totales en el asiento principal
+                \Log::info('Actualizando totales del asiento', [
+                    'total_debito' => $totalDebito,
+                    'total_credito' => $totalCredito
+                ]);
+
+                $asiento->update([
+                    'total_debito' => $totalDebito,
+                    'total_credito' => $totalCredito,
+                ]);
+            }
+
+            // Procesar archivos adjuntos si los hay
+            if ($request->hasFile('adjuntos')) {
+                \Log::info('Procesando adjuntos en update', ['count' => count($request->file('adjuntos'))]);
+                foreach ($request->file('adjuntos') as $archivo) {
+                    \Log::info('Procesando adjunto', ['filename' => $archivo->getClientOriginalName()]);
+                    $this->procesarAdjunto($archivo, $asiento->id);
+                }
+            } else {
+                \Log::info('No se recibieron adjuntos en update');
             }
 
             DB::commit();
@@ -236,7 +329,7 @@ class AsientoContableController extends Controller
             return [
                 'success' => true,
                 'message' => 'Asiento contable actualizado exitosamente',
-                'data' => $asiento->load(['detalles.cuentaContable', 'tipoComprobante'])
+                'data' => $asiento->load(['detalles.cuentaContable', 'detalles.tercero', 'tipoComprobante', 'adjuntos'])
             ];
 
         } catch (Exception $e) {
