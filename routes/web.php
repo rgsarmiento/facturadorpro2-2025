@@ -606,6 +606,7 @@ if ($hostname) {
                // Asientos Contables - Operaciones especiales
                Route::post('asientos-contables/{id}/confirmar', 'Tenant\AsientoContableController@confirmar');
                Route::post('asientos-contables/{id}/anular', 'Tenant\AsientoContableController@anular');
+               Route::get('asientos-contables/adjuntos/{id}/descargar', 'Tenant\AsientoContableController@descargarAdjunto')->name('tenant.asientos_contables.adjuntos.descargar');
                Route::delete('asientos-adjuntos/{id}', 'Tenant\AsientoContableController@eliminarAdjunto');
            });
 

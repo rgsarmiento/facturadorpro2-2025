@@ -529,4 +529,37 @@ class AsientoContableController extends Controller
 
         return ($ultimoConsecutivo ?? 0) + 1;
     }
+
+    /**
+     * Descargar un adjunto del asiento contable
+     */
+    public function descargarAdjunto($id)
+    {
+        $this->ensureTenantConnection();
+
+        try {
+            $adjunto = AsientoAdjunto::on('tenant')->findOrFail($id);
+
+            // Verificar que el archivo existe
+            if (!Storage::disk('tenant')->exists($adjunto->ruta_archivo)) {
+                abort(404, 'Archivo no encontrado');
+            }
+
+            // Obtener el contenido del archivo
+            $contenido = Storage::disk('tenant')->get($adjunto->ruta_archivo);
+
+            // Determinar el tipo MIME
+            $mimeType = Storage::disk('tenant')->mimeType($adjunto->ruta_archivo);
+
+            // Retornar la respuesta de descarga
+            return response($contenido)
+                ->header('Content-Type', $mimeType)
+                ->header('Content-Disposition', 'attachment; filename="' . $adjunto->nombre_archivo . '"')
+                ->header('Content-Length', strlen($contenido));
+
+        } catch (Exception $e) {
+            \Log::error('Error al descargar adjunto: ' . $e->getMessage());
+            abort(404, 'Error al descargar el archivo');
+        }
+    }
 }
