@@ -117,8 +117,10 @@
                                 </td>
 
                                 <!-- Tercero -->
+                                <!-- Tercero -->
                                 <td>
                                     <select v-if="detalle.requiere_tercero"
+                                            :ref="`terceroSelect${index}`"
                                             v-model="detalle.tercero_id"
                                             class="form-control"
                                             required>
@@ -129,10 +131,8 @@
                                             {{ getTerceroDisplayText(tercero) }}
                                         </option>
                                     </select>
-                                    <span v-else class="text-muted">No aplica</span>
-                                </td>
-
-                                <!-- Concepto -->
+                                    <span v-else class="text-muted">N/A</span>
+                                </td>                                <!-- Concepto -->
                                 <td>
                                     <input type="text"
                                            v-model="detalle.concepto"
@@ -219,7 +219,7 @@
                         <div v-if="adjuntosFiles.length > 0" class="mt-3">
                             <h6 class="text-success">
                                 <i class="fa fa-check-circle mr-2"></i>
-                                Archivos seleccionados ({{ adjuntosFiles.length }}):
+                                Archivos nuevos a subir ({{ adjuntosFiles.length }}):
                             </h6>
                             <div class="list-group">
                                 <div v-for="(file, index) in adjuntosFiles"
@@ -238,6 +238,40 @@
                                             title="Remover archivo">
                                         <i class="fa fa-times"></i>
                                     </button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Adjuntos existentes (modo edición) -->
+                        <div v-if="adjuntosExistentes.length > 0" class="mt-3">
+                            <h6 class="text-info">
+                                <i class="fa fa-cloud mr-2"></i>
+                                Archivos ya guardados ({{ adjuntosExistentes.length }}):
+                            </h6>
+                            <div class="list-group">
+                                <div v-for="(adjunto, index) in adjuntosExistentes"
+                                     :key="'existing-' + adjunto.id"
+                                     class="list-group-item d-flex justify-content-between align-items-center">
+                                    <div class="d-flex align-items-center">
+                                        <i class="fa fa-cloud-download mr-3 text-info"></i>
+                                        <div>
+                                            <div class="font-weight-medium">{{ adjunto.nombre }}</div>
+                                            <small class="text-muted">{{ formatFileSize(adjunto.tamaño) }} - Ya guardado</small>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <a :href="adjunto.url"
+                                           class="btn btn-sm btn-outline-primary mr-2"
+                                           title="Descargar archivo">
+                                            <i class="fa fa-download"></i>
+                                        </a>
+                                        <button type="button"
+                                                @click="removeExistingAdjunto(adjunto.id, index)"
+                                                class="btn btn-sm btn-outline-danger"
+                                                title="Eliminar archivo">
+                                            <i class="fa fa-trash"></i>
+                                        </button>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -296,7 +330,8 @@ export default {
             terceros: [],
             proximoConsecutivo: null,
             saving: false,
-            adjuntosFiles: []
+            adjuntosFiles: [],
+            adjuntosExistentes: []
         }
     },
     computed: {
@@ -650,6 +685,7 @@ export default {
 
             // Cargar detalles del asiento
             if (asiento.detalles && asiento.detalles.length > 0) {
+                console.log('Loading detalles:', asiento.detalles);
                 this.form.detalles = asiento.detalles.map((detalle) => {
                     let cuentaContable = null;
                     let requiereTercero = false;
@@ -659,10 +695,25 @@ export default {
                         requiereTercero = detalle.cuenta_contable.requiere_tercero || false;
                     }
 
+                    console.log(`Detalle ${detalle.id}:`, {
+                        cuenta_contable_id: detalle.cuenta_contable_id,
+                        tercero_id: detalle.tercero_id,
+                        tercero: detalle.tercero,
+                        requiere_tercero: requiereTercero
+                    });
+
+                    // Obtener el tercero_id correctamente
+                    let terceroId = '';
+                    if (detalle.tercero_id) {
+                        terceroId = detalle.tercero_id;
+                    } else if (detalle.tercero && detalle.tercero.id) {
+                        terceroId = detalle.tercero.id;
+                    }
+
                     return {
                         cuenta_contable_id: detalle.cuenta_contable_id || '',
                         cuenta_contable: cuentaContable,
-                        tercero_id: detalle.tercero_id || '',
+                        tercero_id: terceroId,
                         tercero: detalle.tercero || null,
                         requiere_tercero: requiereTercero,
                         debito: detalle.debito || '0.00',
@@ -672,42 +723,28 @@ export default {
                 });
             }
 
-            // Inicializar Select2 después de cargar los datos
-            this.$nextTick(() => {
-                this.initializeSelect2AfterDataLoad();
-            });
-        },
-        initializeSelect2AfterDataLoad() {
-            console.log('initializeSelect2AfterDataLoad called');
-
-            if (this.tiposComprobantes.length === 0) {
-                console.log('Tipos comprobantes not loaded yet, waiting...');
-                setTimeout(() => {
-                    this.initializeSelect2AfterDataLoad();
-                }, 300);
-                return;
+            // Cargar adjuntos del asiento
+            if (asiento.adjuntos && asiento.adjuntos.length > 0) {
+                console.log('Loading adjuntos:', asiento.adjuntos);
+                // Los adjuntos ya están guardados en el servidor, solo mostramos la información
+                // No los agregamos a adjuntosFiles porque son archivos ya existentes
+                this.adjuntosExistentes = asiento.adjuntos.map(adjunto => ({
+                    id: adjunto.id,
+                    nombre: adjunto.nombre_archivo,
+                    tamaño: adjunto.tamaño_archivo,
+                    url: `/contabilidad/asientos-contables/adjuntos/${adjunto.id}/descargar`
+                }));
             }
 
-            setTimeout(() => {
-                console.log('Initializing select2 components for edit mode...');
-                this.waitForSelect2(() => {
-                    this.initTipoComprobanteSelect2();
-
-                    setTimeout(() => {
-                        if (this.form.tipo_comprobante_id) {
-                            console.log('Setting tipo_comprobante_id after init:', this.form.tipo_comprobante_id);
-                            const $tipoSelect = $(this.$refs.tipoComprobanteSelect);
-                            if ($tipoSelect.length && $tipoSelect.hasClass('select2-hidden-accessible')) {
-                                $tipoSelect.val(this.form.tipo_comprobante_id).trigger('change');
-                            }
-                        }
-                    }, 200);
-
-                    setTimeout(() => {
-                        this.setAccountValuesAfterInit();
-                    }, 400);
-                });
-            }, 200);
+            // Inicializar selects nativos después de cargar los datos
+            this.$nextTick(() => {
+                console.log('Populating selects after loading asiento data...');
+                // Esperar un poco más para asegurar que el DOM esté completamente renderizado
+                setTimeout(() => {
+                    this.populateCuentasContablesOptions();
+                    this.populateTercerosOptions();
+                }, 100);
+            });
         },
         waitForSelect2(callback, maxAttempts = 50) {
             let attempts = 0;
@@ -848,6 +885,12 @@ export default {
                             selectElement.appendChild(option);
                         });
 
+                        // Establecer el valor seleccionado si existe
+                        if (detalle.cuenta_contable_id) {
+                            selectElement.value = detalle.cuenta_contable_id;
+                            console.log(`Set cuenta value for index ${index}: ${detalle.cuenta_contable_id}`);
+                        }
+
                         console.log(`Populated select ${index} with ${this.cuentasContables.length} options`);
                     } else {
                         console.warn(`Select element not found for index ${index}, ref: ${selectRef}`);
@@ -864,8 +907,14 @@ export default {
             // Esperar al siguiente tick para asegurar que los elementos estén en el DOM
             this.$nextTick(() => {
                 this.form.detalles.forEach((detalle, index) => {
+                    // Solo procesar si el detalle requiere tercero
+                    if (!detalle.requiere_tercero) {
+                        console.log(`Detalle ${index} no requiere tercero, skipping...`);
+                        return;
+                    }
+
                     const selectRef = `terceroSelect${index}`;
-                    console.log(`Looking for ref: ${selectRef}`);
+                    console.log(`Looking for ref: ${selectRef} (requiere_tercero: ${detalle.requiere_tercero})`);
 
                     // Los refs dinámicos en Vue pueden estar como array o elemento único
                     let selectElement = this.$refs[selectRef];
@@ -887,6 +936,12 @@ export default {
                             option.textContent = this.getTerceroDisplayText(tercero);
                             selectElement.appendChild(option);
                         });
+
+                        // Establecer el valor seleccionado si existe
+                        if (detalle.tercero_id) {
+                            selectElement.value = detalle.tercero_id;
+                            console.log(`Set tercero value for index ${index}: ${detalle.tercero_id}`);
+                        }
 
                         console.log(`Populated tercero select ${index} with ${this.terceros.length} options`);
                     } else {
@@ -936,6 +991,25 @@ export default {
         },
         removeFile(index) {
             this.adjuntosFiles.splice(index, 1);
+        },
+        removeExistingAdjunto(adjuntoId, index) {
+            if (confirm('¿Está seguro de que desea eliminar este archivo? Esta acción no se puede deshacer.')) {
+                // Eliminar del servidor
+                axios.delete(`/contabilidad/asientos-adjuntos/${adjuntoId}`)
+                    .then(response => {
+                        if (response.data.success) {
+                            // Eliminar de la lista local
+                            this.adjuntosExistentes.splice(index, 1);
+                            alert('Archivo eliminado exitosamente');
+                        } else {
+                            alert('Error al eliminar el archivo: ' + (response.data.message || 'Error desconocido'));
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error deleting adjunto:', error);
+                        alert('Error al eliminar el archivo');
+                    });
+            }
         },
         formatFileSize(bytes) {
             if (bytes === 0) return '0 Bytes';
