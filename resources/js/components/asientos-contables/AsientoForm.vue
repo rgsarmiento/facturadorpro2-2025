@@ -77,23 +77,6 @@
                             <i class="fa fa-arrow-left"></i>
                             Cancelar / Volver al Listado
                         </a>
-
-                        <!-- Debug button (development only) -->
-                        <button type="button"
-                                class="btn btn-warning btn-block mt-2"
-                                @click="debugAsientoData()">
-                            <i class="fa fa-bug"></i>
-                            Debug Estado
-                        </button>
-
-                        <!-- Botón de debug temporal -->
-                        <button v-if="isEditing"
-                                type="button"
-                                @click="debugAsientoData"
-                                class="btn btn-info btn-block btn-sm mt-2">
-                            <i class="fa fa-bug"></i>
-                            Debug: Ver datos del asiento
-                        </button>
                     </div>
                 </div>
             </div>
@@ -403,23 +386,13 @@ export default {
         }
     },
     async mounted() {
-        console.log('Component mounted');
-        console.log('Props received:');
-        console.log('- asientoData:', this.asientoData);
-        console.log('- isEditing:', this.isEditing);
-        console.log('- parsedAsientoData:', this.parsedAsientoData);
-        console.log('- isEditingMode:', this.isEditingMode);
-
-        console.log('Loading data in mounted...');
         await this.loadTiposComprobantes();
         await this.loadCuentasContables();
         await this.loadTerceros();
 
         if (this.isEditingMode && this.parsedAsientoData) {
-            console.log('Loading asiento data in edit mode...');
             this.loadAsientoData();
         } else {
-            console.log('Not in edit mode, form is ready for creation');
             // Ya no necesitamos inicializar Select2, Vue manejará los selects automáticamente
         }
     },
@@ -511,15 +484,9 @@ export default {
 
                 // Validar que el asiento esté en estado borrador si estamos editando
                 if (this.isEditing) {
-                    console.log('Validando estado del asiento:');
-                    console.log('- Estado actual:', this.form.estado);
-                    console.log('- Tipo de estado:', typeof this.form.estado);
-                    console.log('- Es borrador?:', this.form.estado === 'borrador');
 
                     const estadosPermitidos = ['borrador', 'draft', 'BORRADOR', 'DRAFT', null, undefined, ''];
                     const puedeEditar = estadosPermitidos.includes(this.form.estado);
-
-                    console.log('- Puede editar?:', puedeEditar);
 
                     if (!puedeEditar) {
                         alert(`Solo se pueden modificar asientos en estado borrador. Estado actual: "${this.form.estado}"`);
@@ -541,11 +508,6 @@ export default {
                 formData.append('fecha', this.form.fecha_asiento); // Backend might expect 'fecha'
                 formData.append('descripcion', this.form.concepto); // Backend might expect 'descripcion'
 
-                console.log('=== FORMDATA DEBUG ===');
-                console.log('estado original:', this.form.estado);
-                console.log('estado normalizado:', estadoParaServidor);
-                console.log('isEditing:', this.isEditing);
-
                 // Si estamos editando, agregar el ID
                 if (this.isEditing && this.form.id) {
                     formData.append('id', this.form.id);
@@ -554,13 +516,6 @@ export default {
                     // Asegurar que los totales sean números válidos
                     const totalDebitoNum = parseFloat(this.totalDebito) || 0;
                     const totalCreditoNum = parseFloat(this.totalCredito) || 0;
-
-                    console.log('Totales calculados:', {
-                        totalDebito: totalDebitoNum,
-                        totalCredito: totalCreditoNum,
-                        totalDebito_type: typeof totalDebitoNum,
-                        totalCredito_type: typeof totalCreditoNum
-                    });
 
                     // Para el update, el servidor espera total_debito y total_credito
                     formData.append('total_debito', totalDebitoNum.toFixed(2));
@@ -576,15 +531,6 @@ export default {
                     detalle.cuenta_contable_id &&
                     (parseFloat(detalle.debito) > 0 || parseFloat(detalle.credito) > 0)
                 );
-
-                console.log('Detalles válidos a enviar:', detallesValidos.map(d => ({
-                    cuenta_contable_id: d.cuenta_contable_id,
-                    tercero_id: d.tercero_id,
-                    concepto: d.concepto,
-                    debito: d.debito,
-                    credito: d.credito,
-                    requiere_tercero: d.requiere_tercero
-                })));
 
                 // Validación: verificar que todos los conceptos estén completos
                 const conceptosVacios = detallesValidos.filter(detalle =>
@@ -620,44 +566,14 @@ export default {
                     formData.append(`detalles[${index}][debito]`, debitoValue.toFixed(2));
                     formData.append(`detalles[${index}][credito]`, creditoValue.toFixed(2));
 
-                    // Log individual de cada detalle que se envía
-                    console.log(`Detalle ${index}:`, {
-                        cuenta_contable_id: detalle.cuenta_contable_id,
-                        tercero_id: detalle.tercero_id,
-                        debe: debitoValue.toFixed(2),
-                        haber: creditoValue.toFixed(2),
-                        concepto: detalle.concepto.trim()
-                    });
                 });
 
                 // Agregar archivos adjuntos
                 this.adjuntosFiles.forEach((file, index) => {
                     formData.append(`adjuntos[${index}]`, file);
-                });                console.log('Enviando datos del asiento:', {
-                    id: this.form.id,
-                    tipo_comprobante_id: this.form.tipo_comprobante_id,
-                    fecha_asiento: this.form.fecha_asiento,
-                    concepto: this.form.concepto,
-                    estado: this.form.estado,
-                    isEditing: this.isEditing,
-                    detalles: detallesValidos,
-                    adjuntos: this.adjuntosFiles.length
                 });
-
+                
                 // Debug: Mostrar qué se está enviando al servidor
-                console.log('=== SENDING TO SERVER ===');
-                console.log('URL:', this.isEditing
-                    ? `/contabilidad/asientos-contables/${this.form.id}`
-                    : '/contabilidad/asientos-contables');
-                console.log('Method:', this.isEditing ? 'POST (with _method=PUT)' : 'POST');
-                console.log('Estado being sent:', estadoParaServidor);
-
-                // Log completo del FormData para debugging
-                console.log('FormData contents:');
-                for (let pair of formData.entries()) {
-                    console.log(pair[0] + ': ' + (pair[1] instanceof File ? `FILE: ${pair[1].name}` : pair[1]));
-                }
-                console.log('========================');
 
                 // Determinar URL según si estamos creando o editando
                 const url = this.isEditing
@@ -745,14 +661,11 @@ export default {
         },
         async loadTiposComprobantes() {
             try {
-                console.log('Loading tipos comprobantes...');
                 const response = await axios.get('/contabilidad/asientos-contables/tipos-comprobantes');
                 if (response.data.success) {
                     this.tiposComprobantes = response.data.data;
-                    console.log('Tipos comprobantes loaded:', this.tiposComprobantes.length, 'items');
 
                     // Como ahora usamos v-model en el template, Vue automáticamente populará las opciones
-                    console.log('Tipos comprobantes are now available for Vue rendering');
                 }
             } catch (error) {
                 console.error('Error loading tipos comprobantes:', error);
@@ -763,8 +676,6 @@ export default {
                 const response = await axios.get('/contabilidad/asientos-contables/cuentas-contables');
                 if (response.data.success) {
                     this.cuentasContables = response.data.data;
-                    console.log('Cuentas contables loaded:', this.cuentasContables.length, 'items');
-                    console.log('Sample cuenta contable:', JSON.stringify(this.cuentasContables[0], null, 2));
 
                     // Popular los selects nativos después de cargar los datos
                     this.$nextTick(() => {
@@ -780,8 +691,6 @@ export default {
                 const response = await axios.get('/contabilidad/asientos-contables/terceros');
                 if (response.data.success) {
                     this.terceros = response.data.data;
-                    console.log('Terceros loaded:', this.terceros.length, 'items');
-                    console.log('Sample tercero:', JSON.stringify(this.terceros[0], null, 2));
 
                     // Popular los selects nativos después de cargar los datos
                     this.$nextTick(() => {
@@ -795,24 +704,13 @@ export default {
         loadAsientoData() {
             const asiento = this.parsedAsientoData;
             if (!asiento) {
-                console.log('No asiento data to load');
                 return;
             }
-
-            console.log('=== LOADING ASIENTO DATA ===');
-            console.log('Asiento completo:', asiento);
-            console.log('Estado del asiento:', asiento.estado);
 
             // Cargar datos básicos del asiento
             this.form.id = asiento.id;
             this.form.tipo_comprobante_id = asiento.tipo_comprobante_id || '';
             this.form.estado = asiento.estado || 'borrador'; // Cargar el estado
-
-            console.log('Estado cargado:', {
-                original: asiento.estado,
-                asignado: this.form.estado,
-                tipo: typeof this.form.estado
-            });
 
             let fechaAsiento = asiento.fecha_asiento || new Date().toISOString().substr(0, 10);
             if (fechaAsiento.includes(' ')) {
@@ -823,7 +721,6 @@ export default {
 
             // Cargar detalles del asiento
             if (asiento.detalles && asiento.detalles.length > 0) {
-                console.log('Loading detalles:', asiento.detalles);
                 this.form.detalles = asiento.detalles.map((detalle) => {
                     let cuentaContable = null;
                     let requiereTercero = false;
@@ -832,13 +729,6 @@ export default {
                         cuentaContable = detalle.cuenta_contable;
                         requiereTercero = detalle.cuenta_contable.requiere_tercero || false;
                     }
-
-                    console.log(`Detalle ${detalle.id}:`, {
-                        cuenta_contable_id: detalle.cuenta_contable_id,
-                        tercero_id: detalle.tercero_id,
-                        tercero: detalle.tercero,
-                        requiere_tercero: requiereTercero
-                    });
 
                     // Obtener el tercero_id correctamente
                     let terceroId = '';
@@ -863,7 +753,6 @@ export default {
 
             // Cargar adjuntos del asiento
             if (asiento.adjuntos && asiento.adjuntos.length > 0) {
-                console.log('Loading adjuntos:', asiento.adjuntos);
                 // Los adjuntos ya están guardados en el servidor, solo mostramos la información
                 // No los agregamos a adjuntosFiles porque son archivos ya existentes
                 this.adjuntosExistentes = asiento.adjuntos.map(adjunto => ({
@@ -876,7 +765,6 @@ export default {
 
             // Inicializar selects nativos después de cargar los datos
             this.$nextTick(() => {
-                console.log('Populating selects after loading asiento data...');
                 // Esperar un poco más para asegurar que el DOM esté completamente renderizado
                 setTimeout(() => {
                     this.populateCuentasContablesOptions();
@@ -889,10 +777,8 @@ export default {
             const checkSelect2 = () => {
                 attempts++;
                 if (typeof $ !== 'undefined' && typeof $.fn.select2 !== 'undefined') {
-                    console.log('Select2 is now available, proceeding with initialization...');
                     callback();
                 } else if (attempts < maxAttempts) {
-                    console.log(`Waiting for Select2... attempt ${attempts}/${maxAttempts}`);
                     setTimeout(checkSelect2, 100); // Esperar 100ms antes del siguiente intento
                 } else {
                     console.warn('Select2 could not be loaded after maximum attempts. Using native select fallback.');
@@ -903,7 +789,6 @@ export default {
             checkSelect2();
         },
         initializeNativeSelects() {
-            console.log('Initializing native select elements as fallback...');
             // Simplemente agregar las opciones a los selects nativos
             this.populateTipoComprobanteOptions();
         },
@@ -930,8 +815,6 @@ export default {
                 this.form.tipo_comprobante_id = e.target.value;
                 this.onTipoComprobanteChanged();
             });
-
-            console.log('Native select populated with', this.tiposComprobantes.length, 'options');
         },
         initTipoComprobanteSelect2() {
             if (typeof $.fn.select2 === 'undefined') {
@@ -946,8 +829,6 @@ export default {
                 console.error('tipoComprobanteSelect element not found');
                 return;
             }
-
-            console.log('Initializing tipo comprobante select2...');
 
             if (this.tiposComprobantes.length === 0) {
                 console.warn('No tipos comprobantes available to populate select');
@@ -970,15 +851,11 @@ export default {
                 allowClear: true
             }).on('change', function() {
                 const selectedValue = $(this).val();
-                console.log('Tipo comprobante changed to:', selectedValue);
                 vm.form.tipo_comprobante_id = selectedValue;
                 vm.onTipoComprobanteChanged();
             });
-
-            console.log('Tipo comprobante select2 initialized successfully');
         },
         initCuentasContablesSelect2() {
-            console.log('Initializing cuentas contables select2...');
             if (typeof $ === 'undefined' || typeof $.fn.select2 === 'undefined') {
                 console.warn('Select2 not available, using native selects for cuentas contables');
                 this.populateCuentasContablesOptions();
@@ -986,21 +863,15 @@ export default {
             }
 
             this.waitForSelect2(() => {
-                console.log('Select2 available, initializing cuentas contables selects...');
                 // Aquí podríamos implementar Select2 para las cuentas contables si fuera necesario
                 this.populateCuentasContablesOptions();
             });
         },
         populateCuentasContablesOptions() {
-            console.log('Populating cuentas contables native selects...');
-            console.log('Form detalles length:', this.form.detalles.length);
-            console.log('Available refs:', Object.keys(this.$refs));
-
             // Esperar al siguiente tick para asegurar que los elementos estén en el DOM
             this.$nextTick(() => {
                 this.form.detalles.forEach((detalle, index) => {
                     const selectRef = `cuentaSelect${index}`;
-                    console.log(`Looking for ref: ${selectRef}`);
 
                     // Los refs dinámicos en Vue pueden estar como array o elemento único
                     let selectElement = this.$refs[selectRef];
@@ -1010,7 +881,6 @@ export default {
                     }
 
                     if (selectElement) {
-                        console.log(`Found select element for index ${index}:`, selectElement);
 
                         // Limpiar opciones existentes excepto la primera
                         selectElement.innerHTML = '<option value="">Seleccionar cuenta</option>';
@@ -1026,33 +896,23 @@ export default {
                         // Establecer el valor seleccionado si existe
                         if (detalle.cuenta_contable_id) {
                             selectElement.value = detalle.cuenta_contable_id;
-                            console.log(`Set cuenta value for index ${index}: ${detalle.cuenta_contable_id}`);
                         }
-
-                        console.log(`Populated select ${index} with ${this.cuentasContables.length} options`);
                     } else {
                         console.warn(`Select element not found for index ${index}, ref: ${selectRef}`);
-                        console.log('Available refs at this moment:', Object.keys(this.$refs));
                     }
                 });
             });
         },
         populateTercerosOptions() {
-            console.log('Populating terceros native selects...');
-            console.log('Form detalles length:', this.form.detalles.length);
-            console.log('Available refs:', Object.keys(this.$refs));
-
             // Esperar al siguiente tick para asegurar que los elementos estén en el DOM
             this.$nextTick(() => {
                 this.form.detalles.forEach((detalle, index) => {
                     // Solo procesar si el detalle requiere tercero
                     if (!detalle.requiere_tercero) {
-                        console.log(`Detalle ${index} no requiere tercero, skipping...`);
                         return;
                     }
 
                     const selectRef = `terceroSelect${index}`;
-                    console.log(`Looking for ref: ${selectRef} (requiere_tercero: ${detalle.requiere_tercero})`);
 
                     // Los refs dinámicos en Vue pueden estar como array o elemento único
                     let selectElement = this.$refs[selectRef];
@@ -1062,7 +922,6 @@ export default {
                     }
 
                     if (selectElement) {
-                        console.log(`Found tercero select element for index ${index}:`, selectElement);
 
                         // Limpiar opciones existentes excepto la primera
                         selectElement.innerHTML = '<option value="">Seleccionar tercero</option>';
@@ -1078,23 +937,17 @@ export default {
                         // Establecer el valor seleccionado si existe
                         if (detalle.tercero_id) {
                             selectElement.value = detalle.tercero_id;
-                            console.log(`Set tercero value for index ${index}: ${detalle.tercero_id}`);
                         }
-
-                        console.log(`Populated tercero select ${index} with ${this.terceros.length} options`);
                     } else {
                         console.warn(`Tercero select element not found for index ${index}, ref: ${selectRef}`);
-                        console.log('Available refs at this moment:', Object.keys(this.$refs));
                     }
                 });
             });
         },
         setAccountValuesAfterInit() {
             // Implementar configuración de valores de cuentas después de la inicialización
-            console.log('Setting account values after init...');
         },
         waitForSelect2AndInitialize() {
-            console.log('Waiting for Select2 and initializing...');
             this.waitForSelect2(() => {
                 this.initTipoComprobanteSelect2();
             });
@@ -1171,7 +1024,6 @@ export default {
             }
         },
         populateSelectForNewRow(index) {
-            console.log(`Populating selects for new row ${index}...`);
 
             this.$nextTick(() => {
                 // Popular select de cuenta contable para la nueva fila
@@ -1210,17 +1062,6 @@ export default {
                     });
                 }
             });
-        },
-        debugAsientoData() {
-            console.log('=== DEBUG ASIENTO DATA ===');
-            console.log('Estado actual:', this.form.estado);
-            console.log('Estado type:', typeof this.form.estado);
-            console.log('ID del asiento:', this.form.id);
-            console.log('Is estado acceptable?', ['borrador', 'draft', 'BORRADOR', 'DRAFT', null, undefined, ''].includes(this.form.estado));
-            console.log('=== END DEBUG ===');
-
-            // También mostrar alerta para que sea visible sin consola
-            alert(`Estado: "${this.form.estado}" (${typeof this.form.estado})\nID: ${this.form.id}\nEs acceptable: ${['borrador', 'draft', 'BORRADOR', 'DRAFT', null, undefined, ''].includes(this.form.estado)}`);
         }
     }
 }
