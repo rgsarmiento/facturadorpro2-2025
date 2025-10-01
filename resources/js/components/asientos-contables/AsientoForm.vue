@@ -829,16 +829,16 @@ export default {
         },
         populateSelectForNewRow(index) {
             console.log(`Populating selects for new row ${index}...`);
-            
+
             this.$nextTick(() => {
                 // Popular select de cuenta contable para la nueva fila
                 const cuentaSelectRef = `cuentaSelect${index}`;
                 let cuentaSelect = this.$refs[cuentaSelectRef];
-                
+
                 if (Array.isArray(cuentaSelect)) {
                     cuentaSelect = cuentaSelect[0];
                 }
-                
+
                 if (cuentaSelect) {
                     cuentaSelect.innerHTML = '<option value="">Seleccionar cuenta</option>';
                     this.cuentasContables.forEach(cuenta => {
@@ -848,15 +848,15 @@ export default {
                         cuentaSelect.appendChild(option);
                     });
                 }
-                
+
                 // Popular select de tercero para la nueva fila
                 const terceroSelectRef = `terceroSelect${index}`;
                 let terceroSelect = this.$refs[terceroSelectRef];
-                
+
                 if (Array.isArray(terceroSelect)) {
                     terceroSelect = terceroSelect[0];
                 }
-                
+
                 if (terceroSelect) {
                     terceroSelect.innerHTML = '<option value="">Seleccionar tercero</option>';
                     this.terceros.forEach(tercero => {
