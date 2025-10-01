@@ -138,6 +138,7 @@
                                 <td>
                                     <input type="number"
                                            v-model="detalle.debito"
+                                           @input="onDebitoChanged(index, $event)"
                                            class="form-control text-right"
                                            step="0.01"
                                            min="0"
@@ -148,6 +149,7 @@
                                 <td>
                                     <input type="number"
                                            v-model="detalle.credito"
+                                           @input="onCreditoChanged(index, $event)"
                                            class="form-control text-right"
                                            step="0.01"
                                            min="0"
@@ -181,33 +183,57 @@
         <!-- Sección de adjuntos -->
         <div class="row mt-4">
             <div class="col-12">
-                <h5>Adjuntos (Opcional)</h5>
-                <div class="form-group">
-                    <input type="file"
-                           @change="onFilesSelected"
-                           class="form-control-file"
-                           multiple
-                           accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx">
-                    <small class="form-text text-muted">
-                        Formatos permitidos: PDF, imágenes, documentos de Word/Excel. Máximo 5MB por archivo.
-                    </small>
-                </div>
-
-                <div v-if="adjuntosFiles.length > 0" class="mt-3">
-                    <h6>Archivos seleccionados:</h6>
-                    <div class="list-group">
-                        <div v-for="(file, index) in adjuntosFiles"
-                             :key="index"
-                             class="list-group-item d-flex justify-content-between align-items-center">
-                            <div>
-                                <i class="fa fa-file"></i>
-                                {{ file.name }} ({{ formatFileSize(file.size) }})
+                <div class="card">
+                    <div class="card-header bg-light">
+                        <h5 class="mb-0">
+                            <i class="fa fa-paperclip mr-2"></i>
+                            Adjuntos (Opcional)
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="form-group">
+                            <div class="custom-file">
+                                <input type="file"
+                                       @change="onFilesSelected"
+                                       class="custom-file-input"
+                                       id="adjuntosInput"
+                                       multiple
+                                       accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx">
+                                <label class="custom-file-label" for="adjuntosInput">
+                                    <i class="fa fa-upload mr-2"></i>
+                                    Seleccionar archivos...
+                                </label>
                             </div>
-                            <button type="button"
-                                    @click="removeFile(index)"
-                                    class="btn btn-sm btn-outline-danger">
-                                <i class="fa fa-times"></i>
-                            </button>
+                            <small class="form-text text-muted mt-2">
+                                <i class="fa fa-info-circle mr-1"></i>
+                                Formatos permitidos: PDF, imágenes, documentos de Word/Excel. Máximo 5MB por archivo.
+                            </small>
+                        </div>
+
+                        <div v-if="adjuntosFiles.length > 0" class="mt-3">
+                            <h6 class="text-success">
+                                <i class="fa fa-check-circle mr-2"></i>
+                                Archivos seleccionados ({{ adjuntosFiles.length }}):
+                            </h6>
+                            <div class="list-group">
+                                <div v-for="(file, index) in adjuntosFiles"
+                                     :key="index"
+                                     class="list-group-item d-flex justify-content-between align-items-center">
+                                    <div class="d-flex align-items-center">
+                                        <i class="fa fa-file-o mr-3 text-primary"></i>
+                                        <div>
+                                            <div class="font-weight-medium">{{ file.name }}</div>
+                                            <small class="text-muted">{{ formatFileSize(file.size) }}</small>
+                                        </div>
+                                    </div>
+                                    <button type="button"
+                                            @click="removeFile(index)"
+                                            class="btn btn-sm btn-outline-danger"
+                                            title="Remover archivo">
+                                        <i class="fa fa-times"></i>
+                                    </button>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>
@@ -390,6 +416,7 @@ export default {
             console.log('Saving asiento:', this.form);
         },
         addDetalle() {
+            const newIndex = this.form.detalles.length;
             this.form.detalles.push({
                 cuenta_contable_id: '',
                 cuenta_contable: null,
@@ -401,10 +428,9 @@ export default {
                 concepto: ''
             });
 
-            // Reinicializar selects después de agregar nueva fila
+            // Solo popular el select de la nueva fila, sin afectar las existentes
             this.$nextTick(() => {
-                this.populateCuentasContablesOptions();
-                this.populateTercerosOptions();
+                this.populateSelectForNewRow(newIndex);
             });
         },
         removeDetalle(index) {
@@ -786,6 +812,61 @@ export default {
             const sizes = ['Bytes', 'KB', 'MB', 'GB'];
             const i = Math.floor(Math.log(bytes) / Math.log(k));
             return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        },
+        onDebitoChanged(index, event) {
+            const value = parseFloat(event.target.value) || 0;
+            if (value > 0) {
+                // Si débito > 0, poner crédito en 0
+                this.form.detalles[index].credito = '0.00';
+            }
+        },
+        onCreditoChanged(index, event) {
+            const value = parseFloat(event.target.value) || 0;
+            if (value > 0) {
+                // Si crédito > 0, poner débito en 0
+                this.form.detalles[index].debito = '0.00';
+            }
+        },
+        populateSelectForNewRow(index) {
+            console.log(`Populating selects for new row ${index}...`);
+            
+            this.$nextTick(() => {
+                // Popular select de cuenta contable para la nueva fila
+                const cuentaSelectRef = `cuentaSelect${index}`;
+                let cuentaSelect = this.$refs[cuentaSelectRef];
+                
+                if (Array.isArray(cuentaSelect)) {
+                    cuentaSelect = cuentaSelect[0];
+                }
+                
+                if (cuentaSelect) {
+                    cuentaSelect.innerHTML = '<option value="">Seleccionar cuenta</option>';
+                    this.cuentasContables.forEach(cuenta => {
+                        const option = document.createElement('option');
+                        option.value = cuenta.id;
+                        option.textContent = this.getCuentaDisplayText(cuenta);
+                        cuentaSelect.appendChild(option);
+                    });
+                }
+                
+                // Popular select de tercero para la nueva fila
+                const terceroSelectRef = `terceroSelect${index}`;
+                let terceroSelect = this.$refs[terceroSelectRef];
+                
+                if (Array.isArray(terceroSelect)) {
+                    terceroSelect = terceroSelect[0];
+                }
+                
+                if (terceroSelect) {
+                    terceroSelect.innerHTML = '<option value="">Seleccionar tercero</option>';
+                    this.terceros.forEach(tercero => {
+                        const option = document.createElement('option');
+                        option.value = tercero.id;
+                        option.textContent = this.getTerceroDisplayText(tercero);
+                        terceroSelect.appendChild(option);
+                    });
+                }
+            });
         }
     }
 }
@@ -815,5 +896,35 @@ export default {
 .balance-info.balance-desbalanceado {
     background-color: #f8d7da;
     color: #721c24;
+}
+
+/* Estilos para la sección de adjuntos */
+.custom-file-label {
+    cursor: pointer;
+    border: 2px dashed #007bff;
+    background-color: #f8f9fa;
+    transition: all 0.3s ease;
+}
+
+.custom-file-label:hover {
+    border-color: #0056b3;
+    background-color: #e9ecef;
+}
+
+.custom-file-input:focus + .custom-file-label {
+    border-color: #80bdff;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+.font-weight-medium {
+    font-weight: 500;
+}
+
+.list-group-item {
+    transition: background-color 0.2s ease;
+}
+
+.list-group-item:hover {
+    background-color: #f8f9fa;
 }
 </style>
