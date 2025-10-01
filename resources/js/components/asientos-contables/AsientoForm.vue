@@ -65,12 +65,18 @@
                     </div>
                     <div class="mt-3">
                         <button type="submit"
-                                class="btn btn-primary btn-block"
+                                class="btn btn-primary btn-block mb-2"
                                 :disabled="saving || !balanceado">
                             <i v-if="saving" class="fa fa-spinner fa-spin"></i>
                             <i v-else class="fa fa-save"></i>
                             {{ saving ? 'Guardando...' : 'Guardar Asiento' }}
                         </button>
+                        <a href="/contabilidad/asientos-contables"
+                           class="btn btn-secondary btn-block"
+                           :class="{ 'disabled': saving }">
+                            <i class="fa fa-arrow-left"></i>
+                            Cancelar / Volver al Listado
+                        </a>
                     </div>
                 </div>
             </div>
@@ -412,8 +418,133 @@ export default {
             }
         },
         async saveAsiento() {
-            // Implementar lógica de guardado
-            console.log('Saving asiento:', this.form);
+            if (this.saving) return; // Prevenir múltiples envíos
+
+            this.saving = true;
+
+            try {
+                // Validar que el asiento esté balanceado
+                if (this.diferencia > 0.01) {
+                    alert('El asiento debe estar balanceado. La diferencia entre débitos y créditos debe ser cero.');
+                    return;
+                }
+
+                // Validar que haya al menos un detalle con valores
+                const hayDetallesConValor = this.form.detalles.some(detalle =>
+                    (parseFloat(detalle.debito) > 0 || parseFloat(detalle.credito) > 0) &&
+                    detalle.cuenta_contable_id
+                );
+
+                if (!hayDetallesConValor) {
+                    alert('Debe agregar al menos un detalle con cuenta contable y valor mayor a cero.');
+                    return;
+                }
+
+                // Validar datos básicos
+                if (!this.form.tipo_comprobante_id) {
+                    alert('Debe seleccionar un tipo de comprobante.');
+                    return;
+                }
+
+                if (!this.form.fecha_asiento) {
+                    alert('Debe ingresar la fecha del asiento.');
+                    return;
+                }
+
+                if (!this.form.concepto || this.form.concepto.trim() === '') {
+                    alert('Debe ingresar el concepto del asiento.');
+                    return;
+                }                // Preparar FormData para enviar archivos
+                const formData = new FormData();
+
+                // Agregar datos básicos del asiento
+                formData.append('tipo_comprobante_id', this.form.tipo_comprobante_id);
+                formData.append('fecha_asiento', this.form.fecha_asiento);
+                formData.append('concepto', this.form.concepto);
+
+                // Si estamos editando, agregar el ID
+                if (this.isEditing && this.form.id) {
+                    formData.append('id', this.form.id);
+                    formData.append('_method', 'PUT');
+                }
+
+                // Agregar detalles válidos (que tengan cuenta y valor)
+                const detallesValidos = this.form.detalles.filter(detalle =>
+                    detalle.cuenta_contable_id &&
+                    (parseFloat(detalle.debito) > 0 || parseFloat(detalle.credito) > 0)
+                );
+
+                // Enviar detalles de forma estructurada para Laravel
+                detallesValidos.forEach((detalle, index) => {
+                    formData.append(`detalles[${index}][cuenta_contable_id]`, detalle.cuenta_contable_id);
+                    formData.append(`detalles[${index}][tercero_id]`, detalle.tercero_id || '');
+                    formData.append(`detalles[${index}][debito]`, detalle.debito || '0.00');
+                    formData.append(`detalles[${index}][credito]`, detalle.credito || '0.00');
+                    formData.append(`detalles[${index}][concepto]`, detalle.concepto || '');
+                });
+
+                // Agregar archivos adjuntos
+                this.adjuntosFiles.forEach((file, index) => {
+                    formData.append(`adjuntos[${index}]`, file);
+                });                console.log('Enviando datos del asiento:', {
+                    tipo_comprobante_id: this.form.tipo_comprobante_id,
+                    fecha_asiento: this.form.fecha_asiento,
+                    concepto: this.form.concepto,
+                    detalles: detallesValidos,
+                    adjuntos: this.adjuntosFiles.length
+                });
+
+                // Debug: Mostrar qué se está enviando en FormData
+                console.log('FormData contents:');
+                for (let pair of formData.entries()) {
+                    console.log(pair[0] + ': ' + (pair[1] instanceof File ? `FILE: ${pair[1].name}` : pair[1]));
+                }
+
+                // Determinar URL según si estamos creando o editando
+                const url = this.isEditing
+                    ? `/contabilidad/asientos-contables/${this.form.id}`
+                    : '/contabilidad/asientos-contables';
+
+                // Enviar petición
+                const response = await axios.post(url, formData, {
+                    headers: {
+                        'Content-Type': 'multipart/form-data'
+                    }
+                });
+
+                if (response.data.success) {
+                    // Mostrar mensaje de éxito
+                    alert(response.data.message || 'Asiento contable guardado exitosamente');
+
+                    // Redireccionar al index
+                    window.location.href = '/contabilidad/asientos-contables';
+                } else {
+                    alert('Error al guardar: ' + (response.data.message || 'Error desconocido'));
+                }
+
+            } catch (error) {
+                console.error('Error saving asiento:', error);
+
+                if (error.response && error.response.data) {
+                    // Mostrar errores de validación del servidor
+                    const errorData = error.response.data;
+                    let errorMessage = 'Error al guardar el asiento:\n';
+
+                    if (errorData.errors) {
+                        Object.keys(errorData.errors).forEach(field => {
+                            errorMessage += `• ${errorData.errors[field].join(', ')}\n`;
+                        });
+                    } else if (errorData.message) {
+                        errorMessage += errorData.message;
+                    }
+
+                    alert(errorMessage);
+                } else {
+                    alert('Error de conexión. Por favor, intente nuevamente.');
+                }
+            } finally {
+                this.saving = false;
+            }
         },
         addDetalle() {
             const newIndex = this.form.detalles.length;
