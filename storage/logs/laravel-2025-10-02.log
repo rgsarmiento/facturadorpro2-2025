@@ -1,0 +1,60 @@
+[2025-10-02 07:52:40] local.ERROR: SQLSTATE[42S02]: Base table or view not found: 1146 Table 'facturadorpro2.tipo_comprobantes_contables' doesn't exist (SQL: insert into `tipo_comprobantes_contables` (`codigo`, `nombre`, `prefijo`, `consecutivo_actual`, `estado`, `created_at`, `updated_at`) values (01, Ajustes Contables, AJ, 0, ACTIVO, 2025-10-02 07:52:39, 2025-10-02 07:52:39)) {"exception":"[object] (Illuminate\\Database\\QueryException(code: 42S02): SQLSTATE[42S02]: Base table or view not found: 1146 Table 'facturadorpro2.tipo_comprobantes_contables' doesn't exist (SQL: insert into `tipo_comprobantes_contables` (`codigo`, `nombre`, `prefijo`, `consecutivo_actual`, `estado`, `created_at`, `updated_at`) values (01, Ajustes Contables, AJ, 0, ACTIVO, 2025-10-02 07:52:39, 2025-10-02 07:52:39)) at C:\\laragon\\www\\facturadorpro2\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Connection.php:664, Doctrine\\DBAL\\Driver\\PDOException(code: 42S02): SQLSTATE[42S02]: Base table or view not found: 1146 Table 'facturadorpro2.tipo_comprobantes_contables' doesn't exist at C:\\laragon\\www\\facturadorpro2\\vendor\\doctrine\\dbal\\lib\\Doctrine\\DBAL\\Driver\\PDOConnection.php:63, PDOException(code: 42S02): SQLSTATE[42S02]: Base table or view not found: 1146 Table 'facturadorpro2.tipo_comprobantes_contables' doesn't exist at C:\\laragon\\www\\facturadorpro2\\vendor\\doctrine\\dbal\\lib\\Doctrine\\DBAL\\Driver\\PDOConnection.php:61)
+[stacktrace]
+#0 C:\\laragon\\www\\facturadorpro2\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Connection.php(624): Illuminate\\Database\\Connection->runQueryCallback('insert into `ti...', Array, Object(Closure))
+#1 C:\\laragon\\www\\facturadorpro2\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Connection.php(459): Illuminate\\Database\\Connection->run('insert into `ti...', Array, Object(Closure))
+#2 C:\\laragon\\www\\facturadorpro2\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Connection.php(411): Illuminate\\Database\\Connection->statement('insert into `ti...', Array)
+#3 C:\\laragon\\www\\facturadorpro2\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Query\\Builder.php(2611): Illuminate\\Database\\Connection->insert('insert into `ti...', Array)
+#4 C:\\laragon\\www\\facturadorpro2\\database\\seeds\\TipoComprobantesContablesSeeder.php(50): Illuminate\\Database\\Query\\Builder->insert(Array)
+#5 [internal function]: TipoComprobantesContablesSeeder->run()
+#6 C:\\laragon\\www\\facturadorpro2\\vendor\\laravel\\framework\\src\\Illuminate\\Container\\BoundMethod.php(29): call_user_func_array(Array, Array)
+#7 C:\\laragon\\www\\facturadorpro2\\vendor\\laravel\\framework\\src\\Illuminate\\Container\\BoundMethod.php(87): Illuminate\\Container\\BoundMethod::Illuminate\\Container\\{closure}()
+#8 C:\\laragon\\www\\facturadorpro2\\vendor\\laravel\\framework\\src\\Illuminate\\Container\\BoundMethod.php(31): Illuminate\\Container\\BoundMethod::callBoundMethod(Object(Illuminate\\Foundation\\Application), Array, Object(Closure))
+#9 C:\\laragon\\www\\facturadorpro2\\vendor\\laravel\\framework\\src\\Illuminate\\Container\\Container.php(572): Illuminate\\Container\\BoundMethod::call(Object(Illuminate\\Foundation\\Application), Array, Array, NULL)
+#10 C:\\laragon\\www\\facturadorpro2\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Seeder.php(122): Illuminate\\Container\\Container->call(Array)
+#11 C:\\laragon\\www\\facturadorpro2\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Seeder.php(42): Illuminate\\Database\\Seeder->__invoke()
+#12 C:\\laragon\\www\\facturadorpro2\\database\\seeds\\DatabaseSeeder.php(44): Illuminate\\Database\\Seeder->call('TipoComprobante...')
+#13 [internal function]: DatabaseSeeder->run()
+#14 C:\\laragon\\www\\facturadorpro2\\vendor\\laravel\\framework\\src\\Illuminate\\Container\\BoundMethod.php(29): call_user_func_array(Array, Array)
+#15 C:\\laragon\\www\\facturadorpro2\\vendor\\laravel\\framework\\src\\Illuminate\\Container\\BoundMethod.php(87): Illuminate\\Container\\BoundMethod::Illuminate\\Container\\{closure}()
+#16 C:\\laragon\\www\\facturadorpro2\\vendor\\laravel\\framework\\src\\Illuminate\\Container\\BoundMethod.php(31): Illuminate\\Container\\BoundMethod::callBoundMethod(Object(Illuminate\\Foundation\\Application), Array, Object(Closure))
+#17 C:\\laragon\\www\\facturadorpro2\\vendor\\laravel\\framework\\src\\Illuminate\\Container\\Container.php(572): Illuminate\\Container\\BoundMethod::call(Object(Illuminate\\Foundation\\Application), Array, Array, NULL)
+#18 C:\\laragon\\www\\facturadorpro2\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Seeder.php(122): Illuminate\\Container\\Container->call(Array)
+#19 C:\\laragon\\www\\facturadorpro2\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Console\\Seeds\\SeedCommand.php(63): Illuminate\\Database\\Seeder->__invoke()
+#20 C:\\laragon\\www\\facturadorpro2\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Eloquent\\Concerns\\GuardsAttributes.php(122): Illuminate\\Database\\Console\\Seeds\\SeedCommand->Illuminate\\Database\\Console\\Seeds\\{closure}()
+#21 C:\\laragon\\www\\facturadorpro2\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Console\\Seeds\\SeedCommand.php(64): Illuminate\\Database\\Eloquent\\Model::unguarded(Object(Closure))
+#22 [internal function]: Illuminate\\Database\\Console\\Seeds\\SeedCommand->handle()
+#23 C:\\laragon\\www\\facturadorpro2\\vendor\\laravel\\framework\\src\\Illuminate\\Container\\BoundMethod.php(29): call_user_func_array(Array, Array)
+#24 C:\\laragon\\www\\facturadorpro2\\vendor\\laravel\\framework\\src\\Illuminate\\Container\\BoundMethod.php(87): Illuminate\\Container\\BoundMethod::Illuminate\\Container\\{closure}()
+#25 C:\\laragon\\www\\facturadorpro2\\vendor\\laravel\\framework\\src\\Illuminate\\Container\\BoundMethod.php(31): Illuminate\\Container\\BoundMethod::callBoundMethod(Object(Illuminate\\Foundation\\Application), Array, Object(Closure))
+#26 C:\\laragon\\www\\facturadorpro2\\vendor\\laravel\\framework\\src\\Illuminate\\Container\\Container.php(572): Illuminate\\Container\\BoundMethod::call(Object(Illuminate\\Foundation\\Application), Array, Array, NULL)
+#27 C:\\laragon\\www\\facturadorpro2\\vendor\\laravel\\framework\\src\\Illuminate\\Console\\Command.php(183): Illuminate\\Container\\Container->call(Array)
+#28 C:\\laragon\\www\\facturadorpro2\\vendor\\symfony\\console\\Command\\Command.php(255): Illuminate\\Console\\Command->execute(Object(Symfony\\Component\\Console\\Input\\ArrayInput), Object(Illuminate\\Console\\OutputStyle))
+#29 C:\\laragon\\www\\facturadorpro2\\vendor\\laravel\\framework\\src\\Illuminate\\Console\\Command.php(170): Symfony\\Component\\Console\\Command\\Command->run(Object(Symfony\\Component\\Console\\Input\\ArrayInput), Object(Illuminate\\Console\\OutputStyle))
+#30 C:\\laragon\\www\\facturadorpro2\\vendor\\laravel\\framework\\src\\Illuminate\\Console\\Command.php(198): Illuminate\\Console\\Command->run(Object(Symfony\\Component\\Console\\Input\\ArrayInput), Object(Illuminate\\Console\\OutputStyle))
+#31 C:\\laragon\\www\\facturadorpro2\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Console\\Migrations\\MigrateCommand.php(78): Illuminate\\Console\\Command->call('db:seed', Array)
+#32 [internal function]: Illuminate\\Database\\Console\\Migrations\\MigrateCommand->handle()
+#33 C:\\laragon\\www\\facturadorpro2\\vendor\\laravel\\framework\\src\\Illuminate\\Container\\BoundMethod.php(29): call_user_func_array(Array, Array)
+#34 C:\\laragon\\www\\facturadorpro2\\vendor\\laravel\\framework\\src\\Illuminate\\Container\\BoundMethod.php(87): Illuminate\\Container\\BoundMethod::Illuminate\\Container\\{closure}()
+#35 C:\\laragon\\www\\facturadorpro2\\vendor\\laravel\\framework\\src\\Illuminate\\Container\\BoundMethod.php(31): Illuminate\\Container\\BoundMethod::callBoundMethod(Object(Illuminate\\Foundation\\Application), Array, Object(Closure))
+#36 C:\\laragon\\www\\facturadorpro2\\vendor\\laravel\\framework\\src\\Illuminate\\Container\\Container.php(572): Illuminate\\Container\\BoundMethod::call(Object(Illuminate\\Foundation\\Application), Array, Array, NULL)
+#37 C:\\laragon\\www\\facturadorpro2\\vendor\\laravel\\framework\\src\\Illuminate\\Console\\Command.php(183): Illuminate\\Container\\Container->call(Array)
+#38 C:\\laragon\\www\\facturadorpro2\\vendor\\symfony\\console\\Command\\Command.php(255): Illuminate\\Console\\Command->execute(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Illuminate\\Console\\OutputStyle))
+#39 C:\\laragon\\www\\facturadorpro2\\vendor\\laravel\\framework\\src\\Illuminate\\Console\\Command.php(170): Symfony\\Component\\Console\\Command\\Command->run(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Illuminate\\Console\\OutputStyle))
+#40 C:\\laragon\\www\\facturadorpro2\\vendor\\symfony\\console\\Application.php(1021): Illuminate\\Console\\Command->run(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Symfony\\Component\\Console\\Output\\ConsoleOutput))
+#41 C:\\laragon\\www\\facturadorpro2\\vendor\\symfony\\console\\Application.php(275): Symfony\\Component\\Console\\Application->doRunCommand(Object(Illuminate\\Database\\Console\\Migrations\\MigrateCommand), Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Symfony\\Component\\Console\\Output\\ConsoleOutput))
+#42 C:\\laragon\\www\\facturadorpro2\\vendor\\symfony\\console\\Application.php(149): Symfony\\Component\\Console\\Application->doRun(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Symfony\\Component\\Console\\Output\\ConsoleOutput))
+#43 C:\\laragon\\www\\facturadorpro2\\vendor\\laravel\\framework\\src\\Illuminate\\Console\\Application.php(89): Symfony\\Component\\Console\\Application->run(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Symfony\\Component\\Console\\Output\\ConsoleOutput))
+#44 C:\\laragon\\www\\facturadorpro2\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Console\\Kernel.php(122): Illuminate\\Console\\Application->run(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Symfony\\Component\\Console\\Output\\ConsoleOutput))
+#45 C:\\laragon\\www\\facturadorpro2\\artisan(37): Illuminate\\Foundation\\Console\\Kernel->handle(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Symfony\\Component\\Console\\Output\\ConsoleOutput))
+#46 {main}
+"} 
+[2025-10-02 07:54:05] local.ERROR: Uncaught Error: Call to undefined method App\Http\Kernel::getRouteMiddleware() in Command line code:1
+Stack trace:
+#0 {main}
+  thrown {"exception":"[object] (Symfony\\Component\\Debug\\Exception\\FatalErrorException(code: 1): Uncaught Error: Call to undefined method App\\Http\\Kernel::getRouteMiddleware() in Command line code:1
+Stack trace:
+#0 {main}
+  thrown at Command line code:1)
+[stacktrace]
+#0 {main}
+"} 
