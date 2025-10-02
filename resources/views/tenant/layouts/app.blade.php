@@ -294,6 +294,10 @@
     @stack('scripts')
 
     <script src="{{ asset('js/app.js') }}"></script>
+
+    <!-- Scripts that need Vue to be loaded -->
+    @stack('scripts-after-vue')
+
     <!-- Theme Base, Components and Settings -->
     <script src="{{asset('porto-light/js/theme.js')}}"></script>
 

@@ -870,6 +870,13 @@
                                     Plan único de cuentas - PUC
                                 </a>
                             </li>
+                            <li class="{{(($path[0] === 'contabilidad') && ($path[1] === 'asientos-contables')) ? 'nav-active' : ''}}">
+                                <a class="nav-link" href="{{ route('tenant.asientos_contables.index') }}">
+                                    <i class="fas fa-clipboard-list" aria-hidden="true"></i>
+                                    Asientos contables
+                                    <i class="fas fa-wrench text-warning ml-1" style="font-size: 8px;" title="En construcción"></i>
+                                </a>
+                            </li>
                             <li class="{{(($path[0] === 'account') && ($path[1] === 'format')) ? 'nav-active' : ''}}">
                                 <a class="nav-link" href="{{ route('tenant.account_format.index') }}">
                                     <i class="fas fa-file-export" aria-hidden="true"></i>

@@ -1,0 +1,1027 @@
+<template>
+    <form @submit.prevent="saveAsiento">
+        <div class="row">
+            <!-- Información básica del asiento -->
+            <div class="col-md-8">
+                <h5>Información del Asiento</h5>
+
+                <div class="form-group">
+                    <label>Tipo de Comprobante *</label>
+                    <select ref="tipoComprobanteSelect"
+                            class="form-control select2-search"
+                            required>
+                        <option value="">Seleccionar tipo de comprobante</option>
+                    </select>
+                    <small v-if="proximoConsecutivo" class="form-text text-muted">
+                        Próximo consecutivo: <strong>#<span v-text="proximoConsecutivo"></span></strong>
+                    </small>
+                </div>
+
+                <div class="form-group">
+                    <label>Fecha del Asiento *</label>
+                    <input type="date"
+                           v-model="form.fecha_asiento"
+                           class="form-control"
+                           required>
+                </div>
+
+                <div class="form-group">
+                    <label>Concepto *</label>
+                    <textarea v-model="form.concepto"
+                              class="form-control"
+                              rows="3"
+                              placeholder="Descripción del asiento contable"
+                              required></textarea>
+                </div>
+            </div>
+
+            <!-- Resumen Balance -->
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0"><i class="fa fa-calculator"></i> Resumen Balance</h6>
+                    </div>
+                    <div class="card-body">
+                        <div class="balance-info" :class="balanceClass">
+                            <div class="mb-2">
+                                <strong>Total Débitos:</strong><br>
+                                $<span v-text="formatNumber(totalDebitos)"></span>
+                            </div>
+                            <div class="mb-2">
+                                <strong>Total Créditos:</strong><br>
+                                $<span v-text="formatNumber(totalCreditos)"></span>
+                            </div>
+                            <div class="mb-2">
+                                <strong>Diferencia:</strong><br>
+                                $<span v-text="formatNumber(diferencia)"></span>
+                            </div>
+                            <div class="text-center mt-3">
+                                <i :class="balanceIcon"></i>
+                                <strong v-text="balanceText"></strong>
+                            </div>
+                        </div>
+
+                        <button type="submit"
+                                class="btn btn-primary btn-block mt-3"
+                                :disabled="saving || !balanceado">
+                            <i v-if="saving" class="fa fa-spinner fa-spin"></i>
+                            <i v-else class="fa fa-save"></i>
+                            {{ saving ? 'Guardando...' : 'Guardar Asiento' }}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Detalles del asiento -->
+        <div class="row mt-4">
+            <div class="col-md-8">
+                <h5>Detalles del Asiento</h5>
+
+                <div class="table-responsive">
+                    <table class="table table-sm asientos-table">
+                        <thead>
+                            <tr>
+                                <th width="30%">Cuenta Contable *</th>
+                                <th width="20%">Tercero</th>
+                                <th width="12%">Débito</th>
+                                <th width="12%">Crédito</th>
+                                <th width="18%">Concepto</th>
+                                <th width="8%">Acciones</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <tr v-for="(detalle, index) in form.detalles" :key="index">
+                                <td>
+                                    <select :ref="'cuentaSelect' + index"
+                                            class="form-control form-control-sm cuenta-select"
+                                            :data-index="index"
+                                            required>
+                                        <option value="">Seleccionar cuenta</option>
+                                    </select>
+                                </td>
+                                <td>
+                                    <select v-if="detalle.requiere_tercero"
+                                            v-model="detalle.tercero_id"
+                                            class="form-control form-control-sm">
+                                        <option value="">Sin tercero</option>
+                                        <option v-for="tercero in terceros"
+                                                :key="tercero.id"
+                                                :value="tercero.id"
+                                                v-text="tercero.name + ' (' + tercero.number + ')'">
+                                        </option>
+                                    </select>
+                                    <span v-else class="text-muted small">N/A</span>
+                                </td>
+                                <td>
+                                    <input type="number"
+                                           v-model="detalle.debito"
+                                           @input="onDebitoChanged(index)"
+                                           @focus="onInputFocus"
+                                           class="form-control form-control-sm"
+                                           step="0.01"
+                                           min="0"
+                                           placeholder="0.00">
+                                </td>
+                                <td>
+                                    <input type="number"
+                                           v-model="detalle.credito"
+                                           @input="onCreditoChanged(index)"
+                                           @focus="onInputFocus"
+                                           class="form-control form-control-sm"
+                                           step="0.01"
+                                           min="0"
+                                           placeholder="0.00">
+                                </td>
+                                <td>
+                                    <input type="text"
+                                           v-model="detalle.concepto"
+                                           class="form-control form-control-sm"
+                                           placeholder="Concepto del detalle">
+                                </td>
+                                <td class="text-center">
+                                    <button type="button"
+                                            @click="removeDetalle(index)"
+                                            class="btn btn-danger btn-sm"
+                                            v-if="form.detalles.length > 2"
+                                            title="Eliminar línea">
+                                        <i class="fa fa-trash"></i>
+                                    </button>
+                                </td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="mt-2">
+                    <button type="button"
+                            @click="addDetalle"
+                            class="btn btn-success btn-sm">
+                        <i class="fa fa-plus"></i> Agregar Detalle
+                    </button>
+                </div>
+            </div>
+
+            <!-- Archivos Adjuntos -->
+            <div class="col-md-4">
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0"><i class="fa fa-paperclip"></i> Archivos Adjuntos</h6>
+                    </div>
+                    <div class="card-body">
+                        <input type="file"
+                               ref="fileInput"
+                               @change="onFilesSelected"
+                               class="form-control-file"
+                               multiple
+                               accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx"
+                               style="display: none;">
+                        <button type="button"
+                                @click="$refs.fileInput.click()"
+                                class="btn btn-outline-primary btn-block">
+                            <i class="fa fa-upload"></i> Seleccionar Archivos
+                        </button>
+                        <small class="form-text text-muted mt-2">Máximo 5MB por archivo</small>
+
+                        <!-- Lista de archivos seleccionados -->
+                        <div v-if="adjuntosFiles.length > 0" class="mt-3">
+                            <small class="text-muted">Archivos seleccionados:</small>
+                            <div class="mt-2">
+                                <div v-for="(file, index) in adjuntosFiles"
+                                     :key="index"
+                                     class="d-flex justify-content-between align-items-center p-2 border rounded mb-1">
+                                    <div class="flex-grow-1">
+                                        <small><i class="fa fa-file text-muted mr-1"></i>{{ file.name }}</small><br>
+                                        <small class="text-muted">{{ formatFileSize(file.size) }}</small>
+                                    </div>
+                                    <button type="button"
+                                            @click="removeFile(index)"
+                                            class="btn btn-danger btn-sm ml-2">
+                                        <i class="fa fa-times"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </form>
+</template>
+
+<script>
+export default {
+    name: 'AsientoForm',
+    props: {
+        asientoData: {
+            type: [Object, String],
+            default: null
+        },
+        isEditing: {
+            type: [Boolean, String],
+            default: false
+        }
+    },
+    data() {
+        return {
+            form: {
+                id: null,
+                tipo_comprobante_id: '',
+                fecha_asiento: new Date().toISOString().substr(0, 10),
+                concepto: '',
+                detalles: [
+                    {
+                        cuenta_contable_id: '',
+                        cuenta_contable: null,
+                        tercero_id: '',
+                        tercero: null,
+                        requiere_tercero: false,
+                        debito: '0.00',
+                        credito: '0.00',
+                        concepto: ''
+                    },
+                    {
+                        cuenta_contable_id: '',
+                        cuenta_contable: null,
+                        tercero_id: '',
+                        tercero: null,
+                        requiere_tercero: false,
+                        debito: '0.00',
+                        credito: '0.00',
+                        concepto: ''
+                    }
+                ]
+            },
+            tiposComprobantes: [],
+            cuentasContables: [],
+            terceros: [],
+            proximoConsecutivo: null,
+            saving: false,
+            adjuntosFiles: []
+        }
+    },
+    computed: {
+        // Convierte asientoData de string a objeto si es necesario
+        parsedAsientoData() {
+            if (!this.asientoData) return null;
+            if (typeof this.asientoData === 'string') {
+                try {
+                    return JSON.parse(this.asientoData);
+                } catch (e) {
+                    console.error('Error parsing asientoData:', e);
+                    return null;
+                }
+            }
+            return this.asientoData;
+        },
+        // Convierte isEditing de string a boolean si es necesario
+        isEditingMode() {
+            if (typeof this.isEditing === 'string') {
+                return this.isEditing === 'true';
+            }
+            return Boolean(this.isEditing);
+        },
+        totalDebitos() {
+            return this.form.detalles.reduce((sum, detalle) => {
+                return sum + (parseFloat(detalle.debito) || 0);
+            }, 0);
+        },
+        totalCreditos() {
+            return this.form.detalles.reduce((sum, detalle) => {
+                return sum + (parseFloat(detalle.credito) || 0);
+            }, 0);
+        },
+        diferencia() {
+            return Math.abs(this.totalDebitos - this.totalCreditos);
+        },
+        balanceado() {
+            // Agregar validación de datos para evitar falsas evaluaciones
+            const hayDatos = this.totalDebitos > 0 || this.totalCreditos > 0;
+            if (!hayDatos) return true; // Neutral cuando no hay datos
+
+            return this.diferencia < 0.01;
+        },
+        balanceClass() {
+            const hayDatos = this.totalDebitos > 0 || this.totalCreditos > 0;
+            if (!hayDatos) return ''; // Sin clase especial cuando no hay datos
+
+            return this.balanceado ? 'balance-balanceado' : 'balance-desbalanceado';
+        },
+        balanceIcon() {
+            const hayDatos = this.totalDebitos > 0 || this.totalCreditos > 0;
+            if (!hayDatos) return 'fa fa-info-circle';
+
+            return this.balanceado ? 'fa fa-check-circle' : 'fa fa-exclamation-triangle';
+        },
+        balanceText() {
+            const hayDatos = this.totalDebitos > 0 || this.totalCreditos > 0;
+            if (!hayDatos) return 'Ingrese los montos';
+
+            return this.balanceado ? 'Asiento Balanceado' : 'Asiento Desbalanceado';
+        }
+    },
+    async mounted() {
+        console.log('Component mounted');
+        console.log('Props received:');
+        console.log('- asientoData:', this.asientoData);
+        console.log('- isEditing:', this.isEditing);
+        console.log('- parsedAsientoData:', this.parsedAsientoData);
+        console.log('- isEditingMode:', this.isEditingMode);
+
+        console.log('Loading data in mounted...');
+        await this.loadTiposComprobantes();
+        console.log('Tipos comprobantes loaded, count:', this.tiposComprobantes.length);
+        await this.loadCuentasContables();
+        console.log('Cuentas contables loaded, count:', this.cuentasContables.length);
+        await this.loadTerceros();
+        console.log('Terceros loaded, count:', this.terceros.length);
+
+        // Si estamos en modo edición, cargar los datos del asiento ANTES de inicializar select2
+        if (this.isEditingMode && this.parsedAsientoData) {
+            console.log('Loading asiento data in edit mode...');
+            this.loadAsientoData();
+        } else {
+            console.log('Not in edit mode, initializing select2 normally...');
+            // Si no estamos en modo edición, inicializar select2 normalmente
+            this.$nextTick(() => {
+                this.waitForSelect2AndInitialize();
+            });
+        }
+    },
+    async mounted() {
+        console.log('Component mounted');
+        console.log('Props received:');
+        console.log('- asientoData:', this.asientoData);
+        console.log('- isEditing:', this.isEditing);
+        console.log('- parsedAsientoData:', this.parsedAsientoData);
+        console.log('- isEditingMode:', this.isEditingMode);
+
+        console.log('Loading data in mounted...');
+        await this.loadTiposComprobantes();
+        console.log('Tipos comprobantes loaded, count:', this.tiposComprobantes.length);
+
+        await this.loadCuentasContables();
+        console.log('Cuentas contables loaded, count:', this.cuentasContables.length);
+
+        await this.loadTerceros();
+        console.log('Terceros loaded, count:', this.terceros.length);
+
+        // Si estamos en modo edición, cargar los datos del asiento ANTES de inicializar select2
+        if (this.isEditingMode && this.parsedAsientoData) {
+            console.log('Loading asiento data in edit mode...');
+            this.loadAsientoData();
+            // En modo edición, loadAsientoData() maneja la inicialización de Select2
+        } else {
+            console.log('Not in edit mode, initializing select2 normally...');
+            // Si no estamos en modo edición, inicializar select2 normalmente
+            this.$nextTick(() => {
+                this.waitForSelect2AndInitialize();
+            });
+        }
+    },
+    methods: {
+        getCuentaById(id) {
+            return this.cuentasContables.find(cuenta => cuenta.id == id) || null;
+        },
+        async loadTiposComprobantes() {
+            try {
+                console.log('Loading tipos comprobantes...');
+                const response = await axios.get('/contabilidad/asientos-contables/tipos-comprobantes');
+                console.log('Tipos comprobantes response:', response.data);
+                if (response.data.success) {
+                    this.tiposComprobantes = response.data.data;
+                    console.log('Tipos comprobantes loaded:', this.tiposComprobantes.length, 'items');
+                    
+                    // Solo inicializar Select2 automáticamente en modo creación
+                    this.$nextTick(() => {
+                        if (this.$refs.tipoComprobanteSelect && !this.isEditing) {
+                            console.log('Auto-initializing tipo comprobante select2 for creation mode...');
+                            this.initTipoComprobanteSelect2();
+                        } else if (this.isEditing) {
+                            console.log('In edit mode - Select2 initialization will be handled by initializeSelect2AfterDataLoad');
+                        }
+                    });
+                } else {
+                    console.error('Error in tipos comprobantes response:', response.data);
+                }
+            } catch (error) {
+                console.error('Error loading tipos comprobantes:', error);
+            }
+        },
+        async loadCuentasContables() {
+            try {
+                const response = await axios.get('/contabilidad/asientos-contables/cuentas-contables');
+                if (response.data.success) {
+                    this.cuentasContables = response.data.data;
+                    this.$nextTick(() => {
+                        this.initCuentasContablesSelect2();
+                    });
+                }
+            } catch (error) {
+                console.error('Error loading cuentas contables:', error);
+            }
+        },
+        async loadTerceros() {
+            try {
+                const response = await axios.get('/contabilidad/asientos-contables/terceros');
+                if (response.data.success) {
+                    this.terceros = response.data.data;
+                }
+            } catch (error) {
+                console.error('Error loading terceros:', error);
+            }
+        },
+        loadAsientoData() {
+            const asiento = this.parsedAsientoData;
+            if (!asiento) {
+                console.log('No asiento data to load');
+                return;
+            }
+
+            console.log('=== LOADING ASIENTO DATA ===');
+            console.log('Asiento completo:', asiento);
+            console.log('Tipo comprobante ID del asiento:', asiento.tipo_comprobante_id, 'tipo:', typeof asiento.tipo_comprobante_id);
+            console.log('Current tiposComprobantes:', this.tiposComprobantes);
+            console.log('Current cuentasContables:', this.cuentasContables);
+
+            // Cargar datos básicos del asiento
+            this.form.id = asiento.id;
+            this.form.tipo_comprobante_id = asiento.tipo_comprobante_id || '';
+
+            // Formatear la fecha correctamente (solo la parte de fecha, no el tiempo)
+            let fechaAsiento = asiento.fecha_asiento || new Date().toISOString().substr(0, 10);
+            if (fechaAsiento.includes(' ')) {
+                fechaAsiento = fechaAsiento.split(' ')[0]; // Tomar solo la parte de fecha
+            }
+            this.form.fecha_asiento = fechaAsiento;
+
+            this.form.concepto = asiento.concepto || '';
+
+            console.log('Form after basic data load:', {
+                id: this.form.id,
+                tipo_comprobante_id: this.form.tipo_comprobante_id,
+                fecha_asiento: this.form.fecha_asiento,
+                concepto: this.form.concepto
+            });
+
+            // Verificar que el tipo de comprobante existe en la lista
+            const tipoEncontrado = this.tiposComprobantes.find(t => t.id == this.form.tipo_comprobante_id);
+            console.log('Tipo comprobante encontrado en lista:', tipoEncontrado);
+
+            // Cargar detalles del asiento
+            if (asiento.detalles && asiento.detalles.length > 0) {
+                console.log('Processing detalles:', asiento.detalles);
+
+                this.form.detalles = asiento.detalles.map((detalle, index) => {
+                    console.log(`Processing detalle ${index}:`, detalle);
+
+                    // Obtener información de la cuenta contable
+                    let cuentaContable = null;
+                    let requiereTercero = false;
+
+                    if (detalle.cuenta_contable) {
+                        cuentaContable = detalle.cuenta_contable;
+                        requiereTercero = detalle.cuenta_contable.requiere_tercero || false;
+                        console.log(`Detalle ${index} - usando cuenta desde relación:`, cuentaContable);
+                    } else if (detalle.cuenta_contable_id) {
+                        // Buscar la cuenta en la lista cargada
+                        cuentaContable = this.cuentasContables.find(c => c.id == detalle.cuenta_contable_id);
+                        if (cuentaContable) {
+                            requiereTercero = cuentaContable.requiere_tercero || false;
+                            console.log(`Detalle ${index} - encontrada cuenta en lista:`, cuentaContable);
+                        } else {
+                            console.log(`Detalle ${index} - NO encontrada cuenta con ID:`, detalle.cuenta_contable_id);
+                        }
+                    }
+
+                    const processedDetalle = {
+                        id: detalle.id || null,
+                        cuenta_contable_id: detalle.cuenta_contable_id || '',
+                        cuenta_contable: cuentaContable,
+                        tercero_id: detalle.person_id || detalle.tercero_id || '', // Verificar ambos nombres de campo
+                        tercero: detalle.tercero || null,
+                        requiere_tercero: requiereTercero,
+                        debito: parseFloat(detalle.debito || 0).toFixed(2),
+                        credito: parseFloat(detalle.credito || 0).toFixed(2),
+                        concepto: detalle.concepto || ''
+                    };
+
+                    console.log(`Processed detalle ${index}:`, processedDetalle);
+                    console.log(`- Requiere tercero: ${requiereTercero}`);
+                    console.log(`- Person ID: ${detalle.person_id}`);
+                    console.log(`- Tercero ID: ${detalle.tercero_id}`);
+                    console.log(`- Final tercero_id: ${processedDetalle.tercero_id}`);
+                    console.log(`- Tercero object:`, detalle.tercero);
+
+                    return processedDetalle;
+                });
+
+                console.log('Final form.detalles:', this.form.detalles);
+            }
+
+            // Inicializar select2 después de cargar los datos
+            this.$nextTick(() => {
+                console.log('Calling initializeSelect2AfterDataLoad...');
+                // Esperar un poco antes de inicializar para evitar conflictos
+                setTimeout(() => {
+                    this.initializeSelect2AfterDataLoad();
+                }, 100);
+            });
+        },
+        initializeSelect2AfterDataLoad() {
+            console.log('initializeSelect2AfterDataLoad called');
+
+            // Primero asegurar que los tipos de comprobantes estén cargados
+            if (this.tiposComprobantes.length === 0) {
+                console.log('Tipos comprobantes not loaded yet, waiting...');
+                setTimeout(() => {
+                    this.initializeSelect2AfterDataLoad();
+                }, 300);
+                return;
+            }
+
+            console.log('Tipos comprobantes available:', this.tiposComprobantes.length, 'items');
+
+            // Asegurar que los datos estén cargados antes de inicializar select2
+            setTimeout(() => {
+                console.log('Initializing select2 components for edit mode...');
+
+                // SÍ llamar a initTipoComprobanteSelect2 para inicializar el select
+                console.log('Initializing tipo comprobante select2...');
+                this.initTipoComprobanteSelect2();
+
+                // Después de inicializar, establecer el valor
+                setTimeout(() => {
+                    if (this.form.tipo_comprobante_id) {
+                        console.log('Setting tipo_comprobante_id after init:', this.form.tipo_comprobante_id);
+                        const $tipoSelect = $(this.$refs.tipoComprobanteSelect);
+                        if ($tipoSelect.length && $tipoSelect.hasClass('select2-hidden-accessible')) {
+                            console.log('Setting tipo comprobante value via select2...');
+                            $tipoSelect.val(this.form.tipo_comprobante_id).trigger('change');
+
+                            // Verificar que se estableció
+                            setTimeout(() => {
+                                const currentValue = $tipoSelect.val();
+                                console.log('Final tipo comprobante value:', currentValue);
+                                if (currentValue != this.form.tipo_comprobante_id) {
+                                    console.warn('Value not set correctly, trying again...');
+                                    $tipoSelect.val(this.form.tipo_comprobante_id).trigger('change.select2');
+                                }
+                            }, 100);
+                        }
+                    }
+                }, 200);
+
+                // Inicializar cuentas contables después del tipo de comprobante
+                setTimeout(() => {
+                    this.setAccountValuesAfterInit();
+                }, 400);
+
+            }, 200);
+        },
+        setAccountValuesAfterInit() {
+            console.log('Setting account values after init...');
+
+            // Usar un timeout más corto para coordinar mejor con la inicialización del tipo de comprobante
+            setTimeout(() => {
+                console.log('Initializing cuentas contables selects...');
+                this.initCuentasContablesSelect2();
+
+                // Esperar menos tiempo para establecer los valores
+                setTimeout(() => {
+                    console.log('Setting cuenta contable values for detalles...');
+                    this.form.detalles.forEach((detalle, index) => {
+                        if (detalle.cuenta_contable_id) {
+                            console.log(`Setting cuenta ${index}:`, detalle.cuenta_contable_id);
+                            const $select = $(this.$refs['cuentaSelect' + index]);
+                            if ($select.length) {
+                                // Asegurar que el select2 esté inicializado
+                                if ($select.hasClass('select2-hidden-accessible')) {
+                                    $select.val(detalle.cuenta_contable_id).trigger('change.select2');
+                                    console.log(`Cuenta ${index} value set via select2`);
+                                } else {
+                                    console.log(`Select2 not ready for cuenta ${index}, setting directly`);
+                                    $select.val(detalle.cuenta_contable_id);
+                                }
+                            } else {
+                                console.log(`cuentaSelect${index} ref not found`);
+                            }
+                        }
+                    });
+
+                    // Establecer terceros después de que las cuentas estén listas
+                    setTimeout(() => {
+                        this.setTercerosValues();
+                    }, 200);
+                }, 200);
+            }, 100);
+        },
+        setTercerosValues() {
+            console.log('Setting terceros values...');
+            this.form.detalles.forEach((detalle, index) => {
+                if (detalle.requiere_tercero && detalle.tercero_id) {
+                    console.log(`Setting tercero for detalle ${index}:`, detalle.tercero_id, 'Current value:', this.form.detalles[index].tercero_id);
+
+                    // Forzar la actualización del valor usando Vue.set para asegurar reactividad
+                    this.$set(this.form.detalles[index], 'tercero_id', detalle.tercero_id);
+
+                    // También forzar el trigger del cambio
+                    this.$nextTick(() => {
+                        console.log(`Tercero ${index} final value:`, this.form.detalles[index].tercero_id);
+                    });
+                } else if (detalle.requiere_tercero) {
+                    console.log(`Detalle ${index} requires tercero but tercero_id is empty:`, detalle.tercero_id);
+                } else {
+                    console.log(`Detalle ${index} does not require tercero`);
+                }
+            });
+        },
+        onTipoComprobanteChanged() {
+            if (this.form.tipo_comprobante_id) {
+                this.loadProximoConsecutivo();
+            }
+        },
+        async loadProximoConsecutivo() {
+            try {
+                const response = await axios.get('/contabilidad/asientos-contables/proximo-consecutivo', {
+                    params: { tipo_comprobante_id: this.form.tipo_comprobante_id }
+                });
+                if (response.data.success) {
+                    this.proximoConsecutivo = response.data.data.proximo_consecutivo;
+                }
+            } catch (error) {
+                console.error('Error loading proximo consecutivo:', error);
+            }
+        },
+        onCuentaChanged(index) {
+            const cuenta = this.cuentasContables.find(c => c.id == this.form.detalles[index].cuenta_contable_id);
+            if (cuenta) {
+                this.form.detalles[index].cuenta_contable = cuenta;
+                this.form.detalles[index].requiere_tercero = cuenta.requiere_tercero;
+                if (!cuenta.requiere_tercero) {
+                    this.form.detalles[index].tercero_id = '';
+                    this.form.detalles[index].tercero = null;
+                }
+            }
+        },
+        addDetalle() {
+            this.form.detalles.push({
+                cuenta_contable_id: '',
+                cuenta_contable: null,
+                tercero_id: '',
+                tercero: null,
+                requiere_tercero: false,
+                debito: '0.00',
+                credito: '0.00',
+                concepto: ''
+            });
+            this.updateCuentasContablesSelect2();
+        },
+        removeDetalle(index) {
+            this.form.detalles.splice(index, 1);
+        },
+        async saveAsiento() {
+            const hayDatos = this.totalDebitos > 0 || this.totalCreditos > 0;
+
+            if (!hayDatos) {
+                alert('Debe ingresar al menos un monto en débito o crédito.');
+                return;
+            }
+
+            if (!this.balanceado) {
+                alert('El asiento debe estar balanceado para poder guardarlo.');
+                return;
+            }
+
+            this.saving = true;
+            try {
+                let response;
+                if (this.isEditingMode && this.form.id) {
+                    // Actualizar asiento existente
+                    response = await axios.put(`/contabilidad/asientos-contables/${this.form.id}`, this.form);
+                } else {
+                    // Crear nuevo asiento
+                    response = await axios.post('/contabilidad/asientos-contables', this.form);
+                }
+
+                if (response.data.success) {
+                    const action = this.isEditingMode ? 'actualizado' : 'guardado';
+                    alert(`Asiento ${action} exitosamente`);
+                    window.location.href = '/contabilidad/asientos-contables';
+                } else {
+                    alert('Error: ' + response.data.message);
+                }
+            } catch (error) {
+                console.error('Error saving asiento:', error);
+                const message = error.response?.data?.message || 'Error al guardar el asiento';
+                alert('Error: ' + message);
+            } finally {
+                this.saving = false;
+            }
+        },
+        waitForSelect2AndInitialize(attempts = 0) {
+            if (typeof $ === 'undefined') {
+                if (attempts < 50) {
+                    setTimeout(() => {
+                        this.waitForSelect2AndInitialize(attempts + 1);
+                    }, 100);
+                }
+                return;
+            }
+
+            if (typeof $.fn.select2 === 'undefined') {
+                if (attempts < 50) {
+                    setTimeout(() => {
+                        this.waitForSelect2AndInitialize(attempts + 1);
+                    }, 100);
+                } else {
+                    this.initializeWithoutSelect2();
+                }
+                return;
+            }
+
+            this.initializeSelect2();
+        },
+        initializeSelect2() {
+            this.initTipoComprobanteSelect2();
+            this.initCuentasContablesSelect2();
+        },
+        initializeWithoutSelect2() {
+            this.initBasicSelects();
+        },
+        initBasicSelects() {
+            const vm = this;
+            const $tipoSelect = $(this.$refs.tipoComprobanteSelect);
+            if ($tipoSelect.length) {
+                $tipoSelect.empty().append('<option value="">Seleccionar tipo de comprobante</option>');
+                this.tiposComprobantes.forEach(tipo => {
+                    $tipoSelect.append(new Option(tipo.codigo + ' - ' + tipo.nombre, tipo.id));
+                });
+                $tipoSelect.on('change', function() {
+                    vm.form.tipo_comprobante_id = $(this).val();
+                    vm.onTipoComprobanteChanged();
+                });
+            }
+
+            $('.cuenta-select').each(function() {
+                const $select = $(this);
+                const index = parseInt($select.data('index'));
+                $select.empty().append('<option value="">Seleccionar cuenta</option>');
+                vm.cuentasContables.forEach(cuenta => {
+                    $select.append(new Option(cuenta.codigo + ' - ' + cuenta.descripcion, cuenta.id));
+                });
+                $select.on('change', function() {
+                    vm.form.detalles[index].cuenta_contable_id = $(this).val();
+                    vm.onCuentaChanged(index);
+                });
+            });
+        },
+        initTipoComprobanteSelect2() {
+            if (typeof $.fn.select2 === 'undefined') {
+                console.error('Select2 is not available');
+                return;
+            }
+
+            const vm = this;
+            const $select = $(this.$refs.tipoComprobanteSelect);
+            if (!$select.length) {
+                console.error('tipoComprobanteSelect element not found');
+                return;
+            }
+
+            console.log('Initializing tipo comprobante select2...');
+            console.log('Available tipos comprobantes:', this.tiposComprobantes.length, 'items');
+            
+            if (this.tiposComprobantes.length === 0) {
+                console.warn('No tipos comprobantes available to populate select');
+                return;
+            }
+
+            // Destruir select2 existente si existe
+            if ($select.hasClass('select2-hidden-accessible')) {
+                console.log('Destroying existing select2 instance');
+                $select.select2('destroy');
+            }
+
+            // Limpiar y agregar opción por defecto
+            $select.empty().append('<option value="">Seleccionar tipo de comprobante</option>');
+            
+            // Agregar todas las opciones
+            this.tiposComprobantes.forEach(tipo => {
+                console.log('Adding option:', tipo.codigo + ' - ' + tipo.nombre, 'value:', tipo.id);
+                $select.append(new Option(tipo.codigo + ' - ' + tipo.nombre, tipo.id));
+            });
+
+            // Inicializar select2
+            $select.select2({
+                theme: 'bootstrap',
+                placeholder: 'Buscar tipo de comprobante...',
+                allowClear: true,
+                matcher: function(params, data) {
+                    if ($.trim(params.term) === '') return data;
+                    if (typeof data.text === 'undefined') return null;
+                    if (data.text.toLowerCase().indexOf(params.term.toLowerCase()) > -1) return data;
+                    return null;
+                }
+            }).on('change', function() {
+                const selectedValue = $(this).val();
+                console.log('Tipo comprobante changed to:', selectedValue);
+                vm.form.tipo_comprobante_id = selectedValue;
+                vm.onTipoComprobanteChanged();
+            });
+
+            console.log('Tipo comprobante select2 initialized successfully');
+            console.log('Current options count:', $select.find('option').length);
+        },
+        },
+        initCuentasContablesSelect2() {
+            if (typeof $.fn.select2 === 'undefined') {
+                this.initBasicCuentasSelects();
+                return;
+            }
+
+            const vm = this;
+            console.log('Initializing cuentas contables select2...');
+
+            // Iterar a través de todos los detalles para asegurar que todos los selects se inicialicen
+            this.form.detalles.forEach((detalle, index) => {
+                const $select = $(this.$refs['cuentaSelect' + index]);
+                if (!$select.length) {
+                    console.log(`Select for cuenta ${index} not found in DOM yet`);
+                    return;
+                }
+
+                // Destruir select2 existente si existe
+                if ($select.hasClass('select2-hidden-accessible')) {
+                    $select.select2('destroy');
+                }
+
+                const cuentasUsadas = vm.form.detalles
+                    .map((detalle, idx) => idx !== index ? detalle.cuenta_contable_id : null)
+                    .filter(id => id && id !== '');
+
+                $select.empty().append('<option value="">Seleccionar cuenta</option>');
+                vm.cuentasContables.forEach(cuenta => {
+                    if (!cuentasUsadas.includes(cuenta.id.toString())) {
+                        $select.append(new Option(cuenta.codigo + ' - ' + cuenta.descripcion, cuenta.id));
+                    }
+                });
+
+                const currentValue = vm.form.detalles[index].cuenta_contable_id;
+                if (currentValue && !$select.find('option[value="' + currentValue + '"]').length) {
+                    const currentCuenta = vm.cuentasContables.find(c => c.id.toString() === currentValue.toString());
+                    if (currentCuenta) {
+                        $select.append(new Option(currentCuenta.codigo + ' - ' + currentCuenta.descripcion, currentCuenta.id));
+                    }
+                }
+
+                $select.select2({
+                    theme: 'bootstrap',
+                    placeholder: 'Buscar cuenta contable...',
+                    allowClear: true,
+                    matcher: function(params, data) {
+                        if ($.trim(params.term) === '') return data;
+                        if (typeof data.text === 'undefined') return null;
+                        if (data.text.toLowerCase().indexOf(params.term.toLowerCase()) > -1) return data;
+                        return null;
+                    }
+                }).on('change', function() {
+                    vm.form.detalles[index].cuenta_contable_id = $(this).val();
+                    vm.onCuentaChanged(index);
+                    vm.$nextTick(() => {
+                        vm.updateCuentasContablesSelect2();
+                    });
+                });
+
+                if (currentValue) {
+                    $select.val(currentValue).trigger('change.select2');
+                    console.log(`Cuenta ${index} initialized with value:`, currentValue);
+                }
+            });
+        },
+        updateCuentasContablesSelect2() {
+            this.$nextTick(() => {
+                if (typeof $.fn.select2 !== 'undefined') {
+                    this.initCuentasContablesSelect2();
+                } else {
+                    this.initBasicCuentasSelects();
+                }
+            });
+        },
+        initBasicCuentasSelects() {
+            const vm = this;
+            $('.cuenta-select').each(function() {
+                const $select = $(this);
+                const index = parseInt($select.data('index'));
+
+                if ($select.find('option').length <= 1) {
+                    const cuentasUsadas = vm.form.detalles
+                        .map((detalle, idx) => idx !== index ? detalle.cuenta_contable_id : null)
+                        .filter(id => id && id !== '');
+
+                    $select.empty().append('<option value="">Seleccionar cuenta</option>');
+                    vm.cuentasContables.forEach(cuenta => {
+                        if (!cuentasUsadas.includes(cuenta.id.toString())) {
+                            $select.append(new Option(cuenta.codigo + ' - ' + cuenta.descripcion, cuenta.id));
+                        }
+                    });
+
+                    const currentValue = vm.form.detalles[index].cuenta_contable_id;
+                    if (currentValue && !$select.find('option[value="' + currentValue + '"]').length) {
+                        const currentCuenta = vm.cuentasContables.find(c => c.id.toString() === currentValue.toString());
+                        if (currentCuenta) {
+                            $select.append(new Option(currentCuenta.codigo + ' - ' + currentCuenta.descripcion, currentCuenta.id));
+                        }
+                    }
+
+                    if (currentValue) {
+                        $select.val(currentValue);
+                    }
+
+                    $select.off('change.cuentaSelect').on('change.cuentaSelect', function() {
+                        vm.form.detalles[index].cuenta_contable_id = $(this).val();
+                        vm.onCuentaChanged(index);
+                        vm.$nextTick(() => {
+                            vm.updateCuentasContablesSelect2();
+                        });
+                    });
+                }
+            });
+        },
+        formatNumber(number) {
+            return new Intl.NumberFormat('es-CO', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }).format(number);
+        },
+        onDebitoChanged(index) {
+            if (this.form.detalles[index].debito && parseFloat(this.form.detalles[index].debito) > 0) {
+                this.form.detalles[index].credito = '0.00';
+            }
+        },
+        onCreditoChanged(index) {
+            if (this.form.detalles[index].credito && parseFloat(this.form.detalles[index].credito) > 0) {
+                this.form.detalles[index].debito = '0.00';
+            }
+        },
+        onInputFocus(event) {
+            event.target.select();
+        },
+        onFilesSelected(event) {
+            const files = Array.from(event.target.files);
+            files.forEach(file => {
+                const allowedTypes = ['image/jpeg', 'image/png', 'image/gif', 'application/pdf', 'application/msword', 'application/vnd.openxmlformats-officedocument.wordprocessingml.document'];
+                if (!allowedTypes.includes(file.type)) {
+                    alert('Tipo de archivo no permitido: ' + file.name);
+                    return;
+                }
+
+                if (file.size > 5 * 1024 * 1024) {
+                    alert('El archivo es muy grande (máximo 5MB): ' + file.name);
+                    return;
+                }
+
+                this.adjuntosFiles.push(file);
+            });
+            event.target.value = '';
+        },
+        removeFile(index) {
+            this.adjuntosFiles.splice(index, 1);
+        },
+        formatFileSize(bytes) {
+            if (bytes === 0) return '0 Bytes';
+            const k = 1024;
+            const sizes = ['Bytes', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+    }
+}
+</script>
+
+<style scoped>
+.asientos-table tbody tr td {
+    border-top: none !important;
+    border-bottom: none !important;
+}
+
+.asientos-table thead th {
+    border-bottom: 1px solid #dee2e6;
+}
+
+.balance-info {
+    padding: 15px;
+    border-radius: 5px;
+    background-color: #f8f9fa;
+}
+
+.balance-info.balance-balanceado {
+    background-color: #d4edda;
+    color: #155724;
+}
+
+.balance-info.balance-desbalanceado {
+    background-color: #f8d7da;
+    color: #721c24;
+}
+</style>

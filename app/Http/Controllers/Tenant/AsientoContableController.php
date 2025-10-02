@@ -1,0 +1,658 @@
+<?php
+
+namespace App\Http\Controllers\Tenant;
+
+use App\Http\Controllers\Controller;
+use App\Models\Tenant\AsientoContable;
+use App\Models\Tenant\TipoComprobanteContable;
+use App\Models\Tenant\DetalleAsientoContable;
+use App\Models\Tenant\CuentaContable;
+use App\Models\Tenant\AsientoAdjunto;
+use App\Models\Tenant\Person;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Auth;
+use Exception;
+use Hyn\Tenancy\Contracts\CurrentHostname;
+use Hyn\Tenancy\Database\Connection;
+
+class AsientoContableController extends Controller
+{
+    public function index()
+    {
+        return view('tenant.asientos_contables.index');
+    }
+
+    public function create()
+    {
+        return view('tenant.asientos_contables.form_clean');
+    }
+
+    public function show($id)
+    {
+        $this->ensureTenantConnection();
+
+        $asiento = AsientoContable::on('tenant')->with(['detalles.cuentaContable', 'detalles.tercero', 'tipoComprobante', 'adjuntos'])
+            ->findOrFail($id);
+
+        return view('tenant.asientos_contables.show', compact('asiento'));
+    }
+
+    public function edit($id)
+    {
+        $this->ensureTenantConnection();
+
+        $asiento = AsientoContable::on('tenant')->with([
+            'detalles.cuentaContable',
+            'detalles.tercero',
+            'tipoComprobante',
+            'adjuntos'
+        ])->findOrFail($id);
+
+        return view('tenant.asientos_contables.form', compact('asiento'));
+    }
+
+    public function records(Request $request)
+    {
+        try {
+            // Verificar que la conexión tenant esté configurada
+            $this->ensureTenantConnection();
+
+
+
+            $records = AsientoContable::on('tenant')->with(['tipoComprobante', 'usuarioCreacion'])
+                ->when($request->fecha_inicio, function ($query, $fecha) {
+                    return $query->where('fecha_asiento', '>=', $fecha);
+                })
+                ->when($request->fecha_fin, function ($query, $fecha) {
+                    return $query->where('fecha_asiento', '<=', $fecha);
+                })
+                ->when($request->tipo_comprobante_id, function ($query, $tipo) {
+                    return $query->where('tipo_comprobante_id', $tipo);
+                })
+                ->when($request->estado, function ($query, $estado) {
+                    return $query->where('estado', $estado);
+                })
+                ->when($request->search, function ($query, $search) {
+                    return $query->where(function ($q) use ($search) {
+                        $q->where('numero_comprobante', 'like', "%{$search}%")
+                          ->orWhere('concepto', 'like', "%{$search}%");
+                    });
+                })
+                ->orderBy('fecha_asiento', 'desc')
+                ->orderBy('id', 'desc')
+                ->paginate(15);
+
+
+
+        } catch (\Exception $e) {
+
+            return [
+                'success' => false,
+                'message' => 'Error al cargar registros: ' . $e->getMessage()
+            ];
+        }
+
+        return [
+            'success' => true,
+            'data' => [
+                'records' => $records->items(),
+                'pagination' => [
+                    'current_page' => $records->currentPage(),
+                    'last_page' => $records->lastPage(),
+                    'per_page' => $records->perPage(),
+                    'total' => $records->total(),
+                    'from' => $records->firstItem(),
+                    'to' => $records->lastItem(),
+                ]
+            ]
+        ];
+    }
+
+    public function store(Request $request)
+    {
+        try {
+            $this->ensureTenantConnection();
+
+            DB::beginTransaction();
+
+            // Validar el tipo de comprobante
+            $tipoComprobante = TipoComprobanteContable::on('tenant')->findOrFail($request->tipo_comprobante_id);
+
+            // Obtener el próximo consecutivo
+            $consecutivo = $this->obtenerProximoConsecutivo($tipoComprobante->id);
+
+            // Calcular totales de débito y crédito
+            $totalDebito = 0;
+            $totalCredito = 0;
+            if ($request->has('detalles')) {
+                foreach ($request->detalles as $detalle) {
+                    $totalDebito += floatval($detalle['debito'] ?? 0);
+                    $totalCredito += floatval($detalle['credito'] ?? 0);
+                }
+            }
+
+            // Crear el asiento contable
+            $asiento = AsientoContable::on('tenant')->create([
+                'fecha_asiento' => $request->fecha_asiento,
+                'tipo_comprobante_id' => $request->tipo_comprobante_id,
+                'numero_comprobante' => $consecutivo,
+                'consecutivo' => $consecutivo,
+                'concepto' => $request->concepto,
+                'total_debito' => $totalDebito,
+                'total_credito' => $totalCredito,
+                'estado' => 'BORRADOR',
+                'usuario_creacion' => Auth::id(),
+                'fecha_creacion' => now(),
+            ]);
+
+            // Crear los detalles
+            if ($request->has('detalles')) {
+                // Validar que todos los detalles tengan concepto
+                foreach ($request->detalles as $index => $detalle) {
+                    if (empty($detalle['concepto']) || trim($detalle['concepto']) === '') {
+                        return [
+                            'success' => false,
+                            'message' => "El detalle " . ($index + 1) . " debe tener un concepto válido"
+                        ];
+                    }
+                }
+
+                $orden = 1;
+                foreach ($request->detalles as $detalle) {
+                    DetalleAsientoContable::on('tenant')->create([
+                        'asiento_contable_id' => $asiento->id,
+                        'cuenta_contable_id' => $detalle['cuenta_contable_id'],
+                        'person_id' => !empty($detalle['tercero_id']) ? $detalle['tercero_id'] : null, // Mapear tercero_id a person_id
+                        'concepto' => trim($detalle['concepto']),
+                        'debito' => floatval($detalle['debito'] ?? 0),
+                        'credito' => floatval($detalle['credito'] ?? 0),
+                        'orden' => $orden++,
+                    ]);
+                }
+            }
+
+            // Procesar archivos adjuntos si los hay
+            if ($request->hasFile('adjuntos')) {
+                foreach ($request->file('adjuntos') as $archivo) {
+                    $this->procesarAdjunto($archivo, $asiento->id);
+                }
+            }
+
+            DB::commit();
+
+            return [
+                'success' => true,
+                'message' => 'Asiento contable creado exitosamente',
+                'data' => $asiento->load(['detalles.cuentaContable', 'tipoComprobante'])
+            ];
+
+        } catch (Exception $e) {
+            DB::rollBack();
+            return [
+                'success' => false,
+                'message' => 'Error al crear el asiento contable: ' . $e->getMessage()
+            ];
+        }
+    }
+
+    public function update(Request $request, $id)
+    {
+        try {
+            $this->ensureTenantConnection();
+
+            DB::beginTransaction();
+
+            $asiento = AsientoContable::on('tenant')->findOrFail($id);
+
+            // Solo permitir edición si está en borrador (case-insensitive)
+            if (strtolower(trim($asiento->estado)) !== 'borrador') {
+                return [
+                    'success' => false,
+                    'message' => 'Solo se pueden modificar asientos en estado borrador'
+                ];
+            }
+
+            // Actualizar datos del asiento (sin los totales, se actualizarán después)
+            $asiento->update([
+                'fecha_asiento' => $request->fecha_asiento,
+                'concepto' => $request->concepto,
+                'fecha_modificacion' => now(),
+            ]);
+
+            // Eliminar detalles existentes y crear nuevos
+            $asiento->detalles()->delete();
+
+            if ($request->has('detalles')) {
+                \Log::info('Detalles recibidos en update', $request->detalles);
+
+                // Validar que todos los detalles tengan concepto
+                foreach ($request->detalles as $index => $detalle) {
+                    if (empty($detalle['concepto']) || trim($detalle['concepto']) === '') {
+                        return [
+                            'success' => false,
+                            'message' => "El detalle " . ($index + 1) . " debe tener un concepto válido"
+                        ];
+                    }
+                }
+
+                // Calcular totales antes de crear los detalles
+                $totalDebito = 0;
+                $totalCredito = 0;
+                $orden = 1; // Inicializar contador de orden
+
+                foreach ($request->detalles as $detalle) {
+                    // Debug: mostrar los valores exactos recibidos
+                    \Log::info('Detalle recibido RAW', [
+                        'cuenta_contable_id' => $detalle['cuenta_contable_id'] ?? 'NULL',
+                        'tercero_id' => $detalle['tercero_id'] ?? 'NULL',
+                        'concepto' => $detalle['concepto'] ?? 'NULL',
+                        'debe_raw' => $detalle['debe'] ?? 'NULL',
+                        'haber_raw' => $detalle['haber'] ?? 'NULL',
+                        'debito_raw' => $detalle['debito'] ?? 'NULL',
+                        'credito_raw' => $detalle['credito'] ?? 'NULL',
+                        'orden' => $orden
+                    ]);
+
+                    // Limpiar y convertir valores numéricos de forma más robusta
+                    $debitoValue = 0;
+                    $creditoValue = 0;
+
+                    // Priorizar debe/haber, luego debito/credito
+                    if (isset($detalle['debe']) && $detalle['debe'] !== '' && $detalle['debe'] !== null) {
+                        $debitoValue = floatval(str_replace(',', '', $detalle['debe']));
+                    } elseif (isset($detalle['debito']) && $detalle['debito'] !== '' && $detalle['debito'] !== null) {
+                        $debitoValue = floatval(str_replace(',', '', $detalle['debito']));
+                    }
+
+                    if (isset($detalle['haber']) && $detalle['haber'] !== '' && $detalle['haber'] !== null) {
+                        $creditoValue = floatval(str_replace(',', '', $detalle['haber']));
+                    } elseif (isset($detalle['credito']) && $detalle['credito'] !== '' && $detalle['credito'] !== null) {
+                        $creditoValue = floatval(str_replace(',', '', $detalle['credito']));
+                    }
+
+                    // Acumular totales
+                    $totalDebito += $debitoValue;
+                    $totalCredito += $creditoValue;
+
+                    $detalleCreado = [
+                        'asiento_contable_id' => $asiento->id,
+                        'cuenta_contable_id' => intval($detalle['cuenta_contable_id']),
+                        'person_id' => !empty($detalle['tercero_id']) ? intval($detalle['tercero_id']) : null,
+                        'concepto' => trim($detalle['concepto']),
+                        'debito' => $debitoValue,
+                        'credito' => $creditoValue,
+                        'orden' => $orden, // Usar el contador consecutivo
+                    ];
+
+                    \Log::info('Detalle a crear (procesado)', $detalleCreado);
+
+                    try {
+                        DetalleAsientoContable::on('tenant')->create($detalleCreado);
+                        \Log::info('Detalle creado exitosamente');
+                        $orden++; // Incrementar orden para el siguiente detalle
+                    } catch (Exception $e) {
+                        \Log::error('Error creando detalle', [
+                            'error' => $e->getMessage(),
+                            'data' => $detalleCreado
+                        ]);
+                        throw $e;
+                    }
+                }
+
+                // Actualizar los totales en el asiento principal
+                \Log::info('Actualizando totales del asiento', [
+                    'total_debito' => $totalDebito,
+                    'total_credito' => $totalCredito
+                ]);
+
+                $asiento->update([
+                    'total_debito' => $totalDebito,
+                    'total_credito' => $totalCredito,
+                ]);
+            }
+
+            // Procesar archivos adjuntos si los hay
+            if ($request->hasFile('adjuntos')) {
+                \Log::info('Procesando adjuntos en update', ['count' => count($request->file('adjuntos'))]);
+                foreach ($request->file('adjuntos') as $archivo) {
+                    \Log::info('Procesando adjunto', ['filename' => $archivo->getClientOriginalName()]);
+                    $this->procesarAdjunto($archivo, $asiento->id);
+                }
+            } else {
+                \Log::info('No se recibieron adjuntos en update');
+            }
+
+            DB::commit();
+
+            return [
+                'success' => true,
+                'message' => 'Asiento contable actualizado exitosamente',
+                'data' => $asiento->load(['detalles.cuentaContable', 'detalles.tercero', 'tipoComprobante', 'adjuntos'])
+            ];
+
+        } catch (Exception $e) {
+            DB::rollBack();
+            return [
+                'success' => false,
+                'message' => 'Error al actualizar el asiento contable: ' . $e->getMessage()
+            ];
+        }
+    }
+
+    public function destroy($id)
+    {
+        try {
+            $this->ensureTenantConnection();
+
+            $asiento = AsientoContable::on('tenant')->findOrFail($id);
+
+            // Solo permitir eliminación si está en borrador
+            if ($asiento->estado !== 'borrador') {
+                return [
+                    'success' => false,
+                    'message' => 'Solo se pueden eliminar asientos en estado borrador'
+                ];
+            }
+
+            $asiento->delete();
+
+            return [
+                'success' => true,
+                'message' => 'Asiento contable eliminado exitosamente'
+            ];
+
+        } catch (Exception $e) {
+            return [
+                'success' => false,
+                'message' => 'Error al eliminar el asiento contable: ' . $e->getMessage()
+            ];
+        }
+    }
+
+    public function aprobar($id)
+    {
+        try {
+            $this->ensureTenantConnection();
+
+            $asiento = AsientoContable::on('tenant')->findOrFail($id);
+
+            if ($asiento->estado !== 'borrador') {
+                return [
+                    'success' => false,
+                    'message' => 'Solo se pueden aprobar asientos en estado borrador'
+                ];
+            }
+
+            $asiento->update([
+                'estado' => 'aprobado',
+                'fecha_aprobacion' => now(),
+                'usuario_aprobacion_id' => Auth::id(),
+            ]);
+
+            return [
+                'success' => true,
+                'message' => 'Asiento contable aprobado exitosamente'
+            ];
+
+        } catch (Exception $e) {
+            return [
+                'success' => false,
+                'message' => 'Error al aprobar el asiento contable: ' . $e->getMessage()
+            ];
+        }
+    }
+
+    public function getTiposComprobantes()
+    {
+        try {
+            // Verificar que la conexión tenant esté configurada
+            $this->ensureTenantConnection();
+
+            $tipos = TipoComprobanteContable::on('tenant')->activos()
+                ->orderBy('codigo')
+                ->get();
+
+            return [
+                'success' => true,
+                'data' => $tipos
+            ];
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'message' => 'Error al cargar tipos de comprobantes: ' . $e->getMessage()
+            ];
+        }
+    }
+
+    public function getCuentasContables()
+    {
+        try {
+            $this->ensureTenantConnection();
+
+            $cuentas = CuentaContable::on('tenant')->where('activa', true)
+                ->orderBy('codigo')
+                ->get(['id', 'codigo', 'descripcion', 'naturaleza', 'requiere_tercero']);
+
+            return [
+                'success' => true,
+                'data' => $cuentas
+            ];
+        } catch (Exception $e) {
+            return [
+                'success' => false,
+                'message' => 'Error al cargar cuentas contables: ' . $e->getMessage()
+            ];
+        }
+    }
+
+    public function getTerceros()
+    {
+        try {
+            $this->ensureTenantConnection();
+
+            $terceros = Person::on('tenant')
+                ->where('enabled', true)
+                ->orderBy('name')
+                ->get(['id', 'name', 'number']);
+
+            return [
+                'success' => true,
+                'data' => $terceros
+            ];
+        } catch (Exception $e) {
+            return [
+                'success' => false,
+                'message' => 'Error al cargar terceros: ' . $e->getMessage()
+            ];
+        }
+    }
+
+    private function generarNumeroComprobante($tipoComprobante)
+    {
+        // Implementación thread-safe para evitar duplicados en acceso concurrente
+        $maxIntentos = 5;
+        $intento = 0;
+
+        do {
+            try {
+                // Usar lockForUpdate() para bloquear la fila durante la transacción
+                $ultimoAsiento = AsientoContable::on('tenant')
+                    ->where('tipo_comprobante_id', $tipoComprobante->id)
+                    ->orderBy('numero_comprobante', 'desc')
+                    ->lockForUpdate()
+                    ->first();
+
+                $nuevoNumero = $ultimoAsiento ? $ultimoAsiento->numero_comprobante + 1 : 1;
+
+                // Verificar que no existe ya este número (doble verificación)
+                $existe = AsientoContable::on('tenant')
+                    ->where('tipo_comprobante_id', $tipoComprobante->id)
+                    ->where('numero_comprobante', $nuevoNumero)
+                    ->exists();
+
+                if (!$existe) {
+                    return $nuevoNumero;
+                }
+
+                // Si existe, incrementar y reintentar
+                $nuevoNumero++;
+                $intento++;
+
+            } catch (\Exception $e) {
+                $intento++;
+                if ($intento >= $maxIntentos) {
+                    throw new \Exception('No se pudo generar un número de comprobante único después de ' . $maxIntentos . ' intentos');
+                }
+                // Esperar un momento antes de reintentar
+                usleep(rand(10000, 50000)); // 10-50ms
+            }
+        } while ($intento < $maxIntentos);
+
+        throw new \Exception('Error al generar número de comprobante');
+    }
+
+    private function procesarAdjunto($archivo, $asientoId)
+    {
+        if ($archivo->isValid()) {
+            $nombreOriginal = $archivo->getClientOriginalName();
+            $extension = $archivo->getClientOriginalExtension();
+            $nombreArchivo = time() . '_' . $nombreOriginal;
+
+            // Guardar en storage/app/asientos_adjuntos
+            $ruta = $archivo->storeAs('asientos_adjuntos', $nombreArchivo);
+
+            AsientoAdjunto::on('tenant')->create([
+                'asiento_contable_id' => $asientoId,
+                'nombre_archivo' => $nombreOriginal,
+                'ruta_archivo' => $ruta,
+                'tipo_archivo' => $extension,
+                'tamaño_archivo' => $archivo->getSize(),
+                'fecha_carga' => now(),
+            ]);
+        }
+    }
+
+    /**
+     * Obtener el próximo número consecutivo para un tipo de comprobante
+     */
+    public function getProximoConsecutivo(Request $request)
+    {
+        try {
+            $this->ensureTenantConnection();
+
+            $tipoComprobanteId = $request->get('tipo_comprobante_id');
+            if (!$tipoComprobanteId) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Tipo de comprobante requerido'
+                ], 400);
+            }
+
+            $tipoComprobante = TipoComprobanteContable::on('tenant')->find($tipoComprobanteId);
+            if (!$tipoComprobante) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Tipo de comprobante no encontrado'
+                ], 404);
+            }
+
+            // Obtener el próximo número (solo para mostrar, no reservar)
+            $ultimoNumero = AsientoContable::on('tenant')
+                ->where('tipo_comprobante_id', $tipoComprobanteId)
+                ->max('numero_comprobante');
+
+            $proximoNumero = $ultimoNumero ? $ultimoNumero + 1 : 1;
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'proximo_consecutivo' => $proximoNumero,
+                    'tipo_comprobante' => $tipoComprobante->descripcion
+                ]
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Ensure tenant connection is properly configured
+     */
+    private function ensureTenantConnection()
+    {
+        $hostname = app(CurrentHostname::class);
+
+        if (!$hostname) {
+            throw new Exception('No se pudo determinar el hostname del tenant');
+        }
+
+        $website = $hostname->website;
+
+        if (!$website) {
+            throw new Exception('No se pudo determinar el website del tenant');
+        }
+
+        // Forzar la configuración de la conexión tenant
+        $connection = app(Connection::class);
+        $connection->set($website);
+
+        // Verificar que podemos acceder a la base de datos
+        try {
+            DB::connection('tenant')->getPdo();
+        } catch (Exception $e) {
+            throw new Exception('No se pudo establecer conexión con la base de datos del tenant: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Obtener el próximo consecutivo para un tipo de comprobante
+     */
+    private function obtenerProximoConsecutivo($tipoComprobanteId)
+    {
+        // Obtener el último consecutivo para este tipo de comprobante
+        $ultimoConsecutivo = AsientoContable::on('tenant')
+            ->where('tipo_comprobante_id', $tipoComprobanteId)
+            ->max('consecutivo');
+
+        return ($ultimoConsecutivo ?? 0) + 1;
+    }
+
+    /**
+     * Descargar un adjunto del asiento contable
+     */
+    public function descargarAdjunto($id)
+    {
+        $this->ensureTenantConnection();
+
+        try {
+            $adjunto = AsientoAdjunto::on('tenant')->findOrFail($id);
+
+            // Verificar que el archivo existe
+            if (!Storage::disk('tenant')->exists($adjunto->ruta_archivo)) {
+                abort(404, 'Archivo no encontrado');
+            }
+
+            // Obtener el contenido del archivo
+            $contenido = Storage::disk('tenant')->get($adjunto->ruta_archivo);
+
+            // Determinar el tipo MIME
+            $mimeType = Storage::disk('tenant')->mimeType($adjunto->ruta_archivo);
+
+            // Retornar la respuesta de descarga
+            return response($contenido)
+                ->header('Content-Type', $mimeType)
+                ->header('Content-Disposition', 'attachment; filename="' . $adjunto->nombre_archivo . '"')
+                ->header('Content-Length', strlen($contenido));
+
+        } catch (Exception $e) {
+            \Log::error('Error al descargar adjunto: ' . $e->getMessage());
+            abort(404, 'Error al descargar el archivo');
+        }
+    }
+}
