@@ -3,6 +3,16 @@
         <!-- <div class="card-header bg-info">
             <h3 class="my-0">Nuevo Comprobante</h3>
         </div> -->
+
+        <!-- Loading state -->
+        <div class="card-body text-center" v-if="!loading_form">
+            <div class="spinner-border text-info" role="status">
+                <span class="sr-only">Cargando...</span>
+            </div>
+            <p class="mt-2">Cargando datos de la cotización...</p>
+        </div>
+
+        <!-- Main content when loaded -->
         <div class="card-body" v-if="loading_form">
             <div class="invoice">
                 <header class="clearfix">
@@ -14,11 +24,19 @@
                             <address class="ib mr-2" >
                                 <span class="font-weight-bold d-block">COTIZACIÓN</span>
                                 <span class="font-weight-bold d-block">COT-XXX</span>
-                                <span class="font-weight-bold">{{company.name}}</span>
+                                <span class="font-weight-bold">{{company.name || 'Cargando...'}}</span>
                                 <br>
-                                <div v-if="establishment.address != '-'">{{ establishment.address }}, </div> {{ establishment.city.name }}, {{ establishment.department.name }} - {{ establishment.country.name }}
-                                <br>
-                                {{establishment.email}} - <span v-if="establishment.telephone != '-'">{{establishment.telephone}}</span>
+                                <template v-if="establishment">
+                                    <div v-if="establishment.address != '-'">{{ establishment.address }}, </div>
+                                    <span v-if="establishment.city">{{ establishment.city.name }}, </span>
+                                    <span v-if="establishment.department">{{ establishment.department.name }} - </span>
+                                    <span v-if="establishment.country">{{ establishment.country.name }}</span>
+                                    <br>
+                                    {{establishment.email}} - <span v-if="establishment.telephone != '-'">{{establishment.telephone}}</span>
+                                </template>
+                                <template v-else>
+                                    <div>Cargando datos del establecimiento...</div>
+                                </template>
                             </address>
                         </div>
                         <div class="col-sm-4">
@@ -188,17 +206,22 @@
                                                 <th></th>
                                             </tr>
                                         </thead>
-                                        <tbody v-if="form.items.length > 0">
+
+                                        <tbody v-if="form.items && form.items.length > 0">
                                             <tr v-for="(row, index) in form.items" :key="index">
                                                 <td>{{index + 1}}</td>
-                                                <td>{{row.item.name}}
-                                                    <template v-if="row.item.presentation">
-                                                        {{row.item.presentation.hasOwnProperty('description') ? row.item.presentation.description : ''}}
+                                                <td>{{ row.item ? row.item.name : '' }}
+                                                    <template v-if="row.item && row.item.presentation">
+                                                        {{ row.item.presentation.hasOwnProperty('description') ? row.item.presentation.description : '' }}
+                                                    </template>
+                                                    <template v-if="row.notes">
+                                                        <br/>
+                                                        <small style="font-style: italic; color: #666;">{{ row.notes }}</small>
                                                     </template>
                                                     <br/>
-                                                    <small>{{row.tax.name}}</small>
+                                                    <small v-if="row.tax">{{ row.tax.name }}</small>
                                                 </td>
-                                                <td class="text-center">{{ row.item.unit_type.name }}</td>
+                                                <td class="text-center">{{ (row.item && row.item.unit_type) ? row.item.unit_type.name : '' }}</td>
                                                 <td class="text-right">{{row.quantity}}</td>
                                                 <td class="text-right">{{ ratePrefix() }} {{ getFormatUnitPriceRow(row.unit_price) }}</td>
 
@@ -206,7 +229,11 @@
                                                 <td class="text-right">{{ ratePrefix() }} {{ row.discount }}</td>
                                                 <td class="text-right">{{ratePrefix()}} {{row.total}}</td>
                                                 <td class="text-right">
-                                                    <button type="button" class="btn waves-effect waves-light btn-xs btn-danger" @click.prevent="clickRemoveItem(index)">x</button>
+                                                    <button type="button" class="btn waves-effect waves-light btn-xs btn-info mr-1" title="Editar"
+                                                        @click.prevent="clickEditItem(index)">
+                                                        <i class="el-icon-edit"></i>
+                                                    </button>
+                                                    <button type="button" class="btn waves-effect waves-light btn-xs btn-danger" title="Eliminar" @click.prevent="clickRemoveItem(index)">x</button>
                                                 </td>
                                             </tr>
                                             <tr><td colspan="9"></td></tr>
@@ -220,7 +247,7 @@
                                 </div>
                             </div>
 
-                            <div class="col-md-12" style="display: flex; flex-direction: column; align-items: flex-end;" v-if="form.items.length > 0">
+                            <div class="col-md-12" style="display: flex; flex-direction: column; align-items: flex-end;" v-if="form.items && form.items.length > 0">
                                 <table>
 
                                     <tr>
@@ -233,13 +260,13 @@
                                         <td>:</td>
                                         <td class="text-right">{{ratePrefix()}} {{ form.total_discount }}</td>
                                     </tr>
-                                    <template v-for="(tax, index) in form.taxes">
-                                        <tr v-if="((tax.total > 0) && (!tax.is_retention))" :key="index">
+                                    <template v-if="form.taxes && form.taxes.length" v-for="(tax, index) in form.taxes">
+                                        <tr v-if="tax && (Number(tax.total) > 0) && (!tax.is_retention)" :key="index">
                                             <td >
-                                                {{tax.name}}(+)
+                                                {{ tax && tax.name ? tax.name : '' }}(+)
                                             </td>
                                             <td>:</td>
-                                            <td class="text-right">{{ratePrefix()}} {{Number(tax.total).toFixed(2)}}</td>
+                                            <td class="text-right">{{ratePrefix()}} {{ Number(tax.total).toFixed(2) }}</td>
                                         </tr>
                                     </template>
                                     <tr>
@@ -248,10 +275,10 @@
                                         <td class="text-right">{{ratePrefix()}} {{ form.subtotal }}</td>
                                     </tr>
 
-                                    <template v-for="(tax, index) in form.taxes">
-                                        <tr v-if="((tax.is_retention) && (tax.apply))" :key="index">
+                                    <template v-if="form.taxes && form.taxes.length" v-for="(tax, index) in form.taxes">
+                                        <tr v-if="tax && tax.is_retention && tax.apply" :key="index">
 
-                                            <td>{{tax.name}}(-)</td>
+                                            <td>{{ tax && tax.name ? tax.name : '' }}(-)</td>
                                             <td>:</td>
                                             <!-- <td class="text-right">
                                                 {{ratePrefix()}} {{Number(tax.retention).toFixed(2)}}
@@ -290,8 +317,10 @@
             </div>
         </div>
 
-        <quotation-form-item :showDialog.sync="showDialogAddItem"
-                           @add="addRow"></quotation-form-item>
+    <quotation-form-item :showDialog.sync="showDialogAddItem"
+               :recordItem="recordItem"
+               @add="addRow"
+               @update="updateRow"></quotation-form-item>
 
         <person-form :showDialog.sync="showDialogNewPerson"
                        type="customers"
@@ -334,6 +363,8 @@
                 type:  'edit',
                 resource: 'quotations',
                 showDialogAddItem: false,
+                recordItem: null,
+                recordItemIndex: null,
                 showDialogNewPerson: false,
                 showDialogOptions: false,
                 loading_submit: false,
@@ -359,6 +390,7 @@
             }
         },
         async created() {
+            this.loading_form = false; // Iniciar como false (cargando)
             await this.initForm()
             await this.$http.get(`/${this.resource}/tables`)
                 .then(response => {
@@ -377,10 +409,12 @@
                     this.changeDateOfIssue()
                     this.changeCurrencyType()
                     this.allCustomers()
-                    this.initRecord()
-
                 })
-            this.loading_form = true
+            // Cargar los datos del registro después de inicializar las tablas
+            await this.initRecord()
+            // Solo cuando todo esté cargado, mostrar la vista
+            this.loading_form = true;
+
             this.$eventHub.$on('reloadDataPersons', (customer_id) => {
                 this.reloadDataCustomers(customer_id)
             })
@@ -435,9 +469,9 @@
                     // }
                 }
             },
-            initRecord()
+            async initRecord()
             {
-                this.$http.get(`/${this.resource}/record/${this.resourceId}` )
+                await this.$http.get(`/${this.resource}/record/${this.resourceId}` )
                 .then(response => {
 
                     let dato = response.data.data.quotation
@@ -548,6 +582,23 @@
                 this.form.items.push(JSON.parse(JSON.stringify(row)));
 
                 this.calculateTotal();
+            },
+            clickEditItem(index) {
+                // Open modal pre-filled with the selected row
+                this.recordItemIndex = index
+                this.recordItem = JSON.parse(JSON.stringify(this.form.items[index]))
+                this.showDialogAddItem = true
+            },
+            updateRow(updatedRow) {
+                // Replace the item at the edited index
+                if (this.recordItemIndex !== null && this.recordItemIndex !== undefined) {
+                    this.$set(this.form.items, this.recordItemIndex, JSON.parse(JSON.stringify(updatedRow)))
+                }
+                // reset edit state and recalc totals
+                this.recordItemIndex = null
+                this.recordItem = null
+                this.showDialogAddItem = false
+                this.calculateTotal()
             },
             clickRemoveItem(index) {
                 this.form.items.splice(index, 1)

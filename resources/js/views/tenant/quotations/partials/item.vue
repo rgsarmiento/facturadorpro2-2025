@@ -76,6 +76,13 @@
                         </div>
                     </div>
 
+                    <div class="col-md-9 col-sm-12">
+                        <div class="form-group">
+                            <label class="control-label">Notas</label>
+                            <el-input type="textarea" :rows="2" v-model="form.notes" placeholder="Notas o especificaciones para esta línea"></el-input>
+                        </div>
+                    </div>
+
 
                       <div class="col-md-12"  v-if="item_unit_types.length > 0">
                         <div style="margin:3px" class="table-responsive">
@@ -116,7 +123,7 @@
             </div>
             <div class="form-actions text-right pt-2">
                 <el-button @click.prevent="close()">Cerrar</el-button>
-                <el-button type="primary" native-type="submit" v-if="form.item_id">Agregar</el-button>
+                <el-button type="primary" native-type="submit" v-if="form.item_id">{{ isEditing ? 'Actualizar' : 'Agregar' }}</el-button>
             </div>
         </form>
         <item-form :showDialog.sync="showDialogNewItem"
@@ -142,7 +149,7 @@
     import WarehousesDetail from './warehouses.vue'
 
     export default {
-        props: ['showDialog', 'currencyTypeIdActive', 'exchangeRateSale'],
+        props: ['showDialog', 'currencyTypeIdActive', 'exchangeRateSale', 'recordItem'],
         components: {itemForm, WarehousesDetail},
         data() {
             return {
@@ -175,6 +182,9 @@
             itemTaxes() {
                 return this.taxes.filter(tax => !tax.is_retention);
             },
+            isEditing() {
+                return !!this.recordItem;
+            }
         },
         created() {
             this.initForm()
@@ -225,6 +235,7 @@
                     unit_type: {},
                     discount: 0,
                     unit_type_id: null,
+                    notes: '',
                 };
 
                 this.total_item = 0;
@@ -237,7 +248,27 @@
             //     this.form.affectation_igv_type_id = this.affectation_igv_types[0].id
             // },
             create() {
-            //     this.initializeFields()
+                this.titleDialog = this.isEditing ? 'Editar Producto o Servicio' : 'Agregar Producto o Servicio'
+                // Prefill when editing
+                if (this.isEditing && this.recordItem) {
+                    // Deep clone to avoid mutating parent before submit
+                    const r = JSON.parse(JSON.stringify(this.recordItem))
+                    this.form.item_id = r.item_id || (r.item && r.item.id) || null
+                    this.form.item = r.item || {}
+                    this.form.quantity = r.quantity || 1
+                    this.form.unit_price = r.unit_price || 0
+                    this.form.discount = r.discount || 0
+                    this.form.tax_id = r.tax_id || (r.tax && r.tax.id) || null
+                    this.form.tax = r.tax || {}
+                    this.form.unit_type = r.unit_type || (this.form.item && this.form.item.unit_type) || {}
+                    this.form.item_unit_types = (this.form.item && this.form.item.item_unit_types) ? this.form.item.item_unit_types : []
+                    this.item_unit_types = this.form.item_unit_types
+                    this.form.item_unit_type_id = r.item_unit_type_id || null
+                    // presentation reference if available
+                    this.item_unit_type = r.presentation || (this.form.item && this.form.item.presentation) || {}
+                    this.form.unit_type_id = r.unit_type_id || (this.form.item && this.form.item.unit_type_id) || null
+                    this.form.notes = r.notes || ''
+                }
             },
             close() {
                 this.initForm()
@@ -311,7 +342,11 @@
                 this.form.unit_type = this.form.item.unit_type
 
                 // this.initializeFields()
-                this.$emit('add', this.form);
+                if (this.isEditing) {
+                    this.$emit('update', this.form)
+                } else {
+                    this.$emit('add', this.form);
+                }
                 this.initForm();
                 this.setFocusSelectItem()
             },

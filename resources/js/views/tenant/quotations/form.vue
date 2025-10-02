@@ -226,8 +226,9 @@
                                                 <td class="text-right">{{ ratePrefix() }} {{ row.discount }}</td>
                                                 <td class="text-right">{{ ratePrefix() }} {{ row.total }}</td>
                                                 <td class="text-right">
+                                                    <button type="button" class="btn waves-effect waves-light btn-xs btn-info mr-1" title="Editar" @click.prevent="clickEditItem(index)"><i class="fa fa-pencil"></i></button>
                                                     <button type="button"
-                                                        class="btn waves-effect waves-light btn-xs btn-danger"
+                                                        class="btn waves-effect waves-light btn-xs btn-danger" title="Eliminar"
                                                         @click.prevent="clickRemoveItem(index)">x</button>
                                                 </td>
                                             </tr>
