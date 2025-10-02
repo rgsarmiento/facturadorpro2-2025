@@ -384,6 +384,7 @@ Vue.component('system-update', require('./views/system/update/index.vue'));
 
 // Componente de Asientos Contables
 Vue.component('asiento-form-vue-component', require('@components/asientos-contables/AsientoForm.vue'));
+Vue.component('asientos-contables-index', require('@components/asientos-contables/AsientosContablesIndex.vue'));
 
 
 const app = new Vue({

@@ -572,7 +572,7 @@ export default {
                 this.adjuntosFiles.forEach((file, index) => {
                     formData.append(`adjuntos[${index}]`, file);
                 });
-                
+
                 // Debug: Mostrar qué se está enviando al servidor
 
                 // Determinar URL según si estamos creando o editando
