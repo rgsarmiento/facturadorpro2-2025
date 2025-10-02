@@ -41,8 +41,7 @@ class DatabaseSeeder extends Seeder
 		);
 
         $this->call([
-            DataServiceMasterSeeder::class,
-            TipoComprobantesContablesSeeder::class
+            DataServiceMasterSeeder::class
         ]);
     }
 }

@@ -67,7 +67,10 @@ class TenancyDatabaseSeeder extends Seeder
             ['id'=> 14, 'formats' => 'unit_types_desc']
         ]);
 
-        $this->call([UpdateDataServiceMasterTenantSeeder::class]);
+        $this->call([
+            UpdateDataServiceMasterTenantSeeder::class,
+            TipoComprobantesContablesSeeder::class
+        ]);
 
     }
 }
