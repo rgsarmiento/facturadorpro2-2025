@@ -180,16 +180,19 @@ class BackupController extends Controller
                 $files = scandir($backupsPath);
 
                 foreach ($files as $file) {
-                    if ($file !== '.' && $file !== '..' && pathinfo($file, PATHINFO_EXTENSION) === 'sql') {
-                        $filePath = $backupsPath . '/' . $file;
-                        if (file_exists($filePath)) {
-                            $backups[] = [
-                                'filename' => $file,
-                                'size' => $this->formatBytes(filesize($filePath)),
-                                'date' => date('Y-m-d H:i:s', filemtime($filePath)),
-                                'created_at' => date('Y-m-d H:i:s', filemtime($filePath))
-                            ];
-                        }
+                    if ($file === '.' || $file === '..') continue;
+
+                    // Aceptar .sql y .sql.gz
+                    if (!preg_match('/\.sql(\.gz)?$/i', $file)) continue;
+
+                    $filePath = $backupsPath . '/' . $file;
+                    if (file_exists($filePath)) {
+                        $backups[] = [
+                            'filename' => $file,
+                            'size' => $this->formatBytes(filesize($filePath)),
+                            'date' => date('Y-m-d H:i:s', filemtime($filePath)),
+                            'created_at' => date('Y-m-d H:i:s', filemtime($filePath))
+                        ];
                     }
                 }
             }
@@ -229,10 +232,16 @@ class BackupController extends Controller
                 ], 404);
             }
 
-            return response()->download($filePath, $filename, [
-                'Content-Type' => 'application/sql',
+            $headers = [
                 'Content-Disposition' => 'attachment; filename="' . $filename . '"'
-            ]);
+            ];
+            if (preg_match('/\.sql\.gz$/i', $filename)) {
+                $headers['Content-Type'] = 'application/gzip';
+            } else {
+                $headers['Content-Type'] = 'application/sql';
+            }
+
+            return response()->download($filePath, $filename, $headers);
 
         } catch (\Exception $e) {
             return response()->json([
