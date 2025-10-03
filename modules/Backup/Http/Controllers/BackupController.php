@@ -5,6 +5,7 @@ namespace Modules\Backup\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Cache;
 use Symfony\Component\Process\Process;
 use Symfony\Component\Process\Exception\ProcessFailedException;
 
@@ -24,6 +25,21 @@ class BackupController extends Controller
     public function create()
     {
         try {
+            // Evitar que PHP mate el proceso por límite de 30s
+            @set_time_limit(0); // Para CLI generalmente ya es ilimitado, pero en FPM/web ayuda
+            ini_set('max_execution_time', 0);
+            ini_set('memory_limit', ini_get('memory_limit') === '-1' ? '-1' : '1024M');
+
+            // Evitar ejecuciones concurrentes que saturen I/O
+            $lock = Cache::lock('backup:creating', 300); // 5 minutos
+            if (!$lock->get()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Ya hay un proceso de backup en ejecución. Intenta nuevamente en unos momentos.'
+                ], 429);
+            }
+            // Usaremos finally para liberar el lock
+
             $backupsPath = storage_path('app/backups');
 
             // Crear directorio si no existe
@@ -62,34 +78,61 @@ class BackupController extends Controller
             $filename = 'backup_' . $tenantName . '_' . date('Y-m-d_H-i-s') . '.sql';
             $filePath = $backupsPath . '/' . $filename;
 
-            // Comando mysqldump
+            // Ruta a mysqldump (permite override vía env si no está en PATH)
+            $mysqldumpBinary = env('MYSQLDUMP_PATH', 'mysqldump');
+
+            // Añadimos flags para reducir consumo de memoria y velocidad en bases grandes
             $command = [
-                'mysqldump',
+                $mysqldumpBinary,
                 '--host=' . $host,
                 '--port=' . $port,
                 '--user=' . $username,
                 '--password=' . $password,
-                '--single-transaction',
+                '--single-transaction',      // evita lock largo
+                '--quick',                   // stream row by row
+                '--skip-lock-tables',        // evita bloquear tablas (inconsistencias mínimas aceptables)
                 '--routines',
                 '--triggers',
                 '--add-drop-table',
-                '--disable-keys',
                 '--extended-insert',
-                '--no-autocommit',
+                '--disable-keys',
                 $tenantDatabase
             ];
 
-            // Ejecutar el proceso con timeout de 5 minutos
-            $process = new Process($command);
-            $process->setTimeout(300);
-            $process->run();
+            $process = new Process($command, null, null, null, 600); // 10 minutos máximo
+
+            // Ejecutar en streaming para no esperar todo al final
+            $dumpOutput = '';
+            $process->run(function ($type, $buffer) use (&$dumpOutput) {
+                $dumpOutput .= $buffer;
+            });
 
             if (!$process->isSuccessful()) {
-                throw new ProcessFailedException($process);
+                // Adjuntar stderr para diagnóstico
+                throw new \RuntimeException('Error mysqldump: ' . $process->getErrorOutput());
             }
 
-            // Guardar el output en el archivo
-            file_put_contents($filePath, $process->getOutput());
+            file_put_contents($filePath, $dumpOutput);
+            unset($dumpOutput);
+
+            // Compresión opcional (gzip) si está habilitada
+            $enableCompression = filter_var(env('BACKUP_COMPRESS', true), FILTER_VALIDATE_BOOLEAN);
+            if ($enableCompression && function_exists('gzopen')) {
+                $gzPath = $filePath . '.gz';
+                $gz = gzopen($gzPath, 'w9');
+                if ($gz) {
+                    $fh = fopen($filePath, 'rb');
+                    while (!feof($fh)) {
+                        gzwrite($gz, fread($fh, 1024 * 512));
+                    }
+                    fclose($fh);
+                    gzclose($gz);
+                    // Eliminar original sin comprimir
+                    @unlink($filePath);
+                    $filePath = $gzPath;
+                    $filename = basename($filePath);
+                }
+            }
 
             return response()->json([
                 'success' => true,
@@ -103,6 +146,10 @@ class BackupController extends Controller
                 'success' => false,
                 'message' => 'Error al crear el backup: ' . $e->getMessage()
             ], 500);
+        } finally {
+            if (isset($lock) && $lock) {
+                try { $lock->release(); } catch (\Throwable $t) {}
+            }
         }
     }
 
