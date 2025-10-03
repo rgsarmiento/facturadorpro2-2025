@@ -1051,12 +1051,63 @@ class DocumentController extends Controller
                     $test = true;
                 if($test){
                     try{
-                        // Optimización: Solo seleccionar campos necesarios
-                        $d = Document::select('id', 'response_api', 'state_document_id', 'cufe')
-                                    ->where('prefix', $service_invoice['prefix'])
-                                    ->where('number', $service_invoice['number'])
-                                    ->firstOrFail();
-                        $response_api = json_decode($d->response_api, true);
+                        // Intentar recuperar el documento local; si no existe crearlo (placeholder)
+                        $d = Document::select('id','response_api','state_document_id','cufe')
+                                ->where('prefix', $service_invoice['prefix'])
+                                ->where('number', $service_invoice['number'])
+                                ->first();
+
+                        if(!$d){
+                            \Log::warning("Factura existente en DIAN sin registro local: {$service_invoice['prefix']}{$service_invoice['number']}. Creando placeholder.");
+                            $d = new Document();
+                            $d->prefix = $service_invoice['prefix'];
+                            $d->number = $service_invoice['number'];
+                            $d->user_id = auth()->id();
+                            $d->external_id = \Illuminate\Support\Str::uuid()->toString();
+                            $d->establishment_id = auth()->user()->establishment_id;
+                            $d->establishment = \App\CoreFacturalo\Requests\Inputs\Common\EstablishmentInput::set(auth()->user()->establishment_id);
+                            $d->soap_type_id = \App\Models\Tenant\Company::active()->soap_type_id;
+                            $d->calculationrate = $service_invoice['calculationrate'] ?? 1;
+                            $d->type_document_id = $service_invoice['type_document_id'];
+                            $d->type_invoice_id = $request->type_invoice_id;
+                            $d->customer_id = $request->customer_id;
+                            try {
+                                $d->customer = \App\Models\Tenant\Person::with('typePerson','typeRegime','identity_document_type','country','department','city')->findOrFail($request->customer_id);
+                            } catch (\Exception $ex) {
+                                $d->customer = null; // Evitar fallo si no se encuentra
+                            }
+                            $d->currency_id = $request->currency_id;
+                            $d->date_of_issue = $service_invoice['date'] ?? date('Y-m-d');
+                            $d->time_of_issue = date('H:i:s');
+                            $d->observation = $request->observation;
+                            $d->reference_id = $request->reference_id;
+                            $d->note_concept_id = $request->note_concept_id;
+                            $d->sale = $service_invoice['legal_monetary_totals']['payable_amount'] ?? 0;
+                            $d->total_discount = $service_invoice['legal_monetary_totals']['allowance_total_amount'] ?? 0;
+                            $d->taxes = $service_invoice['tax_totals'] ?? [];
+                            $d->total_tax = ($service_invoice['legal_monetary_totals']['payable_amount'] ?? 0) - ($service_invoice['legal_monetary_totals']['tax_exclusive_amount'] ?? 0);
+                            $d->subtotal = $service_invoice['legal_monetary_totals']['tax_exclusive_amount'] ?? 0;
+                            $d->total = $service_invoice['legal_monetary_totals']['payable_amount'] ?? 0;
+                            $d->version_ubl_id = $this->company->version_ubl_id ?? null;
+                            $d->ambient_id = $this->company->ambient_id ?? null;
+                            $d->payment_form_id = $request->payment_form_id;
+                            $d->payment_method_id = $request->payment_method_id;
+                            $d->time_days_credit = $request->time_days_credit;
+                            $d->response_api = json_encode(['placeholder' => true]);
+                            $d->response_api_status = null;
+                            $d->correlative_api = $service_invoice['number'];
+                            $d->sale_note_id = $request->sale_note_id;
+                            $d->remission_id = $request->remission_id;
+                            $d->xml = null;
+                            $d->cufe = null;
+                            $d->order_reference = null;
+                            $d->health_fields = null;
+                            $d->state_document_id = self::ACCEPTED; // ya aceptada por DIAN
+                            try { $d->save(); } catch(\Exception $ex) { \Log::error('Error guardando placeholder de documento: '.$ex->getMessage()); }
+                        }
+
+                        // actualizar datos con cufe definitivo
+                        $response_api = json_decode($d->response_api, true) ?: [];
                         $response_api['cufe'] = $response_model->cufe;
                         $d->response_api = json_encode($response_api);
                         $d->state_document_id = self::ACCEPTED;
@@ -1120,12 +1171,56 @@ class DocumentController extends Controller
 //                    \Log::debug($service_invoice['date']);
                     if($date_xml == $service_invoice['date'] && $customer_xml == $service_invoice['customer']['identification_number'] && round($sale_xml, 5) - round($service_invoice['legal_monetary_totals']['payable_amount'], 5) > 0 && round($sale_xml, 5) - round($service_invoice['legal_monetary_totals']['payable_amount'], 5) < 0.005){
                         try{
-                            // Optimización: Solo seleccionar campos necesarios
-                        $d = Document::select('id', 'response_api', 'state_document_id', 'cufe')
+                            // Intentar recuperar documento; crear placeholder si no existe
+                            $d = Document::select('id','response_api','state_document_id','cufe')
                                     ->where('prefix', $service_invoice['prefix'])
                                     ->where('number', $service_invoice['number'])
-                                    ->firstOrFail();
-                            $response_api = json_decode($d->response_api, true);
+                                    ->first();
+                            if(!$d){
+                                \Log::warning("(2) Factura existente en DIAN sin registro local: {$service_invoice['prefix']}{$service_invoice['number']}. Creando placeholder.");
+                                $d = new Document();
+                                $d->prefix = $service_invoice['prefix'];
+                                $d->number = $service_invoice['number'];
+                                $d->user_id = auth()->id();
+                                $d->external_id = \Illuminate\Support\Str::uuid()->toString();
+                                $d->establishment_id = auth()->user()->establishment_id;
+                                $d->establishment = \App\CoreFacturalo\Requests\Inputs\Common\EstablishmentInput::set(auth()->user()->establishment_id);
+                                $d->soap_type_id = \App\Models\Tenant\Company::active()->soap_type_id;
+                                $d->calculationrate = $service_invoice['calculationrate'] ?? 1;
+                                $d->type_document_id = $service_invoice['type_document_id'];
+                                $d->type_invoice_id = $request->type_invoice_id;
+                                $d->customer_id = $request->customer_id;
+                                try { $d->customer = \App\Models\Tenant\Person::with('typePerson','typeRegime','identity_document_type','country','department','city')->findOrFail($request->customer_id);} catch(\Exception $ex){ $d->customer = null; }
+                                $d->currency_id = $request->currency_id;
+                                $d->date_of_issue = $service_invoice['date'] ?? date('Y-m-d');
+                                $d->time_of_issue = date('H:i:s');
+                                $d->observation = $request->observation;
+                                $d->reference_id = $request->reference_id;
+                                $d->note_concept_id = $request->note_concept_id;
+                                $d->sale = $service_invoice['legal_monetary_totals']['payable_amount'] ?? 0;
+                                $d->total_discount = $service_invoice['legal_monetary_totals']['allowance_total_amount'] ?? 0;
+                                $d->taxes = $service_invoice['tax_totals'] ?? [];
+                                $d->total_tax = ($service_invoice['legal_monetary_totals']['payable_amount'] ?? 0) - ($service_invoice['legal_monetary_totals']['tax_exclusive_amount'] ?? 0);
+                                $d->subtotal = $service_invoice['legal_monetary_totals']['tax_exclusive_amount'] ?? 0;
+                                $d->total = $service_invoice['legal_monetary_totals']['payable_amount'] ?? 0;
+                                $d->version_ubl_id = $this->company->version_ubl_id ?? null;
+                                $d->ambient_id = $this->company->ambient_id ?? null;
+                                $d->payment_form_id = $request->payment_form_id;
+                                $d->payment_method_id = $request->payment_method_id;
+                                $d->time_days_credit = $request->time_days_credit;
+                                $d->response_api = json_encode(['placeholder' => true]);
+                                $d->response_api_status = null;
+                                $d->correlative_api = $service_invoice['number'];
+                                $d->sale_note_id = $request->sale_note_id;
+                                $d->remission_id = $request->remission_id;
+                                $d->xml = null;
+                                $d->cufe = null;
+                                $d->order_reference = null;
+                                $d->health_fields = null;
+                                $d->state_document_id = self::ACCEPTED;
+                                try { $d->save(); } catch(\Exception $ex) { \Log::error('Error guardando placeholder doc (2): '.$ex->getMessage()); }
+                            }
+                            $response_api = json_decode($d->response_api, true) ?: [];
                             $response_api['cufe'] = $response_model->ResponseDian->Envelope->Body->SendBillSyncResponse->SendBillSyncResult->XmlDocumentKey;
                             $d->response_api = json_encode($response_api);
                             $d->state_document_id = self::ACCEPTED;
