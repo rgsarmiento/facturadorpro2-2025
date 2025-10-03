@@ -743,7 +743,7 @@ class DocumentController extends Controller
             // $correlative_api = $this->getCorrelativeInvoice(1, $request->prefix);
             // Optimización: Cargar company una sola vez con relaciones necesarias
             $this->company = Company::query()
-                ->select('id', 'limit_documents', 'country_id', 'version_ubl_id', 'type_identity_document_id', 'type_regime_id', 'ica_rate', 'economic_activity_code', 'jpg_firma_facturas')
+                ->select('id', 'limit_documents', 'country_id', 'version_ubl_id', 'ambient_id', 'type_identity_document_id', 'type_regime_id', 'ica_rate', 'economic_activity_code', 'jpg_firma_facturas')
                 ->with(['country:id,code', 'version_ubl:id,name', 'type_identity_document:id,name', 'type_regime:id,name'])
                 ->firstOrFail();
 
@@ -1088,8 +1088,8 @@ class DocumentController extends Controller
                             $d->total_tax = ($service_invoice['legal_monetary_totals']['payable_amount'] ?? 0) - ($service_invoice['legal_monetary_totals']['tax_exclusive_amount'] ?? 0);
                             $d->subtotal = $service_invoice['legal_monetary_totals']['tax_exclusive_amount'] ?? 0;
                             $d->total = $service_invoice['legal_monetary_totals']['payable_amount'] ?? 0;
-                            $d->version_ubl_id = $this->company->version_ubl_id ?? null;
-                            $d->ambient_id = $this->company->ambient_id ?? null;
+                            $d->version_ubl_id = $this->company->version_ubl_id ?? 1; // fallback
+                            $d->ambient_id = $this->company->ambient_id ?? 1; // evitar null constraint
                             $d->payment_form_id = $request->payment_form_id;
                             $d->payment_method_id = $request->payment_method_id;
                             $d->time_days_credit = $request->time_days_credit;
@@ -1203,8 +1203,8 @@ class DocumentController extends Controller
                                 $d->total_tax = ($service_invoice['legal_monetary_totals']['payable_amount'] ?? 0) - ($service_invoice['legal_monetary_totals']['tax_exclusive_amount'] ?? 0);
                                 $d->subtotal = $service_invoice['legal_monetary_totals']['tax_exclusive_amount'] ?? 0;
                                 $d->total = $service_invoice['legal_monetary_totals']['payable_amount'] ?? 0;
-                                $d->version_ubl_id = $this->company->version_ubl_id ?? null;
-                                $d->ambient_id = $this->company->ambient_id ?? null;
+                                $d->version_ubl_id = $this->company->version_ubl_id ?? 1;
+                                $d->ambient_id = $this->company->ambient_id ?? 1;
                                 $d->payment_form_id = $request->payment_form_id;
                                 $d->payment_method_id = $request->payment_method_id;
                                 $d->time_days_credit = $request->time_days_credit;
