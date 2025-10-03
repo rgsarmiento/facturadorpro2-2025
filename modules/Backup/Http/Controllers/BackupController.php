@@ -5,7 +5,6 @@ namespace Modules\Backup\Http\Controllers;
 use Illuminate\Http\Request;
 use Illuminate\Routing\Controller;
 use Illuminate\Support\Facades\Storage;
-use Illuminate\Support\Facades\Cache;
 use Symfony\Component\Process\Process;
 use Symfony\Component\Process\Exception\ProcessFailedException;
 
@@ -30,22 +29,30 @@ class BackupController extends Controller
             ini_set('max_execution_time', 0);
             ini_set('memory_limit', ini_get('memory_limit') === '-1' ? '-1' : '1024M');
 
-            // Evitar ejecuciones concurrentes que saturen I/O
-            $lock = Cache::lock('backup:creating', 300); // 5 minutos
-            if (!$lock->get()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Ya hay un proceso de backup en ejecución. Intenta nuevamente en unos momentos.'
-                ], 429);
-            }
-            // Usaremos finally para liberar el lock
-
             $backupsPath = storage_path('app/backups');
+            // Archivo de lock (simple) para evitar procesos simultáneos
+            $lockFile = $backupsPath . '/.backup_creating.lock';
 
             // Crear directorio si no existe
             if (!is_dir($backupsPath)) {
                 mkdir($backupsPath, 0755, true);
             }
+
+            // Verificar lock existente (vigente menos de 10 min)
+            if (file_exists($lockFile)) {
+                $age = time() - filemtime($lockFile);
+                if ($age < 600) { // 10 minutos
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Ya hay un proceso de backup en ejecución. Intenta nuevamente en unos momentos.'
+                    ], 429);
+                } else {
+                    // lock viejo, limpiar
+                    @unlink($lockFile);
+                }
+            }
+            // Crear nuevo lock
+            file_put_contents($lockFile, getmypid() . '|' . date('c'));
 
             // Configuración de la base de datos del tenant
             $connection = config('database.default');
@@ -147,8 +154,10 @@ class BackupController extends Controller
                 'message' => 'Error al crear el backup: ' . $e->getMessage()
             ], 500);
         } finally {
-            if (isset($lock) && $lock) {
-                try { $lock->release(); } catch (\Throwable $t) {}
+            if (isset($lockFile) && isset($backupsPath)) {
+                if (isset($lockFile) && file_exists($lockFile)) {
+                    @unlink($lockFile);
+                }
             }
         }
     }
