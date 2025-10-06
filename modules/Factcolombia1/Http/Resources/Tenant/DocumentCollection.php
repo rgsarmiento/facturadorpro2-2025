@@ -77,23 +77,23 @@ class DocumentCollection extends ResourceCollection
      */
     private function getDocumentPrefix($type_document_id, $type_document_name)
     {
-        \Log::info("DocumentCollection DEBUG - type_document_id: {$type_document_id}, type_document_name: {$type_document_name}");
+//        \Log::info("DocumentCollection DEBUG - type_document_id: {$type_document_id}, type_document_name: {$type_document_name}");
 
         // Usar el nombre del tipo de documento para determinar el prefijo correcto
         $document_name_lower = strtolower($type_document_name);
 
         if (strpos($document_name_lower, 'nota') !== false && strpos($document_name_lower, 'crédito') !== false) {
-            \Log::info("DocumentCollection - Detectado 'nota crédito' en nombre, asignando NCS");
+//            \Log::info("DocumentCollection - Detectado 'nota crédito' en nombre, asignando NCS");
             return 'NCS';
         }
 
         if (strpos($document_name_lower, 'nota') !== false && strpos($document_name_lower, 'débito') !== false) {
-            \Log::info("DocumentCollection - Detectado 'nota débito' en nombre, asignando NDS");
+//            \Log::info("DocumentCollection - Detectado 'nota débito' en nombre, asignando NDS");
             return 'NDS';
         }
 
         // Si contiene "factura" o no es nota, usar FES
-        \Log::info("DocumentCollection - Asignando FES para documento: {$type_document_name}");
+//        \Log::info("DocumentCollection - Asignando FES para documento: {$type_document_name}");
         return 'FES';
     }
 }
