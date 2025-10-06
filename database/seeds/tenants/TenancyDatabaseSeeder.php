@@ -67,10 +67,17 @@ class TenancyDatabaseSeeder extends Seeder
             ['id'=> 14, 'formats' => 'unit_types_desc']
         ]);
 
-        $this->call([
-            UpdateDataServiceMasterTenantSeeder::class,
-            TipoComprobantesContablesSeeder::class
-        ]);
+        // Ejecutar primero el seeder de tipos de comprobantes contables para garantizar que la tabla base se pueble
+        $this->call([TipoComprobantesContablesSeeder::class]);
+
+        // Ejecutar el resto, pero no impedir que la siembra principal continue si falla
+        try {
+            $this->call([UpdateDataServiceMasterTenantSeeder::class]);
+        } catch (\Throwable $e) {
+            if (method_exists($this->command, 'warn')) {
+                $this->command->warn('Advertencia: Falló UpdateDataServiceMasterTenantSeeder: '.$e->getMessage());
+            }
+        }
 
     }
 }

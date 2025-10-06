@@ -40,15 +40,17 @@ class TipoComprobantesContablesSeeder extends Seeder
         ];
 
         foreach ($tipos_comprobantes as $tipo) {
-            DB::table('tipo_comprobantes_contables')->insert([
-                'codigo' => $tipo['codigo'],
-                'nombre' => $tipo['nombre'],
-                'prefijo' => $tipo['prefijo'],
-                'consecutivo_actual' => 0,
-                'estado' => 'ACTIVO',
-                'created_at' => now(),
-                'updated_at' => now(),
-            ]);
+            DB::table('tipo_comprobantes_contables')->updateOrInsert(
+                ['codigo' => $tipo['codigo']],
+                [
+                    'nombre' => $tipo['nombre'],
+                    'prefijo' => $tipo['prefijo'],
+                    'consecutivo_actual' => DB::raw('COALESCE(consecutivo_actual,0)'),
+                    'estado' => 'ACTIVO',
+                    'updated_at' => now(),
+                    'created_at' => now(),
+                ]
+            );
         }
     }
 }
