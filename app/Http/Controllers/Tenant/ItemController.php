@@ -60,6 +60,7 @@ class ItemController extends Controller
     {
         return [
             'name' => 'Nombre',
+            'second_name' => 'Nombre secundario',
             'internal_id' => 'Código interno',
             'brand' => 'Marca',
             'date_of_due' => 'Fecha vencimiento',
@@ -88,6 +89,11 @@ class ItemController extends Controller
     public function getRecords($request){
 
         switch ($request->column) {
+            case 'second_name':
+                $records = Item::whereTypeUser()
+                                ->whereNotIsSet()
+                                ->where('second_name', 'like', "%{$request->value}%");
+                break;
 
             case 'brand':
                 $records = Item::whereHas('brand',function($q) use($request){
