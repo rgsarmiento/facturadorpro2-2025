@@ -342,7 +342,7 @@ export default {
                 try {
                     return JSON.parse(this.asientoData);
                 } catch (e) {
-                    console.error('Error parsing asientoData:', e);
+                    // Error parsing asientoData (log de depuración removido)
                     return null;
                 }
             }
@@ -419,7 +419,7 @@ export default {
             } else {
                 // Si no encontramos propiedades reconocidas, mostrar las claves del objeto
                 const keys = Object.keys(cuenta);
-                console.warn('Estructura no reconocida para cuenta:', cuenta);
+                // Estructura no reconocida para cuenta (log de depuración removido)
                 return `ID: ${cuenta.id} (${keys.join(', ')})`;
             }
         },
@@ -439,7 +439,7 @@ export default {
             } else {
                 // Si no encontramos propiedades reconocidas, mostrar las claves del objeto
                 const keys = Object.keys(tercero);
-                console.warn('Estructura no reconocida para tercero:', tercero);
+                // Estructura no reconocida para tercero (log de depuración removido)
                 return `ID: ${tercero.id} (${keys.join(', ')})`;
             }
         },
@@ -598,13 +598,7 @@ export default {
                 }
 
             } catch (error) {
-                console.error('=== ERROR SAVING ASIENTO ===');
-                console.error('Error object:', error);
-                console.error('Error response:', error.response);
-                console.error('Error response data:', error.response?.data);
-                console.error('Error response status:', error.response?.status);
-                console.error('Error message:', error.message);
-                console.error('========================');
+                // Error al guardar asiento (logs de depuración removidos)
 
                 if (error.response && error.response.data) {
                     // Mostrar errores de validación del servidor
@@ -668,7 +662,7 @@ export default {
                     // Como ahora usamos v-model en el template, Vue automáticamente populará las opciones
                 }
             } catch (error) {
-                console.error('Error loading tipos comprobantes:', error);
+                // Error loading tipos comprobantes (log removido)
             }
         },
         async loadCuentasContables() {
@@ -683,7 +677,7 @@ export default {
                     });
                 }
             } catch (error) {
-                console.error('Error loading cuentas contables:', error);
+                // Error loading cuentas contables (log removido)
             }
         },
         async loadTerceros() {
@@ -698,7 +692,7 @@ export default {
                     });
                 }
             } catch (error) {
-                console.error('Error loading terceros:', error);
+                // Error loading terceros (log removido)
             }
         },
         loadAsientoData() {
@@ -781,7 +775,7 @@ export default {
                 } else if (attempts < maxAttempts) {
                     setTimeout(checkSelect2, 100); // Esperar 100ms antes del siguiente intento
                 } else {
-                    console.warn('Select2 could not be loaded after maximum attempts. Using native select fallback.');
+                    // Select2 fallback (log de depuración removido)
                     // Llamar el callback de todos modos para que el formulario funcione con selects nativos
                     this.initializeNativeSelects();
                 }
@@ -795,7 +789,7 @@ export default {
         populateTipoComprobanteOptions() {
             const select = this.$refs.tipoComprobanteSelect;
             if (!select) {
-                console.error('tipoComprobanteSelect ref not found');
+                // tipoComprobanteSelect ref not found (log removido)
                 return;
             }
 
@@ -818,7 +812,7 @@ export default {
         },
         initTipoComprobanteSelect2() {
             if (typeof $.fn.select2 === 'undefined') {
-                console.warn('Select2 is not available when initTipoComprobanteSelect2 was called. Using native select.');
+                // Select2 not available (log removido)
                 this.populateTipoComprobanteOptions();
                 return;
             }
@@ -826,12 +820,12 @@ export default {
             const vm = this;
             const $select = $(this.$refs.tipoComprobanteSelect);
             if (!$select.length) {
-                console.error('tipoComprobanteSelect element not found');
+                // tipoComprobanteSelect element not found (log removido)
                 return;
             }
 
             if (this.tiposComprobantes.length === 0) {
-                console.warn('No tipos comprobantes available to populate select');
+                // No tipos comprobantes available (log removido)
                 return;
             }
 
@@ -857,7 +851,7 @@ export default {
         },
         initCuentasContablesSelect2() {
             if (typeof $ === 'undefined' || typeof $.fn.select2 === 'undefined') {
-                console.warn('Select2 not available, using native selects for cuentas contables');
+                // Select2 not available for cuentas contables (log removido)
                 this.populateCuentasContablesOptions();
                 return;
             }
@@ -898,7 +892,7 @@ export default {
                             selectElement.value = detalle.cuenta_contable_id;
                         }
                     } else {
-                        console.warn(`Select element not found for index ${index}, ref: ${selectRef}`);
+                        // Select element not found for index (log removido)
                     }
                 });
             });
@@ -939,7 +933,7 @@ export default {
                             selectElement.value = detalle.tercero_id;
                         }
                     } else {
-                        console.warn(`Tercero select element not found for index ${index}, ref: ${selectRef}`);
+                        // Tercero select element not found (log removido)
                     }
                 });
             });
@@ -966,7 +960,7 @@ export default {
                     this.proximoConsecutivo = response.data.data.proximo_consecutivo;
                 }
             } catch (error) {
-                console.error('Error loading proximo consecutivo:', error);
+                // Error loading proximo consecutivo (log removido)
             }
         },
         onFilesSelected(event) {
@@ -997,7 +991,7 @@ export default {
                         }
                     })
                     .catch(error => {
-                        console.error('Error deleting adjunto:', error);
+                        // Error deleting adjunto (log removido)
                         alert('Error al eliminar el archivo');
                     });
             }

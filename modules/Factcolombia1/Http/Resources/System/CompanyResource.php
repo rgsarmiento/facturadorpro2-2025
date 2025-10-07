@@ -33,7 +33,7 @@ class CompanyResource extends JsonResource
         }
 
         $service_company = ServiceCompany::where('identification_number', $this->identification_number)->first();
-        \Log::debug(json_encode($service_company->api_token()));
+    // Debug log removido
 
         return [
             'id' => $this->id,

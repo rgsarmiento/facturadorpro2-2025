@@ -1,7 +1,7 @@
 <template>
     <el-dialog
         :title="titleDialog"
-        :visible="showDialog"
+        :visible.sync="dialogVisible"
         @close="close"
         @open="create"
         :close-on-click-modal="false">
@@ -491,6 +491,14 @@
                 type_regimes: [],
                 toggle: false,
                 type_liabilities: [],
+                // shadow state for linter awareness (computed will proxy prop)
+                dialogVisibleShadow: false,
+            }
+        },
+        computed: {
+            dialogVisible: {
+                get() { return this.showDialog },
+                set(val) { this.$emit('update:showDialog', val) }
             }
         },
         async created() {
@@ -520,7 +528,7 @@
                 el.select();
                 document.execCommand('copy');
                 document.body.removeChild(el);
-                console.log('Texto copiado al portapapeles:', this.form.api_token);
+                // Texto copiado al portapapeles (log de depuración removido)
             },
 
             cascade() {
@@ -600,39 +608,55 @@
 
             },
             async submit() {
-                // console.log(this.form)
                 if(!this.form.is_update){
-                    let has_modules = await this.hasModules()
-                    if(!has_modules)
-                        return this.$message.error('Debe seleccionar al menos un módulo')
+                    const has_modules = await this.hasModules()
+                    if(!has_modules) return this.$message.error('Debe seleccionar al menos un módulo')
                 }
 
-                this.button_text = (this.form.is_update) ? 'Actualizando compañia...':'Creando base de datos...'
+                this.button_text = this.form.is_update ? 'Actualizando compañia...' : 'Creando base de datos...'
                 this.loading_submit = true
-                console.log(`${this.resource}${(this.form.is_update ? '/update' : '')}`)
-                await this.$http.post(`${this.resource}${(this.form.is_update ? '/update' : '')}`, this.form)
-                    .then(response => {
-                        if (response.data.success) {
-                            this.$message.success(response.data.message)
-                            this.$eventHub.$emit('reloadData')
-                            this.close()
+
+                // Asegurar ruta absoluta (antes faltaba el prefijo / y la petición terminaba en /co-companies/co-companies)
+                const endpoint = `/${this.resource}${(this.form.is_update ? '/update' : '')}`
+                try {
+                    const { data } = await this.$http.post(endpoint, this.form)
+                    if (data && data.success) {
+                        // Cerrar modal primero para mejor UX
+                        this.dialogVisible = false
+                        this.$nextTick(() => {
+                            this.$message.success(data.message || 'Compañía creada correctamente')
+                        })
+                        // Recargar listado (reactivo)
+                        this.$eventHub.$emit('reloadData')
+                        // Reiniciar formulario (por si se vuelve a abrir)
+                        this.initForm()
+                    } else {
+                        if (process && process.env && process.env.NODE_ENV !== 'production') {
+                            // Respuesta sin success esperado (log de depuración removido)
+                        }
+                        this.$message.error((data && data.message) || 'Ocurrió un problema al procesar la solicitud')
+                    }
+                } catch (error) {
+                    // Evitar TypeError: no asumir que error.response existe
+                    if (error && error.response) {
+                        const status = error.response.status
+                        if (status === 422) {
+                            // Compatibilidad: algunos controladores devuelven {errors: {...}}
+                            this.errors = error.response.data.errors || error.response.data
+                        } else if (status === 500) {
+                            this.$message.error(error.response.data.message || 'Error interno del servidor')
                         } else {
-                            this.$message.error(response.data.message)
+                            this.$message.error(error.response.data && error.response.data.message ? error.response.data.message : `Error (${status}) al procesar la solicitud`)
                         }
-                    })
-                    .catch(error => {
-                        if (error.response.status === 422) {
-                            this.errors = error.response.data
-                        }else if(error.response.status === 500){
-                            this.$message.error(error.response.data.message);
-                        }
-                         else {
-                            console.log(error.response)
-                        }
-                    })
-                    .then(() => {
-                        this.loading_submit = false
-                    })
+                    } else if (error && error.request) {
+                        this.$message.error('No se recibió respuesta del servidor. Verifique su conexión.')
+                    } else {
+                        this.$message.error('Error inesperado al enviar el formulario')
+                    }
+                    // Error en submit (log de depuración removido)
+                } finally {
+                    this.loading_submit = false
+                }
             },
             close() {
                 this.$emit('update:showDialog', false)
@@ -640,7 +664,7 @@
             },
             errorUpload(r)
             {
-                console.log(r)
+                // Respuesta de prueba (log de depuración removido)
             },
             successUpload(response)
             {
@@ -653,6 +677,7 @@
                 }
             }
         },
+        // (computed moved above)
     }
 </script>
 

@@ -72,7 +72,7 @@ class CompanyController extends Controller
         }
         $request->api_token = $response->token;
 
-        DB::connection('system')->beginTransaction();
+    DB::connection('system')->beginTransaction();
 
         try {
             $subDom = strtolower($request->input('subdomain'));
@@ -100,6 +100,7 @@ class CompanyController extends Controller
             $tenancy = app(Environment::class);
             $tenancy->tenant($website);
 
+            // Iniciamos transacción manual del tenant sólo una vez y controlamos el estado
             DB::connection('tenant')->beginTransaction();
 
         }
@@ -116,18 +117,27 @@ class CompanyController extends Controller
 
         try {
 
+            // Ejecutar procesos del tenant sin iniciar transacciones internas en seeders
             $this->runTenantPeruSeeder($request);
             $this->runTenantSeeder($request, $response, $company);
 
 
-            DB::connection('system')->commit();
-            DB::connection('tenant')->commit();
+            if (DB::connection('tenant')->transactionLevel() > 0) {
+                DB::connection('tenant')->commit();
+            }
+            if (DB::connection('system')->transactionLevel() > 0) {
+                DB::connection('system')->commit();
+            }
 
         }
         catch (Exception $e) {
 
-            DB::connection('system')->rollBack();
-            DB::connection('tenant')->rollBack();
+            if (DB::connection('tenant')->transactionLevel() > 0) {
+                try { DB::connection('tenant')->rollBack(); } catch (\Throwable $ignored) {}
+            }
+            if (DB::connection('system')->transactionLevel() > 0) {
+                try { DB::connection('system')->rollBack(); } catch (\Throwable $ignored) {}
+            }
 
             return [
                 'success' => false,
@@ -678,8 +688,7 @@ class CompanyController extends Controller
                 'Accept: application/json',
                 "Authorization: Bearer {$service_company->api_token}"
             ));
-            $response = curl_exec($ch5);
-            \Log::debug($response);
+            $response = curl_exec($ch5); // Log de depuración removido
         }
         return [
             'success' => true,

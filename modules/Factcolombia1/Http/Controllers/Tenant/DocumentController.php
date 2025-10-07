@@ -1138,7 +1138,7 @@ class DocumentController extends Controller
                             'message' => "No se pudo actualizar el estado de la Factura Nro: #{$service_invoice['prefix']}{$service_invoice['number']}. La factura ya existe en la DIAN, pero los datos ingresados no corresponden a los datos registrados en la DIAN, consulte el cufe: {$response_model->ResponseDian->Envelope->Body->SendBillSyncResponse->SendBillSyncResult->XmlDocumentKey}",
                         ];
                     }catch(\Exception $f){
-                        \Log::debug($f->getMessage());
+                        // Debug: excepción interna (removido)
                     }
                 }
             }

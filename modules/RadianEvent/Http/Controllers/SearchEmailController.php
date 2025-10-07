@@ -88,7 +88,7 @@ class SearchEmailController extends Controller
                     }
 
                     $mail = $mailbox->getMail($email_id);
-                    \Log::debug("Procesando email #{$processed_count}: {$mail->subject} (ID: {$email_id})");
+                    // Debug: procesando email (removido)
 
                     // validar si el correo cumple las condiciones
                     $data_upload = null;
@@ -104,7 +104,7 @@ class SearchEmailController extends Controller
                             $zip_content = null;
                             $filename = null;
 
-                            \Log::debug("Buscando archivos ZIP en {$attachments->count()} attachments para email ID: {$email_id}");
+                            // Debug: buscando archivos ZIP (removido)
 
                             // Recorrer todos los archivos adjuntos
                             foreach ($attachments as $attachment) {
@@ -113,13 +113,13 @@ class SearchEmailController extends Controller
                                     $zip_found = true;
                                     $zip_content = $attachment->getContents();
                                     $filename = $attachment->name;
-                                    \Log::debug("Archivo ZIP encontrado: {$filename} para email ID: {$email_id}");
+                                    // Debug: archivo ZIP encontrado (removido)
                                     break; // Salir del bucle una vez que encontramos un ZIP
                                 }
                             }
 
                             if ($zip_found) {
-                                \Log::debug("Procesando archivo ZIP: {$filename} para email ID: {$email_id}");
+                                // Debug: procesando archivo ZIP (removido)
                             $extract_zip = (new ZipHelper())->extractZip($zip_content);
 
                             if(count($extract_zip) === 2) // se valida si tiene 2 archivos, xml y pdf
@@ -143,7 +143,7 @@ class SearchEmailController extends Controller
                                     $pdf_filename = $pdf_file['filename'];
                                     $pdf_content = $pdf_file['content'];
 
-                                    \Log::debug("Archivos identificados correctamente - XML: {$xml_filename}, PDF: {$pdf_filename} para email ID: {$email_id}");
+                                    // Debug: archivos identificados (removido)
 
                                     // verificar si existe el xml
                                     $exist_received_document = ReceivedDocument::select('id')->where('xml', $xml_filename)->first();
@@ -201,7 +201,7 @@ class SearchEmailController extends Controller
                             \Log::error("Stack trace: " . $e->getTraceAsString());
                         }
                     } else {
-                        \Log::debug("Email NO VÁLIDO - saltando: {$mail->subject} (ID: {$email_id})");
+                        // Debug: email no válido (removido)
                     }
                 }
 
@@ -447,7 +447,7 @@ class SearchEmailController extends Controller
     public function isValidEmail($mail, $email_reading)
     {
         $subject = $mail->subject;
-        \Log::debug("Evaluando email: {$subject} (ID: {$mail->id})");
+    // Debug: evaluando email (removido)
 
         // permitir correos reenviados
         if (strpos($subject, 'Fwd: ') === 0) {
@@ -467,7 +467,7 @@ class SearchEmailController extends Controller
         // validar si es que no existe el email registrado en esta sesión específica
         if($quantity_items > 0 && !$email_reading_detail)
         {
-            \Log::debug("Email no procesado previamente en esta sesión, continuando validación...");
+            // Debug: email no procesado previamente (removido)
 
             if(isset($parse_subject[3]))
             {
@@ -486,19 +486,19 @@ class SearchEmailController extends Controller
                                 return true;
                             }
                         }
-                        \Log::debug("Email ignorado - sin archivo ZIP: {$mail->subject}");
+                        // Debug: email ignorado sin ZIP (removido)
                     }
                 }
                 else {
-                    \Log::debug("Email no cumple condiciones: items={$quantity_items}, numeric={$parse_subject[0]}, type_doc={$type_document_code}, attachments={$mail->hasAttachments()}");
+                    // Debug: email no cumple condiciones (removido)
                 }
             }
         }
         else {
             if($email_reading_detail) {
-                \Log::debug("Email ya procesado en esta sesión: {$subject}");
+                // Debug: email ya procesado (removido)
             } else {
-                \Log::debug("Email sin elementos en subject: {$subject}");
+                // Debug: email sin elementos en subject (removido)
             }
         }
 

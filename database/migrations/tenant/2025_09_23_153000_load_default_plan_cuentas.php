@@ -41,11 +41,11 @@ class LoadDefaultPlanCuentas extends Migration
             $filePath = public_path('formats/PUC_inicial.xlsx');
 
             if (!file_exists($filePath)) {
-                echo "Archivo PUC_inicial.xlsx no encontrado, saltando carga inicial...\n";
+                // Archivo de PUC no encontrado, se omite carga (log de depuración removido)
                 return;
             }
 
-            echo "Cargando plan de cuentas inicial desde Excel...\n";
+            // Inicio de carga desde Excel (log de depuración removido)
 
             // Deshabilitar validaciones del modelo durante la importación
             CuentaContable::$skipValidationOnSaving = true;
@@ -78,7 +78,7 @@ class LoadDefaultPlanCuentas extends Migration
                 ];
             }
 
-            echo "Datos leídos: " . count($cuentasData) . " cuentas\n";
+            // Datos leídos: total = count($cuentasData) (log de depuración removido)
 
             // Ordenar por nivel para procesar padres antes que hijos
             usort($cuentasData, function($a, $b) {
@@ -146,18 +146,12 @@ class LoadDefaultPlanCuentas extends Migration
             // Reestablecer validaciones
             CuentaContable::$skipValidationOnSaving = false;
 
-            echo "Plan de cuentas cargado exitosamente: {$cuentasImportadas} cuentas\n";
-            if (!empty($errores)) {
-                echo "Errores encontrados: " . count($errores) . "\n";
-                foreach (array_slice($errores, 0, 5) as $error) {
-                    echo "- " . $error . "\n";
-                }
-            }
+            // Carga completada (logs de depuración removidos)
 
         } catch (\Exception $e) {
             // Reestablecer validaciones en caso de error
             CuentaContable::$skipValidationOnSaving = false;
-            echo "Error cargando plan de cuentas: " . $e->getMessage() . "\n";
+            \Log::error('PUC inicial: error en carga', ['exception' => $e->getMessage()]);
         }
     }
 
