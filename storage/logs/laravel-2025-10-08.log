@@ -1,8 +1,0 @@
-[2025-10-08 10:35:24] local.INFO: ASYNC BACKUP: Directorio temporal: C:\laragon\www\facturadorpro2\storage\app/system_backups/temp_system_backup_2025-10-08_10-35-24_20251008103522_6dx4t3  
-[2025-10-08 10:35:25] local.INFO: ASYNC BACKUP: BD sistema completada  
-[2025-10-08 10:35:25] local.INFO: ASYNC BACKUP: Procesando lote 1 (1 tenants)  
-[2025-10-08 10:35:25] local.INFO: ASYNC BACKUP: Dump tenant: torres  
-[2025-10-08 10:35:29] local.INFO: ASYNC BACKUP: Copiando carpeta storage (compatibilidad restore)  
-[2025-10-08 10:35:29] local.INFO: ASYNC BACKUP: Copiando carpeta public (compatibilidad restore)  
-[2025-10-08 10:35:33] local.INFO: ASYNC BACKUP: Carpetas respaldadas  
-[2025-10-08 10:36:18] local.INFO: ASYNC BACKUP: ZIP creado: system_backup_2025-10-08_10-35-24_20251008103522_6dx4t3.zip  

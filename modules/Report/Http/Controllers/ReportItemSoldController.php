@@ -81,30 +81,57 @@ class ReportItemSoldController extends Controller
      */
     public function pdf(Request $request){
         $records = $this->getQueryRecords($request);
-        $grouped = $records->groupBy(function ($record) {
-            return $record->item->id;
-        })->map(function ($items, $key) {
-            $first = $items->first();
-            $itemData = $first->item;
-            return [
-                'type_name'   => $itemData->type_name ?? '',
-                'internal_id' => $itemData->internal_id ?? '',
-                'name'        => $itemData->name ?? '',
-                'quantity'    => $items->sum(function ($item) {
-                    return (float) $item->quantity;
-                }),
-                'cost'        => $items->first()->cost,
-                'net_value'   => $items->first()->net_value,
-                'utility'     => $items->first()->utility,
-                'total_tax'   => $items->first()->total_tax,
-                'discount'    => $items->first()->discount,
-                'total'       => $items->sum(function ($item) {
-                    return (float) ($item->total ?? 0);
-                }),
-            ];
-        })
-        ->sortBy('name') // <-- ¡Agrega esta línea para ordenar!
-        ->values();
+        // Agrupamos por item_id de forma segura, evitando acceder a item->id cuando la relación no esté cargada
+        $grouped = $records
+            ->groupBy(function ($record) {
+                return $record->item_id ?? ($record->item->id ?? 'sin_id');
+            })
+            ->map(function ($items) {
+                $first = $items->first();
+                // Acceso seguro a la relación item (puede no existir en algunos casos)
+                $itemData = isset($first->item) ? $first->item : null;
+
+                // Cantidad total vendida del ítem
+                $quantitySum = $items->sum(function ($it) { return (float) ($it->quantity ?? 0); });
+
+                // Costo total (precio de compra * cantidad) usando relation_item->purchase_unit_price
+                $costSum = $items->sum(function ($it) {
+                    $purchaseUnit = optional($it->relation_item)->purchase_unit_price ?? 0;
+                    return (float) $purchaseUnit * (float) ($it->quantity ?? 0);
+                });
+
+                // Valor neto total (usa accessor net_value = quantity * unit_price)
+                $netValueSum = $items->sum(function ($it) { return (float) ($it->net_value ?? 0); });
+
+                // Utilidad agregada (neto - costo)
+                $utilitySum = $netValueSum - $costSum;
+
+                // Total de línea (suma de total por item - ya incluye impuestos/ descuentos aplicados a nivel de item)
+                $totalSum = $items->sum(function ($it) { return (float) ($it->total ?? 0); });
+
+                // Impuesto total (suma total_tax)
+                $taxSum = $items->sum(function ($it) { return (float) ($it->total_tax ?? 0); });
+
+                // Descuento total (sumar numérico; si viene estructurado, ignorar)
+                $discountSum = $items->sum(function ($it) {
+                    return is_array($it->discount) ? 0 : (float) ($it->discount ?? 0);
+                });
+
+                return [
+                    'type_name'   => $itemData->type_name ?? '',
+                    'internal_id' => $itemData->internal_id ?? ($first->internal_id ?? ''),
+                    'name'        => $itemData->name ?? ($first->item_name ?? $first->description ?? ''),
+                    'quantity'    => $quantitySum,
+                    'cost'        => $costSum,
+                    'net_value'   => $netValueSum,
+                    'utility'     => $utilitySum,
+                    'total_tax'   => $taxSum,
+                    'discount'    => $discountSum,
+                    'total'       => $totalSum,
+                ];
+            })
+            ->sortBy('name')
+            ->values();
         $filters = $request;
         $company = Company::first();
         $establishment = auth()->user()->establishment;
