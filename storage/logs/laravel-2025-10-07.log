@@ -1,4 +1,0 @@
-[2025-10-07 18:35:07] local.INFO: No hay configuración RADIAN válida para sincronizar  
-[2025-10-07 18:35:08] local.INFO: PUC inicial: iniciando carga desde Excel.  
-[2025-10-07 18:35:08] local.INFO: PUC inicial: datos leídos {"total":914} 
-[2025-10-07 18:35:18] local.INFO: PUC inicial: carga completada {"importadas":914,"errores_totales":0} 

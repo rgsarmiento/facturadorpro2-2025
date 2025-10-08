@@ -1,0 +1,72 @@
+[2025-10-08 07:34:06] local.ERROR: Uncaught Error: Call to undefined method App\Http\Kernel::getRouteMiddleware() in Command line code:1
+Stack trace:
+#0 {main}
+  thrown {"exception":"[object] (Symfony\\Component\\Debug\\Exception\\FatalErrorException(code: 1): Uncaught Error: Call to undefined method App\\Http\\Kernel::getRouteMiddleware() in Command line code:1
+Stack trace:
+#0 {main}
+  thrown at Command line code:1)
+[stacktrace]
+#0 {main}
+"} 
+[2025-10-08 08:34:02] local.ERROR: SQLSTATE[HY000] [1045] Access denied for user 'tenancy_elizabeth'@'localhost' (using password: YES) (SQL: select * from information_schema.tables where table_schema = tenancy_elizabeth and table_name = migrations) {"exception":"[object] (Illuminate\\Database\\QueryException(code: 1045): SQLSTATE[HY000] [1045] Access denied for user 'tenancy_elizabeth'@'localhost' (using password: YES) (SQL: select * from information_schema.tables where table_schema = tenancy_elizabeth and table_name = migrations) at C:\\laragon\\www\\facturadorpro2\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Connection.php:664, Doctrine\\DBAL\\Driver\\PDOException(code: 1045): SQLSTATE[HY000] [1045] Access denied for user 'tenancy_elizabeth'@'localhost' (using password: YES) at C:\\laragon\\www\\facturadorpro2\\vendor\\doctrine\\dbal\\lib\\Doctrine\\DBAL\\Driver\\PDOConnection.php:31, PDOException(code: 1045): SQLSTATE[HY000] [1045] Access denied for user 'tenancy_elizabeth'@'localhost' (using password: YES) at C:\\laragon\\www\\facturadorpro2\\vendor\\doctrine\\dbal\\lib\\Doctrine\\DBAL\\Driver\\PDOConnection.php:27)
+[stacktrace]
+#0 C:\\laragon\\www\\facturadorpro2\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Connection.php(624): Illuminate\\Database\\Connection->runQueryCallback('select * from i...', Array, Object(Closure))
+#1 C:\\laragon\\www\\facturadorpro2\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Connection.php(333): Illuminate\\Database\\Connection->run('select * from i...', Array, Object(Closure))
+#2 C:\\laragon\\www\\facturadorpro2\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Schema\\MySqlBuilder.php(18): Illuminate\\Database\\Connection->select('select * from i...', Array)
+#3 C:\\laragon\\www\\facturadorpro2\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Migrations\\DatabaseMigrationRepository.php(169): Illuminate\\Database\\Schema\\MySqlBuilder->hasTable('migrations')
+#4 C:\\laragon\\www\\facturadorpro2\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Migrations\\Migrator.php(556): Illuminate\\Database\\Migrations\\DatabaseMigrationRepository->repositoryExists()
+#5 C:\\laragon\\www\\facturadorpro2\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Console\\Migrations\\MigrateCommand.php(91): Illuminate\\Database\\Migrations\\Migrator->repositoryExists()
+#6 C:\\laragon\\www\\facturadorpro2\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Console\\Migrations\\MigrateCommand.php(63): Illuminate\\Database\\Console\\Migrations\\MigrateCommand->prepareDatabase()
+#7 C:\\laragon\\www\\facturadorpro2\\vendor\\hyn\\multi-tenant\\src\\Traits\\MutatesMigrationCommands.php(57): Illuminate\\Database\\Console\\Migrations\\MigrateCommand->handle()
+#8 C:\\laragon\\www\\facturadorpro2\\vendor\\laravel\\framework\\src\\Illuminate\\Support\\Collection.php(419): Hyn\\Tenancy\\Database\\Console\\Migrations\\MigrateCommand->Hyn\\Tenancy\\Traits\\{closure}(Object(Hyn\\Tenancy\\Models\\Website), 1)
+#9 C:\\laragon\\www\\facturadorpro2\\vendor\\hyn\\multi-tenant\\src\\Traits\\AddWebsiteFilterOnCommand.php(31): Illuminate\\Support\\Collection->each(Object(Closure))
+#10 C:\\laragon\\www\\facturadorpro2\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Concerns\\BuildsQueries.php(39): Hyn\\Tenancy\\Database\\Console\\Migrations\\MigrateCommand->Hyn\\Tenancy\\Traits\\{closure}(Object(Illuminate\\Database\\Eloquent\\Collection), 1)
+#11 C:\\laragon\\www\\facturadorpro2\\vendor\\hyn\\multi-tenant\\src\\Traits\\AddWebsiteFilterOnCommand.php(32): Illuminate\\Database\\Eloquent\\Builder->chunk(10, Object(Closure))
+#12 C:\\laragon\\www\\facturadorpro2\\vendor\\hyn\\multi-tenant\\src\\Traits\\MutatesMigrationCommands.php(60): Hyn\\Tenancy\\Database\\Console\\Migrations\\MigrateCommand->processHandle(Object(Closure))
+#13 [internal function]: Hyn\\Tenancy\\Database\\Console\\Migrations\\MigrateCommand->handle()
+#14 C:\\laragon\\www\\facturadorpro2\\vendor\\laravel\\framework\\src\\Illuminate\\Container\\BoundMethod.php(29): call_user_func_array(Array, Array)
+#15 C:\\laragon\\www\\facturadorpro2\\vendor\\laravel\\framework\\src\\Illuminate\\Container\\BoundMethod.php(87): Illuminate\\Container\\BoundMethod::Illuminate\\Container\\{closure}()
+#16 C:\\laragon\\www\\facturadorpro2\\vendor\\laravel\\framework\\src\\Illuminate\\Container\\BoundMethod.php(31): Illuminate\\Container\\BoundMethod::callBoundMethod(Object(Illuminate\\Foundation\\Application), Array, Object(Closure))
+#17 C:\\laragon\\www\\facturadorpro2\\vendor\\laravel\\framework\\src\\Illuminate\\Container\\Container.php(572): Illuminate\\Container\\BoundMethod::call(Object(Illuminate\\Foundation\\Application), Array, Array, NULL)
+#18 C:\\laragon\\www\\facturadorpro2\\vendor\\laravel\\framework\\src\\Illuminate\\Console\\Command.php(183): Illuminate\\Container\\Container->call(Array)
+#19 C:\\laragon\\www\\facturadorpro2\\vendor\\symfony\\console\\Command\\Command.php(255): Illuminate\\Console\\Command->execute(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Illuminate\\Console\\OutputStyle))
+#20 C:\\laragon\\www\\facturadorpro2\\vendor\\laravel\\framework\\src\\Illuminate\\Console\\Command.php(170): Symfony\\Component\\Console\\Command\\Command->run(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Illuminate\\Console\\OutputStyle))
+#21 C:\\laragon\\www\\facturadorpro2\\vendor\\symfony\\console\\Application.php(1021): Illuminate\\Console\\Command->run(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Symfony\\Component\\Console\\Output\\ConsoleOutput))
+#22 C:\\laragon\\www\\facturadorpro2\\vendor\\symfony\\console\\Application.php(275): Symfony\\Component\\Console\\Application->doRunCommand(Object(Hyn\\Tenancy\\Database\\Console\\Migrations\\MigrateCommand), Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Symfony\\Component\\Console\\Output\\ConsoleOutput))
+#23 C:\\laragon\\www\\facturadorpro2\\vendor\\symfony\\console\\Application.php(149): Symfony\\Component\\Console\\Application->doRun(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Symfony\\Component\\Console\\Output\\ConsoleOutput))
+#24 C:\\laragon\\www\\facturadorpro2\\vendor\\laravel\\framework\\src\\Illuminate\\Console\\Application.php(89): Symfony\\Component\\Console\\Application->run(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Symfony\\Component\\Console\\Output\\ConsoleOutput))
+#25 C:\\laragon\\www\\facturadorpro2\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Console\\Kernel.php(122): Illuminate\\Console\\Application->run(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Symfony\\Component\\Console\\Output\\ConsoleOutput))
+#26 C:\\laragon\\www\\facturadorpro2\\artisan(37): Illuminate\\Foundation\\Console\\Kernel->handle(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Symfony\\Component\\Console\\Output\\ConsoleOutput))
+#27 {main}
+"} 
+[2025-10-08 08:34:54] local.ERROR: SQLSTATE[HY000] [1045] Access denied for user 'tenancy_elizabeth'@'localhost' (using password: YES) (SQL: select * from information_schema.tables where table_schema = tenancy_elizabeth and table_name = migrations) {"exception":"[object] (Illuminate\\Database\\QueryException(code: 1045): SQLSTATE[HY000] [1045] Access denied for user 'tenancy_elizabeth'@'localhost' (using password: YES) (SQL: select * from information_schema.tables where table_schema = tenancy_elizabeth and table_name = migrations) at C:\\laragon\\www\\facturadorpro2\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Connection.php:664, Doctrine\\DBAL\\Driver\\PDOException(code: 1045): SQLSTATE[HY000] [1045] Access denied for user 'tenancy_elizabeth'@'localhost' (using password: YES) at C:\\laragon\\www\\facturadorpro2\\vendor\\doctrine\\dbal\\lib\\Doctrine\\DBAL\\Driver\\PDOConnection.php:31, PDOException(code: 1045): SQLSTATE[HY000] [1045] Access denied for user 'tenancy_elizabeth'@'localhost' (using password: YES) at C:\\laragon\\www\\facturadorpro2\\vendor\\doctrine\\dbal\\lib\\Doctrine\\DBAL\\Driver\\PDOConnection.php:27)
+[stacktrace]
+#0 C:\\laragon\\www\\facturadorpro2\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Connection.php(624): Illuminate\\Database\\Connection->runQueryCallback('select * from i...', Array, Object(Closure))
+#1 C:\\laragon\\www\\facturadorpro2\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Connection.php(333): Illuminate\\Database\\Connection->run('select * from i...', Array, Object(Closure))
+#2 C:\\laragon\\www\\facturadorpro2\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Schema\\MySqlBuilder.php(18): Illuminate\\Database\\Connection->select('select * from i...', Array)
+#3 C:\\laragon\\www\\facturadorpro2\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Migrations\\DatabaseMigrationRepository.php(169): Illuminate\\Database\\Schema\\MySqlBuilder->hasTable('migrations')
+#4 C:\\laragon\\www\\facturadorpro2\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Migrations\\Migrator.php(556): Illuminate\\Database\\Migrations\\DatabaseMigrationRepository->repositoryExists()
+#5 C:\\laragon\\www\\facturadorpro2\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Console\\Migrations\\MigrateCommand.php(91): Illuminate\\Database\\Migrations\\Migrator->repositoryExists()
+#6 C:\\laragon\\www\\facturadorpro2\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Console\\Migrations\\MigrateCommand.php(63): Illuminate\\Database\\Console\\Migrations\\MigrateCommand->prepareDatabase()
+#7 C:\\laragon\\www\\facturadorpro2\\vendor\\hyn\\multi-tenant\\src\\Traits\\MutatesMigrationCommands.php(57): Illuminate\\Database\\Console\\Migrations\\MigrateCommand->handle()
+#8 C:\\laragon\\www\\facturadorpro2\\vendor\\laravel\\framework\\src\\Illuminate\\Support\\Collection.php(419): Hyn\\Tenancy\\Database\\Console\\Migrations\\MigrateCommand->Hyn\\Tenancy\\Traits\\{closure}(Object(Hyn\\Tenancy\\Models\\Website), 1)
+#9 C:\\laragon\\www\\facturadorpro2\\vendor\\hyn\\multi-tenant\\src\\Traits\\AddWebsiteFilterOnCommand.php(31): Illuminate\\Support\\Collection->each(Object(Closure))
+#10 C:\\laragon\\www\\facturadorpro2\\vendor\\laravel\\framework\\src\\Illuminate\\Database\\Concerns\\BuildsQueries.php(39): Hyn\\Tenancy\\Database\\Console\\Migrations\\MigrateCommand->Hyn\\Tenancy\\Traits\\{closure}(Object(Illuminate\\Database\\Eloquent\\Collection), 1)
+#11 C:\\laragon\\www\\facturadorpro2\\vendor\\hyn\\multi-tenant\\src\\Traits\\AddWebsiteFilterOnCommand.php(32): Illuminate\\Database\\Eloquent\\Builder->chunk(10, Object(Closure))
+#12 C:\\laragon\\www\\facturadorpro2\\vendor\\hyn\\multi-tenant\\src\\Traits\\MutatesMigrationCommands.php(60): Hyn\\Tenancy\\Database\\Console\\Migrations\\MigrateCommand->processHandle(Object(Closure))
+#13 [internal function]: Hyn\\Tenancy\\Database\\Console\\Migrations\\MigrateCommand->handle()
+#14 C:\\laragon\\www\\facturadorpro2\\vendor\\laravel\\framework\\src\\Illuminate\\Container\\BoundMethod.php(29): call_user_func_array(Array, Array)
+#15 C:\\laragon\\www\\facturadorpro2\\vendor\\laravel\\framework\\src\\Illuminate\\Container\\BoundMethod.php(87): Illuminate\\Container\\BoundMethod::Illuminate\\Container\\{closure}()
+#16 C:\\laragon\\www\\facturadorpro2\\vendor\\laravel\\framework\\src\\Illuminate\\Container\\BoundMethod.php(31): Illuminate\\Container\\BoundMethod::callBoundMethod(Object(Illuminate\\Foundation\\Application), Array, Object(Closure))
+#17 C:\\laragon\\www\\facturadorpro2\\vendor\\laravel\\framework\\src\\Illuminate\\Container\\Container.php(572): Illuminate\\Container\\BoundMethod::call(Object(Illuminate\\Foundation\\Application), Array, Array, NULL)
+#18 C:\\laragon\\www\\facturadorpro2\\vendor\\laravel\\framework\\src\\Illuminate\\Console\\Command.php(183): Illuminate\\Container\\Container->call(Array)
+#19 C:\\laragon\\www\\facturadorpro2\\vendor\\symfony\\console\\Command\\Command.php(255): Illuminate\\Console\\Command->execute(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Illuminate\\Console\\OutputStyle))
+#20 C:\\laragon\\www\\facturadorpro2\\vendor\\laravel\\framework\\src\\Illuminate\\Console\\Command.php(170): Symfony\\Component\\Console\\Command\\Command->run(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Illuminate\\Console\\OutputStyle))
+#21 C:\\laragon\\www\\facturadorpro2\\vendor\\symfony\\console\\Application.php(1021): Illuminate\\Console\\Command->run(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Symfony\\Component\\Console\\Output\\ConsoleOutput))
+#22 C:\\laragon\\www\\facturadorpro2\\vendor\\symfony\\console\\Application.php(275): Symfony\\Component\\Console\\Application->doRunCommand(Object(Hyn\\Tenancy\\Database\\Console\\Migrations\\MigrateCommand), Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Symfony\\Component\\Console\\Output\\ConsoleOutput))
+#23 C:\\laragon\\www\\facturadorpro2\\vendor\\symfony\\console\\Application.php(149): Symfony\\Component\\Console\\Application->doRun(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Symfony\\Component\\Console\\Output\\ConsoleOutput))
+#24 C:\\laragon\\www\\facturadorpro2\\vendor\\laravel\\framework\\src\\Illuminate\\Console\\Application.php(89): Symfony\\Component\\Console\\Application->run(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Symfony\\Component\\Console\\Output\\ConsoleOutput))
+#25 C:\\laragon\\www\\facturadorpro2\\vendor\\laravel\\framework\\src\\Illuminate\\Foundation\\Console\\Kernel.php(122): Illuminate\\Console\\Application->run(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Symfony\\Component\\Console\\Output\\ConsoleOutput))
+#26 C:\\laragon\\www\\facturadorpro2\\artisan(37): Illuminate\\Foundation\\Console\\Kernel->handle(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Symfony\\Component\\Console\\Output\\ConsoleOutput))
+#27 {main}
+"} 
