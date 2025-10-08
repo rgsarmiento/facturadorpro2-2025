@@ -70,3 +70,7 @@ Stack trace:
 #26 C:\\laragon\\www\\facturadorpro2\\artisan(37): Illuminate\\Foundation\\Console\\Kernel->handle(Object(Symfony\\Component\\Console\\Input\\ArgvInput), Object(Symfony\\Component\\Console\\Output\\ConsoleOutput))
 #27 {main}
 "} 
+[2025-10-08 08:54:42] local.DEBUG: pdf.default.quotation_a4  
+[2025-10-08 08:54:52] local.DEBUG: pdf.default.quotation_a4  
+[2025-10-08 08:55:13] local.ERROR: La respuesta del correlativo no contiene la propiedad "number": {"message":"Unauthenticated."}  
+[2025-10-08 08:57:11] local.ERROR: La respuesta del correlativo no contiene la propiedad "number": {"message":"Unauthenticated."}  

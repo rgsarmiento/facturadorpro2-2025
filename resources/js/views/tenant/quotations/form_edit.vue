@@ -668,16 +668,13 @@
                         0
                     )
                     .toFixed(2);
-                    val.sale = val.items
-                    .reduce(
-                        (p, c) =>
-                        Number(p) + Number(c.unit_price * c.quantity) - Number(c.discount),
-                        0
-                    )
-                    .toFixed(2);
+                    // Ajuste: sale ahora es bruto (sin restar descuentos)
+                    const gross_sale = val.items
+                        .reduce((p, c) => Number(p) + Number(c.unit_price * c.quantity), 0);
                     val.total_discount = val.items
-                    .reduce((p, c) => Number(p) + Number(c.discount), 0)
-                    .toFixed(2);
+                        .reduce((p, c) => Number(p) + Number(c.discount), 0)
+                        .toFixed(2);
+                    val.sale = gross_sale.toFixed(2); // bruto
                     val.total_tax = val.items
                     .reduce((p, c) => Number(p) + Number(c.total_tax), 0)
                     .toFixed(2);
@@ -691,15 +688,16 @@
                 // this.taxes.forEach(tax => {
                 val.taxes.forEach(tax => {
                     if (tax.is_retention && tax.in_base && tax.apply) {
+                        const net_sale_for_retention = (gross_sale - Number(val.total_discount));
                         tax.retention = (
-                        Number(val.sale) *
-                        (tax.rate / tax.conversion)
+                            Number(net_sale_for_retention) *
+                            (tax.rate / tax.conversion)
                         ).toFixed(2);
 
                         totalRetentionBase =
                         Number(totalRetentionBase) + Number(tax.retention);
 
-                        if (Number(totalRetentionBase) >= Number(val.sale))
+                        if (Number(totalRetentionBase) >= Number(net_sale_for_retention))
                         this.$set(tax, "retention", Number(0).toFixed(2));
 
                         total -= Number(tax.retention).toFixed(2);

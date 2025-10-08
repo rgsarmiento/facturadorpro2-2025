@@ -653,20 +653,26 @@ export default {
             });
             val.total_tax = val.items.reduce((p, c) => Number(p) + Number(c.total_tax), 0).toFixed(4);
             let total = val.items.reduce((p, c) => Number(p) + Number(c.total), 0).toFixed(4);
-            val.subtotal = val.items.reduce((p, c) => Number(p) + (Number(c.subtotal) - Number(c.total_discount)), 0).toFixed(4);
-            val.sale = val.items.reduce((p, c) => Number(p) + Number(c.unit_price * c.quantity) - Number(c.total_discount), 0).toFixed(4);
+            // Recalcular valores:
+            // sale ahora representa el total bruto (sin descontar descuentos)
+            const gross_sale = val.items.reduce((p, c) => Number(p) + Number(c.unit_price * c.quantity), 0);
             val.total_discount = val.items.reduce((p, c) => Number(p) + Number(c.total_discount), 0).toFixed(4);
+            val.sale = gross_sale.toFixed(4); // bruto
+            // subtotal: total bruto - descuentos + impuestos (la fórmula existente ya lo representaba usando subtotal - discount por ítem)
+            val.subtotal = val.items.reduce((p, c) => Number(p) + (Number(c.subtotal) - Number(c.total_discount)), 0).toFixed(4);
             let totalRetentionBase = Number(0);
             // this.taxes.forEach(tax => {
             val.taxes.forEach(tax => {
                 if (tax.is_retention && tax.in_base && tax.apply) {
+                    // Base para retención debe considerar el neto (bruto - descuentos)
+                    const net_sale_for_retention = (gross_sale - Number(val.total_discount));
                     tax.retention = (
-                        Number(val.sale) *
+                        Number(net_sale_for_retention) *
                         (tax.rate / tax.conversion)
                     ).toFixed(4);
                     totalRetentionBase =
                         Number(totalRetentionBase) + Number(tax.retention);
-                    if (Number(totalRetentionBase) >= Number(val.sale))
+                    if (Number(totalRetentionBase) >= Number(net_sale_for_retention))
                         this.$set(tax, "retention", Number(0).toFixed(4));
                     total -= Number(tax.retention).toFixed(4);
                 }
