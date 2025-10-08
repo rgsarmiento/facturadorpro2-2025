@@ -188,6 +188,54 @@ class SystemBackupController extends Controller
     }
 
     /**
+     * Start asynchronous full system backup
+     */
+    public function startAsync()
+    {
+        try {
+            $id = date('YmdHis').'_'.substr(str_shuffle('abcdefghijklmnopqrstuvwxyz0123456789'),0,6);
+            // Lanzar comando artisan en background (sin bloquear petición)
+            $artisan = base_path('artisan');
+            if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
+                // Windows: start proceso separado
+                pclose(popen('start /B php "'.$artisan.'" system:full-backup '.$id.' > NUL 2>&1', 'r'));
+            } else {
+                // Linux
+                exec('php "'.$artisan.'" system:full-backup '.$id.' > /dev/null 2>&1 &');
+            }
+            return response()->json([
+                'success' => true,
+                'backup_id' => $id,
+                'message' => 'Backup iniciado'
+            ]);
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'No se pudo iniciar el backup: '.$e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Poll async backup progress
+     */
+    public function progress($id)
+    {
+        $file = storage_path('app/system_backups/progress_'.$id.'.json');
+        if(!file_exists($file)){
+            return response()->json([
+                'success' => false,
+                'message' => 'No existe progreso para este ID'
+            ], 404);
+        }
+        $json = json_decode(file_get_contents($file), true);
+        return response()->json([
+            'success' => true,
+            'data' => $json
+        ]);
+    }
+
+    /**
      * Download a system backup
      */
     public function download($filename)

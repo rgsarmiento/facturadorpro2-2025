@@ -170,6 +170,9 @@ if($current_hostname) {
                 Route::prefix('system-backup')->group(function () {
                     Route::get('/', 'System\SystemBackupController@index')->name('system.backup.index');
                     Route::post('create', 'System\SystemBackupController@create')->name('system.backup.create');
+                    // Asíncrono
+                    Route::post('start', 'System\SystemBackupController@startAsync')->name('system.backup.start');
+                    Route::get('progress/{id}', 'System\SystemBackupController@progress')->name('system.backup.progress');
                     Route::get('list', 'System\SystemBackupController@list')->name('system.backup.list');
                     Route::get('download/{filename}', 'System\SystemBackupController@download')->name('system.backup.download');
                     Route::delete('delete/{filename}', 'System\SystemBackupController@delete')->name('system.backup.delete');

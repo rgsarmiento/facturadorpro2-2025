@@ -13,7 +13,7 @@
                 <p class="page-subtitle">Gestión y administración de backups del sistema completo</p>
             </div>
             <div class="header-actions">
-                <button onclick="createBackup()" id="create-btn" class="btn btn-primary btn-modern">
+                <button onclick="startAsyncBackup()" id="create-btn" class="btn btn-primary btn-modern">
                     <i class="fas fa-plus mr-2"></i>
                     <span>Crear Backup Completo (Sistema + Tenants)</span>
                 </button>
@@ -332,40 +332,94 @@ function updateTable() {
 }
 
 // Función para crear backup
-function createBackup() {
-    if (!confirm('¿Está seguro de que desea crear un backup completo del sistema? Esto puede tomar varios minutos.')) {
-        return;
-    }
+let currentBackupId = null;
+let progressInterval = null;
 
-    isCreating = true;
+function startAsyncBackup(){
+    if(!confirm('¿Iniciar backup completo asincrónico? Este proceso puede tardar.')) return;
     const btn = document.getElementById('create-btn');
     btn.disabled = true;
-    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i><span>Creando Backup (Sistema + Tenants)...</span>';
-
-    fetch('/co-companies/system-backup/create', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
+    btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i><span>Iniciando Backup...</span>';
+    fetch('/co-companies/system-backup/start', {
+        method:'POST',
+        headers:{
+            'Content-Type':'application/json',
             'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content')
         }
-    })
-    .then(response => response.json())
-    .then(data => {
-        if (data.success) {
-            showSuccess('Backup creado exitosamente');
-            loadBackups();
-        } else {
-            showError('Error al crear backup: ' + (data.message || 'Error desconocido'));
+    }).then(r=>r.json()).then(data=>{
+        if(!data.success){
+            showError('No se pudo iniciar: '+(data.message||''));
+            btn.disabled = false;
+            btn.innerHTML = '<i class="fas fa-plus mr-2"></i><span>Crear Backup Completo (Sistema + Tenants)</span>';
+            return;
         }
-    })
-    .catch(error => {
-        showError('Error al crear el backup del sistema');
-    })
-    .finally(() => {
-        isCreating = false;
+        currentBackupId = data.backup_id;
+        showSuccess('Backup iniciado. ID: '+currentBackupId);
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i><span>Backup en progreso...</span>';
+        startProgressPolling();
+    }).catch(()=>{
+        showError('Error al iniciar backup');
         btn.disabled = false;
         btn.innerHTML = '<i class="fas fa-plus mr-2"></i><span>Crear Backup Completo (Sistema + Tenants)</span>';
     });
+}
+
+function startProgressPolling(){
+    if(progressInterval) clearInterval(progressInterval);
+    progressInterval = setInterval(fetchProgress, 5000);
+    fetchProgress();
+}
+
+function fetchProgress(){
+    if(!currentBackupId) return;
+    fetch('/co-companies/system-backup/progress/'+currentBackupId)
+        .then(r=>r.json())
+        .then(data=>{
+            if(!data.success) return;
+            const p = data.data;
+            updateProgressUI(p);
+            if(p.status === 'done' || p.status === 'failed'){
+                clearInterval(progressInterval);
+                const btn = document.getElementById('create-btn');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="fas fa-plus mr-2"></i><span>Crear Backup Completo (Sistema + Tenants)</span>';
+                loadBackups();
+                if(p.status==='done') showSuccess('Backup finalizado'); else showError('Backup falló: '+p.message);
+                // Eliminar panel de progreso tras breve demora para que usuario vea 100%
+                setTimeout(()=>{
+                    const wrapper = document.getElementById('async-progress-wrapper');
+                    if(wrapper) wrapper.remove();
+                }, 1500);
+            }
+        });
+}
+
+function updateProgressUI(p){
+    let bar = document.getElementById('async-progress-wrapper');
+    if(!bar){
+        const container = document.getElementById('backup-system-app');
+        const div = document.createElement('div');
+        div.id='async-progress-wrapper';
+        div.innerHTML = `
+        <div class="table-card mt-3">
+            <div class="p-3">
+                <h5 class="mb-2"><i class="fas fa-tasks mr-2"></i>Progreso Backup Asincrónico</h5>
+                <div class="progress mb-2">
+                    <div id="async-progress-bar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width:0%">0%</div>
+                </div>
+                <div id="async-progress-text" class="small text-muted">Inicializando...</div>
+                <div id="async-progress-log" style="max-height:150px; overflow:auto; font-size:11px; background:#f8f9fa; padding:6px; border:1px solid #e1e1e1; margin-top:8px;"></div>
+            </div>
+        </div>`;
+        container.prepend(div);
+    }
+    const percent = (p.total_tenants>0)? Math.min(100, Math.round((p.current / p.total_tenants)*100)) : (p.step==='zip'?90:5);
+    const barEl = document.getElementById('async-progress-bar');
+    const textEl = document.getElementById('async-progress-text');
+    const logEl = document.getElementById('async-progress-log');
+    if(barEl){ barEl.style.width = percent+'%'; barEl.textContent = percent+'%'; }
+    if(textEl){ textEl.textContent = `[${p.status}] Paso: ${p.step} | Tenants: ${p.current}/${p.total_tenants} | OK: ${p.successful}`; }
+    if(logEl){ logEl.innerHTML = p.log.slice(-20).map(l=>`<div>[${l.ts}] ${l.msg}</div>`).join(''); logEl.scrollTop = logEl.scrollHeight; }
 }
 
 // Función para descargar backup
