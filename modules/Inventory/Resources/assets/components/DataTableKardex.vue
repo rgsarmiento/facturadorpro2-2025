@@ -5,8 +5,19 @@
                 <div class="row mt-2">
                         <div class="col-md-6">
                             <label class="control-label">Producto</label>
-                            <el-select ref="itemSelect" v-model="form.item_id" filterable clearable @visible-change="handleDropdownVisible">
-                                <el-option v-for="option in items" :key="option.id" :value="option.id" :label="option.full_description"></el-option>
+                            <el-select ref="itemSelect"
+                                       v-model="form.item_id"
+                                       filterable
+                                       clearable
+                                       remote
+                                       :remote-method="remoteSearchItems"
+                                       :loading="loadingItems"
+                                       @visible-change="handleDropdownVisible"
+                                       placeholder="Escribe código o nombre...">
+                                <el-option v-for="option in items"
+                                           :key="option.id"
+                                           :value="option.id"
+                                           :label="option.full_description" />
                             </el-select>
                         </div>
                         <div class="col-md-3">
@@ -88,7 +99,13 @@
                 establishment: null,
                 items: [],
                 itemsPagination: { current_page: 1, last_page: 1, per_page: 30, total: 0 },
+                searchTerm: '',
+                searchDelay: null,
                 loadingItems: false,
+                backgroundLoading: false,
+                backgroundPage: 1,
+                backgroundFinished: false,
+                backgroundPageSize: 100,
                 form: {},
                 pickerOptionsDates: {
                     disabledDate: (time) => {
@@ -110,31 +127,86 @@
         },
 
         async mounted () {
-            this.loadItems();
+            // Carga inicial rápida (primer bloque para que el usuario vea opciones) y arranque de carga masiva en segundo plano.
+            this.remoteSearchItems('');
+            this.startBackgroundLoadAll();
         },
 
         methods: {
             async loadItems(page = 1) {
-                if (this.loadingItems) {
-                    return;
-                }
+                // Conservado para scroll infinito si se decide mantener
+                if (this.loadingItems) return;
                 this.loadingItems = true;
                 try {
-//                    console.log('Solicitando página de items:', page);
                     const response = await this.$http.get(`/${this.resource}/filter?per_page=${this.itemsPagination.per_page}&page=${page}`);
                     const data = response.data;
-                    if (page === 1) {
-                        this.items = data.data;
-                    } else {
-                        this.items = [...this.items, ...data.data];
-                    }
+                    this.items = page === 1 ? data.data : [...this.items, ...data.data];
                     this.itemsPagination = {
                         current_page: data.current_page,
                         last_page: data.last_page,
                         per_page: data.per_page,
                         total: data.total,
-                  };
-//                  console.log('Items paginados:', this.itemsPagination);
+                    };
+                } finally { this.loadingItems = false; }
+            },
+
+            remoteSearchItems(query) {
+                // Debounce
+                if (this.searchDelay) clearTimeout(this.searchDelay);
+                this.searchDelay = setTimeout(() => {
+                    this.fetchRemoteItems(query);
+                }, 300);
+            },
+
+            startBackgroundLoadAll(){
+                if(this.backgroundLoading || this.backgroundFinished) return;
+                this.backgroundLoading = true;
+                this.backgroundPage = 1;
+                this.fetchBackgroundPage();
+            },
+
+            async fetchBackgroundPage(){
+                try {
+                    const page = this.backgroundPage;
+                    const resp = await this.$http.get(`/${this.resource}/filter?per_page=${this.backgroundPageSize}&page=${page}`);
+                    const data = resp.data;
+                    const existingIds = new Set(this.items.map(i=>i.id));
+                    data.data.forEach(it=>{ if(!existingIds.has(it.id)) this.items.push(it); });
+                    if(data.current_page < data.last_page){
+                        this.backgroundPage++;
+                        setTimeout(()=>this.fetchBackgroundPage(), 150); // pequeña pausa para no saturar
+                    } else {
+                        this.backgroundFinished = true;
+                    }
+                } catch(e){
+                    // silencioso; podríamos reintentar después
+                } finally {
+                    // seguimos marcando loading hasta completar; al terminar marcamos false
+                    if(this.backgroundFinished) this.backgroundLoading = false;
+                }
+            },
+
+            async fetchRemoteItems(query) {
+                this.searchTerm = query;
+                this.loadingItems = true;
+                try {
+                    const params = new URLSearchParams();
+                    params.append('q', query || '');
+                    params.append('limit', 30);
+                    const { data } = await this.$http.get(`/reports/kardex/search-items?${params.toString()}`);
+                    if (data.success) {
+                        if(query){
+                            // Mostrar solo resultados filtrados
+                            this.items = data.data;
+                        } else if(!this.backgroundFinished && this.items.length === 0) {
+                            // Primer bloque antes de completar background
+                            this.items = data.data;
+                        }
+                    } else {
+                        this.items = [];
+                    }
+                } catch (e) {
+                    this.items = [];
                 } finally {
                     this.loadingItems = false;
                 }
@@ -173,15 +245,12 @@
             },
 
             handleDropdownScroll(e) {
+                // Scroll adicional solo si no hay búsqueda y aún no finaliza la carga masiva
+                if (this.searchTerm || this.backgroundFinished) return;
                 const dropdown = e.target;
-//                console.log('Scroll detectado en:', dropdown, 'scrollTop:', dropdown.scrollTop, 'scrollHeight:', dropdown.scrollHeight, 'clientHeight:', dropdown.clientHeight);
-                if (
-                    dropdown.scrollTop + dropdown.clientHeight >= dropdown.scrollHeight - 10 &&
-                    !this.loadingItems &&
-                    this.itemsPagination.current_page < this.itemsPagination.last_page
-                ) {
-//                    console.log('Cargando más items...');
-                    this.loadItems(this.itemsPagination.current_page + 1);
+                if (dropdown.scrollTop + dropdown.clientHeight >= dropdown.scrollHeight - 10 && !this.backgroundLoading) {
+                    this.backgroundLoading = true; // fetchBackgroundPage gestiona volver a false al final
+                    this.fetchBackgroundPage();
                 }
             },
 

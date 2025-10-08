@@ -47,6 +47,40 @@ class ReportKardexController extends Controller
         return view('inventory::reports.kardex.index');
     }
 
+    /**
+     * Remote search for items (used by kardex select with large catalogs)
+     */
+    public function searchItems(Request $request)
+    {
+        $term = trim($request->input('q',''));
+        $limit = (int) $request->input('limit', 20);
+        if($limit <= 0 || $limit > 100) $limit = 20;
+
+        $query = Item::query()->whereNotIsSet()->where([['item_type_id', '01'], ['unit_type_id', '!=','ZZ']]);
+        if($term !== ''){
+            $like = '%'.$term.'%';
+            $query->where(function($q) use($like){
+                $q->where('name','like',$like)
+                  ->orWhere('description','like',$like)
+                  ->orWhere('internal_id','like',$like);
+            });
+        }
+        $items = $query->select(['id','name','description','internal_id','brand_id','category_id'])
+                       ->with(['brand:id,name','category:id,name'])
+                       ->orderBy('name')
+                       ->limit($limit)
+                       ->get()
+                       ->map(function($row){
+                            return [
+                                'id' => $row->id,
+                                'full_description' => $this->getFullDescription($row),
+                                'internal_id' => $row->internal_id,
+                                'description' => $row->description,
+                            ];
+                       });
+        return response()->json(['success'=>true,'data'=>$items]);
+    }
+
 /*    public function filter() {
         ini_set('memory_limit', '2048');
         ini_set('max_execution_time', 900);
