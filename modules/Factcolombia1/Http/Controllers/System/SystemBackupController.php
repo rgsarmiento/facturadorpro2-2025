@@ -196,6 +196,24 @@ class SystemBackupController extends Controller
             $id = date('YmdHis').'_'.substr(str_shuffle('abcdefghijklmnopqrstuvwxyz0123456789'),0,6);
             // Lanzar comando artisan en background (sin bloquear petición)
             $artisan = base_path('artisan');
+            // Crear archivo de progreso inicial para evitar 404 en el primer polling
+            $progressStub = [
+                'id' => $id,
+                'status' => 'starting',
+                'step' => 'spawn',
+                'message' => 'Inicializando proceso en background',
+                'started_at' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s'),
+                'current' => 0,
+                'successful' => 0,
+                'total_tenants' => \Hyn\Tenancy\Models\Website::count(),
+                'log' => [],
+                'filename' => null,
+                'errors' => []
+            ];
+            $progressPath = storage_path('app/system_backups');
+            if(!is_dir($progressPath)) mkdir($progressPath,0755,true);
+            file_put_contents($progressPath.'/progress_'.$id.'.json', json_encode($progressStub, JSON_PRETTY_PRINT|JSON_UNESCAPED_UNICODE));
             if (strtoupper(substr(PHP_OS, 0, 3)) === 'WIN') {
                 // Windows: start proceso separado
                 pclose(popen('start /B php "'.$artisan.'" system:full-backup '.$id.' > NUL 2>&1', 'r'));

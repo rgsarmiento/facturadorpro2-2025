@@ -10,10 +10,11 @@ use Symfony\Component\Process\Exception\ProcessFailedException;
 
 class SystemFullBackupService
 {
-    private string $id;
-    private string $progressFile;
-    private string $basePath;
-    private array $data;
+    // Tipos removidos para compatibilidad con versiones PHP < 7.4
+    private $id;
+    private $progressFile;
+    private $basePath;
+    private $data;
 
     public function __construct(string $id)
     {
