@@ -33,7 +33,7 @@ class AsientoContableController extends Controller
     {
         $this->ensureTenantConnection();
 
-        $asiento = AsientoContable::on('tenant')->with(['detalles.cuentaContable', 'detalles.tercero', 'tipoComprobante', 'adjuntos'])
+        $asiento = AsientoContable::on('tenant')->withTrashed()->with(['detalles.cuentaContable', 'detalles.tercero', 'tipoComprobante', 'adjuntos'])
             ->findOrFail($id);
 
         return view('tenant.asientos_contables.show', compact('asiento'));
@@ -61,7 +61,10 @@ class AsientoContableController extends Controller
 
 
 
-            $records = AsientoContable::on('tenant')->with(['tipoComprobante', 'usuarioCreacion'])
+            // Incluir eliminados lógicamente para que aparezcan en el listado
+            $records = AsientoContable::on('tenant')
+                ->withTrashed()
+                ->with(['tipoComprobante', 'usuarioCreacion'])
                 ->when($request->fecha_inicio, function ($query, $fecha) {
                     return $query->where('fecha_asiento', '>=', $fecha);
                 })
@@ -72,6 +75,13 @@ class AsientoContableController extends Controller
                     return $query->where('tipo_comprobante_id', $tipo);
                 })
                 ->when($request->estado, function ($query, $estado) {
+                    if (strtoupper($estado) === 'ANULADO') {
+                        // Incluir registros propiamente anulados y también eliminados lógicamente
+                        return $query->where(function ($q) {
+                            $q->where('estado', 'ANULADO')
+                              ->orWhereNotNull('deleted_at');
+                        });
+                    }
                     return $query->where('estado', $estado);
                 })
                 ->when($request->search, function ($query, $search) {
@@ -117,11 +127,14 @@ class AsientoContableController extends Controller
 
             DB::beginTransaction();
 
-            // Validar el tipo de comprobante
-            $tipoComprobante = TipoComprobanteContable::on('tenant')->findOrFail($request->tipo_comprobante_id);
+            // Validar el tipo de comprobante y bloquear la fila para manejo seguro del consecutivo
+            $tipoComprobante = TipoComprobanteContable::on('tenant')
+                ->lockForUpdate()
+                ->findOrFail($request->tipo_comprobante_id);
 
-            // Obtener el próximo consecutivo
-            $consecutivo = $this->obtenerProximoConsecutivo($tipoComprobante->id);
+            // Calcular el próximo consecutivo basado en el consecutivo_actual del tipo
+            $consecutivo = (int)($tipoComprobante->consecutivo_actual ?? 0) + 1;
+            $numeroComprobante = (string)($tipoComprobante->prefijo ?? '') . $consecutivo;
 
             // Calcular totales de débito y crédito
             $totalDebito = 0;
@@ -137,7 +150,9 @@ class AsientoContableController extends Controller
             $asiento = AsientoContable::on('tenant')->create([
                 'fecha_asiento' => $request->fecha_asiento,
                 'tipo_comprobante_id' => $request->tipo_comprobante_id,
-                'numero_comprobante' => $consecutivo,
+                // numero_comprobante debe incluir el prefijo del tipo (ej. CV1, AJ2, ...)
+                'numero_comprobante' => $numeroComprobante,
+                // mantener campo numerico sin prefijo en 'consecutivo'
                 'consecutivo' => $consecutivo,
                 'concepto' => $request->concepto,
                 'total_debito' => $totalDebito,
@@ -146,6 +161,10 @@ class AsientoContableController extends Controller
                 'usuario_creacion' => Auth::id(),
                 'fecha_creacion' => now(),
             ]);
+
+            // Actualizar el consecutivo_actual del tipo al último usado (sin prefijo)
+            $tipoComprobante->consecutivo_actual = $consecutivo;
+            $tipoComprobante->save();
 
             // Crear los detalles
             if ($request->has('detalles')) {
@@ -204,7 +223,15 @@ class AsientoContableController extends Controller
 
             DB::beginTransaction();
 
-            $asiento = AsientoContable::on('tenant')->findOrFail($id);
+            $asiento = AsientoContable::on('tenant')->withTrashed()->findOrFail($id);
+
+            // No permitir editar si fue eliminado (soft-deleted)
+            if ($asiento->trashed()) {
+                return [
+                    'success' => false,
+                    'message' => 'No se puede modificar un asiento eliminado'
+                ];
+            }
 
             // Solo permitir edición si está en borrador (case-insensitive)
             if (strtolower(trim($asiento->estado)) !== 'borrador') {
@@ -349,7 +376,7 @@ class AsientoContableController extends Controller
             $asiento = AsientoContable::on('tenant')->findOrFail($id);
 
             // Solo permitir eliminación si está en borrador
-            if ($asiento->estado !== 'borrador') {
+            if (strtoupper($asiento->estado) !== 'BORRADOR') {
                 return [
                     'success' => false,
                     'message' => 'Solo se pueden eliminar asientos en estado borrador'
@@ -371,25 +398,32 @@ class AsientoContableController extends Controller
         }
     }
 
-    public function aprobar($id)
+    // Confirmar (aprobar) un asiento contable
+    public function confirmar($id)
     {
         try {
             $this->ensureTenantConnection();
 
             $asiento = AsientoContable::on('tenant')->findOrFail($id);
 
-            if ($asiento->estado !== 'borrador') {
+            if (strtoupper($asiento->estado) !== 'BORRADOR') {
                 return [
                     'success' => false,
                     'message' => 'Solo se pueden aprobar asientos en estado borrador'
                 ];
             }
 
-            $asiento->update([
-                'estado' => 'aprobado',
-                'fecha_aprobacion' => now(),
-                'usuario_aprobacion_id' => Auth::id(),
-            ]);
+            // Validar que esté balanceado antes de confirmar
+            $asiento->load('detalles.cuentaContable');
+            $asiento->calcularTotales();
+            if (!$asiento->estaBalanceado()) {
+                return [
+                    'success' => false,
+                    'message' => 'El asiento no está balanceado. La diferencia entre Débito y Crédito debe ser 0 para aprobar.'
+                ];
+            }
+            // Confirmar usando la lógica del modelo
+            $asiento->confirmar(Auth::id());
 
             return [
                 'success' => true,
@@ -400,6 +434,40 @@ class AsientoContableController extends Controller
             return [
                 'success' => false,
                 'message' => 'Error al aprobar el asiento contable: ' . $e->getMessage()
+            ];
+        }
+    }
+
+    // Anular asiento (cambiar estado), opcional: mantener para futuros flujos
+    public function anular($id)
+    {
+        try {
+            $this->ensureTenantConnection();
+
+            $asiento = AsientoContable::on('tenant')->findOrFail($id);
+
+            if (strtoupper($asiento->estado) !== 'CONFIRMADO') {
+                return [
+                    'success' => false,
+                    'message' => 'Solo se pueden anular asientos confirmados'
+                ];
+            }
+
+            $asiento->update([
+                'estado' => 'ANULADO',
+                'fecha_anulacion' => now(),
+                'usuario_anulacion' => Auth::id(),
+            ]);
+
+            return [
+                'success' => true,
+                'message' => 'Asiento contable anulado exitosamente'
+            ];
+
+        } catch (Exception $e) {
+            return [
+                'success' => false,
+                'message' => 'Error al anular el asiento contable: ' . $e->getMessage()
             ];
         }
     }
@@ -558,18 +626,18 @@ class AsientoContableController extends Controller
                 ], 404);
             }
 
-            // Obtener el próximo número (solo para mostrar, no reservar)
-            $ultimoNumero = AsientoContable::on('tenant')
-                ->where('tipo_comprobante_id', $tipoComprobanteId)
-                ->max('numero_comprobante');
-
-            $proximoNumero = $ultimoNumero ? $ultimoNumero + 1 : 1;
+            // El próximo consecutivo se basa en consecutivo_actual del tipo (sin reservar)
+            $proximoNumero = (int)($tipoComprobante->consecutivo_actual ?? 0) + 1;
+            $formateado = (string)($tipoComprobante->prefijo ?? '') . $proximoNumero;
 
             return response()->json([
                 'success' => true,
                 'data' => [
+                    // consecutivo numérico sin prefijo
                     'proximo_consecutivo' => $proximoNumero,
-                    'tipo_comprobante' => $tipoComprobante->descripcion
+                    // número completo con prefijo para mostrar en UI
+                    'numero_formateado' => $formateado,
+                    'tipo_comprobante' => $tipoComprobante->nombre ?? $tipoComprobante->descripcion ?? ''
                 ]
             ]);
 
@@ -654,5 +722,28 @@ class AsientoContableController extends Controller
             \Log::error('Error al descargar adjunto: ' . $e->getMessage());
             abort(404, 'Error al descargar el archivo');
         }
+    }
+
+    /**
+     * Imprimir reporte PDF del asiento contable
+     */
+    public function imprimir($id)
+    {
+        $this->ensureTenantConnection();
+
+        $asiento = AsientoContable::on('tenant')
+            ->withTrashed()
+            ->with(['detalles.cuentaContable', 'detalles.tercero', 'tipoComprobante'])
+            ->findOrFail($id);
+
+        $company = \App\Models\Tenant\Company::active();
+
+        $pdf = \PDF::loadView('tenant.asientos_contables.reporte_pdf', [
+            'company' => $company,
+            'asiento' => $asiento,
+        ])->setPaper('A4', 'portrait');
+
+        $filename = 'Asiento_' . ($asiento->numero_comprobante ?? ('ID' . $asiento->id)) . '.pdf';
+        return $pdf->stream($filename);
     }
 }
