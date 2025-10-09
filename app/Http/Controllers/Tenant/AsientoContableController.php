@@ -117,11 +117,14 @@ class AsientoContableController extends Controller
 
             DB::beginTransaction();
 
-            // Validar el tipo de comprobante
-            $tipoComprobante = TipoComprobanteContable::on('tenant')->findOrFail($request->tipo_comprobante_id);
+            // Validar el tipo de comprobante y bloquear la fila para manejo seguro del consecutivo
+            $tipoComprobante = TipoComprobanteContable::on('tenant')
+                ->lockForUpdate()
+                ->findOrFail($request->tipo_comprobante_id);
 
-            // Obtener el próximo consecutivo
-            $consecutivo = $this->obtenerProximoConsecutivo($tipoComprobante->id);
+            // Calcular el próximo consecutivo basado en el consecutivo_actual del tipo
+            $consecutivo = (int)($tipoComprobante->consecutivo_actual ?? 0) + 1;
+            $numeroComprobante = (string)($tipoComprobante->prefijo ?? '') . $consecutivo;
 
             // Calcular totales de débito y crédito
             $totalDebito = 0;
@@ -137,7 +140,9 @@ class AsientoContableController extends Controller
             $asiento = AsientoContable::on('tenant')->create([
                 'fecha_asiento' => $request->fecha_asiento,
                 'tipo_comprobante_id' => $request->tipo_comprobante_id,
-                'numero_comprobante' => $consecutivo,
+                // numero_comprobante debe incluir el prefijo del tipo (ej. CV1, AJ2, ...)
+                'numero_comprobante' => $numeroComprobante,
+                // mantener campo numerico sin prefijo en 'consecutivo'
                 'consecutivo' => $consecutivo,
                 'concepto' => $request->concepto,
                 'total_debito' => $totalDebito,
@@ -146,6 +151,10 @@ class AsientoContableController extends Controller
                 'usuario_creacion' => Auth::id(),
                 'fecha_creacion' => now(),
             ]);
+
+            // Actualizar el consecutivo_actual del tipo al último usado (sin prefijo)
+            $tipoComprobante->consecutivo_actual = $consecutivo;
+            $tipoComprobante->save();
 
             // Crear los detalles
             if ($request->has('detalles')) {
@@ -558,18 +567,18 @@ class AsientoContableController extends Controller
                 ], 404);
             }
 
-            // Obtener el próximo número (solo para mostrar, no reservar)
-            $ultimoNumero = AsientoContable::on('tenant')
-                ->where('tipo_comprobante_id', $tipoComprobanteId)
-                ->max('numero_comprobante');
-
-            $proximoNumero = $ultimoNumero ? $ultimoNumero + 1 : 1;
+            // El próximo consecutivo se basa en consecutivo_actual del tipo (sin reservar)
+            $proximoNumero = (int)($tipoComprobante->consecutivo_actual ?? 0) + 1;
+            $formateado = (string)($tipoComprobante->prefijo ?? '') . $proximoNumero;
 
             return response()->json([
                 'success' => true,
                 'data' => [
+                    // consecutivo numérico sin prefijo
                     'proximo_consecutivo' => $proximoNumero,
-                    'tipo_comprobante' => $tipoComprobante->descripcion
+                    // número completo con prefijo para mostrar en UI
+                    'numero_formateado' => $formateado,
+                    'tipo_comprobante' => $tipoComprobante->nombre ?? $tipoComprobante->descripcion ?? ''
                 ]
             ]);
 

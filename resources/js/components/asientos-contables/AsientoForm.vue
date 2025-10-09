@@ -20,7 +20,7 @@
                         </option>
                     </select>
                     <small v-if="proximoConsecutivo" class="form-text text-muted">
-                        Próximo consecutivo: <strong>#<span v-text="proximoConsecutivo"></span></strong>
+                        Próximo comprobante: <strong><span v-text="proximoNumeroFormateado"></span></strong>
                     </small>
                 </div>
 
@@ -330,6 +330,7 @@ export default {
             cuentasContables: [],
             terceros: [],
             proximoConsecutivo: null,
+            proximoNumeroPreview: null,
             saving: false,
             adjuntosFiles: [],
             adjuntosExistentes: []
@@ -350,6 +351,9 @@ export default {
         },
         isEditingMode() {
             return this.isEditing === true || this.isEditing === 'true' || this.isEditing === '1';
+        },
+        proximoNumeroFormateado() {
+            return this.proximoNumeroPreview || (this.proximoConsecutivo ? `#${this.proximoConsecutivo}` : '');
         },
         totalDebitos() {
             return this.form.detalles.reduce((sum, detalle) => {
@@ -958,6 +962,7 @@ export default {
                 });
                 if (response.data.success) {
                     this.proximoConsecutivo = response.data.data.proximo_consecutivo;
+                    this.proximoNumeroPreview = response.data.data.numero_formateado || null;
                 }
             } catch (error) {
                 // Error loading proximo consecutivo (log removido)

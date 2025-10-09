@@ -1,0 +1,12 @@
+[2025-10-09 08:50:42] local.INFO: Detalles recibidos en update [{"cuenta_contable_id":"459","tercero_id":"86","debe":"25000.00","haber":"0.00","concepto":"PRUEBA CONSECUTIVO Y PREFIJO","debito":"25000.00","credito":"0.00"},{"cuenta_contable_id":"530","debe":"0.00","haber":"20000.00","concepto":"PRUEBA CONSECUTIVO Y PREFIJO","debito":"0.00","credito":"20000.00"},{"cuenta_contable_id":"462","debe":"0.00","haber":"5000.00","concepto":"PRUEBA CONSECUTIVO Y PREFIJO","debito":"0.00","credito":"5000.00"}] 
+[2025-10-09 08:50:42] local.INFO: Detalle recibido RAW {"cuenta_contable_id":"459","tercero_id":"86","concepto":"PRUEBA CONSECUTIVO Y PREFIJO","debe_raw":"25000.00","haber_raw":"0.00","debito_raw":"25000.00","credito_raw":"0.00","orden":1} 
+[2025-10-09 08:50:42] local.INFO: Detalle a crear (procesado) {"asiento_contable_id":3,"cuenta_contable_id":459,"person_id":86,"concepto":"PRUEBA CONSECUTIVO Y PREFIJO","debito":25000,"credito":0,"orden":1} 
+[2025-10-09 08:50:42] local.INFO: Detalle creado exitosamente  
+[2025-10-09 08:50:42] local.INFO: Detalle recibido RAW {"cuenta_contable_id":"530","tercero_id":"NULL","concepto":"PRUEBA CONSECUTIVO Y PREFIJO","debe_raw":"0.00","haber_raw":"20000.00","debito_raw":"0.00","credito_raw":"20000.00","orden":2} 
+[2025-10-09 08:50:42] local.INFO: Detalle a crear (procesado) {"asiento_contable_id":3,"cuenta_contable_id":530,"person_id":null,"concepto":"PRUEBA CONSECUTIVO Y PREFIJO","debito":0,"credito":20000,"orden":2} 
+[2025-10-09 08:50:42] local.INFO: Detalle creado exitosamente  
+[2025-10-09 08:50:42] local.INFO: Detalle recibido RAW {"cuenta_contable_id":"462","tercero_id":"NULL","concepto":"PRUEBA CONSECUTIVO Y PREFIJO","debe_raw":"0.00","haber_raw":"5000.00","debito_raw":"0.00","credito_raw":"5000.00","orden":3} 
+[2025-10-09 08:50:42] local.INFO: Detalle a crear (procesado) {"asiento_contable_id":3,"cuenta_contable_id":462,"person_id":null,"concepto":"PRUEBA CONSECUTIVO Y PREFIJO","debito":0,"credito":5000,"orden":3} 
+[2025-10-09 08:50:42] local.INFO: Detalle creado exitosamente  
+[2025-10-09 08:50:42] local.INFO: Actualizando totales del asiento {"total_debito":25000,"total_credito":25000} 
+[2025-10-09 08:50:42] local.INFO: No se recibieron adjuntos en update  
