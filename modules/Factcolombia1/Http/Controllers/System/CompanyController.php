@@ -62,13 +62,24 @@ class CompanyController extends Controller
     use CompanyTrait;
 
     public function store(CompanyRequest $request) {
+        // Aumentar límites por operación pesada y capturar cualquier salida accidental
+        @set_time_limit(0);
+        ini_set('max_execution_time', '0');
+        if (ini_get('memory_limit') !== '-1') {
+            ini_set('memory_limit', '512M');
+        }
+        if (function_exists('ob_get_level') && ob_get_level() === 0) {
+            ob_start();
+        }
+
         $response = $this->createCompanyApiDian($request);
         if(!property_exists( $response, 'password' ) || !property_exists( $response, 'token' )){
-            return [
+            $payload = [
                 'message' => "Error al registrar Compañía en ApiDian",
                 'response' => $response,
                 'success' => false
             ];
+            return $this->safeJson($payload, 422);
         }
         $request->api_token = $response->token;
 
@@ -108,10 +119,10 @@ class CompanyController extends Controller
 
             DB::connection('system')->rollBack();
 
-            return [
+            return $this->safeJson([
                 'success' => false,
                 'message' => $e->getMessage()
-            ];
+            ], 500);
 
         }
 
@@ -139,10 +150,10 @@ class CompanyController extends Controller
                 try { DB::connection('system')->rollBack(); } catch (\Throwable $ignored) {}
             }
 
-            return [
+            return $this->safeJson([
                 'success' => false,
                 'message' => $e->getMessage()
-            ];
+            ], 500);
 
         }
 
@@ -154,11 +165,11 @@ class CompanyController extends Controller
 
         //dispatch((new ConfigureTenantJob)->onTenant($website->id)); ya no estara en cola
 
-        return [
+        return $this->safeJson([
             'message' => "Se registro con éxito la compañía {$company->name}.",
             'company' => $company,
             'success' => true
-        ];
+        ]);
 
     }
 
@@ -708,5 +719,32 @@ class CompanyController extends Controller
         ];
     }
 
+    /**
+     * Enviar JSON limpio sin mezclar con posibles salidas accidentales (echo/print) que puedan romper HTTP/2.
+     */
+    private function safeJson(array $payload, int $status = 200)
+    {
+        try {
+            if (function_exists('ob_get_length') && ob_get_length()) {
+                $out = ob_get_clean();
+                if (!empty($out)) {
+                    \Log::warning('Salida capturada durante creación de compañía (descartada)', [
+                        'len' => strlen($out),
+                        'preview' => mb_substr($out, 0, 500)
+                    ]);
+                }
+            } elseif (function_exists('ob_get_level') && ob_get_level() > 0) {
+                @ob_end_clean();
+            }
+        } catch (\Throwable $t) {
+            // Ignorar problemas al limpiar buffers
+        }
+
+        return response()->json($payload, $status, [
+            'Cache-Control' => 'no-cache, no-store, must-revalidate',
+            'Pragma' => 'no-cache',
+            'Expires' => '0',
+        ]);
+    }
 
 }
