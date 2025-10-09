@@ -701,8 +701,9 @@ export default {
               });
           } else {
             let obj = this.constructForm();
+            // Extender timeout para creación en producción (proxy puede cortar a 60s)
             axios
-              .post(this.route, obj)
+              .post(this.route, obj, { timeout: 300000 })
               .then(response => {
                 this.$setLaravelMessage(response.data);
 
@@ -715,10 +716,29 @@ export default {
                 }
               })
               .catch(error => {
-                this.$setLaravelValidationErrorsFromResponse(
-                  error.response.data
-                );
-                this.$setLaravelErrors(error.response.data);
+                try {
+                  // Manejo específico para 504/timeout: es posible que el backend siga procesando
+                  const status = error && error.response ? error.response.status : null;
+                  const message = (error && error.message) ? error.message : '';
+                  if (status === 504 || message.toLowerCase().includes('timeout')) {
+                    this.$message.warning('La solicitud tardó demasiado y fue cortada por el servidor. Verificaremos si la compañía se creó correctamente...');
+                    // Intentar refrescar el listado tras unos segundos
+                    setTimeout(() => {
+                      this.refresh();
+                      this.dialog = false;
+                      this.initForm();
+                    }, 3000);
+                    return;
+                  }
+                  if (error.response && error.response.data) {
+                    this.$setLaravelValidationErrorsFromResponse(error.response.data);
+                    this.$setLaravelErrors(error.response.data);
+                  } else {
+                    this.$message.error('Error al crear la compañía. Intenta nuevamente.');
+                  }
+                } catch (e) {
+                  this.$message.error('Error inesperado al procesar la respuesta.');
+                }
               })
               .then(() => {
                 this.loadDataTable = false;
