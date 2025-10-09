@@ -597,6 +597,7 @@ if ($hostname) {
                Route::get('asientos-contables', 'Tenant\AsientoContableController@index')->name('tenant.asientos_contables.index');
                Route::get('asientos-contables/{id}/edit', 'Tenant\AsientoContableController@edit')->name('tenant.asientos_contables.edit');
                Route::get('asientos-contables/{id}', 'Tenant\AsientoContableController@show')->name('tenant.asientos_contables.show');
+               Route::get('asientos-contables/{id}/imprimir', 'Tenant\AsientoContableController@imprimir')->name('tenant.asientos_contables.imprimir');
 
                // Asientos Contables - CRUD operations
                Route::post('asientos-contables', 'Tenant\AsientoContableController@store');

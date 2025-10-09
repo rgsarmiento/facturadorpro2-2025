@@ -67,6 +67,7 @@
                             <th>Concepto</th>
                             <th>Total</th>
                             <th>Estado</th>
+                            <th>Eliminado</th>
                             <th>Creado por</th>
                             <th width="120">Acciones</th>
                         </tr>
@@ -85,10 +86,14 @@
                             <td>{{ record.concepto }}</td>
                             <td class="text-right">${{ formatNumber(record.total_debito) }}</td>
                             <td>
-                                <span v-if="record.estado === 'BORRADOR'" class="badge badge-secondary">Borrador</span>
+                                <span v-if="record.estado === 'BORRADOR'" class="badge" style="background-color:#ffc107;color:#000">Borrador</span>
                                 <span v-else-if="record.estado === 'CONFIRMADO'" class="badge badge-success">Confirmado</span>
                                 <span v-else-if="record.estado === 'ANULADO'" class="badge badge-danger">Anulado</span>
                                 <span v-else class="badge badge-light">{{ record.estado }}</span>
+                            </td>
+                            <td>
+                                <span v-if="record.deleted_at" class="badge badge-danger">Eliminado</span>
+                                <span v-else class="badge badge-light">—</span>
                             </td>
                             <td>{{ record.usuario_creacion ? record.usuario_creacion.name : 'N/A' }}</td>
                             <td>
@@ -96,7 +101,13 @@
                                     <a :href="'/contabilidad/asientos-contables/' + record.id" class="btn btn-primary btn-sm" title="Ver">
                                         <i class="fa fa-eye"></i>
                                     </a>
-                                    <a :href="'/contabilidad/asientos-contables/' + record.id + '/edit'" class="btn btn-warning btn-sm" title="Editar">
+                                    <a :href="`/contabilidad/asientos-contables/${record.id}/imprimir`" target="_blank" class="btn btn-info btn-sm" title="Imprimir">
+                                        <i class="fa fa-print"></i>
+                                    </a>
+                                    <a :href="'/contabilidad/asientos-contables/' + record.id + '/edit'"
+                                       class="btn btn-warning btn-sm"
+                                       :class="{ disabled: (record.estado !== 'BORRADOR') || !!record.deleted_at }"
+                                       :title="(record.estado !== 'BORRADOR' || record.deleted_at) ? 'Edición no permitida' : 'Editar'">
                                         <i class="fa fa-edit"></i>
                                     </a>
                                 </div>
@@ -252,25 +263,25 @@ export default {
         visiblePages() {
             const current = this.pagination.current_page;
             const last = this.pagination.last_page;
-            
+
             if (last <= 1) return [1];
-            
+
             const delta = 2;
             const pages = new Set();
-            
+
             // Siempre mostrar la primera página
             pages.add(1);
-            
+
             // Añadir páginas alrededor de la actual
             for (let i = Math.max(1, current - delta); i <= Math.min(last, current + delta); i++) {
                 pages.add(i);
             }
-            
+
             // Siempre mostrar la última página
             if (last > 1) {
                 pages.add(last);
             }
-            
+
             return Array.from(pages).sort((a, b) => a - b);
         }
     }

@@ -204,6 +204,11 @@
                     <span class="estado-badge estado-{{ strtolower($asiento->estado) }}">
                         {{ ucfirst($asiento->estado) }}
                     </span>
+                    @if($asiento->trashed())
+                        <span class="estado-badge estado-anulado" title="Eliminado">
+                            Eliminado
+                        </span>
+                    @endif
                     <i class="fas fa-tools construction-icon" title="Módulo en construcción"></i>
                 </h3>
                 <div class="card-tools header-actions">
@@ -211,11 +216,16 @@
                         <i class="fas fa-arrow-left"></i> Volver
                     </a>
 
+                    <a href="{{ route('tenant.asientos_contables.imprimir', $asiento->id) }}" target="_blank" class="btn btn-sm btn-info" title="Imprimir">
+                        <i class="fas fa-print"></i> Imprimir
+                    </a>
+
                     <!-- Botones siempre visibles, disabled si no es BORRADOR -->
                     <!-- Debug: Estado actual del asiento: {{ $asiento->estado }} -->
+                    @php $noEditar = strtolower($asiento->estado) !== 'borrador' || $asiento->trashed(); @endphp
                     <a href="{{ route('tenant.asientos_contables.edit', $asiento->id) }}"
-                       class="btn btn-sm btn-primary {{ strtolower($asiento->estado) !== 'borrador' ? 'disabled' : '' }}"
-                       {{ strtolower($asiento->estado) !== 'borrador' ? 'aria-disabled=true tabindex=-1' : '' }}
+                       class="btn btn-sm btn-primary {{ $noEditar ? 'disabled' : '' }}"
+                       {{ $noEditar ? 'aria-disabled=true tabindex=-1' : '' }}
                        title="{{ strtolower($asiento->estado) !== 'borrador' ? 'Solo se puede editar en estado BORRADOR' : 'Editar asiento contable' }}">
                         <i class="fas fa-edit"></i> Editar
                     </a>
@@ -223,7 +233,7 @@
                     <button type="button"
                             id="btn-aprobar"
                             class="btn btn-sm btn-success"
-                            {{ strtolower($asiento->estado) !== 'borrador' ? 'disabled' : '' }}
+                            {{ (strtolower($asiento->estado) !== 'borrador' || $asiento->trashed()) ? 'disabled' : '' }}
                             title="{{ strtolower($asiento->estado) !== 'borrador' ? 'Solo se puede aprobar en estado BORRADOR' : 'Aprobar asiento contable' }}">
                         <i class="fas fa-check"></i> Aprobar
                     </button>
@@ -231,17 +241,12 @@
                     <button type="button"
                             id="btn-eliminar"
                             class="btn btn-sm btn-danger"
-                            {{ strtolower($asiento->estado) !== 'borrador' ? 'disabled' : '' }}
+                            {{ (strtolower($asiento->estado) !== 'borrador' || $asiento->trashed()) ? 'disabled' : '' }}
                             title="{{ strtolower($asiento->estado) !== 'borrador' ? 'Solo se puede eliminar en estado BORRADOR' : 'Eliminar asiento contable' }}">
                         <i class="fas fa-trash"></i> Eliminar
                     </button>
 
-                    <!-- Botón Anular solo visible para estados aprobado/confirmado -->
-                    @if(strtolower($asiento->estado) === 'confirmado' || strtolower($asiento->estado) === 'aprobado')
-                        <button type="button" id="btn-anular" class="btn btn-sm btn-warning">
-                            <i class="fas fa-times"></i> Anular
-                        </button>
-                    @endif
+                    <!-- Sin acciones adicionales tras aprobar: no se muestra botón Anular -->
                 </div>
             </div>
             <div class="card-body">
@@ -483,9 +488,48 @@
 @push('scripts')
 <script>
     document.addEventListener('DOMContentLoaded', function() {
-        console.log('DOM loaded, inicializando botones...');
+        // Utilidades: usar SweetAlert2 si está disponible, si no, fallback a confirm/alert
+        const hasSwal = typeof window.Swal !== 'undefined';
+        const ui = {
+            async confirm(options) {
+                if (hasSwal) {
+                    return await Swal.fire(Object.assign({
+                        showCancelButton: true
+                    }, options));
+                }
+                const title = options && options.title ? options.title : '¿Confirmar?';
+                const text = options && options.text ? `\n${options.text}` : '';
+                const ok = window.confirm(`${title}${text}`);
+                return { isConfirmed: ok };
+            },
+            async promptTextarea(options) {
+                if (hasSwal) {
+                    return await Swal.fire(Object.assign({
+                        input: 'textarea',
+                        showCancelButton: true
+                    }, options));
+                }
+                const title = options && options.inputLabel ? options.inputLabel : 'Ingrese texto';
+                const value = window.prompt(title, '');
+                return { value };
+            },
+            notifySuccess(title, text) {
+                if (hasSwal) {
+                    return Swal.fire({ title, text, icon: 'success', timer: 2000, showConfirmButton: false });
+                }
+                alert(`${title}: ${text}`);
+            },
+            notifyError(title, text) {
+                if (hasSwal) {
+                    return Swal.fire(title, text, 'error');
+                }
+                alert(`${title}: ${text}`);
+            }
+        };
+
+    console.log('DOM loaded, inicializando botones...');
         const btnAprobar = document.getElementById('btn-aprobar');
-        const btnAnular = document.getElementById('btn-anular');
+    // No hay botón Anular en esta vista
         const btnEliminar = document.getElementById('btn-eliminar');
 
         // Botones de test
@@ -510,82 +554,35 @@
                     return;
                 }
 
-                const result = await Swal.fire({
+                const result = await ui.confirm({
                     title: '¿Aprobar asiento?',
                     text: 'Una vez aprobado, el asiento no podrá modificarse',
                     icon: 'question',
-                    showCancelButton: true,
                     confirmButtonText: 'Sí, aprobar',
                     cancelButtonText: 'Cancelar'
                 });
 
                 if (result.isConfirmed) {
                     try {
-                        const response = await axios.post('{{ url("/") }}/contabilidad/asientos-contables/{{ $asiento->id }}/aprobar');
+                        const response = await axios.post('{{ url("/") }}/contabilidad/asientos-contables/{{ $asiento->id }}/confirmar');
 
                         if (response.data.success) {
-                            Swal.fire({
-                                title: 'Éxito',
-                                text: response.data.message,
-                                icon: 'success',
-                                timer: 2000,
-                                showConfirmButton: false
-                            }).then(() => {
+                            ui.notifySuccess('Éxito', response.data.message);
+                            setTimeout(() => {
                                 location.reload();
-                            });
+                            }, 500);
                         } else {
-                            Swal.fire('Error', response.data.message, 'error');
+                            ui.notifyError('Error', response.data.message || 'No se pudo aprobar');
                         }
                     } catch (error) {
                         console.error('Error:', error);
-                        Swal.fire('Error', 'Error al aprobar el asiento', 'error');
+                        ui.notifyError('Error', 'Error al aprobar el asiento');
                     }
                 }
             });
         }
 
-        if (btnAnular) {
-            btnAnular.addEventListener('click', async function() {
-                const { value: motivo } = await Swal.fire({
-                    title: 'Anular asiento',
-                    input: 'textarea',
-                    inputLabel: 'Motivo de anulación',
-                    inputPlaceholder: 'Ingrese el motivo de la anulación...',
-                    inputValidator: (value) => {
-                        if (!value) {
-                            return 'Debe ingresar un motivo de anulación';
-                        }
-                    },
-                    showCancelButton: true,
-                    confirmButtonText: 'Anular',
-                    cancelButtonText: 'Cancelar'
-                });
-
-                if (motivo) {
-                    try {
-                        const response = await axios.post('{{ url("/") }}/contabilidad/asientos-contables/{{ $asiento->id }}/anular', {
-                            motivo: motivo
-                        });
-
-                        if (response.data.success) {
-                            Swal.fire({
-                                title: 'Éxito',
-                                text: response.data.message,
-                                icon: 'success',
-                                timer: 2000,
-                                showConfirmButton: false
-                            }).then(() => {
-                                location.reload();
-                            });
-                        } else {
-                            Swal.fire('Error', response.data.message, 'error');
-                        }
-                    } catch (error) {
-                        Swal.fire('Error', 'Error al anular el asiento', 'error');
-                    }
-                }
-            });
-        }
+        // Sin manejadores de Anular
 
         if (btnEliminar) {
             btnEliminar.addEventListener('click', async function() {
@@ -594,14 +591,12 @@
                     return;
                 }
 
-                const result = await Swal.fire({
+                const result = await ui.confirm({
                     title: '¿Eliminar asiento?',
-                    text: 'Esta acción no se puede deshacer. El asiento será eliminado permanentemente.',
+                    text: 'El asiento será marcado como eliminado y seguirá visible en el listado.',
                     icon: 'warning',
-                    showCancelButton: true,
                     confirmButtonText: 'Sí, eliminar',
-                    cancelButtonText: 'Cancelar',
-                    confirmButtonColor: '#dc3545'
+                    cancelButtonText: 'Cancelar'
                 });
 
                 if (result.isConfirmed) {
@@ -609,20 +604,15 @@
                         const response = await axios.delete('{{ url("/") }}/contabilidad/asientos-contables/{{ $asiento->id }}');
 
                         if (response.data.success) {
-                            Swal.fire({
-                                title: 'Eliminado',
-                                text: 'El asiento ha sido eliminado exitosamente',
-                                icon: 'success',
-                                timer: 2000,
-                                showConfirmButton: false
-                            }).then(() => {
-                                window.location.href = '{{ route("tenant.asientos_contables.index") }}';
-                            });
+                            ui.notifySuccess('Eliminado', 'El asiento ha sido eliminado exitosamente');
+                            setTimeout(() => {
+                                window.location.href = '{{ route('tenant.asientos_contables.index') }}';
+                            }, 500);
                         } else {
-                            Swal.fire('Error', response.data.message, 'error');
+                            ui.notifyError('Error', response.data.message || 'No se pudo eliminar');
                         }
                     } catch (error) {
-                        Swal.fire('Error', 'Error al eliminar el asiento', 'error');
+                        ui.notifyError('Error', 'Error al eliminar el asiento');
                     }
                 }
             });
@@ -656,30 +646,31 @@
 
     // Función para previsualizar imágenes
     function previewImage(url, filename) {
-        Swal.fire({
-            title: filename,
-            imageUrl: url,
-            imageAlt: filename,
-            showConfirmButton: false,
-            showCloseButton: true,
-            width: '80%',
-            customClass: {
-                image: 'img-fluid'
-            }
-        });
+        if (typeof window.Swal !== 'undefined') {
+            Swal.fire({
+                title: filename,
+                imageUrl: url,
+                imageAlt: filename,
+                showConfirmButton: false,
+                showCloseButton: true,
+                width: '80%',
+                customClass: { image: 'img-fluid' }
+            });
+        } else {
+            window.open(url, '_blank');
+        }
     }
 
     // Función para eliminar adjuntos
     async function eliminarAdjunto(adjuntoId) {
-        const result = await Swal.fire({
+        const result = await (typeof window.Swal !== 'undefined' ? Swal.fire({
             title: '¿Eliminar archivo?',
             text: 'Esta acción no se puede deshacer',
             icon: 'warning',
             showCancelButton: true,
             confirmButtonText: 'Sí, eliminar',
-            cancelButtonText: 'Cancelar',
-            confirmButtonColor: '#dc3545'
-        });
+            cancelButtonText: 'Cancelar'
+        }) : Promise.resolve({ isConfirmed: window.confirm('¿Eliminar archivo?') }));
 
         if (result.isConfirmed) {
             try {
@@ -705,18 +696,24 @@
                         location.reload(); // Recargar para mostrar el mensaje de "no hay adjuntos"
                     }
 
-                    Swal.fire({
-                        title: 'Eliminado',
-                        text: 'El archivo ha sido eliminado exitosamente',
-                        icon: 'success',
-                        timer: 2000,
-                        showConfirmButton: false
-                    });
+                    if (typeof window.Swal !== 'undefined') {
+                        Swal.fire({ title: 'Eliminado', text: 'El archivo ha sido eliminado exitosamente', icon: 'success', timer: 2000, showConfirmButton: false });
+                    } else {
+                        alert('El archivo ha sido eliminado exitosamente');
+                    }
                 } else {
-                    Swal.fire('Error', response.data.message, 'error');
+                    if (typeof window.Swal !== 'undefined') {
+                        Swal.fire('Error', response.data.message, 'error');
+                    } else {
+                        alert('Error: ' + (response.data.message || 'No se pudo eliminar'));
+                    }
                 }
             } catch (error) {
-                Swal.fire('Error', 'Error al eliminar el archivo', 'error');
+                if (typeof window.Swal !== 'undefined') {
+                    Swal.fire('Error', 'Error al eliminar el archivo', 'error');
+                } else {
+                    alert('Error al eliminar el archivo');
+                }
             }
         }
     }
