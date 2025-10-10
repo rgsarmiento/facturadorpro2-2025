@@ -14,6 +14,7 @@
                     <button
                         type="button"
                         class="btn btn-primary btn-modern"
+                        :disabled="!!creatingTask"
                         @click.prevent="clickCreate()">
                         <i class="fas fa-plus mr-2"></i>
                         Nueva Compañía
@@ -21,10 +22,28 @@
                     <button
                         type="button"
                         class="btn btn-success btn-modern ml-2"
+                        :disabled="!!creatingTask"
                         @click.prevent="goToSystemBackup()">
                         <i class="fas fa-database mr-2"></i>
                         Backup del Sistema
                     </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Indicator for background creation -->
+        <div v-if="creatingTask" class="alert alert-info d-flex align-items-center mb-3" role="alert">
+            <i class="fas fa-spinner fa-spin mr-2"></i>
+            <div>
+                <div>
+                    Creación de compañía en curso…
+                    <small v-if="creatingTaskSubdomain"> Subdominio: {{ creatingTaskSubdomain }}</small>
+                </div>
+                <div v-if="creatingTaskMessage || creatingTaskProgress !== null">
+                    <small>
+                        <template v-if="creatingTaskProgress !== null">Progreso: {{ creatingTaskProgress }}% · </template>
+                        <span>{{ creatingTaskMessage }}</span>
+                    </small>
                 </div>
             </div>
         </div>
@@ -144,6 +163,7 @@
                                         <button
                                             type="button"
                                             class="btn btn-sm btn-outline-success mr-1"
+                                            :disabled="!!creatingTask"
                                             @click.prevent="switchToTenant(row.id)"
                                             title="Acceder">
                                             <i class="fas fa-sign-in-alt"></i>
@@ -151,6 +171,7 @@
                                         <button
                                             type="button"
                                             class="btn btn-sm btn-outline-primary mr-1"
+                                            :disabled="!!creatingTask"
                                             @click.prevent="clickEdit(row.id)"
                                             v-if="currentUserId === 1 || currentUserId === 2"
                                             title="Editar">
@@ -159,6 +180,7 @@
                                         <button
                                             type="button"
                                             class="btn btn-sm btn-outline-danger"
+                                            :disabled="!!creatingTask"
                                             @click.prevent="clickDelete(row.id)"
                                             v-if="currentUserId === 1"
                                             title="Eliminar">
@@ -182,6 +204,7 @@
                             <td class="td-modern text-center" v-if="currentUserId === 1 || currentUserId === 2">
                                 <el-switch
                                     :value="!!row.locked_user"
+                                    :disabled="!!creatingTask"
                                     @change="(val) => { row.locked_user = val; changeLockedUser(row); }"
                                     active-color="#ff4949"
                                     inactive-color="#dcdfe6">
@@ -192,6 +215,7 @@
                                 <template v-if="!row.locked">
                                     <el-switch
                                         :value="!!row.locked"
+                                        :disabled="!!creatingTask"
                                         @change="(val) => { row.locked = val; changeLockedTenant(row); }"
                                         active-color="#ff4949"
                                         inactive-color="#dcdfe6">
@@ -202,6 +226,7 @@
                             <td class="td-modern text-center" v-if="currentUserId === 1 || currentUserId === 2">
                                 <el-switch
                                     :value="!!row.locked_emission"
+                                    :disabled="!!creatingTask"
                                     @change="(val) => { row.locked_emission = val; changeLockedEmission(row); }"
                                     active-color="#ff4949"
                                     inactive-color="#dcdfe6">
@@ -212,6 +237,7 @@
                                 <template v-if="!row.locked">
                                     <el-switch
                                         :value="!!row.allow_seller_login"
+                                        :disabled="!!creatingTask"
                                         @change="(val) => { row.allow_seller_login = val; changeAllowSellerLoginTenant(row); }"
                                         active-color="#13ce66"
                                         inactive-color="#dcdfe6">
@@ -225,6 +251,7 @@
                                 </template>
                                 <template v-else>
                                     <el-date-picker
+                                        :disabled="!!creatingTask"
                                         @change="setStartBillingCycle($event, row.id)"
                                         v-model="row.select_date_billing"
                                         value-format="yyyy-MM-dd"
@@ -243,6 +270,7 @@
                                         <button
                                             type="button"
                                             class="btn btn-sm btn-outline-warning mr-1"
+                                            :disabled="!!creatingTask"
                                             @click.prevent="clickPayments(row.id)"
                                             title="Pagos">
                                             <i class="fas fa-credit-card"></i>
@@ -250,6 +278,7 @@
                                         <button
                                             type="button"
                                             class="btn btn-sm btn-outline-info"
+                                            :disabled="!!creatingTask"
                                             @click.prevent="clickAccountStatus(row.id)"
                                             title="Estado cuenta">
                                             <i class="fas fa-chart-line"></i>
@@ -297,11 +326,16 @@ export default {
             recordId: null,
             records: [],
             users: [],
+            servicecompany: [],
             allcompany:[],
             text_limit_doc: null,
             text_limit_users: null,
             loaded: false,
             year: moment().format("YYYY"),
+            creatingTask: null,
+            creatingTaskSubdomain: '',
+            creatingTaskMessage: '',
+            creatingTaskProgress: null,
             total_documents: 0,
             dataChartLine: {
                 labels: null,
@@ -331,6 +365,13 @@ export default {
         this.$eventHub.$on("reloadData", () => {
             this.getData();
         });
+        this.$eventHub.$on('companyCreationStarted', ({ id, subdomain }) => {
+            this.creatingTask = id;
+            this.creatingTaskSubdomain = subdomain || '';
+            this.creatingTaskMessage = 'Inicializando tarea…';
+            this.creatingTaskProgress = 0;
+            this.pollCreationStatus(id);
+        });
         this.getUsers();
         this.getServiceCompany();
         this.text_limit_doc = "El límite de comprobantes fue superado";
@@ -347,6 +388,94 @@ export default {
 //    },
 
     methods: {
+        pollCreationStatus(id) {
+            const pollMs = 2000;
+            const stopAfterMs = 15 * 60 * 1000;
+            const started = Date.now();
+            const tick = async () => {
+                try {
+                    const { data } = await this.$http.get(`/${this.resource}/status/${id}`, { timeout: 10000 });
+                    const task = (data && data.task) ? data.task : null;
+                    if (!task) {
+                        if (Date.now() - started < stopAfterMs) return setTimeout(tick, pollMs);
+                        this.$message.warning('No se pudo obtener el progreso de la tarea');
+                        this.creatingTask = null;
+                        this.creatingTaskSubdomain = '';
+                        this.creatingTaskMessage = '';
+                        this.creatingTaskProgress = null;
+                        return;
+                    }
+                    // Actualizar progreso/mensaje si está en ejecución
+                    if (task.status === 'running' || task.status === 'queued' || !task.status) {
+                        this.creatingTaskMessage = task.message || this.creatingTaskMessage || 'Procesando…';
+                        this.creatingTaskProgress = (typeof task.progress === 'number') ? task.progress : this.creatingTaskProgress;
+                    }
+                    if (task.status === 'completed') {
+                        this.$message.success(task.message || 'Compañía creada correctamente');
+                        this.creatingTask = null;
+                        this.creatingTaskSubdomain = '';
+                        this.creatingTaskMessage = '';
+                        this.creatingTaskProgress = null;
+                        this.getData();
+                        return;
+                    }
+                    if (task.status === 'failed') {
+                        let msg = task.message || 'Falló la creación';
+                        if (task.result && task.result.response) {
+                            const r = task.result.response;
+                            const http = r._http_code ? ` (HTTP ${r._http_code})` : '';
+                            const apiMsg = r.message ? `: ${r.message}` : '';
+                            msg = `ApiDIAN${http}${apiMsg}`;
+                            if (r.errors && typeof r.errors === 'object') {
+                                const firstKey = Object.keys(r.errors)[0];
+                                const firstVal = r.errors[firstKey];
+                                const detail = Array.isArray(firstVal) ? firstVal[0] : String(firstVal);
+                                msg += ` - ${firstKey}: ${detail}`;
+                            }
+                        }
+                        this.$message.error(msg);
+                        this.creatingTask = null;
+                        this.creatingTaskSubdomain = '';
+                        this.creatingTaskMessage = '';
+                        this.creatingTaskProgress = null;
+                        return;
+                    }
+                    if (Date.now() - started < stopAfterMs) setTimeout(tick, pollMs);
+                    else {
+                        try {
+                            const sub = this.creatingTaskSubdomain || '';
+                            if (sub) {
+                                const check = await this.$http.get(`/${this.resource}/exists/by-subdomain`, { params: { value: sub }, timeout: 8000 });
+                                if (check && check.data && check.data.success && check.data.exists) {
+                                    this.$message.success('Creación completada (detectada por verificación rápida).');
+                                    this.creatingTask = null;
+                                    this.creatingTaskSubdomain = '';
+                                    this.creatingTaskMessage = '';
+                                    this.creatingTaskProgress = null;
+                                    this.getData();
+                                    return;
+                                }
+                            }
+                        } catch (ignored) {}
+                        this.$message.warning('Tiempo de espera agotado. Verifique el listado en unos minutos');
+                        this.creatingTask = null;
+                        this.creatingTaskSubdomain = '';
+                        this.creatingTaskMessage = '';
+                        this.creatingTaskProgress = null;
+                    }
+                } catch (e) {
+                    if (Date.now() - started < stopAfterMs) setTimeout(tick, pollMs);
+                    else {
+                        this.$message.warning('No fue posible continuar el seguimiento del progreso');
+                        this.creatingTask = null;
+                        this.creatingTaskSubdomain = '';
+                        this.creatingTaskMessage = '';
+                        this.creatingTaskProgress = null;
+                    }
+                }
+            };
+            setTimeout(tick, pollMs);
+        },
         // Convertir valores a booleanos para los switches
         convertToBoolean(value) {
             if (typeof value === 'boolean') return value;

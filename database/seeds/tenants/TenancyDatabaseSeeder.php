@@ -68,6 +68,13 @@ class TenancyDatabaseSeeder extends Seeder
         ]);
 
         // Ejecutar primero el seeder de tipos de comprobantes contables para garantizar que la tabla base se pueble
+        // Defensa: cargar manualmente el archivo si Composer aún no refrescó el autoload
+        if (!class_exists('TipoComprobantesContablesSeeder')) {
+            $seedFile = base_path('database/seeds/tenants/TipoComprobantesContablesSeeder.php');
+            if (file_exists($seedFile)) {
+                require_once $seedFile;
+            }
+        }
         $this->call([TipoComprobantesContablesSeeder::class]);
 
         // Ejecutar el resto, pero no impedir que la siembra principal continue si falla

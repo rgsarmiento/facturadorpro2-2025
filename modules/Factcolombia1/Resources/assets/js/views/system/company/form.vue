@@ -608,55 +608,179 @@
 
             },
             async submit() {
-                if(!this.form.is_update){
-                    const has_modules = await this.hasModules()
-                    if(!has_modules) return this.$message.error('Debe seleccionar al menos un módulo')
+                if (!this.form.is_update) {
+                    const has_modules = await this.hasModules();
+                    if (!has_modules) return this.$message.error('Debe seleccionar al menos un módulo');
                 }
 
-                this.button_text = this.form.is_update ? 'Actualizando compañia...' : 'Creando base de datos...'
-                this.loading_submit = true
+                this.button_text = this.form.is_update ? 'Actualizando compañia...' : 'Creando compañía (asíncrono)...';
+                this.loading_submit = true;
 
-                // Asegurar ruta absoluta (antes faltaba el prefijo / y la petición terminaba en /co-companies/co-companies)
-                const endpoint = `/${this.resource}${(this.form.is_update ? '/update' : '')}`
-                try {
-                    const { data } = await this.$http.post(endpoint, this.form)
-                    if (data && data.success) {
-                        // Cerrar modal primero para mejor UX
-                        this.dialogVisible = false
-                        this.$nextTick(() => {
-                            this.$message.success(data.message || 'Compañía creada correctamente')
-                        })
-                        // Recargar listado (reactivo)
-                        this.$eventHub.$emit('reloadData')
-                        // Reiniciar formulario (por si se vuelve a abrir)
-                        this.initForm()
-                    } else {
-                        if (process && process.env && process.env.NODE_ENV !== 'production') {
-                            // Respuesta sin success esperado (log de depuración removido)
+                if (this.form.is_update) {
+                    // Actualización síncrona
+                    try {
+                        const { data } = await this.$http.post(`/${this.resource}/update`, this.form);
+                        if (data && data.success) {
+                            this.dialogVisible = false;
+                            this.$nextTick(() => this.$message.success(data.message || 'Compañía actualizada'));
+                            this.$eventHub.$emit('reloadData');
+                            this.initForm();
+                        } else {
+                            this.$message.error((data && data.message) || 'No se pudo actualizar');
                         }
-                        this.$message.error((data && data.message) || 'Ocurrió un problema al procesar la solicitud')
+                    } catch (error) {
+                        if (error && error.response) {
+                            const status = error.response.status;
+                            if (status === 422) this.errors = error.response.data.errors || error.response.data;
+                            else this.$message.error((error.response.data && error.response.data.message) || `Error (${status}) al actualizar`);
+                        } else if (error && error.request) {
+                            this.$message.error('No se recibió respuesta del servidor. Verifique su conexión.');
+                        } else {
+                            this.$message.error('Error inesperado al enviar el formulario');
+                        }
+                    } finally {
+                        this.loading_submit = false;
+                    }
+                    return;
+                }
+
+                // Creación asíncrona: iniciar y luego hacer seguimiento desde el index
+                // Normalizar y validar datos antes de enviar
+                const clientTaskId = this.uuidv4();
+                const payload = Object.assign({}, this.form, { client_task_id: clientTaskId });
+                // Normalizaciones no destructivas
+                if (payload.subdomain != null) payload.subdomain = String(payload.subdomain).trim().toLowerCase();
+                if (payload.phone != null) payload.phone = String(payload.phone).replace(/\s+/g, '');
+                if (payload.name != null) payload.name = String(payload.name).trim();
+                // Guardas rápidas del lado cliente para mejor UX
+                if (payload.subdomain && payload.subdomain.length > 10) {
+                    this.errors = Object.assign({}, this.errors, { subdomain: ['subdominio no debe ser mayor que 10 caracteres.'] });
+                    this.$message.error('El subdominio no debe superar 10 caracteres');
+                    this.loading_submit = false;
+                    return;
+                }
+                try {
+                    const res = await this.$http.post(`/${this.resource}/start`, payload, { timeout: 15000 });
+                    const data = res && res.data ? res.data : null;
+                    if (data && data.success && data.id) {
+                        // Notificar y cerrar modal de inmediato; el index manejará el seguimiento
+                        this.$message.info('Creación en curso…');
+                        this.$eventHub.$emit('companyCreationStarted', { id: data.id, subdomain: this.form.subdomain });
+                        this.loading_submit = false;
+                        this.dialogVisible = false;
+                        this.initForm();
+                    } else {
+                        // Mensaje significativo si el backend retornara estructura diferente
+                        const meaningful = (data && (data.message || (data.errors && Object.values(data.errors)[0] && Object.values(data.errors)[0][0])));
+                        if (data && data.errors) this.errors = data.errors;
+                        this.$message.error(meaningful || 'No se pudo iniciar el proceso');
+                        this.loading_submit = false;
                     }
                 } catch (error) {
-                    // Evitar TypeError: no asumir que error.response existe
                     if (error && error.response) {
-                        const status = error.response.status
+                        // Mostrar errores de validación (422) con detalle y pintar debajo de los campos
+                        const status = error.response.status;
                         if (status === 422) {
-                            // Compatibilidad: algunos controladores devuelven {errors: {...}}
-                            this.errors = error.response.data.errors || error.response.data
-                        } else if (status === 500) {
-                            this.$message.error(error.response.data.message || 'Error interno del servidor')
+                            const resp = error.response.data || {};
+                            const errs = resp.errors || resp; // algunos backends responden directamente el mapa de errores
+                            if (errs && typeof errs === 'object') {
+                                this.errors = errs;
+                                // Tomar el primer mensaje para el toast corto
+                                const firstKey = Object.keys(errs)[0];
+                                const firstVal = errs[firstKey];
+                                const detail = Array.isArray(firstVal) ? firstVal[0] : String(firstVal);
+                                this.$message.error(`${firstKey}: ${detail}`);
+                            } else {
+                                this.$message.error(resp.message || 'Datos inválidos');
+                            }
                         } else {
-                            this.$message.error(error.response.data && error.response.data.message ? error.response.data.message : `Error (${status}) al procesar la solicitud`)
+                            this.$message.error((error.response.data && error.response.data.message) || `Error (${status}) al iniciar el proceso`);
                         }
                     } else if (error && error.request) {
-                        this.$message.error('No se recibió respuesta del servidor. Verifique su conexión.')
+                        // El navegador no entregó la respuesta al cliente, pero probablemente el servidor sí recibió y encoló.
+                        // Intentamos continuar con el seguimiento usando el client_task_id generado.
+                        this.$message.info('Creación en curso… (respuesta no capturada)');
+                        this.loading_submit = false;
+                        // Delegar seguimiento al index con el id de cliente
+                        this.$eventHub.$emit('companyCreationStarted', { id: clientTaskId, subdomain: this.form.subdomain });
+                        this.dialogVisible = false;
+                        this.initForm();
+                        return;
                     } else {
-                        this.$message.error('Error inesperado al enviar el formulario')
+                        this.$message.error('Error inesperado al iniciar');
                     }
-                    // Error en submit (log de depuración removido)
-                } finally {
-                    this.loading_submit = false
+                    this.loading_submit = false;
                 }
+            },
+            uuidv4() {
+                // Suficiente para id de correlación de cliente
+                return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+                    const r = Math.random() * 16 | 0, v = c === 'x' ? r : (r & 0x3 | 0x8);
+                    return v.toString(16);
+                });
+            },
+            pollCreationStatus(id) {
+                const pollMs = 2000;
+                const stopAfterMs = 15 * 60 * 1000; // 15 min
+                const started = Date.now();
+                const tick = async () => {
+                    try {
+                        const { data } = await this.$http.get(`/${this.resource}/status/${id}`, { timeout: 10000 });
+                        const task = (data && data.task) ? data.task : null;
+                        if (!task) {
+                            if (Date.now() - started < stopAfterMs) return setTimeout(tick, pollMs);
+                            this.$message.warning('No se pudo obtener el progreso de la tarea');
+                            return;
+                        }
+                        if (task.status === 'completed') {
+                            this.$message.success(task.message || 'Compañía creada correctamente');
+                            this.dialogVisible = false;
+                            this.$eventHub.$emit('reloadData');
+                            this.initForm();
+                            return;
+                        }
+                        if (task.status === 'failed') {
+                            let msg = task.message || 'Falló la creación';
+                            if (task.result && task.result.response) {
+                                const r = task.result.response;
+                                const http = r._http_code ? ` (HTTP ${r._http_code})` : '';
+                                const apiMsg = r.message ? `: ${r.message}` : '';
+                                msg = `ApiDIAN${http}${apiMsg}`;
+                                // Mostrar errores de validación si existen
+                                if (r.errors && typeof r.errors === 'object') {
+                                    const firstKey = Object.keys(r.errors)[0];
+                                    const firstVal = r.errors[firstKey];
+                                    const detail = Array.isArray(firstVal) ? firstVal[0] : String(firstVal);
+                                    msg += ` - ${firstKey}: ${detail}`;
+                                }
+                            }
+                            this.$message.error(msg);
+                            return;
+                        }
+                        if (Date.now() - started < stopAfterMs) setTimeout(tick, pollMs);
+                        else {
+                            // Timeout: verificación rápida por subdominio
+                            try {
+                                const sub = (this.form && this.form.subdomain) ? this.form.subdomain : '';
+                                if (sub) {
+                                    const check = await this.$http.get(`/${this.resource}/exists/by-subdomain`, { params: { value: sub }, timeout: 8000 });
+                                    if (check && check.data && check.data.success && check.data.exists) {
+                                        this.$message.success('Creación completada (detectada por verificación rápida).');
+                                        this.dialogVisible = false;
+                                        this.$eventHub.$emit('reloadData');
+                                        this.initForm();
+                                        return;
+                                    }
+                                }
+                            } catch (ignored) {}
+                            this.$message.warning('Tiempo de espera agotado. Verifique el listado en unos minutos');
+                        }
+                    } catch (e) {
+                        if (Date.now() - started < stopAfterMs) setTimeout(tick, pollMs);
+                        else this.$message.warning('No fue posible continuar el seguimiento del progreso');
+                    }
+                };
+                setTimeout(tick, pollMs);
             },
             close() {
                 this.$emit('update:showDialog', false)

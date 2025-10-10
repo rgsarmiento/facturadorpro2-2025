@@ -55,6 +55,8 @@ use Modules\Factcolombia1\Http\Resources\System\{
     CompanyCollection,
     CompanyResource
 };
+use Modules\Factcolombia1\Jobs\System\CreateTenantJob;
+use Illuminate\Support\Str;
 
 
 class CompanyController extends Controller
@@ -74,6 +76,17 @@ class CompanyController extends Controller
 
         $response = $this->createCompanyApiDian($request);
         if(!property_exists( $response, 'password' ) || !property_exists( $response, 'token' )){
+            // Log detallado para facilitar depuración cuando la API rechaza la creación
+            try {
+                \Log::warning('ApiDIAN: fallo al registrar compañía', [
+                    'identification_number' => $request->identification_number,
+                    'subdomain' => $request->subdomain,
+                    'http_code' => is_object($response) && property_exists($response, '_http_code') ? $response->_http_code : null,
+                    'api_message' => is_object($response) && property_exists($response, 'message') ? $response->message : null,
+                    'errors' => is_object($response) && property_exists($response, 'errors') ? $response->errors : null,
+                    'raw' => is_object($response) && property_exists($response, '_raw') ? mb_substr($response->_raw, 0, 500) : null,
+                ]);
+            } catch (\Throwable $t) {}
             $payload = [
                 'message' => "Error al registrar Compañía en ApiDian",
                 'response' => $response,
@@ -745,6 +758,110 @@ class CompanyController extends Controller
             'Pragma' => 'no-cache',
             'Expires' => '0',
         ]);
+    }
+
+    /**
+     * Start async company creation. Returns 202 + job (task) id immediately.
+     */
+    public function start(Request $request)
+    {
+        // Validate using existing CompanyRequest rules
+    /** @var CompanyRequest $validator */
+    $validator = app(CompanyRequest::class);
+    $rules = $validator->rules();
+    // Validar para responder 422 si corresponde, pero no descartar campos no listados en rules
+    $this->validate($request, $rules);
+    $data = $request->all();
+
+        // Use client-provided task id when available to allow polling after local timeouts
+        $taskId = $request->input('client_task_id');
+        if (!is_string($taskId) || !preg_match('/^[0-9a-fA-F-]{36}$/', $taskId)) {
+            $taskId = (string) Str::uuid();
+        }
+
+        // Initialize task status file
+        $this->writeTaskStatus($taskId, [
+            'id' => $taskId,
+            'status' => 'queued',
+            'message' => 'Tarea en cola',
+            'progress' => 0,
+            'result' => null,
+            'queued_at' => date('c'),
+        ]);
+
+        // Dispatch job after the HTTP response has been sent (Laravel 5.7 compatible)
+        // Using the application's terminating callback ensures the response is flushed first,
+        // then the job runs (even with sync driver) to avoid request timeouts.
+        app()->terminating(function () use ($data, $taskId) {
+            dispatch(new CreateTenantJob($data, $taskId));
+        });
+
+        return $this->safeJson([
+            'success' => true,
+            'id' => $taskId,
+            'message' => 'Creación encolada'
+        ], 202);
+    }
+
+    /**
+     * Get async job status by id.
+     */
+    public function status(string $id)
+    {
+        $task = $this->readTaskStatus($id);
+        if (!$task) {
+            return $this->safeJson([
+                'success' => false,
+                'message' => 'Tarea no encontrada',
+            ], 404);
+        }
+        return $this->safeJson([
+            'success' => true,
+            'task' => $task,
+        ]);
+    }
+
+    /**
+     * Quick existence check by subdomain.
+     */
+    public function existsBySubdomain(Request $request)
+    {
+        $value = strtolower((string) $request->query('value', ''));
+        if ($value === '') {
+            return $this->safeJson([
+                'success' => false,
+                'message' => 'Parámetro value requerido'
+            ], 422);
+        }
+        $company = Company::where('subdomain', $value)->first();
+        return $this->safeJson([
+            'success' => true,
+            'exists' => !!$company,
+            'id' => $company->id ?? null,
+        ]);
+    }
+
+    private function taskDir(): string
+    {
+        return storage_path('app/tenant_creation_tasks');
+    }
+
+    private function writeTaskStatus(string $id, array $status): void
+    {
+        $dir = $this->taskDir();
+        if (!is_dir($dir)) @mkdir($dir, 0755, true);
+        $file = $dir . '/' . $id . '.json';
+        @file_put_contents($file, json_encode($status, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT));
+    }
+
+    private function readTaskStatus(string $id): ?array
+    {
+        $file = $this->taskDir() . '/' . $id . '.json';
+        if (!file_exists($file)) return null;
+        $content = @file_get_contents($file);
+        if ($content === false) return null;
+        $data = json_decode($content, true);
+        return is_array($data) ? $data : null;
     }
 
 }
