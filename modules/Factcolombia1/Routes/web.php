@@ -159,6 +159,11 @@ if($current_hostname) {
                 Route::get('record/{id}', 'System\CompanyController@record');
                 Route::post('update-user', 'System\CompanyController@updateUser');
                 Route::delete('{company}', 'System\CompanyController@destroy');
+                // Async creation
+                Route::post('start', 'System\CompanyController@start');
+                Route::get('status/{id}', 'System\CompanyController@status');
+                // Fast existence check after timeouts
+                Route::get('exists/by-subdomain', 'System\CompanyController@existsBySubdomain');
                 // Route::post('locked_emission', 'System\CompanyController@lockedEmission');
                 Route::post('locked_tenant', 'System\CompanyController@lockedTenant');
                 Route::post('change_allow_seller_login', 'System\CompanyController@changeAllowSellerLogin');

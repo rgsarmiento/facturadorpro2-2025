@@ -29,6 +29,15 @@
             </div>
         </div>
 
+        <!-- Indicator for background creation -->
+        <div v-if="creatingTask" class="alert alert-info d-flex align-items-center mb-3" role="alert">
+            <i class="fas fa-spinner fa-spin mr-2"></i>
+            <div>
+                Creación de compañía en curso…
+                <small v-if="creatingTaskSubdomain"> Subdominio: {{ creatingTaskSubdomain }}</small>
+            </div>
+        </div>
+
         <!-- Stats Cards Row (sin el de Documentos Totales) -->
         <div class="stats-grid">
             <div class="stat-card">
@@ -302,6 +311,8 @@ export default {
             text_limit_users: null,
             loaded: false,
             year: moment().format("YYYY"),
+            creatingTask: null,
+            creatingTaskSubdomain: '',
             total_documents: 0,
             dataChartLine: {
                 labels: null,
@@ -331,6 +342,11 @@ export default {
         this.$eventHub.$on("reloadData", () => {
             this.getData();
         });
+        this.$eventHub.$on('companyCreationStarted', ({ id, subdomain }) => {
+            this.creatingTask = id;
+            this.creatingTaskSubdomain = subdomain || '';
+            this.pollCreationStatus(id);
+        });
         this.getUsers();
         this.getServiceCompany();
         this.text_limit_doc = "El límite de comprobantes fue superado";
@@ -347,6 +363,77 @@ export default {
 //    },
 
     methods: {
+        pollCreationStatus(id) {
+            const pollMs = 2000;
+            const stopAfterMs = 15 * 60 * 1000;
+            const started = Date.now();
+            const tick = async () => {
+                try {
+                    const { data } = await this.$http.get(`/${this.resource}/status/${id}`, { timeout: 10000 });
+                    const task = (data && data.task) ? data.task : null;
+                    if (!task) {
+                        if (Date.now() - started < stopAfterMs) return setTimeout(tick, pollMs);
+                        this.$message.warning('No se pudo obtener el progreso de la tarea');
+                        this.creatingTask = null;
+                        this.creatingTaskSubdomain = '';
+                        return;
+                    }
+                    if (task.status === 'completed') {
+                        this.$message.success(task.message || 'Compañía creada correctamente');
+                        this.creatingTask = null;
+                        this.creatingTaskSubdomain = '';
+                        this.getData();
+                        return;
+                    }
+                    if (task.status === 'failed') {
+                        let msg = task.message || 'Falló la creación';
+                        if (task.result && task.result.response) {
+                            const r = task.result.response;
+                            const http = r._http_code ? ` (HTTP ${r._http_code})` : '';
+                            const apiMsg = r.message ? `: ${r.message}` : '';
+                            msg = `ApiDIAN${http}${apiMsg}`;
+                            if (r.errors && typeof r.errors === 'object') {
+                                const firstKey = Object.keys(r.errors)[0];
+                                const firstVal = r.errors[firstKey];
+                                const detail = Array.isArray(firstVal) ? firstVal[0] : String(firstVal);
+                                msg += ` - ${firstKey}: ${detail}`;
+                            }
+                        }
+                        this.$message.error(msg);
+                        this.creatingTask = null;
+                        this.creatingTaskSubdomain = '';
+                        return;
+                    }
+                    if (Date.now() - started < stopAfterMs) setTimeout(tick, pollMs);
+                    else {
+                        try {
+                            const sub = this.creatingTaskSubdomain || '';
+                            if (sub) {
+                                const check = await this.$http.get(`/${this.resource}/exists/by-subdomain`, { params: { value: sub }, timeout: 8000 });
+                                if (check && check.data && check.data.success && check.data.exists) {
+                                    this.$message.success('Creación completada (detectada por verificación rápida).');
+                                    this.creatingTask = null;
+                                    this.creatingTaskSubdomain = '';
+                                    this.getData();
+                                    return;
+                                }
+                            }
+                        } catch (ignored) {}
+                        this.$message.warning('Tiempo de espera agotado. Verifique el listado en unos minutos');
+                        this.creatingTask = null;
+                        this.creatingTaskSubdomain = '';
+                    }
+                } catch (e) {
+                    if (Date.now() - started < stopAfterMs) setTimeout(tick, pollMs);
+                    else {
+                        this.$message.warning('No fue posible continuar el seguimiento del progreso');
+                        this.creatingTask = null;
+                        this.creatingTaskSubdomain = '';
+                    }
+                }
+            };
+            setTimeout(tick, pollMs);
+        },
         // Convertir valores a booleanos para los switches
         convertToBoolean(value) {
             if (typeof value === 'boolean') return value;

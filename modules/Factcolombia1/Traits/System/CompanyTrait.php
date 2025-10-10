@@ -58,12 +58,26 @@ trait CompanyTrait
 
     public function createCompanyApiDian($request) {
         $base_url = config('tenant.service_fact');
+        if (empty($base_url)) {
+            return (object) [
+                'success' => false,
+                'message' => 'SERVICE_FACT no configurado en .env/config (tenant.service_fact)',
+                '_http_code' => null,
+            ];
+        }
         $number = $request->identification_number;
-        $dv = $request->dv;
+        // Calcular DV válido si no viene o es incorrecto. Forzamos el DV a uno calculado para evitar rechazos.
+        $dvCalculated = $this->computeDvForColombia($number);
+        $dv = $request->dv ?: $dvCalculated;
+        // Actualizar el request para mantener consistencia en siguientes pasos
+        $request->dv = $dv;
         $ch = curl_init("{$base_url}ubl2.1/config/{$number}/{$dv}");
         curl_setopt($ch, CURLOPT_SSL_VERIFYHOST, 0);
         curl_setopt($ch, CURLOPT_SSL_VERIFYPEER, 0);
+        curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, 10);
+        curl_setopt($ch, CURLOPT_TIMEOUT, 60);
 
+        // Defaults to ensure API receives complete payload even if UI omits optional fields
         $bodyContent = [
             'type_document_identification_id'=> $request->type_document_identification_id,
             'type_organization_id'=> $request->type_organization_id,
@@ -75,12 +89,12 @@ trait CompanyTrait
             'address'=> $request->address,
             'phone'=> $request->phone,
             'email'=> $request->email,
-            'language_id'=> $request->language_id,
-            'tax_id'=> $request->tax_id,
-            'type_environment_id'=> $request->type_environment_id,
-            'type_operation_id'=> $request->type_operation_id,
-            'country_id'=> $request->country_id,
-            'type_currency_id'=> $request->type_currency_id
+            'language_id'=> $request->language_id ?: 79,
+            'tax_id'=> $request->tax_id ?: 1,
+            'type_environment_id'=> $request->type_environment_id ?: 2,
+            'type_operation_id'=> $request->type_operation_id ?: 10,
+            'country_id'=> $request->country_id ?: 46,
+            'type_currency_id'=> $request->type_currency_id ?: 35,
         ];
 
         $data_companiee = json_encode($bodyContent);
@@ -96,9 +110,61 @@ trait CompanyTrait
         ));
 
         $response = curl_exec($ch);
+        $curlErr = curl_error($ch);
+        $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
         curl_close($ch);
 
-        return json_decode($response);
+        // Handle curl-level errors
+        if ($curlErr) {
+            return (object) [
+                'success' => false,
+                'message' => 'Error de conexión con ApiDIAN: '.$curlErr,
+                '_http_code' => $httpCode,
+            ];
+        }
+
+        // Decode JSON and enrich with diagnostics when possible
+        $decoded = json_decode($response);
+        if (json_last_error() !== JSON_ERROR_NONE) {
+            return (object) [
+                'success' => false,
+                'message' => 'Respuesta inválida de ApiDIAN (JSON malformado)',
+                '_http_code' => $httpCode,
+                '_raw' => mb_substr($response, 0, 2000),
+            ];
+        }
+        // Adjuntar código HTTP y recorte del body para facilitar depuración si falla aguas arriba
+        if (is_object($decoded)) {
+            $decoded->_http_code = $httpCode;
+            if (!isset($decoded->message) && is_string($response)) {
+                $decoded->_raw = mb_substr($response, 0, 2000);
+            }
+        }
+        return $decoded;
+    }
+
+    /**
+     * Calcula el Dígito de Verificación (DV) para NIT en Colombia (DIAN)
+     * Algoritmo oficial con la serie de pesos {3,7,13,17,19,23,29,37,41,43,47,53,59,67,71}
+     */
+    private function computeDvForColombia($nit)
+    {
+        $nit = preg_replace('/\D+/', '', (string) $nit);
+        if ($nit === '') return 0;
+        $weights = [3,7,13,17,19,23,29,37,41,43,47,53,59,67,71];
+        $len = strlen($nit);
+        $sum = 0;
+        // Desde el último dígito del NIT hacia la izquierda, multiplicar por pesos en orden
+        for ($i = 0; $i < $len; $i++) {
+            $digit = (int) $nit[$len - 1 - $i];
+            if ($i < count($weights)) {
+                $sum += $digit * $weights[$i];
+            }
+        }
+        $mod = $sum % 11;
+        if ($mod === 0) return 0;
+        if ($mod === 1) return 1;
+        return 11 - $mod;
     }
 
 
