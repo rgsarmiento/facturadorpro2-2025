@@ -644,10 +644,21 @@
                     return;
                 }
 
-                // Creación asíncrona: iniciar y luego hacer polling de estado
-                // Generar un id de tarea del lado cliente para poder seguir el estado
+                // Creación asíncrona: iniciar y luego hacer seguimiento desde el index
+                // Normalizar y validar datos antes de enviar
                 const clientTaskId = this.uuidv4();
                 const payload = Object.assign({}, this.form, { client_task_id: clientTaskId });
+                // Normalizaciones no destructivas
+                if (payload.subdomain != null) payload.subdomain = String(payload.subdomain).trim().toLowerCase();
+                if (payload.phone != null) payload.phone = String(payload.phone).replace(/\s+/g, '');
+                if (payload.name != null) payload.name = String(payload.name).trim();
+                // Guardas rápidas del lado cliente para mejor UX
+                if (payload.subdomain && payload.subdomain.length > 10) {
+                    this.errors = Object.assign({}, this.errors, { subdomain: ['subdominio no debe ser mayor que 10 caracteres.'] });
+                    this.$message.error('El subdominio no debe superar 10 caracteres');
+                    this.loading_submit = false;
+                    return;
+                }
                 try {
                     const res = await this.$http.post(`/${this.resource}/start`, payload, { timeout: 15000 });
                     const data = res && res.data ? res.data : null;
@@ -659,12 +670,32 @@
                         this.dialogVisible = false;
                         this.initForm();
                     } else {
-                        this.$message.error((data && data.message) || 'No se pudo iniciar el proceso');
+                        // Mensaje significativo si el backend retornara estructura diferente
+                        const meaningful = (data && (data.message || (data.errors && Object.values(data.errors)[0] && Object.values(data.errors)[0][0])));
+                        if (data && data.errors) this.errors = data.errors;
+                        this.$message.error(meaningful || 'No se pudo iniciar el proceso');
                         this.loading_submit = false;
                     }
                 } catch (error) {
                     if (error && error.response) {
-                        this.$message.error((error.response.data && error.response.data.message) || 'Error al iniciar el proceso');
+                        // Mostrar errores de validación (422) con detalle y pintar debajo de los campos
+                        const status = error.response.status;
+                        if (status === 422) {
+                            const resp = error.response.data || {};
+                            const errs = resp.errors || resp; // algunos backends responden directamente el mapa de errores
+                            if (errs && typeof errs === 'object') {
+                                this.errors = errs;
+                                // Tomar el primer mensaje para el toast corto
+                                const firstKey = Object.keys(errs)[0];
+                                const firstVal = errs[firstKey];
+                                const detail = Array.isArray(firstVal) ? firstVal[0] : String(firstVal);
+                                this.$message.error(`${firstKey}: ${detail}`);
+                            } else {
+                                this.$message.error(resp.message || 'Datos inválidos');
+                            }
+                        } else {
+                            this.$message.error((error.response.data && error.response.data.message) || `Error (${status}) al iniciar el proceso`);
+                        }
                     } else if (error && error.request) {
                         // El navegador no entregó la respuesta al cliente, pero probablemente el servidor sí recibió y encoló.
                         // Intentamos continuar con el seguimiento usando el client_task_id generado.
