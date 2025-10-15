@@ -660,6 +660,162 @@ class SystemBackupController extends Controller
         }
 
         $this->safeLog("RESTORE: Restauración de todos los tenants completada ({$processed} procesados)");
+
+        // Verificar y crear bases de datos faltantes
+        $this->createMissingTenantDatabases();
+    }
+
+    /**
+     * Create missing tenant databases after restore
+     * This handles cases where SQL files were missing from backup
+     */
+    private function createMissingTenantDatabases()
+    {
+        try {
+            $this->safeLog("RESTORE: Verificando bases de datos faltantes de tenants");
+
+            $websites = Website::all();
+            $missingDatabases = [];
+            $referenceDatabaseName = null;
+
+            // Encontrar tenants con bases de datos faltantes y una base de referencia
+            foreach ($websites as $website) {
+                $databaseName = $website->uuid;
+                $result = DB::select(
+                    "SELECT SCHEMA_NAME FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = ?",
+                    [$databaseName]
+                );
+
+                if (empty($result)) {
+                    $missingDatabases[] = $website;
+                } else if (!$referenceDatabaseName) {
+                    $referenceDatabaseName = $databaseName;
+                }
+            }
+
+            if (empty($missingDatabases)) {
+                $this->safeLog("RESTORE: Todas las bases de datos de tenants existen");
+                return;
+            }
+
+            if (!$referenceDatabaseName) {
+                $this->safeLog("RESTORE WARNING: No hay base de datos de referencia para copiar estructura");
+                return;
+            }
+
+            $this->safeLog("RESTORE: Encontradas " . count($missingDatabases) . " bases de datos faltantes");
+            $this->safeLog("RESTORE: Usando '{$referenceDatabaseName}' como plantilla");
+
+            foreach ($missingDatabases as $website) {
+                $databaseName = $website->uuid;
+
+                try {
+                    $this->safeLog("RESTORE: Creando base de datos faltante: {$databaseName}");
+
+                    // Crear base de datos
+                    DB::statement("CREATE DATABASE IF NOT EXISTS `{$databaseName}` CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci");
+
+                    // Deshabilitar verificación de foreign keys temporalmente
+                    DB::statement("SET FOREIGN_KEY_CHECKS=0");
+
+                    // Copiar estructura
+                    $tables = DB::select("SHOW TABLES FROM `{$referenceDatabaseName}`");
+                    $tableKey = "Tables_in_{$referenceDatabaseName}";
+
+                    // Cambiar a la base de datos destino
+                    DB::statement("USE `{$databaseName}`");
+
+                    foreach ($tables as $table) {
+                        $tableName = $table->$tableKey;
+
+                        // Obtener CREATE TABLE statement
+                        $createTableResult = DB::select("SHOW CREATE TABLE `{$referenceDatabaseName}`.`{$tableName}`");
+                        $createTableStatement = $createTableResult[0]->{'Create Table'};
+
+                        // Crear tabla en la nueva base de datos
+                        DB::statement($createTableStatement);
+                    }
+
+                    // Volver a habilitar verificación de foreign keys
+                    DB::statement("SET FOREIGN_KEY_CHECKS=1");
+
+                    // Volver a la base de datos del sistema
+                    DB::statement("USE `" . config('database.connections.system.database') . "`");
+
+                    // Copiar datos críticos
+                    $this->copyEssentialTenantData($databaseName, $referenceDatabaseName);
+
+                    // Crear usuario de base de datos
+                    $this->createTenantDatabaseUser($website->uuid, $databaseName, $website);
+
+                    $this->safeLog("RESTORE: Base de datos '{$databaseName}' creada exitosamente con estructura copiada");
+
+                } catch (\Exception $e) {
+                    // Asegurarse de que las foreign keys estén habilitadas nuevamente
+                    try {
+                        DB::statement("SET FOREIGN_KEY_CHECKS=1");
+                    } catch (\Exception $ex) {}
+
+                    $this->safeLog("RESTORE WARNING: Error creando base de datos faltante {$databaseName}: " . $e->getMessage());
+                }
+            }
+
+        } catch (\Exception $e) {
+            $this->safeLog("RESTORE WARNING: Error en verificación de bases de datos faltantes: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Copy essential data from reference database to new tenant database
+     */
+    private function copyEssentialTenantData($targetDatabase, $referenceDatabase)
+    {
+        $criticalTables = [
+            'configurations',
+            'cat_payment_method_types',
+            'currencies',
+            'currency_types',
+            'attributes',
+            'charge_discount_types',
+            'system_activity_types',
+            'operation_types',
+            'document_types',
+        ];
+
+        // Agregar catálogos (catalog_01 hasta catalog_59)
+        for ($i = 1; $i <= 59; $i++) {
+            $criticalTables[] = 'catalog_' . str_pad($i, 2, '0', STR_PAD_LEFT);
+        }
+
+        foreach ($criticalTables as $tableName) {
+            try {
+                // Verificar si la tabla existe en ambas bases de datos
+                $tableExistsInReference = DB::select(
+                    "SELECT COUNT(*) as count FROM information_schema.TABLES
+                     WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ?",
+                    [$referenceDatabase, $tableName]
+                );
+
+                $tableExistsInTarget = DB::select(
+                    "SELECT COUNT(*) as count FROM information_schema.TABLES
+                     WHERE TABLE_SCHEMA = ? AND TABLE_NAME = ?",
+                    [$targetDatabase, $tableName]
+                );
+
+                if ($tableExistsInReference[0]->count > 0 && $tableExistsInTarget[0]->count > 0) {
+                    // Verificar si hay datos en la tabla de referencia
+                    $count = DB::select("SELECT COUNT(*) as count FROM `{$referenceDatabase}`.`{$tableName}`")[0]->count;
+
+                    if ($count > 0) {
+                        // Copiar datos
+                        DB::statement("INSERT IGNORE INTO `{$targetDatabase}`.`{$tableName}` SELECT * FROM `{$referenceDatabase}`.`{$tableName}`");
+                    }
+                }
+            } catch (\Exception $tableError) {
+                // Continuar con la siguiente tabla si hay error
+                continue;
+            }
+        }
     }
 
     /**

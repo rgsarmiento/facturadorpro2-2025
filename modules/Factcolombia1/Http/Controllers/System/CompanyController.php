@@ -233,19 +233,36 @@ class CompanyController extends Controller
 
     public function switchTenant($companyId)
     {
-        // Obtener la compañía y su hostname asociado
-        $company = Company::findOrFail($companyId);
-        $hostname = $company->hostname; // Asume que tienes una relación o atributo
+        // Obtener la compañía y cargar las relaciones necesarias
+        $company = Company::with('hostname.website')->findOrFail($companyId);
 
-       // dd($company->subdomain);
+        // Verificar que exista hostname y website
+        if (!$company->hostname) {
+            \Log::error("Hostname no encontrado para company ID: {$companyId}");
+            return back()->with('error', 'No se encontró el hostname para esta compañía.');
+        }
+
+        if (!$company->hostname->website) {
+            \Log::error("Website no encontrado para company ID: {$companyId}, hostname ID: {$company->hostname->id}");
+            return back()->with('error', 'No se encontró el website para esta compañía.');
+        }
+
+        $hostname = $company->hostname;
+        $website = $hostname->website;
 
        //datos de configuración de da la base de datos host,base de datos, contraseña etc
         $environment = app(Environment::class);
-        $environment->tenant($company->website);
+        $environment->tenant($website);
 
+        // Usar el UUID del website como nombre de base de datos
+        // Este es el formato correcto que usa Hyn Tenancy
+        $tenantDatabaseName = $website->uuid;
 
-        $tenantDatabaseName = 'tenancy_' . $company->subdomain; // O cualquier lógica que utilices para nombrar las bases de datos
-
+        // Verificar si la base de datos existe antes de intentar conectar
+        if (!$this->checkTenantDatabaseExists($tenantDatabaseName)) {
+            \Log::error("Base de datos de tenant no existe al hacer switch: {$tenantDatabaseName}");
+            return back()->with('error', 'La base de datos del tenant no existe. Contacte al administrador.');
+        }
 
         config([
             'database.connections.tenant' => [
