@@ -339,25 +339,50 @@ class CompanyController extends Controller
         }
         // Procesar cada registro de Company obtenido
         foreach ($records as &$row) {
-            $tenancy = app(Environment::class);
-            $tenancy->tenant($row->hostname->website);
-            // $row->count_doc = DB::connection('tenant')->table('documents')->count();
-            $row->count_doc = DB::connection('tenant')->table('configurations')->first()->quantity_documents;
-            //$row->count_user = DB::connection('tenant')->table('users')->count();
-            if($row->start_billing_cycle){
-                $day_start_billing = date_format($row->start_billing_cycle, 'j');
-                $day_now = (int)date('j');
-                if( $day_now <= $day_start_billing  )
-                {
-                    $init = Carbon::parse( date('Y').'-'.((int)date('n') -1).'-'.$day_start_billing );
-                    $end = Carbon::parse(date('Y-m-d'));
-                    $row->count_doc_month = DB::connection('tenant')->table('documents')->whereBetween('date_of_issue', [ $init, $end  ])->count();
+            try {
+                $tenancy = app(Environment::class);
+                $tenancy->tenant($row->hostname->website);
+
+                // Verificar si la base de datos del tenant existe
+                $databaseName = $row->hostname->website->uuid;
+                $databaseExists = $this->checkTenantDatabaseExists($databaseName);
+
+                if (!$databaseExists) {
+                    // Si la base de datos no existe, establecer valores por defecto
+                    \Log::warning("Base de datos de tenant no existe: {$databaseName}");
+                    $row->count_doc = 0;
+                    $row->count_doc_month = 0;
+                    $row->database_missing = true; // Flag para identificar tenants con DB faltante
+                    continue;
                 }
-                else{
-                    $init = Carbon::parse( date('Y').'-'.((int)date('n') ).'-'.$day_start_billing );
-                    $end = Carbon::parse(date('Y-m-d'));
-                    $row->count_doc_month = DB::connection('tenant')->table('documents')->whereBetween('date_of_issue', [ $init, $end  ])->count();
+
+                // Intentar obtener la configuración
+                $configuration = DB::connection('tenant')->table('configurations')->first();
+                $row->count_doc = $configuration ? $configuration->quantity_documents : 0;
+                $row->database_missing = false;
+
+                //$row->count_user = DB::connection('tenant')->table('users')->count();
+                if($row->start_billing_cycle){
+                    $day_start_billing = date_format($row->start_billing_cycle, 'j');
+                    $day_now = (int)date('j');
+                    if( $day_now <= $day_start_billing  )
+                    {
+                        $init = Carbon::parse( date('Y').'-'.((int)date('n') -1).'-'.$day_start_billing );
+                        $end = Carbon::parse(date('Y-m-d'));
+                        $row->count_doc_month = DB::connection('tenant')->table('documents')->whereBetween('date_of_issue', [ $init, $end  ])->count();
+                    }
+                    else{
+                        $init = Carbon::parse( date('Y').'-'.((int)date('n') ).'-'.$day_start_billing );
+                        $end = Carbon::parse(date('Y-m-d'));
+                        $row->count_doc_month = DB::connection('tenant')->table('documents')->whereBetween('date_of_issue', [ $init, $end  ])->count();
+                    }
                 }
+            } catch (\Exception $e) {
+                // Si hay cualquier error al acceder a la base de datos del tenant, usar valores por defecto
+                \Log::error("Error al acceder a base de datos de tenant: " . $e->getMessage());
+                $row->count_doc = 0;
+                $row->count_doc_month = 0;
+                $row->database_missing = true;
             }
         }
         // Devolver la colección de Company procesadas
@@ -366,10 +391,52 @@ class CompanyController extends Controller
 
     public function record($id){
         $company = Company::findOrFail($id);
-        $tenancy = app(Environment::class);
-        $tenancy->tenant($company->hostname->website);
-        $company->modules = DB::connection('tenant')->table('module_user')->where('user_id', 1)->get();
+
+        try {
+            $tenancy = app(Environment::class);
+            $tenancy->tenant($company->hostname->website);
+
+            // Verificar si la base de datos del tenant existe
+            $databaseName = $company->hostname->website->uuid;
+            $databaseExists = $this->checkTenantDatabaseExists($databaseName);
+
+            if (!$databaseExists) {
+                \Log::warning("Base de datos de tenant no existe: {$databaseName}");
+                $company->modules = collect([]); // Colección vacía
+                $company->database_missing = true;
+                return new CompanyResource($company);
+            }
+
+            $company->modules = DB::connection('tenant')->table('module_user')->where('user_id', 1)->get();
+            $company->database_missing = false;
+
+        } catch (\Exception $e) {
+            \Log::error("Error al acceder a base de datos de tenant en record(): " . $e->getMessage());
+            $company->modules = collect([]);
+            $company->database_missing = true;
+        }
+
         return new CompanyResource($company);
+    }
+
+    /**
+     * Check if tenant database exists
+     * @param string $databaseName
+     * @return bool
+     */
+    private function checkTenantDatabaseExists($databaseName)
+    {
+        try {
+            // Usar información_schema para verificar existencia de base de datos
+            $result = DB::select(
+                "SELECT SCHEMA_NAME FROM information_schema.SCHEMATA WHERE SCHEMA_NAME = ?",
+                [$databaseName]
+            );
+            return !empty($result);
+        } catch (\Exception $e) {
+            \Log::error("Error checking database existence: " . $e->getMessage());
+            return false;
+        }
     }
 
 

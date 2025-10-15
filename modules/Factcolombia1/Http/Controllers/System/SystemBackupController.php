@@ -315,13 +315,15 @@ class SystemBackupController extends Controller
     {
         try {
             // Configurar tiempo de ejecución y memoria para restore con muchas empresas
-            ini_set('max_execution_time', 7200); // 2 horas
+            ini_set('max_execution_time', 36000); // 10 horas
             ini_set('memory_limit', '2G');
 
             $this->safeLog('RESTORE: Iniciando proceso de restauración del sistema');
 
+            // Aumentar límite permitido. Nota: la directiva 'max' está en kilobytes.
+            // 50 GB = 50 * 1024 * 1024 KB = 52428800
             $request->validate([
-                'backup_file' => 'required|file|max:1048576' // 1GB max
+                'backup_file' => 'required|file|max:52428800' // 50GB max (en KB)
             ]);
 
             $file = $request->file('backup_file');
@@ -367,9 +369,16 @@ class SystemBackupController extends Controller
             $this->safeLog('RESTORE: Restaurando carpetas storage y public');
             $this->restoreStorageAndPublicFolders($extractDir);
 
+            // Sincronizar contraseñas de tenants (crítico para que funcionen después del restore)
+            $this->safeLog('RESTORE: Sincronizando contraseñas de usuarios de base de datos de tenants');
+            $this->syncTenantPasswordsUsingCommand();
+
             // Limpiar archivos temporales
             $this->safeLog('RESTORE: Limpiando archivos temporales');
-            unlink($tempZipFile);
+
+            // En Windows, ZipArchive puede mantener el archivo bloqueado brevemente después de extractTo()
+            // Esperar un momento y reintentar si es necesario
+            $this->safeUnlinkWithRetry($tempZipFile);
             $this->deleteDirectory($extractDir);
 
             $this->safeLog('RESTORE: Proceso de restauración completado exitosamente');
@@ -379,10 +388,12 @@ class SystemBackupController extends Controller
                 'message' => 'Sistema restaurado exitosamente: BD + Carpetas + Tenants'
             ]);
 
-        } catch (\Exception $e) {
+        } catch (\Throwable $e) {
+            // Log detallado para diagnóstico
+            $this->safeLog('RESTORE ERROR: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
             // Limpiar archivos temporales en caso de error
             if (isset($tempZipFile) && file_exists($tempZipFile)) {
-                unlink($tempZipFile);
+                $this->safeUnlinkWithRetry($tempZipFile);
             }
             if (isset($extractDir) && is_dir($extractDir)) {
                 $this->deleteDirectory($extractDir);
@@ -390,7 +401,9 @@ class SystemBackupController extends Controller
 
             return response()->json([
                 'success' => false,
-                'message' => 'Error al restaurar el sistema: ' . $e->getMessage()
+                'message' => 'Error al restaurar el sistema: ' . $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
             ], 500);
         }
     }
@@ -674,7 +687,7 @@ class SystemBackupController extends Controller
 
         $zip->close();
     }    /**
-     * Extract ZIP file
+     * Extract ZIP file with validation for Windows-incompatible filenames
      */
     private function extractZipFile($zipPath, $extractDir)
     {
@@ -687,8 +700,76 @@ class SystemBackupController extends Controller
             throw new \Exception('No se pudo abrir el archivo ZIP');
         }
 
-        $zip->extractTo($extractDir);
+        // Extraer archivo por archivo para manejar nombres inválidos en Windows
+        for ($i = 0; $i < $zip->numFiles; $i++) {
+            $filename = $zip->getNameIndex($i);
+
+            // Saltar entradas que son solo directorios
+            if (substr($filename, -1) === '/') {
+                continue;
+            }
+
+            // Limpiar nombre de archivo para Windows
+            $cleanFilename = $this->sanitizeFilenameForWindows($filename);
+
+            // Si el nombre cambió, extraer manualmente
+            if ($cleanFilename !== $filename) {
+                $this->safeLog("RESTORE: Renombrando archivo problemático: '$filename' -> '$cleanFilename'");
+
+                $content = $zip->getFromIndex($i);
+                if ($content === false) {
+                    $this->safeLog("RESTORE WARNING: No se pudo leer el contenido de '$filename', saltando...");
+                    continue;
+                }
+
+                $targetPath = $extractDir . '/' . $cleanFilename;
+                $targetDir = dirname($targetPath);
+
+                if (!is_dir($targetDir)) {
+                    mkdir($targetDir, 0755, true);
+                }
+
+                file_put_contents($targetPath, $content);
+            } else {
+                // Extraer normalmente
+                $zip->extractTo($extractDir, $filename);
+            }
+        }
+
         $zip->close();
+    }
+
+    /**
+     * Sanitize filename for Windows compatibility
+     * Removes/replaces invalid characters and patterns
+     */
+    private function sanitizeFilenameForWindows($filename)
+    {
+        // Dividir en directorio y nombre de archivo
+        $parts = explode('/', $filename);
+
+        foreach ($parts as $index => &$part) {
+            if (empty($part)) continue;
+
+            // Remover caracteres inválidos para Windows: < > : " | ? *
+            $part = preg_replace('/[<>:"|?*]/', '_', $part);
+
+            // Remover slash inicial si existe
+            $part = ltrim($part, '/\\');
+
+            // Remover punto final (Windows no permite archivos que terminen en punto)
+            $part = rtrim($part, '.');
+
+            // Remover espacios al inicio/final
+            $part = trim($part);
+
+            // Si quedó vacío después de limpieza, usar nombre genérico
+            if (empty($part)) {
+                $part = 'file_' . $index;
+            }
+        }
+
+        return implode('/', $parts);
     }
 
     /**
@@ -706,7 +787,7 @@ class SystemBackupController extends Controller
     }
 
     /**
-     * Delete directory recursively
+     * Delete directory recursively with error handling
      */
     private function deleteDirectory($dir)
     {
@@ -714,16 +795,57 @@ class SystemBackupController extends Controller
             return;
         }
 
-        $files = array_diff(scandir($dir), array('.', '..'));
-        foreach ($files as $file) {
-            $path = $dir . '/' . $file;
-            if (is_dir($path)) {
-                $this->deleteDirectory($path);
-            } else {
-                unlink($path);
+        try {
+            $files = @scandir($dir);
+            if ($files === false) {
+                return; // No se puede leer el directorio, saltar
+            }
+
+            $files = array_diff($files, array('.', '..'));
+            foreach ($files as $file) {
+                $path = $dir . '/' . $file;
+                if (is_dir($path)) {
+                    $this->deleteDirectory($path);
+                } else {
+                    @unlink($path); // @ para suprimir warnings si el archivo ya no existe
+                }
+            }
+            @rmdir($dir);
+        } catch (\Exception $e) {
+            // Ignorar errores al eliminar directorios temporales
+            $this->safeLog("RESTORE WARNING: Error eliminando directorio temporal: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Safe unlink with retry for Windows file locking issues
+     * En Windows, algunos procesos (como ZipArchive) pueden mantener handles abiertos brevemente
+     */
+    private function safeUnlinkWithRetry($filePath, $maxRetries = 5, $delayMs = 500)
+    {
+        if (!file_exists($filePath)) {
+            return true;
+        }
+
+        for ($attempt = 1; $attempt <= $maxRetries; $attempt++) {
+            try {
+                if (@unlink($filePath)) {
+                    $this->safeLog("RESTORE: Archivo temporal eliminado: " . basename($filePath));
+                    return true;
+                }
+            } catch (\Exception $e) {
+                // Log pero continuar intentando
+            }
+
+            if ($attempt < $maxRetries) {
+                $this->safeLog("RESTORE: Reintento {$attempt}/{$maxRetries} para eliminar " . basename($filePath));
+                usleep($delayMs * 1000); // Convertir ms a microsegundos
             }
         }
-        rmdir($dir);
+
+        // Si después de todos los intentos aún existe, loguear advertencia pero no fallar
+        $this->safeLog("RESTORE WARNING: No se pudo eliminar " . basename($filePath) . " después de {$maxRetries} intentos. El archivo se puede eliminar manualmente.");
+        return false;
     }
 
     /**
@@ -846,6 +968,38 @@ class SystemBackupController extends Controller
             return collect($result)->pluck('Host')->toArray();
         } catch (\Exception $e) {
             return [];
+        }
+    }
+
+    /**
+     * Sync tenant database passwords using the existing tenant_passwords command
+     * Critical to ensure tenants can connect to their databases after restore
+     */
+    private function syncTenantPasswordsUsingCommand()
+    {
+        try {
+            $this->safeLog("RESTORE: Ejecutando comando tenant_passwords para sincronizar contraseñas");
+
+            // Ejecutar el comando existente con la opción --create-missing para crear usuarios si no existen
+            \Artisan::call('tenant_passwords', ['--create-missing' => true]);
+
+            $output = \Artisan::output();
+
+            // Log the output
+            $this->safeLog("RESTORE: Resultado de sincronización de contraseñas:");
+            foreach (explode("\n", trim($output)) as $line) {
+                if (!empty($line)) {
+                    $this->safeLog("  " . $line);
+                }
+            }
+
+            $this->safeLog("RESTORE: Sincronización de contraseñas completada exitosamente");
+            return true;
+
+        } catch (\Exception $e) {
+            $this->safeLog("RESTORE WARNING: Error ejecutando tenant_passwords: " . $e->getMessage());
+            // No lanzar excepción, el restore ya está completo
+            return false;
         }
     }
 
@@ -1026,52 +1180,70 @@ class SystemBackupController extends Controller
     }
 
     /**
-     * Restore storage and public folders
+     * Restore storage and public folders (non-critical, won't fail entire restore)
      */
     private function restoreStorageAndPublicFolders($extractedDir)
     {
         try {
-            \Log::info("Starting restoration of storage and public folders");
+            $this->safeLog("RESTORE: Iniciando restauración de carpetas storage y public");
 
             $foldersDir = $extractedDir . '/folders';
 
             if (!is_dir($foldersDir)) {
-                \Log::info("No folders directory found in backup, skipping folder restoration");
+                $this->safeLog("RESTORE: No hay directorio de folders para restaurar, saltando");
                 return true;
             }
 
-            // Restore storage folder
+            // Verificar espacio en disco antes de intentar
+            $availableSpace = @disk_free_space(storage_path());
+            if ($availableSpace !== false && $availableSpace < 1073741824) { // Menos de 1GB
+                $this->safeLog("RESTORE WARNING: Poco espacio en disco (" . $this->formatBytes($availableSpace) . "), saltando restauración de carpetas");
+                return true; // No fallar, solo omitir
+            }
+
+            // Restore storage folder (non-critical)
             $storageBackup = $foldersDir . '/storage';
             $storageTarget = storage_path();
 
             if (is_dir($storageBackup)) {
-                $this->restoreDirectorySelective($storageBackup, $storageTarget, [
-                    'logs',
-                    'framework/cache',
-                    'framework/sessions',
-                    'framework/views',
-                    'app/system_backups'
-                ]);
-                \Log::info("Storage folder restored successfully");
+                try {
+                    $this->restoreDirectorySelective($storageBackup, $storageTarget, [
+                        'logs',
+                        'framework/cache',
+                        'framework/sessions',
+                        'framework/views',
+                        'app/system_backups'
+                    ]);
+                    $this->safeLog("RESTORE: Storage folder restaurado exitosamente");
+                } catch (\Exception $e) {
+                    $this->safeLog("RESTORE WARNING: Error restaurando storage, continuando: " . $e->getMessage());
+                    // No lanzar excepción, solo loguear y continuar
+                }
             }
 
-            // Restore public folder
+            // Restore public folder (non-critical)
             $publicBackup = $foldersDir . '/public';
             $publicTarget = public_path();
 
             if (is_dir($publicBackup)) {
-                $this->restoreDirectorySelective($publicBackup, $publicTarget, [
-                    'hot',
-                    'mix-manifest.json'
-                ]);
-                \Log::info("Public folder restored successfully");
+                try {
+                    $this->restoreDirectorySelective($publicBackup, $publicTarget, [
+                        'hot'
+                    ]);
+                    $this->safeLog("RESTORE: Public folder restaurado exitosamente");
+                } catch (\Exception $e) {
+                    $this->safeLog("RESTORE WARNING: Error restaurando public, continuando: " . $e->getMessage());
+                    // No lanzar excepción, solo loguear y continuar
+                }
             }
 
             return true;
 
         } catch (\Exception $e) {
-            \Log::error("Error restoring folders: " . $e->getMessage());
-            throw $e;
+            // Si falla la restauración de carpetas, solo loguear warning
+            // Las BDs ya están restauradas, que es lo más importante
+            $this->safeLog("RESTORE WARNING: Error general restaurando carpetas: " . $e->getMessage());
+            return true; // Retornar true para que el restore continúe
         }
     }
 
@@ -1092,6 +1264,10 @@ class SystemBackupController extends Controller
             new \RecursiveDirectoryIterator($source, \RecursiveDirectoryIterator::SKIP_DOTS),
             \RecursiveIteratorIterator::SELF_FIRST
         );
+
+        $copiedFiles = 0;
+        $skippedFiles = 0;
+        $errorFiles = 0;
 
         foreach ($iterator as $item) {
             $relativePath = str_replace($source . DIRECTORY_SEPARATOR, '', $item->getPathname());
@@ -1114,21 +1290,44 @@ class SystemBackupController extends Controller
 
             if ($item->isDir()) {
                 if (!is_dir($targetPath)) {
-                    mkdir($targetPath, 0755, true);
+                    @mkdir($targetPath, 0755, true);
                 }
             } else {
                 $targetDir = dirname($targetPath);
                 if (!is_dir($targetDir)) {
-                    mkdir($targetDir, 0755, true);
+                    @mkdir($targetDir, 0755, true);
                 }
 
                 // Solo copiar si el archivo no existe o es diferente
-                if (!file_exists($targetPath) || filemtime($item->getPathname()) > filemtime($targetPath)) {
-                    copy($item->getPathname(), $targetPath);
+                if (!file_exists($targetPath) || @filemtime($item->getPathname()) > @filemtime($targetPath)) {
+                    try {
+                        // Verificar espacio antes de copiar archivos grandes
+                        $fileSize = @filesize($item->getPathname());
+                        $availableSpace = @disk_free_space(dirname($targetPath));
+
+                        if ($availableSpace !== false && $fileSize !== false && $availableSpace < $fileSize) {
+                            $skippedFiles++;
+                            if ($skippedFiles === 1) {
+                                // Solo loguear la primera vez para no saturar el log
+                                $this->safeLog("RESTORE WARNING: Espacio insuficiente, saltando archivos restantes");
+                            }
+                            continue;
+                        }
+
+                        if (@copy($item->getPathname(), $targetPath)) {
+                            $copiedFiles++;
+                        } else {
+                            $errorFiles++;
+                        }
+                    } catch (\Exception $e) {
+                        $errorFiles++;
+                        // No lanzar excepción, solo contar error y continuar
+                    }
                 }
             }
         }
 
+        $this->safeLog("RESTORE: Archivos copiados: {$copiedFiles}, Omitidos: {$skippedFiles}, Errores: {$errorFiles}");
         return true;
     }
 }

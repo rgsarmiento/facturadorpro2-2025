@@ -554,8 +554,8 @@ function handleRestore() {
         return;
     }
 
-    if (file.size > 1024 * 1024 * 1024) { // 1GB limit
-        showError('El archivo es demasiado grande. Tamaño máximo: 1GB');
+    if (file.size > 50 * 1024 * 1024 * 1024) { // 50GB limit
+        showError('El archivo es demasiado grande. Tamaño máximo: 50GB');
         return;
     }
 

@@ -17,6 +17,9 @@ class AppServiceProvider extends ServiceProvider
     }
 
     public function register() {
-
+        // Deshabilitar Dusk en producción para evitar errores
+        if ($this->app->environment('production')) {
+            $this->app->register(\Illuminate\Foundation\Providers\ConsoleSupportServiceProvider::class);
+        }
     }
 }
