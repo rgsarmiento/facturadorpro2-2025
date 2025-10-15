@@ -607,6 +607,7 @@ class ConfigurationController extends Controller
             "Authorization: Bearer {$company->api_token}"
         ));
         $response_query = curl_exec($ch);
+        \Log::debug($response_query);
         $err = curl_error($ch);
         $respuesta = json_decode($response_query);
 

@@ -226,7 +226,7 @@
                                                 <td class="text-right">{{ ratePrefix() }} {{ row.discount }}</td>
                                                 <td class="text-right">{{ ratePrefix() }} {{ row.total }}</td>
                                                 <td class="text-right">
-                                                    <button type="button" class="btn waves-effect waves-light btn-xs btn-info mr-1" title="Editar" @click.prevent="clickEditItem(index)"><i class="fa fa-pencil"></i></button>
+                                                    <button type="button" class="btn waves-effect waves-light btn-xs btn-info mr-1" title="Editar" @click.prevent="clickEditItem(index)"><i class="fas fa-edit"></i></button>
                                                     <button type="button"
                                                         class="btn waves-effect waves-light btn-xs btn-danger" title="Eliminar"
                                                         @click.prevent="clickRemoveItem(index)">x</button>
@@ -774,6 +774,14 @@ export default {
         },
         clickAddItem() {
             this.recordItem = null
+            this.showDialogAddItem = true
+        },
+        clickEditItem(index) {
+            // Copiar el item para edición
+            this.recordItem = {
+                indexi: index,
+                ...JSON.parse(JSON.stringify(this.form.items[index]))
+            }
             this.showDialogAddItem = true
         },
     }
