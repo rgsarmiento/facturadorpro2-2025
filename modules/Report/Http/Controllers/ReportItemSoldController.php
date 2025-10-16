@@ -65,19 +65,45 @@ class ReportItemSoldController extends Controller
 
     public function export(Request $request, $type)
     {
-        // Configurar recursos para generación de PDFs (memoria y tiempo)
-        $this->configurePdfResources('1G', 300); // 1GB y 5 minutos
+        try {
+            // Configurar recursos para generación de PDFs (memoria y tiempo)
+            $this->configurePdfResources('2G', 600); // 2GB y 10 minutos
 
-        switch ($type) {
-            case 'excel':
-                return $this->excel($request);
-                break;
+            \Log::info('Iniciando generación de PDF - Items Vendidos', [
+                'memory_limit' => ini_get('memory_limit'),
+                'max_execution_time' => ini_get('max_execution_time'),
+                'memory_usage' => round(memory_get_usage(true) / 1024 / 1024, 2) . 'MB'
+            ]);
 
-            default:
-                $result = $this->pdf($request);
-                $this->freeMemory(); // Liberar memoria después de generar el PDF
-                return $result;
-                break;
+            switch ($type) {
+                case 'excel':
+                    return $this->excel($request);
+                    break;
+
+                default:
+                    $result = $this->pdf($request);
+
+                    \Log::info('PDF generado - Items Vendidos', [
+                        'memory_usage' => round(memory_get_usage(true) / 1024 / 1024, 2) . 'MB'
+                    ]);
+
+                    $this->freeMemory(); // Liberar memoria después de generar el PDF
+                    return $result;
+                    break;
+            }
+        } catch (\Exception $e) {
+            \Log::error('Error generando reporte Items Vendidos', [
+                'error' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+                'memory_usage' => round(memory_get_usage(true) / 1024 / 1024, 2) . 'MB',
+                'memory_peak' => round(memory_get_peak_usage(true) / 1024 / 1024, 2) . 'MB'
+            ]);
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al generar el reporte: ' . $e->getMessage()
+            ], 500);
         }
     }
 
