@@ -5,6 +5,19 @@ namespace Modules\Report\Traits;
 trait PdfMemoryManagement
 {
     /**
+     * Configurar recursos para generación de PDFs
+     *
+     * @param string $memoryLimit Límite de memoria (ej: '256M', '512M', '1G')
+     * @param int $executionTime Tiempo máximo de ejecución en segundos (0 = ilimitado)
+     * @return void
+     */
+    protected function configurePdfResources($memoryLimit = '512M', $executionTime = 300)
+    {
+        $this->increaseMemoryLimit($memoryLimit);
+        $this->increaseExecutionTime($executionTime);
+    }
+
+    /**
      * Aumentar límite de memoria para generación de PDFs
      *
      * @param string $limit Límite de memoria (ej: '256M', '512M', '1G')
@@ -22,6 +35,28 @@ trait PdfMemoryManagement
         if ($newBytes > $currentBytes) {
             ini_set('memory_limit', $limit);
             \Log::info("Memoria aumentada de {$currentLimit} a {$limit} para generación de PDF");
+        }
+    }
+
+    /**
+     * Aumentar tiempo máximo de ejecución para generación de PDFs
+     *
+     * @param int $seconds Tiempo en segundos (0 = ilimitado)
+     * @return void
+     */
+    protected function increaseExecutionTime($seconds = 300)
+    {
+        $currentLimit = ini_get('max_execution_time');
+
+        if ($currentLimit == 0) {
+            // Ya está en ilimitado, no hacer nada
+            return;
+        }
+
+        if ($seconds == 0 || $seconds > $currentLimit) {
+            set_time_limit($seconds);
+            $timeDisplay = $seconds == 0 ? 'ilimitado' : "{$seconds} segundos";
+            \Log::info("Tiempo de ejecución aumentado de {$currentLimit}s a {$timeDisplay} para generación de PDF");
         }
     }
 

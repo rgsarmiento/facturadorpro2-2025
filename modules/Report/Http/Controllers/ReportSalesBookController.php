@@ -9,6 +9,7 @@ use App\Models\Tenant\Establishment;
 use App\Models\Tenant\Company;
 use Carbon\Carbon;
 use Modules\Report\Traits\ReportSalesBookTrait;
+use Modules\Report\Traits\PdfMemoryManagement;
 use Modules\Report\Exports\SaleBookExport;
 
 
@@ -16,6 +17,7 @@ class ReportSalesBookController extends Controller
 {
 
     use ReportSalesBookTrait;
+    use PdfMemoryManagement;
 
 
     public function index()
@@ -32,6 +34,9 @@ class ReportSalesBookController extends Controller
      */
     public function export($type, Request $request)
     {
+        // Configurar recursos para generación de PDFs (memoria y tiempo)
+        $this->configurePdfResources('512M', 300);
+
         $request['summary_sales_book'] = $request->summary_sales_book === 'true';
         $company = Company::first();
         $establishment = auth()->user()->establishment;

@@ -65,8 +65,8 @@ class ReportItemSoldController extends Controller
 
     public function export(Request $request, $type)
     {
-        // Aumentar límite de memoria para generación de PDFs
-        $this->increaseMemoryLimit('512M');
+        // Configurar recursos para generación de PDFs (memoria y tiempo)
+        $this->configurePdfResources('512M', 300); // 512MB y 5 minutos
 
         switch ($type) {
             case 'excel':
