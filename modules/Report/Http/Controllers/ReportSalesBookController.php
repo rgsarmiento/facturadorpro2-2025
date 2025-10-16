@@ -68,7 +68,7 @@ class ReportSalesBookController extends Controller
                     break;
                 default:
                     // Verificar si hay demasiados registros para PDF
-                    $maxRecordsForPdf = 2000;
+                    $maxRecordsForPdf = 5000;
                     if (count($records) > $maxRecordsForPdf) {
                         \Log::warning('Demasiados registros para PDF - Libro de Ventas', [
                             'records_count' => count($records),

@@ -83,7 +83,7 @@ class ReportItemSoldController extends Controller
                 default:
                     // Verificar cantidad de registros antes de generar PDF
                     $records = $this->getQueryRecords($request);
-                    $maxRecordsForPdf = 2000;
+                    $maxRecordsForPdf = 10000;
 
                     \Log::info('Verificando cantidad de registros - Items Vendidos', [
                         'records_count' => $records->count(),
