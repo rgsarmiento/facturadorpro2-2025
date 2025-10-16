@@ -56,7 +56,8 @@ class ReportSalesBookController extends Controller
 
             \Log::info('Datos cargados - Libro de Ventas', [
                 'records_count' => count($records),
-                'memory_usage' => round(memory_get_usage(true) / 1024 / 1024, 2) . 'MB'
+                'memory_usage' => round(memory_get_usage(true) / 1024 / 1024, 2) . 'MB',
+                'memory_limit' => ini_get('memory_limit')
             ]);
 
             switch ($type) {
@@ -66,6 +67,30 @@ class ReportSalesBookController extends Controller
                         ->download('Reporte_Libro_Ventas_'.date('YmdHis').'.xlsx');
                     break;
                 default:
+                    // Verificar si hay demasiados registros para PDF
+                    $maxRecordsForPdf = 2000;
+                    if (count($records) > $maxRecordsForPdf) {
+                        \Log::warning('Demasiados registros para PDF - Libro de Ventas', [
+                            'records_count' => count($records),
+                            'max_allowed' => $maxRecordsForPdf
+                        ]);
+
+                        return response()->json([
+                            'success' => false,
+                            'message' => "El reporte tiene " . count($records) . " registros. Para reportes con más de {$maxRecordsForPdf} registros, por favor use la exportación a Excel.",
+                            'records_count' => count($records),
+                            'max_allowed' => $maxRecordsForPdf
+                        ], 400);
+                    }
+
+                    // Forzar límite de memoria nuevamente antes de generar PDF
+                    ini_set('memory_limit', '2G');
+
+                    \Log::info('Generando PDF - Libro de Ventas', [
+                        'memory_limit' => ini_get('memory_limit'),
+                        'memory_usage' => round(memory_get_usage(true) / 1024 / 1024, 2) . 'MB'
+                    ]);
+
                     $pdf = PDF::loadView('report::co-sales-book.report_pdf', $report_data)->setPaper('a4', 'landscape');
                     $filename = 'Reporte_Libro_Ventas_'.date('YmdHis');
 

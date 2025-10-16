@@ -81,6 +81,32 @@ class ReportItemSoldController extends Controller
                     break;
 
                 default:
+                    // Verificar cantidad de registros antes de generar PDF
+                    $records = $this->getQueryRecords($request);
+                    $maxRecordsForPdf = 2000;
+
+                    \Log::info('Verificando cantidad de registros - Items Vendidos', [
+                        'records_count' => $records->count(),
+                        'memory_usage' => round(memory_get_usage(true) / 1024 / 1024, 2) . 'MB'
+                    ]);
+
+                    if ($records->count() > $maxRecordsForPdf) {
+                        \Log::warning('Demasiados registros para PDF - Items Vendidos', [
+                            'records_count' => $records->count(),
+                            'max_allowed' => $maxRecordsForPdf
+                        ]);
+
+                        return response()->json([
+                            'success' => false,
+                            'message' => "El reporte tiene " . $records->count() . " registros. Para reportes con más de {$maxRecordsForPdf} registros, por favor use la exportación a Excel.",
+                            'records_count' => $records->count(),
+                            'max_allowed' => $maxRecordsForPdf
+                        ], 400);
+                    }
+
+                    // Forzar límite de memoria nuevamente antes de generar PDF
+                    ini_set('memory_limit', '2G');
+
                     $result = $this->pdf($request);
 
                     \Log::info('PDF generado - Items Vendidos', [
