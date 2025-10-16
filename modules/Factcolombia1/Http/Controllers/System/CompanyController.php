@@ -261,7 +261,9 @@ class CompanyController extends Controller
         // Verificar si la base de datos existe antes de intentar conectar
         if (!$this->checkTenantDatabaseExists($tenantDatabaseName)) {
             \Log::error("Base de datos de tenant no existe al hacer switch: {$tenantDatabaseName}");
-            return back()->with('error', 'La base de datos del tenant no existe. Contacte al administrador.
+            return back()->with('error', 'La base de datos del tenant no existe. Contacte al administrador.');
+        }
+
         config([
             'database.connections.tenant' => [
                 'driver' => 'mysql',
