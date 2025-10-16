@@ -8,6 +8,7 @@ use Illuminate\Http\Request;
 use App\Models\Tenant\Establishment;
 use App\Models\Tenant\Company;
 use Modules\Report\Exports\ItemSoldExport;
+use Modules\Report\Traits\PdfMemoryManagement;
 use Carbon\Carbon;
 use App\Models\Tenant\{
     DocumentItem,
@@ -17,6 +18,8 @@ use DB;
 
 class ReportItemSoldController extends Controller
 {
+    use PdfMemoryManagement;
+
 
     public function index()
     {
@@ -62,13 +65,18 @@ class ReportItemSoldController extends Controller
 
     public function export(Request $request, $type)
     {
+        // Aumentar límite de memoria para generación de PDFs
+        $this->increaseMemoryLimit('512M');
+
         switch ($type) {
             case 'excel':
                 return $this->excel($request);
                 break;
 
             default:
-                return $this->pdf($request);
+                $result = $this->pdf($request);
+                $this->freeMemory(); // Liberar memoria después de generar el PDF
+                return $result;
                 break;
         }
     }
