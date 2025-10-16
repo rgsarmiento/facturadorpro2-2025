@@ -35,7 +35,7 @@ class ReportSalesBookController extends Controller
     public function export($type, Request $request)
     {
         // Configurar recursos para generación de PDFs (memoria y tiempo)
-        $this->configurePdfResources('512M', 300);
+        $this->configurePdfResources('1G', 300);
 
         $request['summary_sales_book'] = $request->summary_sales_book === 'true';
         $company = Company::first();

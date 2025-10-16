@@ -66,7 +66,7 @@ class ReportItemSoldController extends Controller
     public function export(Request $request, $type)
     {
         // Configurar recursos para generación de PDFs (memoria y tiempo)
-        $this->configurePdfResources('512M', 300); // 512MB y 5 minutos
+        $this->configurePdfResources('1G', 300); // 1GB y 5 minutos
 
         switch ($type) {
             case 'excel':
