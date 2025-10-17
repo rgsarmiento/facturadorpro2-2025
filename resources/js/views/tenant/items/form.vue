@@ -293,13 +293,16 @@
                                                 </div>
                                             </td>
                                             <td>
-                                                <div class="form-group">
-                                                    <el-input v-model="row.description"></el-input>
+                                                <div class="form-group" :class="{'has-danger': !row.description && row.description !== null}">
+                                                    <el-input v-model="row.description" placeholder="Descripción *"></el-input>
+                                                    <small class="form-control-feedback text-danger" v-if="!row.description && row.description !== null">La descripción es obligatoria</small>
                                                 </div>
                                             </td>
                                             <td>
-                                                <div class="form-group">
-                                                    <el-input v-model="row.quantity_unit"></el-input>
+                                                <div class="form-group" :class="{'has-danger': (!row.quantity_unit || isNaN(row.quantity_unit)) && row.quantity_unit !== null}">
+                                                    <el-input v-model="row.quantity_unit" type="number" step="0.01" placeholder="Factor *"></el-input>
+                                                    <small class="form-control-feedback text-danger" v-if="!row.quantity_unit && row.quantity_unit !== null">El factor es obligatorio</small>
+                                                    <small class="form-control-feedback text-danger" v-else-if="row.quantity_unit && isNaN(row.quantity_unit)">El factor debe ser numérico</small>
                                                 </div>
                                             </td>
                                             <td>
@@ -794,6 +797,27 @@
             async submit() {
                 if(this.form.has_perception && !this.form.percentage_perception) return this.$message.error('Ingrese un porcentaje');
                 // if(!this.has_percentage_perception) this.form.percentage_perception = null
+
+                // Validar listas de precios
+                if(this.form.item_unit_types && this.form.item_unit_types.length > 0) {
+                    for(let i = 0; i < this.form.item_unit_types.length; i++) {
+                        const row = this.form.item_unit_types[i];
+
+                        // Validar descripción obligatoria
+                        if(!row.description || row.description.trim() === '') {
+                            return this.$message.error('La descripción es obligatoria en todas las listas de precios');
+                        }
+
+                        // Validar factor obligatorio y numérico
+                        if(!row.quantity_unit || row.quantity_unit === '' || row.quantity_unit === null) {
+                            return this.$message.error('El factor es obligatorio en todas las listas de precios');
+                        }
+
+                        if(isNaN(row.quantity_unit) || parseFloat(row.quantity_unit) <= 0) {
+                            return this.$message.error('El factor debe ser un número mayor a cero');
+                        }
+                    }
+                }
 
                 /*if(!this.recordId && this.form.lots_enabled){
 
