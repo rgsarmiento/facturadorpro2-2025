@@ -34,7 +34,6 @@ trait PdfMemoryManagement
         // Solo aumentar si el nuevo límite es mayor que el actual
         if ($newBytes > $currentBytes) {
             ini_set('memory_limit', $limit);
-            \Log::info("Memoria aumentada de {$currentLimit} a {$limit} para generación de PDF");
         }
     }
 
@@ -55,8 +54,6 @@ trait PdfMemoryManagement
 
         if ($seconds == 0 || $seconds > $currentLimit) {
             set_time_limit($seconds);
-            $timeDisplay = $seconds == 0 ? 'ilimitado' : "{$seconds} segundos";
-            \Log::info("Tiempo de ejecución aumentado de {$currentLimit}s a {$timeDisplay} para generación de PDF");
         }
     }
 

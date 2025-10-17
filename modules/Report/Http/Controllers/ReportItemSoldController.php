@@ -67,13 +67,7 @@ class ReportItemSoldController extends Controller
     {
         try {
             // Configurar recursos para generación de PDFs (memoria y tiempo)
-            $this->configurePdfResources('2G', 600); // 2GB y 10 minutos
-
-            \Log::info('Iniciando generación de PDF - Items Vendidos', [
-                'memory_limit' => ini_get('memory_limit'),
-                'max_execution_time' => ini_get('max_execution_time'),
-                'memory_usage' => round(memory_get_usage(true) / 1024 / 1024, 2) . 'MB'
-            ]);
+            $this->configurePdfResources('2G', 600);
 
             switch ($type) {
                 case 'excel':
@@ -85,17 +79,7 @@ class ReportItemSoldController extends Controller
                     $records = $this->getQueryRecords($request);
                     $maxRecordsForPdf = 10000;
 
-                    \Log::info('Verificando cantidad de registros - Items Vendidos', [
-                        'records_count' => $records->count(),
-                        'memory_usage' => round(memory_get_usage(true) / 1024 / 1024, 2) . 'MB'
-                    ]);
-
                     if ($records->count() > $maxRecordsForPdf) {
-                        \Log::warning('Demasiados registros para PDF - Items Vendidos', [
-                            'records_count' => $records->count(),
-                            'max_allowed' => $maxRecordsForPdf
-                        ]);
-
                         return response()->json([
                             'success' => false,
                             'message' => "El reporte tiene " . $records->count() . " registros. Para reportes con más de {$maxRecordsForPdf} registros, por favor use la exportación a Excel.",
@@ -108,24 +92,11 @@ class ReportItemSoldController extends Controller
                     ini_set('memory_limit', '2G');
 
                     $result = $this->pdf($request);
-
-                    \Log::info('PDF generado - Items Vendidos', [
-                        'memory_usage' => round(memory_get_usage(true) / 1024 / 1024, 2) . 'MB'
-                    ]);
-
-                    $this->freeMemory(); // Liberar memoria después de generar el PDF
+                    $this->freeMemory();
                     return $result;
                     break;
             }
         } catch (\Exception $e) {
-            \Log::error('Error generando reporte Items Vendidos', [
-                'error' => $e->getMessage(),
-                'file' => $e->getFile(),
-                'line' => $e->getLine(),
-                'memory_usage' => round(memory_get_usage(true) / 1024 / 1024, 2) . 'MB',
-                'memory_peak' => round(memory_get_peak_usage(true) / 1024 / 1024, 2) . 'MB'
-            ]);
-
             return response()->json([
                 'success' => false,
                 'message' => 'Error al generar el reporte: ' . $e->getMessage()
