@@ -214,9 +214,9 @@
                             <td class="td-modern text-center" v-if="currentUserId === 1 || currentUserId === 2">
                                 <template v-if="!row.locked">
                                     <el-switch
-                                        :value="!!row.locked"
+                                        :value="!!row.locked_tenant"
                                         :disabled="!!creatingTask"
-                                        @change="(val) => { row.locked = val; changeLockedTenant(row); }"
+                                        @change="(val) => { row.locked_tenant = val; changeLockedTenant(row); }"
                                         active-color="#ff4949"
                                         inactive-color="#dcdfe6">
                                     </el-switch>

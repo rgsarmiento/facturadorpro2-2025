@@ -18,8 +18,17 @@ class LockedTenant
     {
         $configuration = Configuration::first();
 
-        if($configuration->locked_tenant){
-            abort(403);
+        if($configuration && $configuration->locked_tenant){
+            // Si es petición AJAX/API, devolver JSON
+            if ($request->expectsJson() || $request->is('api/*')) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Esta cuenta ha sido bloqueada. Por favor contacte al administrador del sistema.'
+                ], 403);
+            }
+
+            // Si es petición web, mostrar vista de error
+            abort(403, 'Esta cuenta ha sido bloqueada. Por favor contacte al administrador del sistema.');
         }
 
         return $next($request);
