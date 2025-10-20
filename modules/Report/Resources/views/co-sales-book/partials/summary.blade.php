@@ -6,12 +6,12 @@
     <thead>
         <tr>
             <th colspan="5"></th>
-            
+
             @foreach($taxes as $tax)
                 <th colspan="2">
                     IMPUESTO #{{ $loop->iteration }}
                     <br>
-                    {{ $tax->name }} - ({{ $tax->rate }}%)
+                    {{ $tax->name ?? 'Sin nombre' }} - ({{ $tax->rate ?? '0' }}%)
                 </th>
             @endforeach
         </tr>
@@ -22,7 +22,7 @@
             <th>Total/Neto</th>
             <th>Total <br>+<br> Impuesto</th>
             <th>Total/Excento</th>
-            
+
             @foreach($taxes as $tax)
                 <th>Base</th>
                 <th>Impuesto</th>
@@ -66,7 +66,7 @@
                 <td class="celda text-right-td">{{ $first_document->generalApplyNumberFormat($total) }}</td>
                 <td class="celda text-right-td"> {{ $first_document->generalApplyNumberFormat($total_exempt) }} </td>
                 {{-- TOTALES --}}
-                
+
                 {{-- IMPUESTOS --}}
                 @foreach($taxes as &$tax)
 
@@ -84,7 +84,7 @@
                         $tax->global_taxable_amount += $sum_taxable_amount;
                         $tax->global_tax_amount += $sum_tax_amount;
                     @endphp
-                    
+
                     <td class="celda text-right-td">{{ $first_document->generalApplyNumberFormat($sum_taxable_amount) }}</td>
                     <td class="celda text-right-td">{{ $first_document->generalApplyNumberFormat($sum_tax_amount) }}</td>
 
@@ -118,10 +118,10 @@
                 <td class="celda">
                     TOTAL VENTAS IMPUESTO #{{ $loop->iteration }}
                     {{-- <br> --}}
-                    - {{ $tax->name }} ({{ $tax->rate }}%)
+                    - {{ $tax->name ?? 'Sin nombre' }} ({{ $tax->rate ?? '0' }}%)
                 </td>
-                <td class="celda text-right-td">{{ DocumentHelper::applyNumberFormat($tax->global_taxable_amount) }}</td>
-                <td class="celda text-right-td">{{ DocumentHelper::applyNumberFormat($tax->global_tax_amount) }}</td>
+                <td class="celda text-right-td">{{ DocumentHelper::applyNumberFormat($tax->global_taxable_amount ?? 0) }}</td>
+                <td class="celda text-right-td">{{ DocumentHelper::applyNumberFormat($tax->global_tax_amount ?? 0) }}</td>
             </tr>
         @endforeach
     </tbody>

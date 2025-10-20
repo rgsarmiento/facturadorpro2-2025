@@ -94,17 +94,32 @@ trait ReportSalesBookTrait
 
         foreach ($documents as $document)
         {
-            $document_taxes = $document->items->pluck('tax_id')->toArray();
+            $document_taxes = $document->items->pluck('tax_id')->filter()->toArray();
             $all_taxes_id = $all_taxes_id->merge($document_taxes);
 
             $q += count($document_taxes);
         }
 
-        return Tax::whereIn('id', $all_taxes_id->unique())
+        // Filtrar IDs nulos o vacíos y obtener taxes únicos
+        $unique_tax_ids = $all_taxes_id->filter()->unique();
+
+        if ($unique_tax_ids->isEmpty()) {
+            return collect();
+        }
+
+        $taxes = Tax::whereIn('id', $unique_tax_ids)
                     ->withOut(['type_tax'])
                     ->select(['id', 'name', 'code', 'rate', 'conversion', 'is_percentage', 'is_fixed_value', 'is_retention', 'in_base', 'in_tax', 'type_tax_id'])
                     ->orderBy('id')
                     ->get();
+
+        // Inicializar propiedades globales para cada impuesto
+        foreach ($taxes as $tax) {
+            $tax->global_taxable_amount = 0;
+            $tax->global_tax_amount = 0;
+        }
+
+        return $taxes;
     }
 
 
