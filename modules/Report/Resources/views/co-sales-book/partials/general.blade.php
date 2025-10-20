@@ -9,7 +9,7 @@
                     <th colspan="2">
                         IMPUESTO #{{ $loop->iteration }}
                         <br>
-                        {{ $tax->name }} - ({{ $tax->rate ?? '0' }}%)
+                        {{ $tax->name ?? 'Impuesto sin nombre' }} - ({{ $tax->rate ?? '0' }}%)
                     </th>
                 @endif
             @endforeach
