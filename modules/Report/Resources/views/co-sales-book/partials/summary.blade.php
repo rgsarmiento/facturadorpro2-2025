@@ -12,7 +12,7 @@
                     <th colspan="2">
                         IMPUESTO #{{ $loop->iteration }}
                         <br>
-                        {{ $tax->name ?? 'Impuesto sin nombre' }} - ({{ $tax->rate ?? '0' }}%)
+                        {{ data_get($tax, 'name', 'Impuesto sin nombre') }} - ({{ $tax->rate ?? '0' }}%)
                     </th>
                 @endif
             @endforeach
@@ -123,7 +123,7 @@
                     <td class="celda">
                         TOTAL VENTAS IMPUESTO #{{ $loop->iteration }}
                         {{-- <br> --}}
-                        - {{ $tax->name ?? 'Impuesto sin nombre' }} ({{ $tax->rate ?? '0' }}%)
+                        - {{ data_get($tax, 'name', 'Impuesto sin nombre') }} ({{ $tax->rate ?? '0' }}%)
                     </td>
                     <td class="celda text-right-td">{{ DocumentHelper::applyNumberFormat($tax->global_taxable_amount ?? 0) }}</td>
                     <td class="celda text-right-td">{{ DocumentHelper::applyNumberFormat($tax->global_tax_amount ?? 0) }}</td>
