@@ -2550,6 +2550,10 @@
                 }).catch(error => {
                     if (error.response.status === 422) {
                         this.errors = error.response.data
+                        // Mostrar mensaje de error de validación
+                        const firstError = Object.values(error.response.data)[0]
+                        const errorMessage = Array.isArray(firstError) ? firstError[0] : firstError
+                        this.$message.error(errorMessage || 'Error de validación. Por favor revise los campos.')
                     }
                     else {
                         this.$message.error(error.response.data.message)

@@ -17,7 +17,7 @@ class DocumentPayrollRequest extends FormRequest
     {
         $id = $this->input('id');
 
-        return [ 
+        return [
             'type_document_id' => [
                 'required',
             ],
@@ -51,13 +51,13 @@ class DocumentPayrollRequest extends FormRequest
             'payment_dates' => 'required|array',
             'payment_dates.*.payment_date' => 'required|date_format:Y-m-d',
 
- 
+
             // Accrued
             'accrued' => 'required|array',
             'accrued.worked_days' => 'required|numeric|digits_between:1,2',
             'accrued.salary' => 'required|numeric',
             'accrued.accrued_total' => 'required|numeric',
-            
+
             // heds
             'accrued.heds' => 'nullable|array',
             'accrued.heds.*.start_time' => 'required|date_format:Y-m-d\TH:i:s',
@@ -73,7 +73,7 @@ class DocumentPayrollRequest extends FormRequest
             'accrued.hens.*.quantity' => 'required|numeric',
             'accrued.hens.*.percentage' => 'required|exists:tenant.co_type_overtime_surcharges,id',
             'accrued.hens.*.payment' => 'required|numeric',
-            
+
             // hrns
             'accrued.hrns' => 'nullable|array',
             'accrued.hrns.*.start_time' => 'required|date_format:Y-m-d\TH:i:s',
@@ -81,7 +81,7 @@ class DocumentPayrollRequest extends FormRequest
             'accrued.hrns.*.quantity' => 'required|numeric',
             'accrued.hrns.*.percentage' => 'required|exists:tenant.co_type_overtime_surcharges,id',
             'accrued.hrns.*.payment' => 'required|numeric',
-            
+
             // heddfs
             'accrued.heddfs' => 'nullable|array',
             'accrued.heddfs.*.start_time' => 'required|date_format:Y-m-d\TH:i:s',
@@ -89,7 +89,7 @@ class DocumentPayrollRequest extends FormRequest
             'accrued.heddfs.*.quantity' => 'required|numeric',
             'accrued.heddfs.*.percentage' => 'required|exists:tenant.co_type_overtime_surcharges,id',
             'accrued.heddfs.*.payment' => 'required|numeric',
-            
+
             // hrddfs
             'accrued.hrddfs' => 'nullable|array',
             'accrued.hrddfs.*.start_time' => 'required|date_format:Y-m-d\TH:i:s',
@@ -119,7 +119,7 @@ class DocumentPayrollRequest extends FormRequest
             'accrued.other_concepts.*.salary_concept' => 'required_if:accrued.other_concepts.*.non_salary_concept, ""|numeric',
             'accrued.other_concepts.*.non_salary_concept' => 'required_if:accrued.other_concepts.*.salary_concept, ""|numeric',
             'accrued.other_concepts.*.description_concept' => 'required|string',
-            
+
             // prima de servicio
             'accrued.service_bonus' => 'nullable|array',
             'accrued.service_bonus.*.quantity' => 'required|numeric',
@@ -151,8 +151,8 @@ class DocumentPayrollRequest extends FormRequest
 
             // vacaciones compensadas
             'accrued.paid_vacation' => 'nullable|array',
-            'accrued.paid_vacation.*.start_date' => 'required|date_format:Y-m-d',
-            'accrued.paid_vacation.*.end_date' => 'required|date_format:Y-m-d',
+            'accrued.paid_vacation.*.start_date' => 'nullable|date_format:Y-m-d',
+            'accrued.paid_vacation.*.end_date' => 'nullable|date_format:Y-m-d',
             'accrued.paid_vacation.*.quantity' => 'required|numeric',
             'accrued.paid_vacation.*.payment' => 'required|numeric',
 
@@ -221,16 +221,16 @@ class DocumentPayrollRequest extends FormRequest
             'accrued.compensation' => 'nullable|numeric',
 
             // opcionales
-            'accrued.transportation_allowance' => 'nullable|numeric|gt:0',
-            'accrued.telecommuting' => 'nullable|numeric|gt:0',
-            'accrued.endowment' => 'nullable|numeric|gt:0',
-            'accrued.sustenance_support' => 'nullable|numeric|gt:0',
-            'accrued.withdrawal_bonus' => 'nullable|numeric|gt:0',
-            'accrued.compensation' => 'nullable|numeric|gt:0',
+            'accrued.transportation_allowance' => 'nullable|numeric|gte:0',
+            'accrued.telecommuting' => 'nullable|numeric|gte:0',
+            'accrued.endowment' => 'nullable|numeric|gte:0',
+            'accrued.sustenance_support' => 'nullable|numeric|gte:0',
+            'accrued.withdrawal_bonus' => 'nullable|numeric|gte:0',
+            'accrued.compensation' => 'nullable|numeric|gte:0',
 
-            'accrued.salary_viatics' => 'nullable|numeric|gt:0',
-            'accrued.non_salary_viatics' => 'nullable|numeric|gt:0',
-            'accrued.refund' => 'nullable|numeric|gt:0',
+            'accrued.salary_viatics' => 'nullable|numeric|gte:0',
+            'accrued.non_salary_viatics' => 'nullable|numeric|gte:0',
+            'accrued.refund' => 'nullable|numeric|gte:0',
 
             // Accrued
 
@@ -258,40 +258,40 @@ class DocumentPayrollRequest extends FormRequest
             'deduction.orders' => 'nullable|array',
             'deduction.orders.*.description' => 'required|string',
             'deduction.orders.*.deduction' => 'required|numeric',
-            
+
             // pagos a terceros
             'deduction.third_party_payments' => 'nullable|array',
             'deduction.third_party_payments.*.third_party_payment' => 'required|numeric|gt:0',
-            
+
             // anticipos
             'deduction.advances' => 'nullable|array',
             'deduction.advances.*.advance' => 'required|numeric|gt:0',
-            
+
             // otras deducciones
             'deduction.other_deductions' => 'nullable|array',
             'deduction.other_deductions.*.other_deduction' => 'required|numeric|gt:0',
-            
+
             // opcionales
-            'deduction.voluntary_pension' => 'nullable|numeric|gt:0',
-            'deduction.withholding_at_source' => 'nullable|numeric|gt:0',
-            'deduction.afc' => 'nullable|numeric|gt:0',
-            'deduction.cooperative' => 'nullable|numeric|gt:0',
-            'deduction.tax_liens' => 'nullable|numeric|gt:0',
-            'deduction.supplementary_plan' => 'nullable|numeric|gt:0',
-            'deduction.education' => 'nullable|numeric|gt:0',
-            'deduction.refund' => 'nullable|numeric|gt:0',
-            'deduction.debt' => 'nullable|numeric|gt:0',
+            'deduction.voluntary_pension' => 'nullable|numeric|gte:0',
+            'deduction.withholding_at_source' => 'nullable|numeric|gte:0',
+            'deduction.afc' => 'nullable|numeric|gte:0',
+            'deduction.cooperative' => 'nullable|numeric|gte:0',
+            'deduction.tax_liens' => 'nullable|numeric|gte:0',
+            'deduction.supplementary_plan' => 'nullable|numeric|gte:0',
+            'deduction.education' => 'nullable|numeric|gte:0',
+            'deduction.refund' => 'nullable|numeric|gte:0',
+            'deduction.debt' => 'nullable|numeric|gte:0',
 
             'deduction.fondossp_type_law_deductions_id' => 'nullable|exists:tenant.co_type_law_deductions,id',
             'deduction.fondosp_deduction_SP' => 'required_with:deduction.fondossp_type_law_deductions_id|numeric',
-            
+
             'deduction.fondossp_sub_type_law_deductions_id' => 'nullable|exists:tenant.co_type_law_deductions,id',
             'deduction.fondosp_deduction_sub' => 'required_with:deduction.fondossp_sub_type_law_deductions_id|numeric',
 
         ];
     }
 
-    
+
     public function messages()
     {
         return [

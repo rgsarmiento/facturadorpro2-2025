@@ -126,7 +126,9 @@ class DocumentPayrollHelper
 
 
         //nómina reemplazo
-        $worker = WorkerInput::set($inputs->worker_id);
+        // Si worker_id es un array, tomar el primer elemento
+        $worker_id = is_array($inputs->worker_id) ? $inputs->worker_id[0] : $inputs->worker_id;
+        $worker = WorkerInput::set($worker_id);
 
         return [
             'consecutive' => $consecutive,
