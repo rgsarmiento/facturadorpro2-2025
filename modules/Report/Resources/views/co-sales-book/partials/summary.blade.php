@@ -74,15 +74,18 @@
                         $sum_taxable_amount = 0;
                         $sum_tax_amount = 0;
 
-                        foreach ($ordered_documents as $document)
-                        {
-                            $item_values = $document->getItemValuesByTax($tax->id);
-                            $sum_taxable_amount += $item_values['taxable_amount'];
-                            $sum_tax_amount += $item_values['tax_amount'];
-                        }
+                        // Validar que $tax tiene las propiedades necesarias
+                        if (isset($tax->id)) {
+                            foreach ($ordered_documents as $document)
+                            {
+                                $item_values = $document->getItemValuesByTax($tax->id);
+                                $sum_taxable_amount += $item_values['taxable_amount'];
+                                $sum_tax_amount += $item_values['tax_amount'];
+                            }
 
-                        $tax->global_taxable_amount += $sum_taxable_amount;
-                        $tax->global_tax_amount += $sum_tax_amount;
+                            $tax->global_taxable_amount = ($tax->global_taxable_amount ?? 0) + $sum_taxable_amount;
+                            $tax->global_tax_amount = ($tax->global_tax_amount ?? 0) + $sum_tax_amount;
+                        }
                     @endphp
 
                     <td class="celda text-right-td">{{ $first_document->generalApplyNumberFormat($sum_taxable_amount) }}</td>
