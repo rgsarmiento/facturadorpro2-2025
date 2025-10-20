@@ -49,7 +49,7 @@
                                     <label class="control-label">Resolución
                                         <span class="text-danger"> *</span>
                                     </label>
-                                    <el-select @change="changeResolution" v-model="form.type_document_id" class="border-left rounded-left border-info" :disabled="ni_resolution_id !== null">
+                                    <el-select @change="changeResolution" v-model="form.type_document_id" class="border-left rounded-left border-info" :disabled="false">
                                         <el-option v-for="option in resolutions" :key="option.id" :value="option.id" :label="`${option.prefix}`"></el-option>
                                     </el-select>
                                     <small class="form-control-feedback" v-if="errors.type_document_id" v-text="errors.type_document_id[0]"></small>
@@ -1662,14 +1662,15 @@
 
                 this.form.period = data.period
                 this.form.payroll_period_id = data.payroll_period_id
-                this.form.worker_id = data.worker_id
+                // Convertir worker_id a array si viene como número (el select es multiple)
+                this.form.worker_id = Array.isArray(data.worker_id) ? data.worker_id : [data.worker_id]
                 this.form.payment = data.payment
                 this.form.payment_dates = data.payment_dates
                 this.form.number_full = data.number_full
                 this.form.type_payroll_adjust_note_id = this.type_payroll_adjust_note_id //tipo nómina ajuste (reemplazo)
                 this.form.document_payroll_id = this.affected_document_payroll_id //id de nómina afectada
 
-                this.reloadDataWorkers(this.form.worker_id)
+                this.reloadDataWorkers(data.worker_id)
 
                 // devengados
                 this.form.accrued.total_base_salary = parseFloat(data.worker_total_base_salary) //asignar salario base
@@ -2192,7 +2193,8 @@
             reloadDataWorkers(worker_id) {
                 this.$http.get(`/payroll/workers/search-by-id/${worker_id}`).then((response) => {
                     this.workers = response.data.workers
-                    this.form.worker_id = worker_id
+                    // Convertir a array porque el select es multiple
+                    this.form.worker_id = Array.isArray(worker_id) ? worker_id : [worker_id]
                     this.changeWorker()
                 })
             },
