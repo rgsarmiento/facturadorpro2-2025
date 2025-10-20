@@ -6,6 +6,8 @@
 /public/padron_rar/*
 /storage/framework/laravel-excel/*
 /storage/*.key
+/storage/logs/*
+!/storage/logs/.gitignore
 /vendor
 /.idea
 /.vscode
