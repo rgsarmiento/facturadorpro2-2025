@@ -109,9 +109,16 @@ trait ReportSalesBookTrait
 
         $taxes = Tax::whereIn('id', $unique_tax_ids)
                     ->withOut(['type_tax'])
+                    ->whereNotNull('name')
+                    ->where('name', '!=', '')
                     ->select(['id', 'name', 'code', 'rate', 'conversion', 'is_percentage', 'is_fixed_value', 'is_retention', 'in_base', 'in_tax', 'type_tax_id'])
                     ->orderBy('id')
                     ->get();
+
+        // Filtrar taxes que no tienen las propiedades mínimas necesarias
+        $taxes = $taxes->filter(function($tax) {
+            return isset($tax->id) && isset($tax->name) && !empty($tax->name);
+        });
 
         // Inicializar propiedades globales para cada impuesto
         foreach ($taxes as $tax) {

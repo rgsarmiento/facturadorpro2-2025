@@ -8,11 +8,13 @@
             <th colspan="5"></th>
 
             @foreach($taxes as $tax)
-                <th colspan="2">
-                    IMPUESTO #{{ $loop->iteration }}
-                    <br>
-                    {{ $tax->name ?? 'Sin nombre' }} - ({{ $tax->rate ?? '0' }}%)
-                </th>
+                @if($tax && isset($tax->name))
+                    <th colspan="2">
+                        IMPUESTO #{{ $loop->iteration }}
+                        <br>
+                        {{ $tax->name }} - ({{ $tax->rate ?? '0' }}%)
+                    </th>
+                @endif
             @endforeach
         </tr>
         <tr>
@@ -24,8 +26,10 @@
             <th>Total/Excento</th>
 
             @foreach($taxes as $tax)
-                <th>Base</th>
-                <th>Impuesto</th>
+                @if($tax && isset($tax->name))
+                    <th>Base</th>
+                    <th>Impuesto</th>
+                @endif
             @endforeach
         </tr>
     </thead>
@@ -69,13 +73,11 @@
 
                 {{-- IMPUESTOS --}}
                 @foreach($taxes as &$tax)
+                    @if($tax && isset($tax->id) && isset($tax->name))
+                        @php
+                            $sum_taxable_amount = 0;
+                            $sum_tax_amount = 0;
 
-                    @php
-                        $sum_taxable_amount = 0;
-                        $sum_tax_amount = 0;
-
-                        // Validar que $tax tiene las propiedades necesarias
-                        if (isset($tax->id)) {
                             foreach ($ordered_documents as $document)
                             {
                                 $item_values = $document->getItemValuesByTax($tax->id);
@@ -85,12 +87,11 @@
 
                             $tax->global_taxable_amount = ($tax->global_taxable_amount ?? 0) + $sum_taxable_amount;
                             $tax->global_tax_amount = ($tax->global_tax_amount ?? 0) + $sum_tax_amount;
-                        }
-                    @endphp
+                        @endphp
 
-                    <td class="celda text-right-td">{{ $first_document->generalApplyNumberFormat($sum_taxable_amount) }}</td>
-                    <td class="celda text-right-td">{{ $first_document->generalApplyNumberFormat($sum_tax_amount) }}</td>
-
+                        <td class="celda text-right-td">{{ $first_document->generalApplyNumberFormat($sum_taxable_amount) }}</td>
+                        <td class="celda text-right-td">{{ $first_document->generalApplyNumberFormat($sum_tax_amount) }}</td>
+                    @endif
                 @endforeach
                 {{-- IMPUESTOS --}}
 
@@ -117,15 +118,17 @@
         </tr>
 
         @foreach($taxes as $tax)
-            <tr>
-                <td class="celda">
-                    TOTAL VENTAS IMPUESTO #{{ $loop->iteration }}
-                    {{-- <br> --}}
-                    - {{ $tax->name ?? 'Sin nombre' }} ({{ $tax->rate ?? '0' }}%)
-                </td>
-                <td class="celda text-right-td">{{ DocumentHelper::applyNumberFormat($tax->global_taxable_amount ?? 0) }}</td>
-                <td class="celda text-right-td">{{ DocumentHelper::applyNumberFormat($tax->global_tax_amount ?? 0) }}</td>
-            </tr>
+            @if($tax && isset($tax->name))
+                <tr>
+                    <td class="celda">
+                        TOTAL VENTAS IMPUESTO #{{ $loop->iteration }}
+                        {{-- <br> --}}
+                        - {{ $tax->name }} ({{ $tax->rate ?? '0' }}%)
+                    </td>
+                    <td class="celda text-right-td">{{ DocumentHelper::applyNumberFormat($tax->global_taxable_amount ?? 0) }}</td>
+                    <td class="celda text-right-td">{{ DocumentHelper::applyNumberFormat($tax->global_tax_amount ?? 0) }}</td>
+                </tr>
+            @endif
         @endforeach
     </tbody>
 </table>
