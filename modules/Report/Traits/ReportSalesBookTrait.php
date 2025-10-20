@@ -119,12 +119,12 @@ trait ReportSalesBookTrait
             if (!isset($tax->name) || empty($tax->name)) {
                 $tax->name = 'Impuesto sin nombre (ID: ' . ($tax->id ?? 'N/A') . ')';
             }
-            
+
             // Asignar rate por defecto si no existe
             if (!isset($tax->rate)) {
                 $tax->rate = 0;
             }
-            
+
             // Inicializar propiedades globales para cada impuesto
             $tax->global_taxable_amount = 0;
             $tax->global_tax_amount = 0;
