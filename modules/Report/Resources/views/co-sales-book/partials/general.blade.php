@@ -5,11 +5,13 @@
             <th colspan="9"></th>
 
             @foreach($taxes as $tax)
-                <th colspan="2">
-                    IMPUESTO #{{ $loop->iteration }}
-                    <br>
-                    {{ $tax->name }} - ({{ $tax->rate }}%)
-                </th>
+                @if($tax && isset($tax->name))
+                    <th colspan="2">
+                        IMPUESTO #{{ $loop->iteration }}
+                        <br>
+                        {{ $tax->name }} - ({{ $tax->rate ?? '0' }}%)
+                    </th>
+                @endif
             @endforeach
         </tr>
         <tr>
@@ -24,8 +26,10 @@
             <th>Total/Excento</th>
 
             @foreach($taxes as $tax)
-                <th>Base</th>
-                <th>Impuesto</th>
+                @if($tax && isset($tax->name))
+                    <th>Base</th>
+                    <th>Impuesto</th>
+                @endif
             @endforeach
         </tr>
     </thead>
@@ -54,14 +58,14 @@
                 <td class="celda text-right-td"> {{ $row['total_exempt'] }} </td>
 
                 @foreach($taxes as $tax)
+                    @if($tax && isset($tax->id) && isset($tax->name))
+                        @php
+                            $item_values = $value->getItemValuesByTax($tax->id);
+                        @endphp
 
-                    @php
-                        $item_values = $value->getItemValuesByTax($tax->id);
-                    @endphp
-
-                    <td class="celda text-right-td">{{ $item_values['taxable_amount'] }}</td>
-                    <td class="celda text-right-td">{{ $item_values['tax_amount'] }}</td>
-
+                        <td class="celda text-right-td">{{ $item_values['taxable_amount'] }}</td>
+                        <td class="celda text-right-td">{{ $item_values['tax_amount'] }}</td>
+                    @endif
                 @endforeach
             </tr>
         @endforeach
@@ -71,8 +75,10 @@
             <th>{{ $total }}</th>
             <th>{{ $total_exempt }}</th>
             @foreach($taxes as $tax)
-                <th></th>
-                <th></th>
+                @if($tax && isset($tax->name))
+                    <th></th>
+                    <th></th>
+                @endif
             @endforeach
         </tr>
     </tbody>
