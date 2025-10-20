@@ -3186,7 +3186,9 @@ export default {
                         this.botones[mesaIndexNueva].state = 1;
                     }
                     this.$message.success(response.data.message, 3);
-                    document.getElementById("closeModalBtnCuenta").click();
+
+                    // Recargar la lista de productos en la cuenta
+                    this.abrirModalCuenta(this.selected_table, this.dbId);
                 })
                 .catch(error => {
                     const errorMsg =
@@ -3271,6 +3273,10 @@ export default {
                     }
 
                     this.$message.success(response.data.message, 3);
+
+                    // Limpiar la lista de productos y cerrar modales
+                    this.productosCuenta = [];
+                    this.productosSeleccionados = [];
                     document.getElementById("closeModalBtnCuenta").click();
                     document.getElementById("closeModalBtn").click();
                 })
