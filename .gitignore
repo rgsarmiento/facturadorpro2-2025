@@ -5,6 +5,12 @@
 /public/padron_extract/*
 /public/padron_rar/*
 /storage/framework/laravel-excel/*
+/storage/framework/sessions/*
+/storage/framework/views/*
+/storage/framework/cache/*
+!/storage/framework/cache/.gitignore
+!/storage/framework/sessions/.gitignore
+!/storage/framework/views/.gitignore
 /storage/*.key
 /storage/logs/*
 !/storage/logs/.gitignore

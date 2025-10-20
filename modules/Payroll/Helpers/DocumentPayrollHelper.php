@@ -138,6 +138,7 @@ class DocumentPayrollHelper
             'establishment' => $establishment,
             'date_of_issue' => $date_of_issue,
             'time_of_issue' => $time_of_issue,
+            'worker_id' => $worker_id, // Sobrescribir worker_id con el valor individual
             'worker' => $worker,
             'state_document_id' => self::REGISTERED, //estado inicial
             'payroll_type_environment_id' => $this->company->payroll_type_environment_id,
