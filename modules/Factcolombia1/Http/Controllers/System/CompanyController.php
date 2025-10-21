@@ -143,7 +143,7 @@ class CompanyController extends Controller
 
             // Ejecutar procesos del tenant sin iniciar transacciones internas en seeders
             $this->runTenantPeruSeeder($request);
-            $this->runTenantSeeder($request, $response, $company);
+            $this->runTenantSeeder($request, $response, $company, $website);
 
 
             if (DB::connection('tenant')->transactionLevel() > 0) {

@@ -168,7 +168,7 @@ trait CompanyTrait
     }
 
 
-    public function runTenantSeeder($request, $response, $company){
+    public function runTenantSeeder($request, $response, $company, $website = null){
 
         // Ejecutar migraciones del tenant ANTES de los seeders
         try {
@@ -177,12 +177,36 @@ trait CompanyTrait
                 'database' => DB::connection('tenant')->getDatabaseName()
             ]);
 
+            // Obtener website_id de manera segura
+            $websiteId = null;
+
+            if ($website && $website->id) {
+                $websiteId = $website->id;
+            } else {
+                // Intentar obtener desde el Environment
+                $currentWebsite = app(\Hyn\Tenancy\Environment::class)->website();
+                if ($currentWebsite && $currentWebsite->id) {
+                    $websiteId = $currentWebsite->id;
+                } else {
+                    // Último recurso: buscar por hostname
+                    $hostname = $company->hostname;
+                    if ($hostname && $hostname->website_id) {
+                        $websiteId = $hostname->website_id;
+                    }
+                }
+            }
+
+            if (!$websiteId) {
+                throw new \Exception("No se pudo determinar el website_id para ejecutar migraciones");
+            }
+
             \Artisan::call('tenancy:migrate', [
-                '--website_id' => app(\Hyn\Tenancy\Environment::class)->website()->id
+                '--website_id' => $websiteId
             ]);
 
             \Log::info('Migraciones ejecutadas correctamente', [
                 'subdomain' => $company->subdomain,
+                'website_id' => $websiteId,
                 'output' => \Artisan::output()
             ]);
         } catch (\Exception $e) {
