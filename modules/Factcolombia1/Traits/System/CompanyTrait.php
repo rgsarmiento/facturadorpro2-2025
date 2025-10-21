@@ -170,6 +170,30 @@ trait CompanyTrait
 
     public function runTenantSeeder($request, $response, $company){
 
+        // Ejecutar migraciones del tenant ANTES de los seeders
+        try {
+            \Log::info('Ejecutando migraciones para tenant', [
+                'subdomain' => $company->subdomain,
+                'database' => DB::connection('tenant')->getDatabaseName()
+            ]);
+
+            \Artisan::call('tenancy:migrate', [
+                '--website_id' => app(\Hyn\Tenancy\Environment::class)->website()->id
+            ]);
+
+            \Log::info('Migraciones ejecutadas correctamente', [
+                'subdomain' => $company->subdomain,
+                'output' => \Artisan::output()
+            ]);
+        } catch (\Exception $e) {
+            \Log::error('Error ejecutando migraciones de tenant', [
+                'subdomain' => $company->subdomain,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            throw new \Exception("Error al ejecutar migraciones del tenant: " . $e->getMessage());
+        }
+
         //lleno la data maestra
         \Artisan::call('db:seed', array('--class' => 'DataMasterTenantSeeder'));
         //lleno data mestra del servicio
