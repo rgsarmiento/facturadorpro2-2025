@@ -182,6 +182,7 @@ if($current_hostname) {
                     Route::get('download/{filename}', 'System\SystemBackupController@download')->name('system.backup.download');
                     Route::delete('delete/{filename}', 'System\SystemBackupController@delete')->name('system.backup.delete');
                     Route::post('restore', 'System\SystemBackupController@restore')->name('system.backup.restore');
+                    Route::post('restore-from-server', 'System\SystemBackupController@restoreFromServer')->name('system.backup.restore_from_server');
                 });
             });
         });

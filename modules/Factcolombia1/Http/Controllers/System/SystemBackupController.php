@@ -309,7 +309,49 @@ class SystemBackupController extends Controller
     }
 
     /**
-     * Restore complete system backup
+     * Restore complete system backup from server file
+     */
+    public function restoreFromServer(Request $request)
+    {
+        try {
+            // Configurar tiempo de ejecución y memoria para restore con muchas empresas
+            ini_set('max_execution_time', 36000); // 10 horas
+            ini_set('memory_limit', '2G');
+
+            $this->safeLog('RESTORE FROM SERVER: Iniciando proceso de restauración del sistema');
+
+            $request->validate([
+                'filename' => 'required|string'
+            ]);
+
+            $backupsPath = storage_path('app/system_backups');
+            $tempZipFile = $backupsPath . '/' . $request->filename;
+
+            if (!file_exists($tempZipFile)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'El archivo de backup no existe en el servidor'
+                ], 404);
+            }
+
+            $this->safeLog('RESTORE FROM SERVER: Usando archivo: ' . $request->filename);
+
+            return $this->performRestore($tempZipFile, false); // false = no eliminar el archivo original
+
+        } catch (\Throwable $e) {
+            $this->safeLog('RESTORE FROM SERVER ERROR: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al restaurar el sistema: ' . $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ], 500);
+        }
+    }
+
+    /**
+     * Restore complete system backup from uploaded file
      */
     public function restore(Request $request)
     {
@@ -339,6 +381,34 @@ class SystemBackupController extends Controller
 
             $this->safeLog('RESTORE: Archivo ZIP guardado temporalmente: ' . basename($tempZipFile));
 
+            return $this->performRestore($tempZipFile, true); // true = eliminar archivo temporal después
+
+        } catch (\Throwable $e) {
+            $this->safeLog('RESTORE ERROR: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
+
+            // Limpiar archivo temporal en caso de error
+            if (isset($tempZipFile) && file_exists($tempZipFile)) {
+                $this->safeUnlinkWithRetry($tempZipFile);
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al restaurar el sistema: ' . $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine()
+            ], 500);
+        }
+    }
+
+    /**
+     * Perform the actual restore process
+     */
+    private function performRestore($tempZipFile, $deleteTempFile = true)
+    {
+        $backupsPath = storage_path('app/system_backups');
+        $extractDir = null;
+
+        try {
             // Extraer ZIP
             $extractDir = $backupsPath . '/extract_temp_' . time();
             $this->safeLog('RESTORE: Extrayendo archivo ZIP a: ' . $extractDir);
@@ -378,7 +448,9 @@ class SystemBackupController extends Controller
 
             // En Windows, ZipArchive puede mantener el archivo bloqueado brevemente después de extractTo()
             // Esperar un momento y reintentar si es necesario
-            $this->safeUnlinkWithRetry($tempZipFile);
+            if ($deleteTempFile && file_exists($tempZipFile)) {
+                $this->safeUnlinkWithRetry($tempZipFile);
+            }
             $this->deleteDirectory($extractDir);
 
             $this->safeLog('RESTORE: Proceso de restauración completado exitosamente');
@@ -391,8 +463,9 @@ class SystemBackupController extends Controller
         } catch (\Throwable $e) {
             // Log detallado para diagnóstico
             $this->safeLog('RESTORE ERROR: ' . $e->getMessage() . ' in ' . $e->getFile() . ':' . $e->getLine());
+
             // Limpiar archivos temporales en caso de error
-            if (isset($tempZipFile) && file_exists($tempZipFile)) {
+            if ($deleteTempFile && isset($tempZipFile) && file_exists($tempZipFile)) {
                 $this->safeUnlinkWithRetry($tempZipFile);
             }
             if (isset($extractDir) && is_dir($extractDir)) {
