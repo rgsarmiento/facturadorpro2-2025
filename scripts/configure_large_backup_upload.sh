@@ -289,13 +289,17 @@ echo ""
 # Esperar un momento para que los servicios se estabilicen
 sleep 3
 
-# Verificar PHP con php -r para obtener valores reales
-echo -e "${BLUE}PHP Configuration:${NC}"
-docker exec $FPM_CONTAINER php -r "
-    echo '  upload_max_filesize = ' . ini_get('upload_max_filesize') . PHP_EOL;
-    echo '  post_max_size = ' . ini_get('post_max_size') . PHP_EOL;
-    echo '  max_execution_time = ' . ini_get('max_execution_time') . PHP_EOL;
-    echo '  memory_limit = ' . ini_get('memory_limit') . PHP_EOL;
+# Verificar PHP leyendo directamente el archivo FPM (no CLI)
+echo -e "${BLUE}PHP-FPM Configuration (valores reales para web):${NC}"
+docker exec $FPM_CONTAINER bash -c "
+    echo -n '  upload_max_filesize = '
+    grep '^upload_max_filesize' $PHP_INI_PATH | tail -1 | awk '{print \$3}'
+    echo -n '  post_max_size = '
+    grep '^post_max_size' $PHP_INI_PATH | tail -1 | awk '{print \$3}'
+    echo -n '  max_execution_time = '
+    grep '^max_execution_time' $PHP_INI_PATH | tail -1 | awk '{print \$3}'
+    echo -n '  memory_limit = '
+    grep '^memory_limit' $PHP_INI_PATH | tail -1 | awk '{print \$3}'
 "
 
 echo ""
@@ -333,6 +337,9 @@ echo -e "  • $PHP_INI_PATH.backup_${BACKUP_SUFFIX}"
 echo -e "  • $PHP_FPM_CONF_PATH.backup_${BACKUP_SUFFIX}"
 echo -e "  • $NGINX_APP_SITE_CONF.backup_${BACKUP_SUFFIX}"
 echo -e "  • $NGINX_PROXY_CONF.backup_${BACKUP_SUFFIX}"
+echo ""
+echo -e "${BLUE}Nota:${NC} Los valores mostrados son del archivo ${BLUE}php-fpm${NC}, que es el que usa"
+echo -e "       la aplicación web. El CLI puede mostrar valores diferentes."
 echo ""
 echo -e "${YELLOW}Siguientes pasos:${NC}"
 echo -e "  1. Accede a: ${BLUE}https://gestorstar.com/co-companies/system-backup/${NC}"
