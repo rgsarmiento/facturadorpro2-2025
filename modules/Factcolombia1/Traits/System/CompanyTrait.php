@@ -177,38 +177,54 @@ trait CompanyTrait
                 'database' => DB::connection('tenant')->getDatabaseName()
             ]);
 
-            // Obtener website_id de manera segura
-            $websiteId = null;
+            // Obtener website para las migraciones
+            $websiteObj = null;
 
             if ($website && $website->id) {
-                $websiteId = $website->id;
+                $websiteObj = $website;
             } else {
                 // Intentar obtener desde el Environment
                 $currentWebsite = app(\Hyn\Tenancy\Environment::class)->website();
                 if ($currentWebsite && $currentWebsite->id) {
-                    $websiteId = $currentWebsite->id;
+                    $websiteObj = $currentWebsite;
                 } else {
                     // Último recurso: buscar por hostname
                     $hostname = $company->hostname;
                     if ($hostname && $hostname->website_id) {
-                        $websiteId = $hostname->website_id;
+                        $websiteObj = \Hyn\Tenancy\Models\Website::find($hostname->website_id);
                     }
                 }
             }
 
-            if (!$websiteId) {
-                throw new \Exception("No se pudo determinar el website_id para ejecutar migraciones");
+            if (!$websiteObj || !$websiteObj->id) {
+                throw new \Exception("No se pudo determinar el website para ejecutar migraciones");
             }
 
-            \Artisan::call('tenancy:migrate', [
-                '--website_id' => $websiteId
-            ]);
+            // Ejecutar migraciones directamente con el migrator
+            $migrator = app('migrator');
+            $migrationPath = database_path('migrations/tenant');
 
-            \Log::info('Migraciones ejecutadas correctamente', [
-                'subdomain' => $company->subdomain,
-                'website_id' => $websiteId,
-                'output' => \Artisan::output()
-            ]);
+            if (!is_dir($migrationPath)) {
+                \Log::warning('No existe directorio de migraciones tenant', [
+                    'path' => $migrationPath
+                ]);
+            } else {
+                // Cambiar la conexión del migrator a 'tenant'
+                $migrator->setConnection('tenant');
+
+                // Ejecutar migraciones
+                $migrator->run([$migrationPath]);
+
+                // Capturar las notas (output) del migrator
+                $notes = $migrator->getNotes();
+
+                \Log::info('Migraciones ejecutadas correctamente', [
+                    'subdomain' => $company->subdomain,
+                    'website_id' => $websiteObj->id,
+                    'notes' => $notes
+                ]);
+            }
+
         } catch (\Exception $e) {
             \Log::error('Error ejecutando migraciones de tenant', [
                 'subdomain' => $company->subdomain,
