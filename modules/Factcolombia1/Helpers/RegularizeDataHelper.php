@@ -70,21 +70,139 @@ class RegularizeDataHelper
         $key = $table_name;
         $table = $tables[$table_name];
 
-        DB::connection()
-            ->getpdo()
-            ->exec("LOAD DATA LOCAL INFILE '".str_replace(DIRECTORY_SEPARATOR, '/', public_path($prefix.DIRECTORY_SEPARATOR."{$key}.{$prefix}"))."' INTO TABLE $key({$table['columns']}) SET created_at = NOW(), updated_at = NOW()");
+        // Determinar la conexión correcta (tenant cuando está disponible, default en caso contrario)
+        $connection = \Illuminate\Support\Facades\Schema::getConnection()->getName();
+        if ($connection === 'tenant' || DB::connection('tenant')->getDatabaseName()) {
+            $connection = 'tenant';
+        } else {
+            $connection = null; // Usar conexión por defecto
+        }
+
+        $csvPath = str_replace(DIRECTORY_SEPARATOR, '/', public_path($prefix.DIRECTORY_SEPARATOR."{$key}.{$prefix}"));
+
+        \Log::info("RegularizeDataHelper: insertDataFromSeeder para $table_name", [
+            'connection' => $connection,
+            'csv_path' => $csvPath,
+            'csv_exists' => file_exists($csvPath)
+        ]);
+
+        try {
+            // Intentar LOAD DATA LOCAL INFILE
+            if ($connection) {
+                DB::connection($connection)
+                    ->getpdo()
+                    ->exec("LOAD DATA LOCAL INFILE '{$csvPath}' INTO TABLE $key({$table['columns']}) SET created_at = NOW(), updated_at = NOW()");
+            } else {
+                DB::connection()
+                    ->getpdo()
+                    ->exec("LOAD DATA LOCAL INFILE '{$csvPath}' INTO TABLE $key({$table['columns']}) SET created_at = NOW(), updated_at = NOW()");
+            }
+            \Log::info("RegularizeDataHelper: $table_name poblada con LOAD DATA");
+        } catch (\Exception $e) {
+            // Si falla, usar método alternativo
+            \Log::warning("RegularizeDataHelper: LOAD DATA falló para $table_name, usando método alternativo", [
+                'error' => $e->getMessage()
+            ]);
+            self::loadFromCsvFileAlternative($table_name, $csvPath, $connection);
+        }
+    }
+
+    /**
+     * Método alternativo para cargar CSV cuando LOAD DATA falla
+     */
+    protected static function loadFromCsvFileAlternative($tableName, $csvPath, $connection = null)
+    {
+        if (!file_exists($csvPath)) {
+            \Log::error("RegularizeDataHelper: CSV no encontrado", ['path' => $csvPath]);
+            throw new \Exception("Archivo CSV no encontrado: {$csvPath}");
+        }
+
+        $file = fopen($csvPath, 'r');
+        if (!$file) {
+            throw new \Exception("No se pudo abrir el archivo CSV: {$csvPath}");
+        }
+
+        $rows = [];
+        $batchSize = 100;
+        $insertedCount = 0;
+
+        $columnMap = [
+            'co_type_workers' => ['id', 'name', 'code'],
+            'co_sub_type_workers' => ['id', 'name', 'code'],
+            'co_payroll_type_document_identifications' => ['id', 'name', 'code'],
+            'co_type_contracts' => ['id', 'name', 'code'],
+            'co_payroll_periods' => ['id', 'name', 'code'],
+            'co_type_overtime_surcharges' => ['id', 'name', 'code', 'percentage', 'type'],
+            'co_type_payroll_adjust_notes' => ['id', 'name', 'code'],
+            'co_type_generation_transmitions' => ['id', 'name', 'code'],
+            'co_service_type_documents' => ['id', 'name', 'code', 'cufe_algorithm', 'prefix'],
+            'co_health_type_document_identifications' => ['id', 'name', 'code'],
+        ];
+
+        $columns = $columnMap[$tableName] ?? [];
+
+        while (($line = fgets($file)) !== false) {
+            $line = trim($line);
+            if (empty($line)) continue;
+
+            $values = explode("\t", $line);
+
+            if (count($values) !== count($columns)) {
+                continue;
+            }
+
+            $row = array_combine($columns, $values);
+            $row['created_at'] = now();
+            $row['updated_at'] = now();
+
+            $rows[] = $row;
+
+            if (count($rows) >= $batchSize) {
+                if ($connection) {
+                    DB::connection($connection)->table($tableName)->insert($rows);
+                } else {
+                    DB::table($tableName)->insert($rows);
+                }
+                $insertedCount += count($rows);
+                $rows = [];
+            }
+        }
+
+        if (!empty($rows)) {
+            if ($connection) {
+                DB::connection($connection)->table($tableName)->insert($rows);
+            } else {
+                DB::table($tableName)->insert($rows);
+            }
+            $insertedCount += count($rows);
+        }
+
+        fclose($file);
+        \Log::info("RegularizeDataHelper: $tableName poblada con método alternativo", ['rows' => $insertedCount]);
     }
 
 
     public static function deleteRecords($table)
     {
-        DB::table($table)->delete();
+        // Determinar la conexión correcta
+        $connection = \Illuminate\Support\Facades\Schema::getConnection()->getName();
+        if ($connection === 'tenant' || DB::connection('tenant')->getDatabaseName()) {
+            DB::connection('tenant')->table($table)->delete();
+        } else {
+            DB::table($table)->delete();
+        }
     }
 
 
     public static function countRecords($table)
     {
-        return DB::table($table)->count();
+        // Determinar la conexión correcta
+        $connection = \Illuminate\Support\Facades\Schema::getConnection()->getName();
+        if ($connection === 'tenant' || DB::connection('tenant')->getDatabaseName()) {
+            return DB::connection('tenant')->table($table)->count();
+        } else {
+            return DB::table($table)->count();
+        }
     }
 
 }

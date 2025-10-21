@@ -92,6 +92,14 @@ class TenancyDatabaseSeeder extends Seeder
             }
         }
 
+        // Cargar manualmente UpdateDataServiceMasterTenantSeeder si no existe en autoload
+        if (!class_exists('UpdateDataServiceMasterTenantSeeder')) {
+            $seedFile = base_path('database/seeds/tenants/UpdateDataServiceMasterTenantSeeder.php');
+            if (file_exists($seedFile)) {
+                require_once $seedFile;
+            }
+        }
+
         // Ejecutar el resto, pero no impedir que la siembra principal continue si falla
         try {
             $this->call([UpdateDataServiceMasterTenantSeeder::class]);
