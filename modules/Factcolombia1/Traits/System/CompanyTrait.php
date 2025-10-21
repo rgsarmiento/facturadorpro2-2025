@@ -236,7 +236,7 @@ trait CompanyTrait
             \Log::info('Iniciando seeders de tenant', [
                 'subdomain' => $company->subdomain
             ]);
-            
+
             // Seeder 1: Data maestra
             \Log::info('Ejecutando DataMasterTenantSeeder');
             \Artisan::call('db:seed', [
@@ -246,7 +246,7 @@ trait CompanyTrait
             ]);
             $output1 = \Artisan::output();
             \Log::info('DataMasterTenantSeeder completado', ['output' => $output1]);
-            
+
             // Seeder 2: Data maestra del servicio
             \Log::info('Ejecutando DataServiceMasterTenantSeeder');
             \Artisan::call('db:seed', [
@@ -256,7 +256,7 @@ trait CompanyTrait
             ]);
             $output2 = \Artisan::output();
             \Log::info('DataServiceMasterTenantSeeder completado', ['output' => $output2]);
-            
+
             // Seeder 3: TenancyDatabaseSeeder (incluye UpdateDataServiceMasterTenantSeeder y otros)
             \Log::info('Ejecutando TenancyDatabaseSeeder');
             \Artisan::call('db:seed', [
@@ -266,7 +266,7 @@ trait CompanyTrait
             ]);
             $output3 = \Artisan::output();
             \Log::info('TenancyDatabaseSeeder completado', ['output' => $output3]);
-            
+
         } catch (\Exception $e) {
             \Log::error('Error ejecutando seeders de tenant', [
                 'subdomain' => $company->subdomain,

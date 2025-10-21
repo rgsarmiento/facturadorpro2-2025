@@ -49,9 +49,28 @@ class UpdateDataServiceMasterTenantSeeder extends Seeder
     public function run()
     {
         foreach ($this->tables as $key => $table) {
-            DB::connection()
-                ->getpdo()
-                ->exec("LOAD DATA LOCAL INFILE '".str_replace(DIRECTORY_SEPARATOR, '/', public_path($this->prefix.DIRECTORY_SEPARATOR."{$key}.{$this->prefix}"))."' INTO TABLE $key({$table['columns']}) SET created_at = NOW(), updated_at = NOW()");
+            // Verificar si la tabla ya tiene datos antes de intentar cargarlos
+            $count = DB::connection('tenant')->table($key)->count();
+            if ($count > 0) {
+                if (method_exists($this->command, 'info')) {
+                    $this->command->info("Saltando $key - ya contiene $count registros");
+                }
+                continue;
+            }
+
+            try {
+                DB::connection('tenant')
+                    ->getpdo()
+                    ->exec("LOAD DATA LOCAL INFILE '".str_replace(DIRECTORY_SEPARATOR, '/', public_path($this->prefix.DIRECTORY_SEPARATOR."{$key}.{$this->prefix}"))."' INTO TABLE $key({$table['columns']}) SET created_at = NOW(), updated_at = NOW()");
+
+                if (method_exists($this->command, 'info')) {
+                    $this->command->info("Tabla $key poblada correctamente");
+                }
+            } catch (\Exception $e) {
+                if (method_exists($this->command, 'warn')) {
+                    $this->command->warn("Error al poblar $key: " . $e->getMessage());
+                }
+            }
         }
     }
 }

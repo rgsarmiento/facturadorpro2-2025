@@ -4,7 +4,7 @@ use Illuminate\Database\Seeder;
 
 class DataServiceMasterTenantSeeder extends Seeder
 {
-    
+
      /**
      * Prefix.
      *
@@ -41,7 +41,7 @@ class DataServiceMasterTenantSeeder extends Seeder
         ],
         'co_service_type_liabilities' => [
             'columns' => 'id, name, code, @created_at, @updated_at',
-        ],      
+        ],
         'co_service_type_currencies' => [
             'columns' => 'id, name, code, @created_at, @updated_at',
         ],
