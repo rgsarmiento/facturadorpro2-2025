@@ -68,7 +68,7 @@ class DataServiceMasterTenantSeeder extends Seeder
     public function run()
     {
         foreach ($this->tables as $key => $table) {
-            DB::connection()
+            DB::connection('tenant')
                 ->getpdo()
                 ->exec("LOAD DATA LOCAL INFILE '".str_replace(DIRECTORY_SEPARATOR, '/', public_path($this->prefix.DIRECTORY_SEPARATOR."{$key}.{$this->prefix}"))."' INTO TABLE $key({$table['columns']}) SET created_at = NOW(), updated_at = NOW()");
         }

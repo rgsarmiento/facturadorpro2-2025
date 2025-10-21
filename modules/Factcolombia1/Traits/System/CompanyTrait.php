@@ -231,10 +231,50 @@ trait CompanyTrait
             throw new \Exception("Error al ejecutar migraciones del tenant: " . $e->getMessage());
         }
 
-        //lleno la data maestra
-        \Artisan::call('db:seed', array('--class' => 'DataMasterTenantSeeder'));
-        //lleno data mestra del servicio
-        \Artisan::call('db:seed', array('--class' => 'DataServiceMasterTenantSeeder'));
+        // Ejecutar seeders con logs detallados
+        try {
+            \Log::info('Iniciando seeders de tenant', [
+                'subdomain' => $company->subdomain
+            ]);
+            
+            // Seeder 1: Data maestra
+            \Log::info('Ejecutando DataMasterTenantSeeder');
+            \Artisan::call('db:seed', [
+                '--class' => 'DataMasterTenantSeeder',
+                '--database' => 'tenant',
+                '--force' => true
+            ]);
+            $output1 = \Artisan::output();
+            \Log::info('DataMasterTenantSeeder completado', ['output' => $output1]);
+            
+            // Seeder 2: Data maestra del servicio
+            \Log::info('Ejecutando DataServiceMasterTenantSeeder');
+            \Artisan::call('db:seed', [
+                '--class' => 'DataServiceMasterTenantSeeder',
+                '--database' => 'tenant',
+                '--force' => true
+            ]);
+            $output2 = \Artisan::output();
+            \Log::info('DataServiceMasterTenantSeeder completado', ['output' => $output2]);
+            
+            // Seeder 3: TenancyDatabaseSeeder (incluye UpdateDataServiceMasterTenantSeeder y otros)
+            \Log::info('Ejecutando TenancyDatabaseSeeder');
+            \Artisan::call('db:seed', [
+                '--class' => 'TenancyDatabaseSeeder',
+                '--database' => 'tenant',
+                '--force' => true
+            ]);
+            $output3 = \Artisan::output();
+            \Log::info('TenancyDatabaseSeeder completado', ['output' => $output3]);
+            
+        } catch (\Exception $e) {
+            \Log::error('Error ejecutando seeders de tenant', [
+                'subdomain' => $company->subdomain,
+                'error' => $e->getMessage(),
+                'trace' => $e->getTraceAsString()
+            ]);
+            throw new \Exception("Error al ejecutar seeders del tenant: " . $e->getMessage());
+        }
 
         $user_id = DB::connection('tenant')
             ->table('users')
