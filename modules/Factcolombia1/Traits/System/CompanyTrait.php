@@ -213,15 +213,12 @@ trait CompanyTrait
                 $migrator->setConnection('tenant');
 
                 // Ejecutar migraciones
-                $migrator->run([$migrationPath]);
-
-                // Capturar las notas (output) del migrator
-                $notes = $migrator->getNotes();
+                $ran = $migrator->run([$migrationPath]);
 
                 \Log::info('Migraciones ejecutadas correctamente', [
                     'subdomain' => $company->subdomain,
                     'website_id' => $websiteObj->id,
-                    'notes' => $notes
+                    'migrations_count' => count($ran)
                 ]);
             }
 
