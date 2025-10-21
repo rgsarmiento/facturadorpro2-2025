@@ -106,12 +106,22 @@ echo -e "${YELLOW}[1/4] Configurando PHP.ini en contenedor fpm_app...${NC}"
 docker exec $FPM_CONTAINER bash -c "cp $PHP_INI_PATH ${PHP_INI_PATH}.backup_${BACKUP_SUFFIX}"
 echo -e "${GREEN}  ✓ Backup creado: ${PHP_INI_PATH}.backup_${BACKUP_SUFFIX}${NC}"
 
-# Modificar configuraciones PHP
-docker exec $FPM_CONTAINER bash -c "sed -i 's/^upload_max_filesize = .*/upload_max_filesize = 50G/' $PHP_INI_PATH"
-docker exec $FPM_CONTAINER bash -c "sed -i 's/^post_max_size = .*/post_max_size = 50G/' $PHP_INI_PATH"
-docker exec $FPM_CONTAINER bash -c "sed -i 's/^max_execution_time = .*/max_execution_time = 36000/' $PHP_INI_PATH"
-docker exec $FPM_CONTAINER bash -c "sed -i 's/^max_input_time = .*/max_input_time = 36000/' $PHP_INI_PATH"
-docker exec $FPM_CONTAINER bash -c "sed -i 's/^memory_limit = .*/memory_limit = 4G/' $PHP_INI_PATH"
+# Modificar configuraciones PHP usando sed con expresiones más robustas
+docker exec $FPM_CONTAINER bash -c "
+    # Primero intentar actualizar valores existentes
+    sed -i 's/^upload_max_filesize[[:space:]]*=.*/upload_max_filesize = 50G/' $PHP_INI_PATH
+    sed -i 's/^post_max_size[[:space:]]*=.*/post_max_size = 50G/' $PHP_INI_PATH
+    sed -i 's/^max_execution_time[[:space:]]*=.*/max_execution_time = 36000/' $PHP_INI_PATH
+    sed -i 's/^max_input_time[[:space:]]*=.*/max_input_time = 36000/' $PHP_INI_PATH
+    sed -i 's/^memory_limit[[:space:]]*=.*/memory_limit = 4G/' $PHP_INI_PATH
+
+    # Si no existen, agregarlos al final del archivo
+    grep -q '^upload_max_filesize' $PHP_INI_PATH || echo 'upload_max_filesize = 50G' >> $PHP_INI_PATH
+    grep -q '^post_max_size' $PHP_INI_PATH || echo 'post_max_size = 50G' >> $PHP_INI_PATH
+    grep -q '^max_execution_time' $PHP_INI_PATH || echo 'max_execution_time = 36000' >> $PHP_INI_PATH
+    grep -q '^max_input_time' $PHP_INI_PATH || echo 'max_input_time = 36000' >> $PHP_INI_PATH
+    grep -q '^memory_limit' $PHP_INI_PATH || echo 'memory_limit = 4G' >> $PHP_INI_PATH
+"
 
 echo -e "${GREEN}  ✓ Configuraciones PHP actualizadas:${NC}"
 echo -e "    - upload_max_filesize = 50G"
@@ -187,17 +197,32 @@ if [ -n "$NGINX_PROXY_CONTAINER" ]; then
     docker exec $NGINX_PROXY_CONTAINER bash -c "cp $NGINX_PROXY_CONF ${NGINX_PROXY_CONF}.backup_${BACKUP_SUFFIX}"
     echo -e "${GREEN}  ✓ Backup creado: ${NGINX_PROXY_CONF}.backup_${BACKUP_SUFFIX}${NC}"
 
-    # Agregar configuraciones en el bloque http del proxy
+    # Primero eliminar cualquier directiva duplicada en conf.d
     docker exec $NGINX_PROXY_CONTAINER bash -c "
-    if ! grep -q 'client_max_body_size' $NGINX_PROXY_CONF; then
-        sed -i '/http {/a \    client_max_body_size 50G;\n    client_body_timeout 3600s;\n    proxy_read_timeout 3600s;\n    proxy_connect_timeout 3600s;\n    proxy_send_timeout 3600s;' $NGINX_PROXY_CONF
-    else
-        sed -i 's/client_max_body_size.*/client_max_body_size 50G;/' $NGINX_PROXY_CONF
-        sed -i 's/client_body_timeout.*/client_body_timeout 3600s;/' $NGINX_PROXY_CONF
-        sed -i 's/proxy_read_timeout.*/proxy_read_timeout 3600s;/' $NGINX_PROXY_CONF
-        sed -i 's/proxy_connect_timeout.*/proxy_connect_timeout 3600s;/' $NGINX_PROXY_CONF
-        sed -i 's/proxy_send_timeout.*/proxy_send_timeout 3600s;/' $NGINX_PROXY_CONF
-    fi
+    # Eliminar duplicados de client_max_body_size en archivos de conf.d
+    for conf_file in /etc/nginx/conf.d/*.conf; do
+        if [ -f \"\$conf_file\" ]; then
+            # Comentar o eliminar client_max_body_size existentes en conf.d
+            sed -i '/client_max_body_size/d' \"\$conf_file\"
+            sed -i '/client_body_timeout/d' \"\$conf_file\"
+            sed -i '/proxy_read_timeout/d' \"\$conf_file\"
+            sed -i '/proxy_connect_timeout/d' \"\$conf_file\"
+            sed -i '/proxy_send_timeout/d' \"\$conf_file\"
+        fi
+    done
+    "
+
+    # Ahora agregar/actualizar configuraciones en nginx.conf principal
+    docker exec $NGINX_PROXY_CONTAINER bash -c "
+    # Eliminar configuraciones antiguas si existen
+    sed -i '/client_max_body_size/d' $NGINX_PROXY_CONF
+    sed -i '/client_body_timeout/d' $NGINX_PROXY_CONF
+    sed -i '/proxy_read_timeout/d' $NGINX_PROXY_CONF
+    sed -i '/proxy_connect_timeout/d' $NGINX_PROXY_CONF
+    sed -i '/proxy_send_timeout/d' $NGINX_PROXY_CONF
+
+    # Agregar configuraciones nuevas en el bloque http
+    sed -i '/http {/a \    client_max_body_size 50G;\n    client_body_timeout 3600s;\n    proxy_read_timeout 3600s;\n    proxy_connect_timeout 3600s;\n    proxy_send_timeout 3600s;' $NGINX_PROXY_CONF
     "
 
     echo -e "${GREEN}  ✓ Nginx Proxy configurado:${NC}"
@@ -232,9 +257,24 @@ echo -e "${GREEN}  ✓ Nginx App reiniciado${NC}"
 # Reiniciar Nginx Proxy (si existe)
 if [ -n "$NGINX_PROXY_CONTAINER" ]; then
     echo -e "${BLUE}  → Reiniciando Nginx Proxy...${NC}"
-    docker exec $NGINX_PROXY_CONTAINER nginx -t && docker exec $NGINX_PROXY_CONTAINER nginx -s reload || docker restart $NGINX_PROXY_CONTAINER
-    sleep 2
-    echo -e "${GREEN}  ✓ Nginx Proxy reiniciado${NC}"
+
+    # Verificar sintaxis antes de reiniciar
+    if docker exec $NGINX_PROXY_CONTAINER nginx -t 2>&1; then
+        docker exec $NGINX_PROXY_CONTAINER nginx -s reload 2>/dev/null || docker restart $NGINX_PROXY_CONTAINER
+        sleep 5
+
+        # Verificar que el contenedor esté corriendo
+        if docker ps | grep -q $NGINX_PROXY_CONTAINER; then
+            echo -e "${GREEN}  ✓ Nginx Proxy reiniciado correctamente${NC}"
+        else
+            echo -e "${RED}  ✗ Error al reiniciar Nginx Proxy${NC}"
+            echo -e "${YELLOW}    Para restaurar: docker exec $NGINX_PROXY_CONTAINER cp ${NGINX_PROXY_CONF}.backup_${BACKUP_SUFFIX} $NGINX_PROXY_CONF && docker restart $NGINX_PROXY_CONTAINER${NC}"
+        fi
+    else
+        echo -e "${RED}  ✗ Error en sintaxis de Nginx Proxy. No se reinició.${NC}"
+        echo -e "${YELLOW}    Revise los logs: docker logs $NGINX_PROXY_CONTAINER${NC}"
+        echo -e "${YELLOW}    Para restaurar: docker exec $NGINX_PROXY_CONTAINER cp ${NGINX_PROXY_CONF}.backup_${BACKUP_SUFFIX} $NGINX_PROXY_CONF && docker restart $NGINX_PROXY_CONTAINER${NC}"
+    fi
 fi
 
 ################################################################################
@@ -246,18 +286,30 @@ echo -e "${BLUE}═════════════════════�
 echo -e "${YELLOW}Verificando configuraciones aplicadas...${NC}"
 echo ""
 
-# Verificar PHP
+# Esperar un momento para que los servicios se estabilicen
+sleep 3
+
+# Verificar PHP con php -r para obtener valores reales
 echo -e "${BLUE}PHP Configuration:${NC}"
-docker exec $FPM_CONTAINER php -i | grep -E "upload_max_filesize|post_max_size|max_execution_time|memory_limit" | head -4
+docker exec $FPM_CONTAINER php -r "
+    echo '  upload_max_filesize = ' . ini_get('upload_max_filesize') . PHP_EOL;
+    echo '  post_max_size = ' . ini_get('post_max_size') . PHP_EOL;
+    echo '  max_execution_time = ' . ini_get('max_execution_time') . PHP_EOL;
+    echo '  memory_limit = ' . ini_get('memory_limit') . PHP_EOL;
+"
 
 echo ""
 echo -e "${BLUE}Nginx App Configuration:${NC}"
-docker exec $NGINX_APP_CONTAINER grep -E "client_max_body_size|fastcgi_read_timeout" $NGINX_APP_SITE_CONF | grep -v "#"
+docker exec $NGINX_APP_CONTAINER grep -E "client_max_body_size|fastcgi_read_timeout" $NGINX_APP_SITE_CONF | grep -v "#" | head -3
 
 if [ -n "$NGINX_PROXY_CONTAINER" ]; then
     echo ""
     echo -e "${BLUE}Nginx Proxy Configuration:${NC}"
-    docker exec $NGINX_PROXY_CONTAINER grep -E "client_max_body_size|proxy_read_timeout" $NGINX_PROXY_CONF | grep -v "#"
+    if docker ps | grep -q $NGINX_PROXY_CONTAINER; then
+        docker exec $NGINX_PROXY_CONTAINER grep -E "client_max_body_size|proxy_read_timeout" $NGINX_PROXY_CONF | grep -v "#" | head -3
+    else
+        echo -e "${RED}  Contenedor proxy no está corriendo. Verifique los logs.${NC}"
+    fi
 fi
 
 ################################################################################

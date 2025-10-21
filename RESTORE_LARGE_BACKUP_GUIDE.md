@@ -14,12 +14,15 @@ El error 413 "Content Too Large" ocurre porque Docker/Nginx/PHP tienen límites 
 
 ## ✅ SOLUCIÓN (Automática con Script Universal)
 
-### 🎯 Características del Script
+### Características del Script
 
-- ✅ **Universal**: Funciona en cualquier instalación Docker
-- ✅ **Auto-detección**: Encuentra los contenedores automáticamente
-- ✅ **Seguro**: Crea backups antes de modificar
-- ✅ **Flexible**: Funciona con o sin proxy
+- ✅ **Detección Automática**: Encuentra los contenedores correctos sin importar sus nombres
+- ✅ **Limpieza de Duplicados**: Elimina directivas duplicadas en Nginx antes de aplicar cambios
+- ✅ **Configuración Robusta**: Actualiza o crea directivas PHP según sea necesario  
+- ✅ **Backups Automáticos**: Crea respaldos con timestamp de todos los archivos modificados
+- ✅ **Verificación de Sintaxis**: Valida configuraciones de Nginx antes de reiniciar
+- ✅ **Manejo de Errores**: Proporciona instrucciones de rollback si algo falla
+- ✅ **Compatible**: Funciona en cualquier instalación Docker del facturador
 
 ### 🚀 Inicio Rápido (5 minutos)
 
@@ -247,6 +250,57 @@ docker ps
 ---
 
 ## 🐛 Troubleshooting (Solución de Problemas)
+
+### ❌ Error: "directive is duplicate" en Nginx Proxy
+
+**Síntoma**: Al ejecutar el script, Nginx Proxy muestra error `nginx: [emerg] "client_max_body_size" directive is duplicate` y entra en loop de reinicio.
+
+**Causa**: Ya existían directivas `client_max_body_size` en archivos de configuración adicionales (como `/etc/nginx/conf.d/default.conf`).
+
+**Solución**: El script **versión mejorada** ya elimina automáticamente directivas duplicadas antes de aplicar los cambios. Si usaste una versión anterior:
+
+```bash
+# 1. Detener el loop de reinicio
+docker stop proxy
+
+# 2. Restaurar backup
+docker start proxy
+docker exec proxy cp /etc/nginx/nginx.conf.backup_TIMESTAMP /etc/nginx/nginx.conf
+
+# 3. Descargar y ejecutar la versión actualizada del script
+cd /root
+rm configure_large_backup_upload.sh
+wget https://TU-REPOSITORIO/configure_large_backup_upload.sh
+chmod 700 configure_large_backup_upload.sh
+./configure_large_backup_upload.sh
+```
+
+### ❌ PHP no muestra los valores de 50G después del script
+
+**Síntoma**: Al verificar, PHP sigue mostrando `upload_max_filesize = 2M` en lugar de `50G`.
+
+**Causa**: El archivo `php.ini` tiene las directivas comentadas o PHP no las está reconociendo.
+
+**Solución**: El script **versión mejorada** ya agrega las directivas al final del archivo si no existen. Si usaste una versión anterior:
+
+```bash
+# 1. Verificar el contenido del php.ini
+docker exec fpm_app cat /etc/php/7.2/fpm/php.ini | grep -E "upload_max_filesize|post_max_size"
+
+# 2. Si están comentadas (;), ejecutar:
+docker exec fpm_app bash -c "
+    echo 'upload_max_filesize = 50G' >> /etc/php/7.2/fpm/php.ini
+    echo 'post_max_size = 50G' >> /etc/php/7.2/fpm/php.ini
+    echo 'max_execution_time = 36000' >> /etc/php/7.2/fpm/php.ini
+    echo 'memory_limit = 4G' >> /etc/php/7.2/fpm/php.ini
+"
+
+# 3. Reiniciar PHP-FPM
+docker restart fpm_app
+
+# 4. Verificar
+docker exec fpm_app php -r "echo ini_get('upload_max_filesize');"
+```
 
 ### ❌ Error: "Contenedor no está corriendo"
 ```bash
