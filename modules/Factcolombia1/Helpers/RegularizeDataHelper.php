@@ -80,12 +80,6 @@ class RegularizeDataHelper
 
         $csvPath = str_replace(DIRECTORY_SEPARATOR, '/', public_path($prefix.DIRECTORY_SEPARATOR."{$key}.{$prefix}"));
 
-        \Log::info("RegularizeDataHelper: insertDataFromSeeder para $table_name", [
-            'connection' => $connection,
-            'csv_path' => $csvPath,
-            'csv_exists' => file_exists($csvPath)
-        ]);
-
         try {
             // Intentar LOAD DATA LOCAL INFILE
             if ($connection) {
@@ -97,12 +91,8 @@ class RegularizeDataHelper
                     ->getpdo()
                     ->exec("LOAD DATA LOCAL INFILE '{$csvPath}' INTO TABLE $key({$table['columns']}) SET created_at = NOW(), updated_at = NOW()");
             }
-            \Log::info("RegularizeDataHelper: $table_name poblada con LOAD DATA");
         } catch (\Exception $e) {
             // Si falla, usar método alternativo
-            \Log::warning("RegularizeDataHelper: LOAD DATA falló para $table_name, usando método alternativo", [
-                'error' => $e->getMessage()
-            ]);
             self::loadFromCsvFileAlternative($table_name, $csvPath, $connection);
         }
     }
@@ -113,7 +103,6 @@ class RegularizeDataHelper
     protected static function loadFromCsvFileAlternative($tableName, $csvPath, $connection = null)
     {
         if (!file_exists($csvPath)) {
-            \Log::error("RegularizeDataHelper: CSV no encontrado", ['path' => $csvPath]);
             throw new \Exception("Archivo CSV no encontrado: {$csvPath}");
         }
 
@@ -124,7 +113,6 @@ class RegularizeDataHelper
 
         $rows = [];
         $batchSize = 100;
-        $insertedCount = 0;
 
         $columnMap = [
             'co_type_workers' => ['id', 'name', 'code'],
@@ -163,7 +151,6 @@ class RegularizeDataHelper
                 } else {
                     DB::table($tableName)->insert($rows);
                 }
-                $insertedCount += count($rows);
                 $rows = [];
             }
         }
@@ -174,11 +161,9 @@ class RegularizeDataHelper
             } else {
                 DB::table($tableName)->insert($rows);
             }
-            $insertedCount += count($rows);
         }
 
         fclose($file);
-        \Log::info("RegularizeDataHelper: $tableName poblada con método alternativo", ['rows' => $insertedCount]);
     }
 
 

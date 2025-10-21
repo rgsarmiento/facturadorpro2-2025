@@ -24,8 +24,6 @@ class TenantAddPptPayrollTypeDocumentIdentification extends Migration
 
         if ($count < 5) {
             // La tabla está vacía o incompleta, cargar todos los datos desde CSV
-            \Log::info('Poblando co_payroll_type_document_identifications desde CSV (tabla con solo ' . $count . ' registros)');
-
             // Eliminar registros existentes si los hay
             if ($count > 0) {
                 DB::table('co_payroll_type_document_identifications')->delete();
@@ -35,9 +33,7 @@ class TenantAddPptPayrollTypeDocumentIdentification extends Migration
             if (class_exists('Modules\Factcolombia1\Helpers\RegularizeDataHelper')) {
                 try {
                     \Modules\Factcolombia1\Helpers\RegularizeDataHelper::insertDataFromSeeder('co_payroll_type_document_identifications');
-                    \Log::info('co_payroll_type_document_identifications poblada con RegularizeDataHelper');
                 } catch (\Exception $e) {
-                    \Log::error('Error al poblar co_payroll_type_document_identifications con RegularizeDataHelper', ['error' => $e->getMessage()]);
                     // Si falla, cargar manualmente los registros básicos
                     $this->loadBasicRecords();
                 }
@@ -59,7 +55,6 @@ class TenantAddPptPayrollTypeDocumentIdentification extends Migration
                 'created_at' => now(),
                 'updated_at' => now(),
             ]);
-            \Log::info('Registro PPT agregado a co_payroll_type_document_identifications');
         }
     }
 
@@ -86,8 +81,6 @@ class TenantAddPptPayrollTypeDocumentIdentification extends Migration
             $record['updated_at'] = now();
             DB::table('co_payroll_type_document_identifications')->insert($record);
         }
-
-        \Log::info('Registros básicos cargados manualmente en co_payroll_type_document_identifications', ['count' => count($records)]);
     }
 
     /**
