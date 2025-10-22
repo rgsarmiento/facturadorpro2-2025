@@ -357,8 +357,9 @@ class SystemBackupController extends Controller
     {
         try {
             // Configurar tiempo de ejecución y memoria para restore con muchas empresas
-            ini_set('max_execution_time', 36000); // 10 horas
-            ini_set('memory_limit', '2G');
+            ini_set('max_execution_time', 86400); // 24 horas
+            ini_set('memory_limit', '4G');
+            set_time_limit(86400); // 24 horas
 
             $this->safeLog('RESTORE: Iniciando proceso de restauración del sistema');
 
@@ -1101,7 +1102,7 @@ class SystemBackupController extends Controller
 
             // Crear usuario para localhost si no existe
             if (!in_array('localhost', $existingUsers)) {
-                $createQuery = "CREATE USER `{$tenantUuid}`@`localhost` IDENTIFIED WITH mysql_native_password BY '{$password}'";
+                $createQuery = "CREATE USER `{$tenantUuid}`@`localhost` IDENTIFIED BY '{$password}'";
                 DB::connection('mysql')->statement($createQuery);
 
                 $grantQuery = "GRANT ALL PRIVILEGES ON `{$databaseName}`.* TO `{$tenantUuid}`@`localhost`";
@@ -1114,7 +1115,7 @@ class SystemBackupController extends Controller
 
             // Crear usuario para % (cualquier host) si no existe
             if (!in_array('%', $existingUsers)) {
-                $createQuery = "CREATE USER `{$tenantUuid}`@`%` IDENTIFIED WITH mysql_native_password BY '{$password}'";
+                $createQuery = "CREATE USER `{$tenantUuid}`@`%` IDENTIFIED BY '{$password}'";
                 DB::connection('mysql')->statement($createQuery);
 
                 $grantQuery = "GRANT ALL PRIVILEGES ON `{$databaseName}`.* TO `{$tenantUuid}`@`%`";

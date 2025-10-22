@@ -1,7 +1,7 @@
 #!/bin/bash
 
 ################################################################################
-# Script de Configuración para Subida de Backups Grandes (hasta 50GB)
+# Script de Configuración para Subida de Backups Grandes (hasta 60GB)
 #
 # DESCRIPCIÓN:
 #   Configura automáticamente los límites en Docker (PHP, Nginx, Proxy) para
@@ -13,12 +13,12 @@
 #   3. Ejecutar: sudo bash /root/configure_large_backup_upload.sh
 #
 # QUÉ CONFIGURA:
-#   • PHP: upload_max_filesize = 50G
-#   • PHP: post_max_size = 50G
-#   • PHP: max_execution_time = 36000 (10 horas)
+#   • PHP: upload_max_filesize = 60G
+#   • PHP: post_max_size = 60G
+#   • PHP: max_execution_time = 86400 (24 horas)
 #   • PHP: memory_limit = 4G
-#   • Nginx App: client_max_body_size = 50G + timeouts
-#   • Nginx Proxy: client_max_body_size = 50G + timeouts
+#   • Nginx App: client_max_body_size = 60G + timeouts 24h
+#   • Nginx Proxy: client_max_body_size = 60G + timeouts 24h
 #
 # SEGURIDAD:
 #   • Crea backups de todos los archivos modificados
@@ -41,7 +41,7 @@ BLUE='\033[0;34m'
 NC='\033[0m' # Sin color
 
 echo -e "${BLUE}═══════════════════════════════════════════════════════════════════${NC}"
-echo -e "${BLUE}   Configuración de Límites para Backups Grandes (50GB)${NC}"
+echo -e "${BLUE}   Configuración de Límites para Backups Grandes (60GB - 24h)${NC}"
 echo -e "${BLUE}═══════════════════════════════════════════════════════════════════${NC}"
 echo ""
 
@@ -109,26 +109,29 @@ echo -e "${GREEN}  ✓ Backup creado: ${PHP_INI_PATH}.backup_${BACKUP_SUFFIX}${N
 # Modificar configuraciones PHP usando sed con expresiones más robustas
 docker exec $FPM_CONTAINER bash -c "
     # Primero intentar actualizar valores existentes
-    sed -i 's/^upload_max_filesize[[:space:]]*=.*/upload_max_filesize = 50G/' $PHP_INI_PATH
-    sed -i 's/^post_max_size[[:space:]]*=.*/post_max_size = 50G/' $PHP_INI_PATH
-    sed -i 's/^max_execution_time[[:space:]]*=.*/max_execution_time = 36000/' $PHP_INI_PATH
-    sed -i 's/^max_input_time[[:space:]]*=.*/max_input_time = 36000/' $PHP_INI_PATH
+    sed -i 's/^upload_max_filesize[[:space:]]*=.*/upload_max_filesize = 60G/' $PHP_INI_PATH
+    sed -i 's/^post_max_size[[:space:]]*=.*/post_max_size = 60G/' $PHP_INI_PATH
+    sed -i 's/^max_execution_time[[:space:]]*=.*/max_execution_time = 86400/' $PHP_INI_PATH
+    sed -i 's/^max_input_time[[:space:]]*=.*/max_input_time = 86400/' $PHP_INI_PATH
     sed -i 's/^memory_limit[[:space:]]*=.*/memory_limit = 4G/' $PHP_INI_PATH
+    sed -i 's/^default_socket_timeout[[:space:]]*=.*/default_socket_timeout = 86400/' $PHP_INI_PATH
 
     # Si no existen, agregarlos al final del archivo
-    grep -q '^upload_max_filesize' $PHP_INI_PATH || echo 'upload_max_filesize = 50G' >> $PHP_INI_PATH
-    grep -q '^post_max_size' $PHP_INI_PATH || echo 'post_max_size = 50G' >> $PHP_INI_PATH
-    grep -q '^max_execution_time' $PHP_INI_PATH || echo 'max_execution_time = 36000' >> $PHP_INI_PATH
-    grep -q '^max_input_time' $PHP_INI_PATH || echo 'max_input_time = 36000' >> $PHP_INI_PATH
+    grep -q '^upload_max_filesize' $PHP_INI_PATH || echo 'upload_max_filesize = 60G' >> $PHP_INI_PATH
+    grep -q '^post_max_size' $PHP_INI_PATH || echo 'post_max_size = 60G' >> $PHP_INI_PATH
+    grep -q '^max_execution_time' $PHP_INI_PATH || echo 'max_execution_time = 86400' >> $PHP_INI_PATH
+    grep -q '^max_input_time' $PHP_INI_PATH || echo 'max_input_time = 86400' >> $PHP_INI_PATH
     grep -q '^memory_limit' $PHP_INI_PATH || echo 'memory_limit = 4G' >> $PHP_INI_PATH
+    grep -q '^default_socket_timeout' $PHP_INI_PATH || echo 'default_socket_timeout = 86400' >> $PHP_INI_PATH
 "
 
 echo -e "${GREEN}  ✓ Configuraciones PHP actualizadas:${NC}"
-echo -e "    - upload_max_filesize = 50G"
-echo -e "    - post_max_size = 50G"
-echo -e "    - max_execution_time = 36000 (10 horas)"
-echo -e "    - max_input_time = 36000 (10 horas)"
+echo -e "    - upload_max_filesize = 60G"
+echo -e "    - post_max_size = 60G"
+echo -e "    - max_execution_time = 86400 (24 horas)"
+echo -e "    - max_input_time = 86400 (24 horas)"
 echo -e "    - memory_limit = 4G"
+echo -e "    - default_socket_timeout = 86400 (24 horas)"
 
 ################################################################################
 # 2. CONFIGURAR PHP-FPM (www.conf)
@@ -144,14 +147,14 @@ echo -e "${GREEN}  ✓ Backup creado: ${PHP_FPM_CONF_PATH}.backup_${BACKUP_SUFFI
 # Agregar/modificar configuraciones de timeouts en PHP-FPM
 docker exec $FPM_CONTAINER bash -c "
 if grep -q '^request_terminate_timeout' $PHP_FPM_CONF_PATH; then
-    sed -i 's/^request_terminate_timeout.*/request_terminate_timeout = 36000/' $PHP_FPM_CONF_PATH
+    sed -i 's/^request_terminate_timeout.*/request_terminate_timeout = 86400/' $PHP_FPM_CONF_PATH
 else
-    echo 'request_terminate_timeout = 36000' >> $PHP_FPM_CONF_PATH
+    echo 'request_terminate_timeout = 86400' >> $PHP_FPM_CONF_PATH
 fi
 "
 
 echo -e "${GREEN}  ✓ PHP-FPM configurado:${NC}"
-echo -e "    - request_terminate_timeout = 36000 (10 horas)"
+echo -e "    - request_terminate_timeout = 86400 (24 horas)"
 
 ################################################################################
 # 3. CONFIGURAR NGINX EN CONTENEDOR nginx_app
@@ -167,23 +170,32 @@ echo -e "${GREEN}  ✓ Backup creado: ${NGINX_APP_SITE_CONF}.backup_${BACKUP_SUF
 # Agregar client_max_body_size al server block
 docker exec $NGINX_APP_CONTAINER bash -c "
 if ! grep -q 'client_max_body_size' $NGINX_APP_SITE_CONF; then
-    sed -i '/server {/a \    client_max_body_size 50G;' $NGINX_APP_SITE_CONF
+    sed -i '/server {/a \    client_max_body_size 60G;\n    client_body_timeout 86400s;\n    client_header_timeout 86400s;\n    send_timeout 86400s;\n    keepalive_timeout 86400s;' $NGINX_APP_SITE_CONF
 else
-    sed -i 's/client_max_body_size.*/client_max_body_size 50G;/' $NGINX_APP_SITE_CONF
+    sed -i 's/client_max_body_size.*/client_max_body_size 60G;/' $NGINX_APP_SITE_CONF
+    sed -i 's/client_body_timeout.*/client_body_timeout 86400s;/' $NGINX_APP_SITE_CONF || sed -i '/client_max_body_size/a \    client_body_timeout 86400s;' $NGINX_APP_SITE_CONF
+    sed -i 's/client_header_timeout.*/client_header_timeout 86400s;/' $NGINX_APP_SITE_CONF || sed -i '/client_body_timeout/a \    client_header_timeout 86400s;' $NGINX_APP_SITE_CONF
 fi
 "
 
 # Agregar timeouts al location PHP
 docker exec $NGINX_APP_CONTAINER bash -c "
 if ! grep -q 'fastcgi_read_timeout' $NGINX_APP_SITE_CONF; then
-    sed -i '/fastcgi_pass fpm_app:9000;/a \        fastcgi_read_timeout 36000s;\n        fastcgi_send_timeout 36000s;' $NGINX_APP_SITE_CONF
+    sed -i '/fastcgi_pass fpm_app:9000;/a \        fastcgi_read_timeout 86400s;\n        fastcgi_send_timeout 86400s;\n        fastcgi_connect_timeout 86400s;' $NGINX_APP_SITE_CONF
+else
+    sed -i 's/fastcgi_read_timeout.*/fastcgi_read_timeout 86400s;/' $NGINX_APP_SITE_CONF
+    sed -i 's/fastcgi_send_timeout.*/fastcgi_send_timeout 86400s;/' $NGINX_APP_SITE_CONF
+    sed -i 's/fastcgi_connect_timeout.*/fastcgi_connect_timeout 86400s;/' $NGINX_APP_SITE_CONF
 fi
 "
 
 echo -e "${GREEN}  ✓ Nginx (nginx_app) configurado:${NC}"
-echo -e "    - client_max_body_size = 50G"
-echo -e "    - fastcgi_read_timeout = 36000s"
-echo -e "    - fastcgi_send_timeout = 36000s"
+echo -e "    - client_max_body_size = 60G"
+echo -e "    - client_body_timeout = 86400s (24 horas)"
+echo -e "    - fastcgi_read_timeout = 86400s (24 horas)"
+echo -e "    - fastcgi_send_timeout = 86400s (24 horas)"
+echo -e "    - fastcgi_connect_timeout = 86400s (24 horas)"
+echo -e "    - keepalive_timeout = 86400s (24 horas)"
 
 ################################################################################
 # 4. CONFIGURAR NGINX PROXY (Opcional)
@@ -217,20 +229,27 @@ if [ -n "$NGINX_PROXY_CONTAINER" ]; then
     # Eliminar configuraciones antiguas si existen
     sed -i '/client_max_body_size/d' $NGINX_PROXY_CONF
     sed -i '/client_body_timeout/d' $NGINX_PROXY_CONF
+    sed -i '/client_header_timeout/d' $NGINX_PROXY_CONF
+    sed -i '/send_timeout/d' $NGINX_PROXY_CONF
     sed -i '/proxy_read_timeout/d' $NGINX_PROXY_CONF
     sed -i '/proxy_connect_timeout/d' $NGINX_PROXY_CONF
     sed -i '/proxy_send_timeout/d' $NGINX_PROXY_CONF
+    sed -i '/keepalive_timeout/d' $NGINX_PROXY_CONF
+    sed -i '/proxy_buffering/d' $NGINX_PROXY_CONF
 
     # Agregar configuraciones nuevas en el bloque http
-    sed -i '/http {/a \    client_max_body_size 50G;\n    client_body_timeout 3600s;\n    proxy_read_timeout 3600s;\n    proxy_connect_timeout 3600s;\n    proxy_send_timeout 3600s;' $NGINX_PROXY_CONF
+    sed -i '/http {/a \    client_max_body_size 60G;\n    client_body_timeout 86400s;\n    client_header_timeout 86400s;\n    send_timeout 86400s;\n    proxy_read_timeout 86400s;\n    proxy_connect_timeout 86400s;\n    proxy_send_timeout 86400s;\n    keepalive_timeout 86400s;\n    proxy_buffering off;' $NGINX_PROXY_CONF
     "
 
     echo -e "${GREEN}  ✓ Nginx Proxy configurado:${NC}"
-    echo -e "    - client_max_body_size = 50G"
-    echo -e "    - client_body_timeout = 3600s"
-    echo -e "    - proxy_read_timeout = 3600s"
-    echo -e "    - proxy_connect_timeout = 3600s"
-    echo -e "    - proxy_send_timeout = 3600s"
+    echo -e "    - client_max_body_size = 60G"
+    echo -e "    - client_body_timeout = 86400s (24 horas)"
+    echo -e "    - client_header_timeout = 86400s (24 horas)"
+    echo -e "    - proxy_read_timeout = 86400s (24 horas)"
+    echo -e "    - proxy_connect_timeout = 86400s (24 horas)"
+    echo -e "    - proxy_send_timeout = 86400s (24 horas)"
+    echo -e "    - keepalive_timeout = 86400s (24 horas)"
+    echo -e "    - proxy_buffering = off"
 else
     echo -e "${YELLOW}[4/4] Omitiendo configuración de Nginx Proxy (no detectado)${NC}"
 fi
@@ -326,11 +345,13 @@ echo -e "${GREEN}✓ CONFIGURACIÓN COMPLETADA EXITOSAMENTE${NC}"
 echo -e "${BLUE}═══════════════════════════════════════════════════════════════════${NC}"
 echo ""
 echo -e "${YELLOW}Cambios aplicados:${NC}"
-echo -e "  • PHP: Límite de subida aumentado a 50GB"
-echo -e "  • PHP: Tiempo de ejecución extendido a 10 horas"
+echo -e "  • PHP: Límite de subida aumentado a 60GB"
+echo -e "  • PHP: Tiempo de ejecución extendido a 24 horas (86400s)"
 echo -e "  • PHP: Memoria aumentada a 4GB"
-echo -e "  • Nginx: Tamaño máximo de body aumentado a 50GB"
-echo -e "  • Nginx: Timeouts extendidos para operaciones largas"
+echo -e "  • Nginx: Tamaño máximo de body aumentado a 60GB"
+echo -e "  • Nginx: Timeouts extendidos a 24 horas (86400s)"
+echo -e "  • Proxy: Timeouts extendidos a 24 horas (86400s)"
+echo -e "  • Proxy: Buffering desactivado para archivos grandes"
 echo ""
 echo -e "${YELLOW}Archivos de respaldo creados:${NC}"
 echo -e "  • $PHP_INI_PATH.backup_${BACKUP_SUFFIX}"
@@ -342,12 +363,13 @@ echo -e "${BLUE}Nota:${NC} Los valores mostrados son del archivo ${BLUE}php-fpm$
 echo -e "       la aplicación web. El CLI puede mostrar valores diferentes."
 echo ""
 echo -e "${YELLOW}Siguientes pasos:${NC}"
-echo -e "  1. Accede a: ${BLUE}https://gestorstar.com/co-companies/system-backup/${NC}"
+echo -e "  1. Accede a: ${BLUE}https://tu-dominio.com/co-companies/system-backup/${NC}"
 echo -e "  2. Haz clic en 'Restaurar desde Archivo'"
-echo -e "  3. Selecciona tu backup de 40GB"
+echo -e "  3. Selecciona tu backup (hasta 60GB)"
 echo -e "  4. Haz clic en 'Restaurar Sistema'"
-echo -e "  5. ${RED}¡IMPORTANTE!${NC} El proceso puede tardar ${YELLOW}2-10 horas${NC}"
+echo -e "  5. ${RED}¡IMPORTANTE!${NC} El proceso puede tardar ${YELLOW}2-12 horas${NC}"
 echo -e "  6. ${RED}NO CIERRES${NC} la ventana del navegador durante el proceso"
+echo -e "  7. La página puede parecer 'congelada' - es normal, el proceso continúa"
 echo ""
 echo -e "${YELLOW}Monitorear progreso:${NC}"
 echo -e "  ${BLUE}tail -f /root/pro2/storage/logs/laravel.log${NC}"

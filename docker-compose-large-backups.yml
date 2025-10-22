@@ -1,0 +1,63 @@
+version: '3'
+
+services:
+    nginx_image:
+        image: rash07/nginx
+        working_dir: /var/www/html
+        environment:
+            VIRTUAL_HOST: dominio, *.dominio
+        volumes:
+            - ./:/var/www/html
+            - /proxy/fpms/facturador_directory:/etc/nginx/sites-available
+            # Montar configuración personalizada de timeouts para backups
+            - ./docker/nginx/backup-timeouts.conf:/etc/nginx/conf.d/backup-timeouts.conf:ro
+        restart: always
+
+    fpm_image:
+        image: rash07/php-fpm:1.0
+        working_dir: /var/www/html
+        volumes:
+            - ./:/var/www/html
+            # Montar configuraciones PHP personalizadas para backups grandes
+            - ./docker/php/php-custom.ini:/usr/local/etc/php/conf.d/zz-custom.ini:ro
+            - ./docker/php-fpm/zz-custom.conf:/usr/local/etc/php-fpm.d/zz-custom.conf:ro
+        restart: always
+
+    mariadb_image:
+        image: mariadb:10.5.6
+        environment:
+            - MYSQL_USER=
+            - MYSQL_PASSWORD=
+            - MYSQL_DATABASE=
+            - MYSQL_ROOT_PASSWORD=
+            - MYSQL_PORT_HOST=
+        volumes:
+            - mysqldata_volume:/var/lib/mysql
+        ports:
+            - "3306:3306"
+        restart: always
+        command: --max_allowed_packet=1G --innodb_buffer_pool_size=2G --innodb_log_file_size=512M
+
+    redis_image:
+        image: redis:alpine
+        volumes:
+            - redisdata_volume:/data
+        restart: always
+
+    scheduling_image:
+        image: rash07/scheduling
+        working_dir: /var/www/html
+        volumes:
+            - ./:/var/www/html
+        restart: always
+
+networks:
+    default:
+        external:
+            name: proxynet
+
+volumes:
+    redisdata:
+        driver: "local"
+    mysqldata:
+        driver: "local"

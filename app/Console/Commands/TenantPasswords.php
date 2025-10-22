@@ -279,7 +279,7 @@ class TenantPasswords extends Command
             }
         } elseif ($createMissing) {
             try {
-                $createQuery = "CREATE USER `{$username}`@`localhost` IDENTIFIED WITH mysql_native_password BY '{$password}'";
+                $createQuery = "CREATE USER `{$username}`@`localhost` IDENTIFIED BY '{$password}'";
                 DB::update($createQuery);
 
                 // Grant privileges
@@ -305,7 +305,7 @@ class TenantPasswords extends Command
             }
         } elseif ($createMissing) {
             try {
-                $createQuery = "CREATE USER `{$username}`@`%` IDENTIFIED WITH mysql_native_password BY '{$password}'";
+                $createQuery = "CREATE USER `{$username}`@`%` IDENTIFIED BY '{$password}'";
                 DB::update($createQuery);
 
                 // Grant privileges

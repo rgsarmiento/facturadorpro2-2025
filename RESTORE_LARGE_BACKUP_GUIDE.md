@@ -1,22 +1,68 @@
-# Guía para Restaurar Backups Grandes (40GB+)
+# Guía para Restaurar Backups Grandes (60GB+, 24 horas)
 
 ## 📋 Problema
-Al intentar restaurar un backup grande (40GB) desde la interfaz web, aparece el error:
+Al intentar restaurar un backup grande (40GB+) desde la interfaz web, pueden aparecer errores:
 ```
 POST https://gestorstar.com/co-companies/system-backup/restore 413 (Content Too Large)
 ERROR: Error al restaurar el sistema. Verifique el archivo y la conexión.
+504 Gateway Timeout
 ```
 
 ## 🔍 Causa
-El error 413 "Content Too Large" ocurre porque Docker/Nginx/PHP tienen límites de tamaño de archivo muy bajos por defecto (2MB en PHP, sin límite explícito en Nginx).
+- Error **413 "Content Too Large"**: Docker/Nginx/PHP tienen límites de tamaño de archivo muy bajos por defecto (2MB en PHP)
+- Error **504 Gateway Timeout**: Los timeouts por defecto son insuficientes para restauraciones que toman varias horas
+- Error **CREATE USER syntax**: Incompatibilidad de sintaxis SQL entre MySQL y MariaDB
 
 ---
 
 ## ✅ SOLUCIÓN (Automática con Script Universal)
 
+### ⚠️ IMPORTANTE: Correcciones de Código Requeridas
+
+**ANTES de ejecutar el script**, debes aplicar estas correcciones de código críticas:
+
+#### 1. Corrección de Sintaxis CREATE USER (CRÍTICO)
+
+Estos archivos tienen un error de sintaxis SQL que causa fallos en MariaDB:
+
+**Archivos a corregir:**
+- `modules/Factcolombia1/Http/Controllers/System/SystemBackupController.php` (líneas 1104, 1117)
+- `app/Console/Commands/TenantPasswords.php` (líneas 282, 308)
+- `app/Console/Commands/ChangePass.php` (línea 68)
+
+**Cambio a realizar:**
+```php
+// ❌ ANTES (causa error en MariaDB):
+CREATE USER `user`@`host` IDENTIFIED WITH mysql_native_password BY 'password'
+
+// ✅ DESPUÉS (compatible con MySQL y MariaDB):
+CREATE USER `user`@`host` IDENTIFIED BY 'password'
+```
+
+**Cómo aplicar:**
+Buscar en cada archivo `IDENTIFIED WITH mysql_native_password BY` y reemplazar por `IDENTIFIED BY`.
+
+#### 2. Aumentar Timeout en SystemBackupController.php (CRÍTICO)
+
+En `modules/Factcolombia1/Http/Controllers/System/SystemBackupController.php`, línea ~361:
+
+```php
+// ❌ ANTES:
+ini_set('max_execution_time', 36000); // 10 horas
+ini_set('memory_limit', '2G');
+
+// ✅ DESPUÉS:
+ini_set('max_execution_time', 86400); // 24 horas
+ini_set('memory_limit', '4G');
+set_time_limit(86400); // 24 horas
+```
+
+---
+
 ### Características del Script
 
 - ✅ **Detección Automática**: Encuentra los contenedores correctos sin importar sus nombres
+- ✅ **Timeouts de 24 horas**: Soporta restauraciones muy largas (hasta 60GB)
 - ✅ **Limpieza de Duplicados**: Elimina directivas duplicadas en Nginx antes de aplicar cambios
 - ✅ **Configuración Robusta**: Actualiza o crea directivas PHP según sea necesario  
 - ✅ **Backups Automáticos**: Crea respaldos con timestamp de todos los archivos modificados
@@ -26,14 +72,19 @@ El error 413 "Content Too Large" ocurre porque Docker/Nginx/PHP tienen límites 
 
 ### 🚀 Inicio Rápido (5 minutos)
 
-#### 1. Subir el script al servidor
+#### 1. Subir archivos corregidos al servidor
 ```bash
-# Desde tu máquina local, copiar el script al VPS
-scp scripts/configure_large_backup_upload.sh root@TU-SERVIDOR:/root/
+# Desde tu máquina local, copiar los archivos corregidos
+scp modules/Factcolombia1/Http/Controllers/System/SystemBackupController.php root@TU-SERVIDOR:/ruta/modules/Factcolombia1/Http/Controllers/System/
+scp app/Console/Commands/TenantPasswords.php root@TU-SERVIDOR:/ruta/app/Console/Commands/
+scp app/Console/Commands/ChangePass.php root@TU-SERVIDOR:/ruta/app/Console/Commands/
 ```
 
-#### 2. Ejecutar el script en el servidor
+#### 2. Subir y ejecutar el script de configuración
 ```bash
+# Copiar el script al VPS
+scp scripts/configure_large_backup_upload.sh root@TU-SERVIDOR:/root/
+
 # Conectar por SSH
 ssh root@TU-SERVIDOR
 
@@ -45,25 +96,26 @@ sudo bash /root/configure_large_backup_upload.sh
 ```
 
 #### 3. El script detectará y configurará automáticamente:
-- ✅ **PHP**: upload_max_filesize = 50G
-- ✅ **PHP**: post_max_size = 50G
-- ✅ **PHP**: max_execution_time = 36000 (10 horas)
+- ✅ **PHP**: upload_max_filesize = 60G
+- ✅ **PHP**: post_max_size = 60G
+- ✅ **PHP**: max_execution_time = 86400 (24 horas)
 - ✅ **PHP**: memory_limit = 4G
-- ✅ **Nginx App**: client_max_body_size = 50G + timeouts
-- ✅ **Nginx Proxy**: client_max_body_size = 50G + timeouts
+- ✅ **Nginx App**: client_max_body_size = 60G + timeouts 24h
+- ✅ **Nginx Proxy**: client_max_body_size = 60G + timeouts 24h
 - ✅ **Reinicio automático** de todos los servicios
 
 #### 4. Usar la interfaz web normalmente
-Después de ejecutar el script, puedes subir backups de hasta 50GB desde:
+Después de ejecutar el script, puedes subir backups de hasta 60GB desde:
 ```
 https://gestorstar.com/co-companies/system-backup/
 ```
 
 **Proceso**:
 1. Clic en "Restaurar desde Archivo"
-2. Seleccionar tu backup de 40GB
+2. Seleccionar tu backup (hasta 60GB)
 3. Clic en "Restaurar Sistema"
-4. Esperar (2-10 horas, **NO cerrar el navegador**)
+4. Esperar (2-12 horas, **NO cerrar el navegador**)
+5. La página puede parecer "congelada" - es normal, el proceso continúa en background
 
 ---
 
@@ -88,28 +140,38 @@ El script modifica automáticamente estos archivos en los contenedores detectado
 
 ### Contenedor `fpm_app` (PHP 7.2):
 - **Archivo**: `/etc/php/7.2/fpm/php.ini`
-  - `upload_max_filesize = 50G`
-  - `post_max_size = 50G`
-  - `max_execution_time = 36000`
-  - `max_input_time = 36000`
+  - `upload_max_filesize = 60G`
+  - `post_max_size = 60G`
+  - `max_execution_time = 86400` (24 horas)
+  - `max_input_time = 86400` (24 horas)
   - `memory_limit = 4G`
+  - `default_socket_timeout = 86400` (24 horas)
 
 - **Archivo**: `/etc/php/7.2/fpm/pool.d/www.conf`
-  - `request_terminate_timeout = 36000`
+  - `request_terminate_timeout = 86400` (24 horas)
 
 ### Contenedor `nginx_app`:
 - **Archivo**: `/etc/nginx/sites-available/default`
-  - `client_max_body_size 50G;`
-  - `fastcgi_read_timeout 36000s;`
-  - `fastcgi_send_timeout 36000s;`
+  - `client_max_body_size 60G;`
+  - `client_body_timeout 86400s;` (24 horas)
+  - `client_header_timeout 86400s;` (24 horas)
+  - `send_timeout 86400s;` (24 horas)
+  - `keepalive_timeout 86400s;` (24 horas)
+  - `fastcgi_read_timeout 86400s;` (24 horas)
+  - `fastcgi_send_timeout 86400s;` (24 horas)
+  - `fastcgi_connect_timeout 86400s;` (24 horas)
 
 ### Contenedor `proxy`:
 - **Archivo**: `/etc/nginx/nginx.conf`
-  - `client_max_body_size 50G;`
-  - `client_body_timeout 3600s;`
-  - `proxy_read_timeout 3600s;`
-  - `proxy_connect_timeout 3600s;`
-  - `proxy_send_timeout 3600s;`
+  - `client_max_body_size 60G;`
+  - `client_body_timeout 86400s;` (24 horas)
+  - `client_header_timeout 86400s;` (24 horas)
+  - `send_timeout 86400s;` (24 horas)
+  - `proxy_read_timeout 86400s;` (24 horas)
+  - `proxy_connect_timeout 86400s;` (24 horas)
+  - `proxy_send_timeout 86400s;` (24 horas)
+  - `keepalive_timeout 86400s;` (24 horas)
+  - `proxy_buffering off;` (mejor rendimiento para archivos grandes)
 
 ### Seguridad:
 - ✅ Crea backups de todos los archivos modificados
@@ -123,14 +185,14 @@ El script modifica automáticamente estos archivos en los contenedores detectado
 
 ### ⏱️ Tiempos Estimados
 - **Configuración del script**: 2-3 minutos
-- **Subida de 40GB**: 30-90 minutos (depende de tu conexión a internet)
-- **Restauración del backup**: 2-10 horas (depende del hardware del servidor)
+- **Subida de 40-60GB**: 30-120 minutos (depende de tu conexión a internet)
+- **Restauración del backup**: 2-12 horas (depende del hardware del servidor y número de tenants)
 
 ### 💾 Espacio en Disco
-Asegúrate de tener al menos **100GB libres** en el servidor:
-- 40GB para el archivo ZIP
-- 40GB para la extracción temporal
-- 20GB adicionales para la base de datos
+Asegúrate de tener al menos **150GB libres** en el servidor:
+- 60GB para el archivo ZIP
+- 60GB para la extracción temporal
+- 30GB adicionales para la base de datos
 
 ```bash
 # Verificar espacio disponible

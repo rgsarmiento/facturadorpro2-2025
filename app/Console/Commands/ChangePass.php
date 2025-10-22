@@ -65,7 +65,7 @@ class ChangePass extends Command
 
             }catch (\Illuminate\Database\QueryException $e){
                 if("HY000"==$e->getCode()){
-                   $temp['query'] = "CREATE USER `".$site->uuid."`@`%` IDENTIFIED WITH mysql_native_password BY '$contra';";
+                   $temp['query'] = "CREATE USER `".$site->uuid."`@`%` IDENTIFIED BY '$contra';";
                     $this->line($temp['query'] );
                     \DB::update( $temp['query'] );
 
