@@ -678,8 +678,8 @@ if [ -n "$NGINX_PROXY_CONTAINER" ]; then
             echo -e "${RED}     ✗ No se encontró backup anterior${NC}"
             echo -e "${YELLOW}     Revise manualmente: docker exec -it $NGINX_PROXY_CONTAINER bash${NC}"
         fi
-    fi
-fi
+        fi
+    else
         echo -e "${YELLOW}    Para restaurar: docker exec $NGINX_PROXY_CONTAINER cp ${NGINX_PROXY_CONF}.backup_${BACKUP_SUFFIX} $NGINX_PROXY_CONF && docker restart $NGINX_PROXY_CONTAINER${NC}"
     fi
 fi
