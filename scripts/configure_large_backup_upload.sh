@@ -81,7 +81,7 @@ if [ -z "$NGINX_APP_CONTAINER" ]; then
 fi
 
 # Buscar contenedor Proxy (puede ser proxy, nginx-proxy, reverse-proxy, etc.)
-NGINX_PROXY_CONTAINER=$(docker ps --format '{{.Names}}' | grep -iE 'proxy' | head -1)
+NGINX_PROXY_CONTAINER=$(docker ps -a --format '{{.Names}}' | grep -iE 'proxy' | head -1)
 if [ -z "$NGINX_PROXY_CONTAINER" ]; then
     echo -e "${YELLOW}ADVERTENCIA: No se encontró contenedor Proxy. Continuando sin configurar proxy...${NC}"
 fi
@@ -90,7 +90,70 @@ echo -e "${GREEN}✓ Contenedores detectados:${NC}"
 echo -e "  - PHP-FPM: ${BLUE}$FPM_CONTAINER${NC}"
 echo -e "  - Nginx App: ${BLUE}$NGINX_APP_CONTAINER${NC}"
 if [ -n "$NGINX_PROXY_CONTAINER" ]; then
-    echo -e "  - Nginx Proxy: ${BLUE}$NGINX_PROXY_CONTAINER${NC}"
+    # Verificar si el proxy está en ciclo de reinicio
+    PROXY_STATUS=$(docker ps -a --filter "name=$NGINX_PROXY_CONTAINER" --format '{{.Status}}')
+    if echo "$PROXY_STATUS" | grep -qi "restarting"; then
+        echo -e "  - Nginx Proxy: ${RED}$NGINX_PROXY_CONTAINER (EN CICLO DE REINICIO - Se reparará)${NC}"
+
+        echo ""
+        echo -e "${YELLOW}═══════════════════════════════════════════════════════════════════${NC}"
+        echo -e "${YELLOW}   ⚠️  PROXY EN CICLO DE REINICIO - REPARANDO AUTOMÁTICAMENTE${NC}"
+        echo -e "${YELLOW}═══════════════════════════════════════════════════════════════════${NC}"
+        echo ""
+
+        # Detener el contenedor para poder trabajar con él
+        echo -e "${BLUE}  → Deteniendo contenedor proxy...${NC}"
+        docker stop $NGINX_PROXY_CONTAINER 2>/dev/null || true
+        sleep 2
+
+        # Buscar backup más reciente
+        echo -e "${BLUE}  → Buscando backup de configuración...${NC}"
+        LATEST_BACKUP=$(docker run --rm -v $(docker inspect --format='{{range .Mounts}}{{if eq .Destination "/etc/nginx"}}{{.Source}}{{end}}{{end}}' $NGINX_PROXY_CONTAINER):/nginx alpine sh -c "ls -t /nginx/nginx.conf.backup_* 2>/dev/null | head -1" 2>/dev/null || echo "")
+
+        if [ -n "$LATEST_BACKUP" ]; then
+            echo -e "${YELLOW}  → Restaurando desde backup: $(basename $LATEST_BACKUP)${NC}"
+            docker run --rm -v $(docker inspect --format='{{range .Mounts}}{{if eq .Destination "/etc/nginx"}}{{.Source}}{{end}}{{end}}' $NGINX_PROXY_CONTAINER):/nginx alpine cp "$LATEST_BACKUP" /nginx/nginx.conf
+        else
+            echo -e "${YELLOW}  → No se encontró backup, limpiando configuración corrupta...${NC}"
+
+            # Limpiar todas las directivas problemáticas
+            docker run --rm -v $(docker inspect --format='{{range .Mounts}}{{if eq .Destination "/etc/nginx"}}{{.Source}}{{end}}{{end}}' $NGINX_PROXY_CONTAINER):/nginx alpine sh -c "
+                cd /nginx
+                # Eliminar todas las líneas con directivas duplicadas
+                sed -i '/client_max_body_size/d' nginx.conf
+                sed -i '/client_body_timeout/d' nginx.conf
+                sed -i '/client_header_timeout/d' nginx.conf
+                sed -i '/send_timeout[^_]/d' nginx.conf
+                sed -i '/proxy_read_timeout/d' nginx.conf
+                sed -i '/proxy_connect_timeout/d' nginx.conf
+                sed -i '/proxy_send_timeout/d' nginx.conf
+                sed -i '/keepalive_timeout/d' nginx.conf
+                sed -i '/proxy_buffering/d' nginx.conf
+            "
+        fi
+
+        # Iniciar el contenedor
+        echo -e "${BLUE}  → Iniciando contenedor proxy...${NC}"
+        docker start $NGINX_PROXY_CONTAINER
+        sleep 3
+
+        # Verificar si arrancó correctamente
+        if docker ps | grep -q $NGINX_PROXY_CONTAINER; then
+            echo -e "${GREEN}  ✓ Proxy reparado y funcionando${NC}"
+        else
+            echo -e "${RED}  ✗ El proxy sigue fallando. Ver logs:${NC}"
+            docker logs $NGINX_PROXY_CONTAINER 2>&1 | tail -10
+            echo ""
+            echo -e "${YELLOW}  El script continuará e intentará reparar nuevamente durante la configuración...${NC}"
+        fi
+
+        echo ""
+        echo -e "${YELLOW}═══════════════════════════════════════════════════════════════════${NC}"
+        echo ""
+
+    else
+        echo -e "  - Nginx Proxy: ${BLUE}$NGINX_PROXY_CONTAINER${NC} (${GREEN}$PROXY_STATUS${NC})"
+    fi
 else
     echo -e "  - Nginx Proxy: ${YELLOW}No detectado (omitiendo)${NC}"
 fi
@@ -205,40 +268,106 @@ echo ""
 if [ -n "$NGINX_PROXY_CONTAINER" ]; then
     echo -e "${YELLOW}[4/4] Configurando Nginx Proxy...${NC}"
 
+    # Verificar si el contenedor está corriendo
+    if ! docker ps | grep -q $NGINX_PROXY_CONTAINER; then
+        echo -e "${RED}  ✗ Contenedor proxy no está corriendo. Intentando reparar...${NC}"
+
+        # Intentar obtener backup si existe
+        BACKUP_FILES=$(docker exec $NGINX_PROXY_CONTAINER bash -c "ls -t ${NGINX_PROXY_CONF}.backup_* 2>/dev/null | head -1" 2>/dev/null || echo "")
+
+        if [ -n "$BACKUP_FILES" ]; then
+            echo -e "${YELLOW}  → Restaurando desde backup: $BACKUP_FILES${NC}"
+            docker exec $NGINX_PROXY_CONTAINER bash -c "cp $BACKUP_FILES $NGINX_PROXY_CONF"
+        fi
+    fi
+
     # Crear backup del nginx.conf del proxy
-    docker exec $NGINX_PROXY_CONTAINER bash -c "cp $NGINX_PROXY_CONF ${NGINX_PROXY_CONF}.backup_${BACKUP_SUFFIX}"
+    docker exec $NGINX_PROXY_CONTAINER bash -c "cp $NGINX_PROXY_CONF ${NGINX_PROXY_CONF}.backup_${BACKUP_SUFFIX}" 2>/dev/null || true
     echo -e "${GREEN}  ✓ Backup creado: ${NGINX_PROXY_CONF}.backup_${BACKUP_SUFFIX}${NC}"
 
-    # Primero eliminar cualquier directiva duplicada en conf.d
+    echo -e "${BLUE}  → Limpiando configuraciones duplicadas en conf.d...${NC}"
+    # Eliminar TODOS los duplicados de TODOS los archivos en conf.d
     docker exec $NGINX_PROXY_CONTAINER bash -c "
-    # Eliminar duplicados de client_max_body_size en archivos de conf.d
+    # Eliminar duplicados en TODOS los archivos de conf.d (incluyendo default.conf)
     for conf_file in /etc/nginx/conf.d/*.conf; do
         if [ -f \"\$conf_file\" ]; then
-            # Comentar o eliminar client_max_body_size existentes en conf.d
+            echo \"    Limpiando: \$conf_file\"
             sed -i '/client_max_body_size/d' \"\$conf_file\"
             sed -i '/client_body_timeout/d' \"\$conf_file\"
+            sed -i '/client_header_timeout/d' \"\$conf_file\"
+            sed -i '/send_timeout[^_]/d' \"\$conf_file\"
             sed -i '/proxy_read_timeout/d' \"\$conf_file\"
             sed -i '/proxy_connect_timeout/d' \"\$conf_file\"
             sed -i '/proxy_send_timeout/d' \"\$conf_file\"
+            sed -i '/keepalive_timeout/d' \"\$conf_file\"
+            sed -i '/proxy_buffering/d' \"\$conf_file\"
         fi
     done
-    "
 
+    # También limpiar en vhost.d si existe
+    if [ -d /etc/nginx/vhost.d ]; then
+        for vhost_file in /etc/nginx/vhost.d/*; do
+            if [ -f \"\$vhost_file\" ]; then
+                echo \"    Limpiando: \$vhost_file\"
+                sed -i '/client_max_body_size/d' \"\$vhost_file\"
+                sed -i '/client_body_timeout/d' \"\$vhost_file\"
+                sed -i '/client_header_timeout/d' \"\$vhost_file\"
+                sed -i '/send_timeout[^_]/d' \"\$vhost_file\"
+                sed -i '/proxy_read_timeout/d' \"\$vhost_file\"
+                sed -i '/proxy_connect_timeout/d' \"\$vhost_file\"
+                sed -i '/proxy_send_timeout/d' \"\$vhost_file\"
+                sed -i '/keepalive_timeout/d' \"\$vhost_file\"
+                sed -i '/proxy_buffering/d' \"\$vhost_file\"
+            fi
+        done
+    fi
+    " 2>&1 | grep -E "Limpiando|^\s*$" || echo "  No se encontraron archivos adicionales"
+
+    echo -e "${BLUE}  → Limpiando configuraciones duplicadas en nginx.conf principal...${NC}"
     # Ahora agregar/actualizar configuraciones en nginx.conf principal
     docker exec $NGINX_PROXY_CONTAINER bash -c "
-    # Eliminar configuraciones antiguas si existen
-    sed -i '/client_max_body_size/d' $NGINX_PROXY_CONF
-    sed -i '/client_body_timeout/d' $NGINX_PROXY_CONF
-    sed -i '/client_header_timeout/d' $NGINX_PROXY_CONF
-    sed -i '/send_timeout/d' $NGINX_PROXY_CONF
-    sed -i '/proxy_read_timeout/d' $NGINX_PROXY_CONF
-    sed -i '/proxy_connect_timeout/d' $NGINX_PROXY_CONF
-    sed -i '/proxy_send_timeout/d' $NGINX_PROXY_CONF
-    sed -i '/keepalive_timeout/d' $NGINX_PROXY_CONF
-    sed -i '/proxy_buffering/d' $NGINX_PROXY_CONF
+    # Eliminar TODAS las configuraciones antiguas si existen (incluso múltiples veces)
+    while grep -q 'client_max_body_size' $NGINX_PROXY_CONF; do
+        sed -i '0,/client_max_body_size/d' $NGINX_PROXY_CONF
+    done
+    while grep -q 'client_body_timeout' $NGINX_PROXY_CONF; do
+        sed -i '0,/client_body_timeout/d' $NGINX_PROXY_CONF
+    done
+    while grep -q 'client_header_timeout' $NGINX_PROXY_CONF; do
+        sed -i '0,/client_header_timeout/d' $NGINX_PROXY_CONF
+    done
+    while grep -q 'send_timeout[^_]' $NGINX_PROXY_CONF; do
+        sed -i '0,/send_timeout[^_]/d' $NGINX_PROXY_CONF
+    done
+    while grep -q 'proxy_read_timeout' $NGINX_PROXY_CONF; do
+        sed -i '0,/proxy_read_timeout/d' $NGINX_PROXY_CONF
+    done
+    while grep -q 'proxy_connect_timeout' $NGINX_PROXY_CONF; do
+        sed -i '0,/proxy_connect_timeout/d' $NGINX_PROXY_CONF
+    done
+    while grep -q 'proxy_send_timeout' $NGINX_PROXY_CONF; do
+        sed -i '0,/proxy_send_timeout/d' $NGINX_PROXY_CONF
+    done
+    while grep -q 'keepalive_timeout' $NGINX_PROXY_CONF; do
+        sed -i '0,/keepalive_timeout/d' $NGINX_PROXY_CONF
+    done
+    while grep -q 'proxy_buffering' $NGINX_PROXY_CONF; do
+        sed -i '0,/proxy_buffering/d' $NGINX_PROXY_CONF
+    done
 
-    # Agregar configuraciones nuevas en el bloque http
-    sed -i '/http {/a \    client_max_body_size 60G;\n    client_body_timeout 86400s;\n    client_header_timeout 86400s;\n    send_timeout 86400s;\n    proxy_read_timeout 86400s;\n    proxy_connect_timeout 86400s;\n    proxy_send_timeout 86400s;\n    keepalive_timeout 86400s;\n    proxy_buffering off;' $NGINX_PROXY_CONF
+    echo \"    Todas las configuraciones duplicadas eliminadas\"
+    "
+
+    echo -e "${BLUE}  → Agregando configuraciones nuevas...${NC}"
+    # Agregar configuraciones nuevas UNA SOLA VEZ en el bloque http
+    docker exec $NGINX_PROXY_CONTAINER bash -c "
+    # Verificar que no existan antes de agregar
+    if ! grep -q 'client_max_body_size' $NGINX_PROXY_CONF; then
+        sed -i '/http {/a\    # Configuraciones para backups grandes (agregado por script)\n    client_max_body_size 60G;\n    client_body_timeout 86400s;\n    client_header_timeout 86400s;\n    send_timeout 86400s;\n    proxy_read_timeout 86400s;\n    proxy_connect_timeout 86400s;\n    proxy_send_timeout 86400s;\n    keepalive_timeout 86400s;\n    proxy_buffering off;' $NGINX_PROXY_CONF
+        echo \"    Configuraciones agregadas correctamente\"
+    else
+        echo \"    Las configuraciones ya existen, omitiendo...\"
+    fi
     "
 
     echo -e "${GREEN}  ✓ Nginx Proxy configurado:${NC}"
@@ -269,29 +398,113 @@ echo -e "${GREEN}  ✓ PHP-FPM reiniciado${NC}"
 
 # Reiniciar Nginx App
 echo -e "${BLUE}  → Reiniciando Nginx App...${NC}"
-docker exec $NGINX_APP_CONTAINER nginx -t && docker exec $NGINX_APP_CONTAINER nginx -s reload || docker restart $NGINX_APP_CONTAINER
-sleep 2
-echo -e "${GREEN}  ✓ Nginx App reiniciado${NC}"
+if docker exec $NGINX_APP_CONTAINER nginx -t 2>&1; then
+    docker exec $NGINX_APP_CONTAINER nginx -s reload 2>/dev/null || docker restart $NGINX_APP_CONTAINER
+    sleep 2
+    echo -e "${GREEN}  ✓ Nginx App reiniciado correctamente${NC}"
+else
+    echo -e "${RED}  ✗ Error en sintaxis de Nginx App${NC}"
+    docker logs $NGINX_APP_CONTAINER 2>&1 | tail -10
+fi
 
-# Reiniciar Nginx Proxy (si existe)
+# Reiniciar Nginx Proxy (si existe) con manejo robusto de errores
 if [ -n "$NGINX_PROXY_CONTAINER" ]; then
-    echo -e "${BLUE}  → Reiniciando Nginx Proxy...${NC}"
+    echo -e "${BLUE}  → Verificando y reiniciando Nginx Proxy...${NC}"
 
     # Verificar sintaxis antes de reiniciar
-    if docker exec $NGINX_PROXY_CONTAINER nginx -t 2>&1; then
-        docker exec $NGINX_PROXY_CONTAINER nginx -s reload 2>/dev/null || docker restart $NGINX_PROXY_CONTAINER
-        sleep 5
+    echo -e "${BLUE}     Probando sintaxis de configuración...${NC}"
+    SYNTAX_CHECK=$(docker exec $NGINX_PROXY_CONTAINER nginx -t 2>&1)
 
-        # Verificar que el contenedor esté corriendo
-        if docker ps | grep -q $NGINX_PROXY_CONTAINER; then
-            echo -e "${GREEN}  ✓ Nginx Proxy reiniciado correctamente${NC}"
+    if echo "$SYNTAX_CHECK" | grep -q "syntax is ok"; then
+        echo -e "${GREEN}     ✓ Sintaxis correcta${NC}"
+
+        # Intentar reload primero (más seguro)
+        if docker exec $NGINX_PROXY_CONTAINER nginx -s reload 2>/dev/null; then
+            echo -e "${GREEN}     ✓ Reload exitoso${NC}"
         else
-            echo -e "${RED}  ✗ Error al reiniciar Nginx Proxy${NC}"
-            echo -e "${YELLOW}    Para restaurar: docker exec $NGINX_PROXY_CONTAINER cp ${NGINX_PROXY_CONF}.backup_${BACKUP_SUFFIX} $NGINX_PROXY_CONF && docker restart $NGINX_PROXY_CONTAINER${NC}"
+            # Si reload falla, hacer restart completo
+            echo -e "${YELLOW}     → Reload falló, haciendo restart completo...${NC}"
+            docker restart $NGINX_PROXY_CONTAINER
         fi
+
+        # Esperar a que el contenedor esté listo
+        echo -e "${BLUE}     → Esperando que el contenedor esté listo...${NC}"
+        for i in {1..30}; do
+            sleep 1
+            if docker ps --filter "name=$NGINX_PROXY_CONTAINER" --filter "status=running" | grep -q $NGINX_PROXY_CONTAINER; then
+                echo -e "${GREEN}  ✓ Nginx Proxy reiniciado correctamente (${i}s)${NC}"
+                break
+            fi
+
+            # Si después de 10 segundos sigue reiniciándose, hay un problema
+            if [ $i -eq 10 ]; then
+                echo -e "${RED}     ✗ El contenedor sigue reiniciándose, verificando logs...${NC}"
+                docker logs $NGINX_PROXY_CONTAINER 2>&1 | tail -20
+            fi
+
+            # Si llega a 30 segundos, definitivamente hay un error
+            if [ $i -eq 30 ]; then
+                echo -e "${RED}  ✗ Error: Nginx Proxy no pudo iniciar después de 30 segundos${NC}"
+                echo -e "${YELLOW}     Intentando restaurar desde backup...${NC}"
+
+                # Buscar el backup más reciente
+                LATEST_BACKUP=$(docker exec $NGINX_PROXY_CONTAINER bash -c "ls -t ${NGINX_PROXY_CONF}.backup_* 2>/dev/null | head -1" 2>/dev/null || echo "")
+
+                if [ -n "$LATEST_BACKUP" ]; then
+                    echo -e "${YELLOW}     → Restaurando: $LATEST_BACKUP${NC}"
+                    docker exec $NGINX_PROXY_CONTAINER cp "$LATEST_BACKUP" $NGINX_PROXY_CONF
+                    docker restart $NGINX_PROXY_CONTAINER
+                    sleep 5
+
+                    if docker ps | grep -q $NGINX_PROXY_CONTAINER; then
+                        echo -e "${GREEN}     ✓ Restauración exitosa desde backup${NC}"
+                    else
+                        echo -e "${RED}     ✗ Restauración falló. Intervención manual requerida.${NC}"
+                        echo -e "${YELLOW}     Comando manual: docker exec $NGINX_PROXY_CONTAINER cp $LATEST_BACKUP $NGINX_PROXY_CONF && docker restart $NGINX_PROXY_CONTAINER${NC}"
+                    fi
+                else
+                    echo -e "${RED}     ✗ No se encontró backup. Intervención manual requerida.${NC}"
+                fi
+                break
+            fi
+        done
+
     else
-        echo -e "${RED}  ✗ Error en sintaxis de Nginx Proxy. No se reinició.${NC}"
-        echo -e "${YELLOW}    Revise los logs: docker logs $NGINX_PROXY_CONTAINER${NC}"
+        echo -e "${RED}  ✗ Error en sintaxis de Nginx Proxy:${NC}"
+        echo "$SYNTAX_CHECK" | grep "error" | head -5
+
+        echo -e "${YELLOW}     → Intentando restaurar desde backup automáticamente...${NC}"
+
+        # Buscar el backup más reciente (anterior al actual)
+        LATEST_BACKUP=$(docker exec $NGINX_PROXY_CONTAINER bash -c "ls -t ${NGINX_PROXY_CONF}.backup_* 2>/dev/null | head -2 | tail -1" 2>/dev/null || echo "")
+
+        if [ -n "$LATEST_BACKUP" ]; then
+            echo -e "${YELLOW}     → Restaurando desde: $LATEST_BACKUP${NC}"
+            docker exec $NGINX_PROXY_CONTAINER cp "$LATEST_BACKUP" $NGINX_PROXY_CONF
+
+            # Verificar sintaxis del backup
+            if docker exec $NGINX_PROXY_CONTAINER nginx -t 2>&1 | grep -q "syntax is ok"; then
+                echo -e "${GREEN}     ✓ Backup restaurado correctamente${NC}"
+                docker restart $NGINX_PROXY_CONTAINER
+                sleep 5
+
+                if docker ps | grep -q $NGINX_PROXY_CONTAINER; then
+                    echo -e "${GREEN}  ✓ Nginx Proxy funcionando con configuración anterior${NC}"
+                    echo -e "${YELLOW}     ADVERTENCIA: No se aplicaron las nuevas configuraciones de timeout${NC}"
+                    echo -e "${YELLOW}     Puede intentar ejecutar el script nuevamente después de revisar el proxy${NC}"
+                fi
+            else
+                echo -e "${RED}     ✗ El backup también tiene errores${NC}"
+                echo -e "${YELLOW}     Para restaurar manualmente:${NC}"
+                echo -e "${YELLOW}     docker exec $NGINX_PROXY_CONTAINER cp $LATEST_BACKUP $NGINX_PROXY_CONF${NC}"
+                echo -e "${YELLOW}     docker restart $NGINX_PROXY_CONTAINER${NC}"
+            fi
+        else
+            echo -e "${RED}     ✗ No se encontró backup anterior${NC}"
+            echo -e "${YELLOW}     Revise manualmente: docker exec -it $NGINX_PROXY_CONTAINER bash${NC}"
+        fi
+    fi
+fi
         echo -e "${YELLOW}    Para restaurar: docker exec $NGINX_PROXY_CONTAINER cp ${NGINX_PROXY_CONF}.backup_${BACKUP_SUFFIX} $NGINX_PROXY_CONF && docker restart $NGINX_PROXY_CONTAINER${NC}"
     fi
 fi
