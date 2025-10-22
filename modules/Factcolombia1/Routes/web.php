@@ -183,6 +183,13 @@ if($current_hostname) {
                     Route::delete('delete/{filename}', 'System\SystemBackupController@delete')->name('system.backup.delete');
                     Route::post('restore', 'System\SystemBackupController@restore')->name('system.backup.restore');
                     Route::post('restore-from-server', 'System\SystemBackupController@restoreFromServer')->name('system.backup.restore_from_server');
+
+                    // Chunk Upload Routes - Carga resumible por chunks
+                    Route::post('chunk/init', 'System\SystemBackupController@initChunkUpload')->name('system.backup.chunk.init');
+                    Route::post('chunk/upload', 'System\SystemBackupController@uploadChunk')->name('system.backup.chunk.upload');
+                    Route::post('chunk/status', 'System\SystemBackupController@checkUploadStatus')->name('system.backup.chunk.status');
+                    Route::post('chunk/finalize', 'System\SystemBackupController@finalizeChunkUpload')->name('system.backup.chunk.finalize');
+                    Route::post('chunk/cancel', 'System\SystemBackupController@cancelChunkUpload')->name('system.backup.chunk.cancel');
                 });
             });
         });

@@ -545,6 +545,19 @@ function initializeRestoreForm() {
 }
 
 // Función para manejar la restauración
+// Variables globales para carga por chunks
+let uploadState = {
+    uploadId: null,
+    file: null,
+    totalChunks: 0,
+    uploadedChunks: [],
+    chunkSize: 5 * 1024 * 1024, // 5MB por chunk
+    isUploading: false,
+    isPaused: false,
+    retryCount: 0,
+    maxRetries: 5
+};
+
 function handleRestore() {
     const fileInput = document.getElementById('backup_file');
     const file = fileInput.files[0];
@@ -554,8 +567,8 @@ function handleRestore() {
         return;
     }
 
-    if (file.size > 50 * 1024 * 1024 * 1024) { // 50GB limit
-        showError('El archivo es demasiado grande. Tamaño máximo: 50GB');
+    if (file.size > 60 * 1024 * 1024 * 1024) { // 60GB limit
+        showError('El archivo es demasiado grande. Tamaño máximo: 60GB');
         return;
     }
 
@@ -565,89 +578,375 @@ function handleRestore() {
     }
 
     // Mostrar confirmación adicional
-    if (!confirm('¿Está completamente seguro de que desea restaurar el sistema? Esta operación no se puede deshacer y reemplazará todos los datos actuales.')) {
+    if (!confirm('¿Está completamente seguro de que desea restaurar el sistema? Esta operación no se puede deshacer y reemplazará todos los datos actuales.\n\nEsta operación puede tomar varias horas. La carga se reanudará automáticamente si se pierde la conexión.')) {
         return;
     }
 
-    // Preparar el formulario y mostrar progreso
+    // Iniciar carga por chunks
+    uploadState.file = file;
+    uploadState.totalChunks = Math.ceil(file.size / uploadState.chunkSize);
+    uploadState.uploadedChunks = [];
+    uploadState.isUploading = true;
+    uploadState.isPaused = false;
+    uploadState.retryCount = 0;
+
+    console.log(`Iniciando carga por chunks - Archivo: ${file.name}, Tamaño: ${(file.size / (1024*1024*1024)).toFixed(2)} GB, Chunks: ${uploadState.totalChunks}`);
+
+    // Preparar UI
     const progressDiv = document.getElementById('restore-progress');
     const restoreBtn = document.getElementById('restore-btn');
     const cancelBtn = document.getElementById('cancel-btn');
 
     if (progressDiv) {
         progressDiv.style.display = 'block';
+        updateProgressUI(0, 'Iniciando carga...');
     }
 
     if (restoreBtn) {
         restoreBtn.disabled = true;
-        restoreBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Restaurando...';
+        restoreBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Iniciando...';
     }
 
     if (cancelBtn) {
-        cancelBtn.disabled = true;
+        cancelBtn.disabled = false;
+        cancelBtn.onclick = cancelChunkUpload;
     }
 
-    // Crear FormData
+    // Inicializar sesión de carga
+    initChunkUpload();
+}
+
+function initChunkUpload() {
+    const file = uploadState.file;
+
+    fetch('/co-companies/system-backup/chunk/init', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify({
+            filename: file.name,
+            filesize: file.size,
+            total_chunks: uploadState.totalChunks
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            uploadState.uploadId = data.upload_id;
+            console.log(`Sesión de carga iniciada - Upload ID: ${data.upload_id}`);
+
+            updateProgressUI(0, 'Subiendo archivo...');
+
+            // Iniciar carga de chunks
+            uploadNextChunk(0);
+        } else {
+            throw new Error(data.message || 'Error al iniciar carga');
+        }
+    })
+    .catch(error => {
+        console.error('Error al iniciar carga:', error);
+        showError('Error al iniciar carga: ' + error.message);
+        resetUploadUI();
+    });
+}
+
+function uploadNextChunk(chunkIndex) {
+    if (!uploadState.isUploading || uploadState.isPaused) {
+        return;
+    }
+
+    if (chunkIndex >= uploadState.totalChunks) {
+        // Todos los chunks subidos, finalizar
+        finalizeUpload();
+        return;
+    }
+
+    const file = uploadState.file;
+    const start = chunkIndex * uploadState.chunkSize;
+    const end = Math.min(start + uploadState.chunkSize, file.size);
+    const chunk = file.slice(start, end);
+
     const formData = new FormData();
-    formData.append('backup_file', file);
+    formData.append('upload_id', uploadState.uploadId);
+    formData.append('chunk_index', chunkIndex);
+    formData.append('chunk', chunk);
     formData.append('_token', document.querySelector('meta[name="csrf-token"]').getAttribute('content'));
 
-    // Enviar archivo
-    fetch('/co-companies/system-backup/restore', {
+    const chunkSizeMB = (chunk.size / (1024 * 1024)).toFixed(2);
+    console.log(`Subiendo chunk ${chunkIndex + 1}/${uploadState.totalChunks} (${chunkSizeMB} MB)`);
+
+    fetch('/co-companies/system-backup/chunk/upload', {
         method: 'POST',
         body: formData,
         headers: {
-            'X-Requested-With': 'XMLHttpRequest',
+            'X-Requested-With': 'XMLHttpRequest'
         }
     })
     .then(response => response.json())
     .then(data => {
-        if (progressDiv) {
-            progressDiv.style.display = 'none';
-        }
+        if (data.success) {
+            uploadState.retryCount = 0; // Reset retry count on success
 
-        if (restoreBtn) {
-            restoreBtn.disabled = false;
-            restoreBtn.innerHTML = '<i class="fas fa-upload mr-2"></i>Restaurar Sistema';
-        }
+            if (!data.already_uploaded) {
+                uploadState.uploadedChunks.push(chunkIndex);
+            }
 
-        if (cancelBtn) {
-            cancelBtn.disabled = false;
-        }
+            const progress = data.progress || ((chunkIndex + 1) / uploadState.totalChunks * 100);
+            updateProgressUI(progress, `Subiendo: ${Math.round(progress)}% (${data.uploaded_chunks}/${data.total_chunks} partes)`);
 
+            // Continuar con el siguiente chunk
+            uploadNextChunk(chunkIndex + 1);
+        } else {
+            throw new Error(data.message || 'Error al subir chunk');
+        }
+    })
+    .catch(error => {
+        console.error(`Error al subir chunk ${chunkIndex}:`, error);
+
+        // Reintentar con backoff exponencial
+        if (uploadState.retryCount < uploadState.maxRetries) {
+            uploadState.retryCount++;
+            const retryDelay = Math.min(1000 * Math.pow(2, uploadState.retryCount), 30000); // Max 30s
+
+            console.log(`Reintentando en ${retryDelay/1000}s... (intento ${uploadState.retryCount}/${uploadState.maxRetries})`);
+            updateProgressUI(
+                (chunkIndex / uploadState.totalChunks * 100),
+                `Conexión perdida. Reintentando en ${retryDelay/1000}s... (${uploadState.retryCount}/${uploadState.maxRetries})`
+            );
+
+            setTimeout(() => {
+                uploadNextChunk(chunkIndex); // Reintentar el mismo chunk
+            }, retryDelay);
+        } else {
+            // Máximo de reintentos alcanzado, pausar y esperar acción del usuario
+            uploadState.isPaused = true;
+            showError('Conexión perdida. Haga clic en "Reanudar" cuando la conexión se restablezca.');
+            updateProgressUI(
+                (chunkIndex / uploadState.totalChunks * 100),
+                'Carga pausada - Haga clic en Reanudar'
+            );
+
+            const restoreBtn = document.getElementById('restore-btn');
+            if (restoreBtn) {
+                restoreBtn.disabled = false;
+                restoreBtn.innerHTML = '<i class="fas fa-play mr-2"></i>Reanudar';
+                restoreBtn.onclick = () => resumeUpload(chunkIndex);
+            }
+        }
+    });
+}
+
+function resumeUpload(chunkIndex) {
+    uploadState.isPaused = false;
+    uploadState.retryCount = 0;
+
+    const restoreBtn = document.getElementById('restore-btn');
+    if (restoreBtn) {
+        restoreBtn.disabled = true;
+        restoreBtn.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i>Reanudando...';
+        restoreBtn.onclick = null;
+    }
+
+    updateProgressUI(
+        (chunkIndex / uploadState.totalChunks * 100),
+        'Reanudando carga...'
+    );
+
+    // Verificar estado en el servidor antes de continuar
+    fetch('/co-companies/system-backup/chunk/status', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify({
+            upload_id: uploadState.uploadId
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            console.log(`Estado sincronizado - ${data.uploaded_chunks.length}/${data.total_chunks} chunks subidos`);
+            uploadState.uploadedChunks = data.uploaded_chunks;
+
+            // Encontrar el primer chunk no subido
+            let nextChunk = chunkIndex;
+            while (uploadState.uploadedChunks.includes(nextChunk) && nextChunk < uploadState.totalChunks) {
+                nextChunk++;
+            }
+
+            uploadNextChunk(nextChunk);
+        } else {
+            throw new Error(data.message || 'Error al verificar estado');
+        }
+    })
+    .catch(error => {
+        console.error('Error al reanudar:', error);
+        showError('Error al reanudar carga: ' + error.message);
+        resetUploadUI();
+    });
+}
+
+function finalizeUpload() {
+    console.log('Finalizando carga y ensamblando archivo...');
+    updateProgressUI(100, 'Ensamblando archivo y restaurando sistema (esto puede tomar varias horas)...');
+
+    const restoreBtn = document.getElementById('restore-btn');
+    if (restoreBtn) {
+        restoreBtn.innerHTML = '<i class="fas fa-cog fa-spin mr-2"></i>Restaurando...';
+    }
+
+    fetch('/co-companies/system-backup/chunk/finalize', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+            'X-Requested-With': 'XMLHttpRequest'
+        },
+        body: JSON.stringify({
+            upload_id: uploadState.uploadId
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
         if (data.success) {
             showSuccess('Sistema restaurado exitosamente desde el backup');
             closeRestoreModal();
+            resetUploadState();
 
             // Limpiar el formulario
-            fileInput.value = '';
+            const fileInput = document.getElementById('backup_file');
+            if (fileInput) {
+                fileInput.value = '';
+            }
 
             // Recargar la lista de backups
             setTimeout(() => {
                 loadBackups();
             }, 2000);
         } else {
-            showError('Error al restaurar: ' + (data.message || 'Error desconocido'));
+            throw new Error(data.message || 'Error al restaurar');
         }
     })
     .catch(error => {
-        if (progressDiv) {
-            progressDiv.style.display = 'none';
-        }
-
-        if (restoreBtn) {
-            restoreBtn.disabled = false;
-            restoreBtn.innerHTML = '<i class="fas fa-upload mr-2"></i>Restaurar Sistema';
-        }
-
-        if (cancelBtn) {
-            cancelBtn.disabled = false;
-        }
-
-        showError('Error al restaurar el sistema. Verifique el archivo y la conexión.');
-        console.error('Restore error:', error);
+        console.error('Error al finalizar:', error);
+        showError('Error al restaurar el sistema: ' + error.message);
+        resetUploadUI();
     });
 }
+
+function cancelChunkUpload() {
+    if (!confirm('¿Está seguro de que desea cancelar la carga?')) {
+        return;
+    }
+
+    uploadState.isUploading = false;
+    uploadState.isPaused = true;
+
+    if (uploadState.uploadId) {
+        fetch('/co-companies/system-backup/chunk/cancel', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').getAttribute('content'),
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({
+                upload_id: uploadState.uploadId
+            })
+        })
+        .then(() => {
+            showSuccess('Carga cancelada');
+            closeRestoreModal();
+            resetUploadState();
+        })
+        .catch(error => {
+            console.error('Error al cancelar:', error);
+            closeRestoreModal();
+            resetUploadState();
+        });
+    } else {
+        closeRestoreModal();
+        resetUploadState();
+    }
+}
+
+function updateProgressUI(progress, message) {
+    const progressDiv = document.getElementById('restore-progress');
+    if (progressDiv) {
+        // Buscar o crear elementos de progreso
+        let progressBar = progressDiv.querySelector('.progress-bar');
+        let progressText = progressDiv.querySelector('.progress-text');
+
+        if (!progressBar) {
+            progressDiv.innerHTML = `
+                <div class="progress mb-2" style="height: 25px;">
+                    <div class="progress-bar progress-bar-striped progress-bar-animated bg-primary"
+                         role="progressbar" style="width: 0%">
+                        <span class="progress-percentage">0%</span>
+                    </div>
+                </div>
+                <div class="progress-text text-center text-muted"></div>
+            `;
+            progressBar = progressDiv.querySelector('.progress-bar');
+            progressText = progressDiv.querySelector('.progress-text');
+        }
+
+        if (progressBar) {
+            progressBar.style.width = progress + '%';
+            const percentage = progressBar.querySelector('.progress-percentage');
+            if (percentage) {
+                percentage.textContent = Math.round(progress) + '%';
+            }
+        }
+
+        if (progressText && message) {
+            progressText.textContent = message;
+        }
+    }
+}
+
+function resetUploadUI() {
+    const progressDiv = document.getElementById('restore-progress');
+    const restoreBtn = document.getElementById('restore-btn');
+    const cancelBtn = document.getElementById('cancel-btn');
+
+    if (progressDiv) {
+        progressDiv.style.display = 'none';
+        progressDiv.innerHTML = '';
+    }
+
+    if (restoreBtn) {
+        restoreBtn.disabled = false;
+        restoreBtn.innerHTML = '<i class="fas fa-upload mr-2"></i>Restaurar Sistema';
+        restoreBtn.onclick = null;
+    }
+
+    if (cancelBtn) {
+        cancelBtn.disabled = false;
+        cancelBtn.onclick = null;
+    }
+}
+
+function resetUploadState() {
+    uploadState = {
+        uploadId: null,
+        file: null,
+        totalChunks: 0,
+        uploadedChunks: [],
+        chunkSize: 5 * 1024 * 1024,
+        isUploading: false,
+        isPaused: false,
+        retryCount: 0,
+        maxRetries: 5
+    };
+    resetUploadUI();
+}
+
 </script>
 @endpush
 

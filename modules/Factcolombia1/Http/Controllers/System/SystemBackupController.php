@@ -1560,4 +1560,352 @@ class SystemBackupController extends Controller
         $this->safeLog("RESTORE: Archivos copiados: {$copiedFiles}, Omitidos: {$skippedFiles}, Errores: {$errorFiles}");
         return true;
     }
+
+    /**
+     * Iniciar carga por chunks - crear sesión de carga
+     */
+    public function initChunkUpload(Request $request)
+    {
+        try {
+            $request->validate([
+                'filename' => 'required|string',
+                'filesize' => 'required|integer|min:1',
+                'total_chunks' => 'required|integer|min:1'
+            ]);
+
+            $uploadId = uniqid('upload_', true);
+            $uploadPath = storage_path('app/chunk_uploads/' . $uploadId);
+
+            if (!is_dir($uploadPath)) {
+                mkdir($uploadPath, 0755, true);
+            }
+
+            // Guardar metadata de la carga
+            $metadata = [
+                'upload_id' => $uploadId,
+                'filename' => $request->filename,
+                'filesize' => $request->filesize,
+                'total_chunks' => $request->total_chunks,
+                'uploaded_chunks' => [],
+                'created_at' => now()->toISOString(),
+                'last_activity' => now()->toISOString()
+            ];
+
+            file_put_contents(
+                $uploadPath . '/metadata.json',
+                json_encode($metadata, JSON_PRETTY_PRINT)
+            );
+
+            $this->safeLog("CHUNK UPLOAD: Iniciada carga por chunks - Upload ID: {$uploadId}, Archivo: {$request->filename}, Tamaño: " . number_format($request->filesize / (1024*1024*1024), 2) . " GB");
+
+            return response()->json([
+                'success' => true,
+                'upload_id' => $uploadId,
+                'message' => 'Sesión de carga iniciada'
+            ]);
+
+        } catch (\Throwable $e) {
+            $this->safeLog('CHUNK UPLOAD ERROR (init): ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al iniciar carga: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Subir un chunk individual
+     */
+    public function uploadChunk(Request $request)
+    {
+        try {
+            // Extender tiempo de ejecución para este chunk
+            ini_set('max_execution_time', 600); // 10 minutos por chunk
+            set_time_limit(600);
+
+            $request->validate([
+                'upload_id' => 'required|string',
+                'chunk_index' => 'required|integer|min:0',
+                'chunk' => 'required|file'
+            ]);
+
+            $uploadId = $request->upload_id;
+            $chunkIndex = $request->chunk_index;
+            $uploadPath = storage_path('app/chunk_uploads/' . $uploadId);
+
+            if (!is_dir($uploadPath)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Sesión de carga no encontrada'
+                ], 404);
+            }
+
+            // Cargar metadata
+            $metadataFile = $uploadPath . '/metadata.json';
+            if (!file_exists($metadataFile)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Metadata de carga no encontrada'
+                ], 404);
+            }
+
+            $metadata = json_decode(file_get_contents($metadataFile), true);
+
+            // Verificar que el chunk no se haya subido ya
+            if (in_array($chunkIndex, $metadata['uploaded_chunks'])) {
+                return response()->json([
+                    'success' => true,
+                    'message' => 'Chunk ya fue subido previamente',
+                    'already_uploaded' => true,
+                    'progress' => count($metadata['uploaded_chunks']) / $metadata['total_chunks'] * 100
+                ]);
+            }
+
+            // Guardar chunk
+            $chunk = $request->file('chunk');
+            $chunkPath = $uploadPath . '/chunk_' . str_pad($chunkIndex, 6, '0', STR_PAD_LEFT);
+            $chunk->move($uploadPath, basename($chunkPath));
+
+            // Actualizar metadata
+            $metadata['uploaded_chunks'][] = $chunkIndex;
+            $metadata['uploaded_chunks'] = array_unique($metadata['uploaded_chunks']);
+            sort($metadata['uploaded_chunks']);
+            $metadata['last_activity'] = now()->toISOString();
+
+            file_put_contents($metadataFile, json_encode($metadata, JSON_PRETTY_PRINT));
+
+            $progress = count($metadata['uploaded_chunks']) / $metadata['total_chunks'] * 100;
+
+            $this->safeLog("CHUNK UPLOAD: Chunk {$chunkIndex} subido - Progreso: " . number_format($progress, 2) . "%");
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Chunk subido correctamente',
+                'chunk_index' => $chunkIndex,
+                'uploaded_chunks' => count($metadata['uploaded_chunks']),
+                'total_chunks' => $metadata['total_chunks'],
+                'progress' => $progress
+            ]);
+
+        } catch (\Throwable $e) {
+            $this->safeLog('CHUNK UPLOAD ERROR (chunk): ' . $e->getMessage());
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al subir chunk: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Verificar estado de carga
+     */
+    public function checkUploadStatus(Request $request)
+    {
+        try {
+            $request->validate([
+                'upload_id' => 'required|string'
+            ]);
+
+            $uploadId = $request->upload_id;
+            $uploadPath = storage_path('app/chunk_uploads/' . $uploadId);
+            $metadataFile = $uploadPath . '/metadata.json';
+
+            if (!file_exists($metadataFile)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Sesión de carga no encontrada'
+                ], 404);
+            }
+
+            $metadata = json_decode(file_get_contents($metadataFile), true);
+            $progress = count($metadata['uploaded_chunks']) / $metadata['total_chunks'] * 100;
+
+            return response()->json([
+                'success' => true,
+                'upload_id' => $uploadId,
+                'uploaded_chunks' => $metadata['uploaded_chunks'],
+                'total_chunks' => $metadata['total_chunks'],
+                'progress' => $progress,
+                'is_complete' => count($metadata['uploaded_chunks']) === $metadata['total_chunks']
+            ]);
+
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al verificar estado: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Finalizar carga y ensamblar archivo completo
+     */
+    public function finalizeChunkUpload(Request $request)
+    {
+        try {
+            // Configurar tiempo de ejecución y memoria para ensamblaje
+            ini_set('max_execution_time', 86400); // 24 horas
+            ini_set('memory_limit', '4G');
+            set_time_limit(86400);
+
+            $request->validate([
+                'upload_id' => 'required|string'
+            ]);
+
+            $uploadId = $request->upload_id;
+            $uploadPath = storage_path('app/chunk_uploads/' . $uploadId);
+            $metadataFile = $uploadPath . '/metadata.json';
+
+            if (!file_exists($metadataFile)) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Sesión de carga no encontrada'
+                ], 404);
+            }
+
+            $metadata = json_decode(file_get_contents($metadataFile), true);
+
+            // Verificar que todos los chunks estén presentes
+            if (count($metadata['uploaded_chunks']) !== $metadata['total_chunks']) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Faltan chunks por subir',
+                    'uploaded' => count($metadata['uploaded_chunks']),
+                    'total' => $metadata['total_chunks']
+                ], 400);
+            }
+
+            $this->safeLog("CHUNK UPLOAD: Ensamblando archivo final - Upload ID: {$uploadId}");
+
+            // Ensamblar archivo final
+            $backupsPath = storage_path('app/system_backups');
+            if (!is_dir($backupsPath)) {
+                mkdir($backupsPath, 0755, true);
+            }
+
+            $finalFile = $backupsPath . '/restore_temp_' . time() . '.zip';
+            $finalHandle = fopen($finalFile, 'wb');
+
+            if (!$finalHandle) {
+                throw new \Exception('No se pudo crear archivo final');
+            }
+
+            // Ensamblar chunks en orden
+            for ($i = 0; $i < $metadata['total_chunks']; $i++) {
+                $chunkPath = $uploadPath . '/chunk_' . str_pad($i, 6, '0', STR_PAD_LEFT);
+
+                if (!file_exists($chunkPath)) {
+                    fclose($finalHandle);
+                    unlink($finalFile);
+                    throw new \Exception("Falta el chunk {$i}");
+                }
+
+                $chunkHandle = fopen($chunkPath, 'rb');
+                if (!$chunkHandle) {
+                    fclose($finalHandle);
+                    unlink($finalFile);
+                    throw new \Exception("No se pudo leer el chunk {$i}");
+                }
+
+                while (!feof($chunkHandle)) {
+                    $data = fread($chunkHandle, 8192); // Leer en bloques de 8KB
+                    fwrite($finalHandle, $data);
+                }
+
+                fclose($chunkHandle);
+
+                // Log de progreso cada 10 chunks
+                if ($i % 10 === 0) {
+                    $assemblyProgress = ($i / $metadata['total_chunks']) * 100;
+                    $this->safeLog("CHUNK UPLOAD: Ensamblando... " . number_format($assemblyProgress, 2) . "%");
+                }
+            }
+
+            fclose($finalHandle);
+
+            // Verificar tamaño del archivo ensamblado
+            $finalSize = filesize($finalFile);
+            $expectedSize = $metadata['filesize'];
+
+            $this->safeLog("CHUNK UPLOAD: Archivo ensamblado - Tamaño: " . number_format($finalSize / (1024*1024*1024), 2) . " GB (Esperado: " . number_format($expectedSize / (1024*1024*1024), 2) . " GB)");
+
+            if (abs($finalSize - $expectedSize) > 1024) { // Tolerancia de 1KB
+                $this->safeLog("CHUNK UPLOAD WARNING: Diferencia de tamaño detectada - Real: {$finalSize}, Esperado: {$expectedSize}");
+            }
+
+            // Limpiar chunks
+            $this->cleanupChunkUpload($uploadId);
+
+            // Iniciar proceso de restauración
+            $this->safeLog("CHUNK UPLOAD: Iniciando restauración del sistema...");
+
+            return $this->performRestore($finalFile, true);
+
+        } catch (\Throwable $e) {
+            $this->safeLog('CHUNK UPLOAD ERROR (finalize): ' . $e->getMessage());
+
+            // Limpiar en caso de error
+            if (isset($finalFile) && file_exists($finalFile)) {
+                $this->safeUnlinkWithRetry($finalFile);
+            }
+
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al finalizar carga: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Limpiar archivos de carga por chunks
+     */
+    private function cleanupChunkUpload($uploadId)
+    {
+        try {
+            $uploadPath = storage_path('app/chunk_uploads/' . $uploadId);
+
+            if (is_dir($uploadPath)) {
+                // Eliminar todos los archivos del directorio
+                $files = glob($uploadPath . '/*');
+                foreach ($files as $file) {
+                    if (is_file($file)) {
+                        unlink($file);
+                    }
+                }
+
+                // Eliminar directorio
+                rmdir($uploadPath);
+
+                $this->safeLog("CHUNK UPLOAD: Limpieza completada para upload ID: {$uploadId}");
+            }
+        } catch (\Exception $e) {
+            $this->safeLog("CHUNK UPLOAD WARNING: Error al limpiar chunks: " . $e->getMessage());
+        }
+    }
+
+    /**
+     * Cancelar carga por chunks
+     */
+    public function cancelChunkUpload(Request $request)
+    {
+        try {
+            $request->validate([
+                'upload_id' => 'required|string'
+            ]);
+
+            $uploadId = $request->upload_id;
+            $this->cleanupChunkUpload($uploadId);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Carga cancelada y limpiada'
+            ]);
+
+        } catch (\Throwable $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al cancelar carga: ' . $e->getMessage()
+            ], 500);
+        }
+    }
 }
