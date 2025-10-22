@@ -322,13 +322,25 @@ if [ -n "$NGINX_PROXY_CONTAINER" ]; then
         docker start $NGINX_PROXY_CONTAINER
         sleep 3
 
-        # Verificar si inició correctamente
-        if docker ps | grep -q $NGINX_PROXY_CONTAINER; then
-            echo -e "${GREEN}  ✓ Contenedor proxy iniciado${NC}"
+        # Verificar si inició correctamente o entró en ciclo de reinicio
+        PROXY_STATUS=$(docker ps -a --filter "name=$NGINX_PROXY_CONTAINER" --format '{{.Status}}')
+
+        if docker ps | grep -q $NGINX_PROXY_CONTAINER && ! echo "$PROXY_STATUS" | grep -qi "restarting"; then
+            echo -e "${GREEN}  ✓ Contenedor proxy iniciado correctamente${NC}"
         else
-            echo -e "${RED}  ✗ Contenedor proxy falló al iniciar. Reparando...${NC}"
+            if echo "$PROXY_STATUS" | grep -qi "restarting"; then
+                echo -e "${RED}  ✗ Contenedor proxy entró en ciclo de reinicio. Reparando...${NC}"
+
+                # Esperar un momento y detener el contenedor
+                echo -e "${BLUE}  → Deteniendo contenedor en ciclo de reinicio...${NC}"
+                docker stop $NGINX_PROXY_CONTAINER 2>/dev/null
+                sleep 3
+            else
+                echo -e "${RED}  ✗ Contenedor proxy falló al iniciar. Reparando...${NC}"
+            fi
 
             # Ver el error
+            echo -e "${BLUE}  → Últimos logs del contenedor:${NC}"
             docker logs $NGINX_PROXY_CONTAINER 2>&1 | tail -5
 
             # Intentar obtener backup si existe usando docker cp
@@ -386,13 +398,26 @@ if [ -n "$NGINX_PROXY_CONTAINER" ]; then
         fi
     fi
 
-    # Solo continuar si el contenedor está corriendo ahora
-    if docker ps | grep -q $NGINX_PROXY_CONTAINER; then
+    # Solo continuar si el contenedor está corriendo ahora (no en restarting)
+    PROXY_STATUS=$(docker ps -a --filter "name=$NGINX_PROXY_CONTAINER" --format '{{.Status}}')
+
+    if docker ps | grep -q $NGINX_PROXY_CONTAINER && ! echo "$PROXY_STATUS" | grep -qi "restarting"; then
         # Crear backup del nginx.conf del proxy
+        # Esperar un poco para asegurar que el contenedor esté estable
+        sleep 2
+
         docker exec $NGINX_PROXY_CONTAINER bash -c "cp $NGINX_PROXY_CONF ${NGINX_PROXY_CONF}.backup_${BACKUP_SUFFIX}" 2>/dev/null || true
         echo -e "${GREEN}  ✓ Backup creado: ${NGINX_PROXY_CONF}.backup_${BACKUP_SUFFIX}${NC}"
 
         echo -e "${BLUE}  → Limpiando configuraciones duplicadas en conf.d...${NC}"
+
+        # Verificar nuevamente que no esté en restart loop antes de continuar
+        PROXY_STATUS=$(docker ps -a --filter "name=$NGINX_PROXY_CONTAINER" --format '{{.Status}}')
+        if echo "$PROXY_STATUS" | grep -qi "restarting"; then
+            echo -e "${YELLOW}  ⚠ Contenedor entró en restart loop durante limpieza. Abortando configuración.${NC}"
+            return 1
+        fi
+
         # Eliminar TODOS los duplicados de TODOS los archivos en conf.d
         docker exec $NGINX_PROXY_CONTAINER bash -c "
         # Eliminar duplicados en TODOS los archivos de conf.d (incluyendo default.conf)
@@ -430,9 +455,17 @@ if [ -n "$NGINX_PROXY_CONTAINER" ]; then
     fi
     " 2>&1 | grep -E "Limpiando|^\s*$" || echo "  No se encontraron archivos adicionales"
 
-    echo -e "${BLUE}  → Limpiando configuraciones duplicadas en nginx.conf principal...${NC}"
-    # Ahora agregar/actualizar configuraciones en nginx.conf principal
-    docker exec $NGINX_PROXY_CONTAINER bash -c "
+        echo -e "${BLUE}  → Limpiando configuraciones duplicadas en nginx.conf principal...${NC}"
+
+        # Verificar nuevamente estado antes del siguiente docker exec
+        PROXY_STATUS=$(docker ps -a --filter "name=$NGINX_PROXY_CONTAINER" --format '{{.Status}}')
+        if echo "$PROXY_STATUS" | grep -qi "restarting"; then
+            echo -e "${YELLOW}  ⚠ Contenedor entró en restart loop. Abortando configuración.${NC}"
+            return 1
+        fi
+
+        # Ahora agregar/actualizar configuraciones en nginx.conf principal
+        docker exec $NGINX_PROXY_CONTAINER bash -c "
     # Eliminar TODAS las configuraciones antiguas si existen (incluso múltiples veces)
     while grep -q 'client_max_body_size' $NGINX_PROXY_CONF; do
         sed -i '0,/client_max_body_size/d' $NGINX_PROXY_CONF
@@ -463,29 +496,40 @@ if [ -n "$NGINX_PROXY_CONTAINER" ]; then
     done
 
     echo \"    Todas las configuraciones duplicadas eliminadas\"
-    "
+        "
 
-    echo -e "${BLUE}  → Agregando configuraciones nuevas...${NC}"
-    # Agregar configuraciones nuevas UNA SOLA VEZ en el bloque http
-    docker exec $NGINX_PROXY_CONTAINER bash -c "
-    # Verificar que no existan antes de agregar
-    if ! grep -q 'client_max_body_size' $NGINX_PROXY_CONF; then
-        sed -i '/http {/a\    # Configuraciones para backups grandes (agregado por script)\n    client_max_body_size 60G;\n    client_body_timeout 86400s;\n    client_header_timeout 86400s;\n    send_timeout 86400s;\n    proxy_read_timeout 86400s;\n    proxy_connect_timeout 86400s;\n    proxy_send_timeout 86400s;\n    keepalive_timeout 86400s;\n    proxy_buffering off;' $NGINX_PROXY_CONF
-        echo \"    Configuraciones agregadas correctamente\"
+        echo -e "${BLUE}  → Agregando configuraciones nuevas...${NC}"
+
+        # Verificar estado final antes de agregar configuraciones
+        PROXY_STATUS=$(docker ps -a --filter "name=$NGINX_PROXY_CONTAINER" --format '{{.Status}}')
+        if echo "$PROXY_STATUS" | grep -qi "restarting"; then
+            echo -e "${YELLOW}  ⚠ Contenedor entró en restart loop. Abortando configuración.${NC}"
+            return 1
+        fi
+
+        # Agregar configuraciones nuevas UNA SOLA VEZ en el bloque http
+        docker exec $NGINX_PROXY_CONTAINER bash -c "
+        # Verificar que no existan antes de agregar
+        if ! grep -q 'client_max_body_size' $NGINX_PROXY_CONF; then
+            sed -i '/http {/a\    # Configuraciones para backups grandes (agregado por script)\n    client_max_body_size 60G;\n    client_body_timeout 86400s;\n    client_header_timeout 86400s;\n    send_timeout 86400s;\n    proxy_read_timeout 86400s;\n    proxy_connect_timeout 86400s;\n    proxy_send_timeout 86400s;\n    keepalive_timeout 86400s;\n    proxy_buffering off;' $NGINX_PROXY_CONF
+            echo \"    Configuraciones agregadas correctamente\"
+        else
+            echo \"    Las configuraciones ya existen, omitiendo...\"
+        fi
+        "
+
+        echo -e "${GREEN}  ✓ Nginx Proxy configurado:${NC}"
+        echo -e "    - client_max_body_size = 60G"
+        echo -e "    - client_body_timeout = 86400s (24 horas)"
+        echo -e "    - client_header_timeout = 86400s (24 horas)"
+        echo -e "    - proxy_read_timeout = 86400s (24 horas)"
+        echo -e "    - proxy_connect_timeout = 86400s (24 horas)"
+        echo -e "    - proxy_send_timeout = 86400s (24 horas)"
+        echo -e "    - keepalive_timeout = 86400s (24 horas)"
+        echo -e "    - proxy_buffering = off"
     else
-        echo \"    Las configuraciones ya existen, omitiendo...\"
+        echo -e "${YELLOW}  ⚠ No se pudo configurar Nginx Proxy (contenedor no disponible o en restart loop)${NC}"
     fi
-    "
-
-    echo -e "${GREEN}  ✓ Nginx Proxy configurado:${NC}"
-    echo -e "    - client_max_body_size = 60G"
-    echo -e "    - client_body_timeout = 86400s (24 horas)"
-    echo -e "    - client_header_timeout = 86400s (24 horas)"
-    echo -e "    - proxy_read_timeout = 86400s (24 horas)"
-    echo -e "    - proxy_connect_timeout = 86400s (24 horas)"
-    echo -e "    - proxy_send_timeout = 86400s (24 horas)"
-    echo -e "    - keepalive_timeout = 86400s (24 horas)"
-    echo -e "    - proxy_buffering = off"
 else
     echo -e "${YELLOW}[4/4] Omitiendo configuración de Nginx Proxy (no detectado)${NC}"
 fi
