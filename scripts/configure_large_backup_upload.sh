@@ -106,36 +106,82 @@ if [ -n "$NGINX_PROXY_CONTAINER" ]; then
         docker stop $NGINX_PROXY_CONTAINER 2>/dev/null || true
         sleep 2
 
-        # Buscar backup más reciente
+        # Método 1: Intentar trabajar directamente con el contenedor detenido
         echo -e "${BLUE}  → Buscando backup de configuración...${NC}"
-        LATEST_BACKUP=$(docker run --rm -v $(docker inspect --format='{{range .Mounts}}{{if eq .Destination "/etc/nginx"}}{{.Source}}{{end}}{{end}}' $NGINX_PROXY_CONTAINER):/nginx alpine sh -c "ls -t /nginx/nginx.conf.backup_* 2>/dev/null | head -1" 2>/dev/null || echo "")
 
-        if [ -n "$LATEST_BACKUP" ]; then
-            echo -e "${YELLOW}  → Restaurando desde backup: $(basename $LATEST_BACKUP)${NC}"
-            docker run --rm -v $(docker inspect --format='{{range .Mounts}}{{if eq .Destination "/etc/nginx"}}{{.Source}}{{end}}{{end}}' $NGINX_PROXY_CONTAINER):/nginx alpine cp "$LATEST_BACKUP" /nginx/nginx.conf
+        # Usar docker cp para acceder a archivos sin necesidad de volúmenes
+        TEMP_DIR="/tmp/nginx_repair_$$"
+        mkdir -p $TEMP_DIR
+
+        # Copiar configuración actual del contenedor
+        if docker cp $NGINX_PROXY_CONTAINER:/etc/nginx/nginx.conf $TEMP_DIR/nginx.conf 2>/dev/null; then
+            echo -e "${GREEN}  ✓ Configuración actual extraída${NC}"
+
+            # Buscar backups en el contenedor
+            BACKUP_LIST=$(docker exec $NGINX_PROXY_CONTAINER ls -t /etc/nginx/nginx.conf.backup_* 2>/dev/null | head -1 || echo "")
+
+            if [ -n "$BACKUP_LIST" ]; then
+                echo -e "${YELLOW}  → Restaurando desde backup: $(basename $BACKUP_LIST)${NC}"
+                docker cp $NGINX_PROXY_CONTAINER:$BACKUP_LIST $TEMP_DIR/nginx.conf.backup
+                docker cp $TEMP_DIR/nginx.conf.backup $NGINX_PROXY_CONTAINER:/etc/nginx/nginx.conf
+                echo -e "${GREEN}  ✓ Backup restaurado${NC}"
+            else
+                echo -e "${YELLOW}  → No se encontró backup, limpiando configuración corrupta...${NC}"
+
+                # Limpiar todas las directivas problemáticas en el archivo local
+                sed -i '/client_max_body_size/d' $TEMP_DIR/nginx.conf
+                sed -i '/client_body_timeout/d' $TEMP_DIR/nginx.conf
+                sed -i '/client_header_timeout/d' $TEMP_DIR/nginx.conf
+                sed -i '/send_timeout[^_]/d' $TEMP_DIR/nginx.conf
+                sed -i '/proxy_read_timeout/d' $TEMP_DIR/nginx.conf
+                sed -i '/proxy_connect_timeout/d' $TEMP_DIR/nginx.conf
+                sed -i '/proxy_send_timeout/d' $TEMP_DIR/nginx.conf
+                sed -i '/keepalive_timeout/d' $TEMP_DIR/nginx.conf
+                sed -i '/proxy_buffering/d' $TEMP_DIR/nginx.conf
+
+                # Copiar configuración limpia de vuelta al contenedor
+                docker cp $TEMP_DIR/nginx.conf $NGINX_PROXY_CONTAINER:/etc/nginx/nginx.conf
+                echo -e "${GREEN}  ✓ Configuración limpiada${NC}"
+            fi
         else
-            echo -e "${YELLOW}  → No se encontró backup, limpiando configuración corrupta...${NC}"
+            echo -e "${RED}  ✗ No se pudo acceder a la configuración del contenedor${NC}"
+            echo -e "${YELLOW}  → Intentando método alternativo...${NC}"
 
-            # Limpiar todas las directivas problemáticas
-            docker run --rm -v $(docker inspect --format='{{range .Mounts}}{{if eq .Destination "/etc/nginx"}}{{.Source}}{{end}}{{end}}' $NGINX_PROXY_CONTAINER):/nginx alpine sh -c "
-                cd /nginx
-                # Eliminar todas las líneas con directivas duplicadas
-                sed -i '/client_max_body_size/d' nginx.conf
-                sed -i '/client_body_timeout/d' nginx.conf
-                sed -i '/client_header_timeout/d' nginx.conf
-                sed -i '/send_timeout[^_]/d' nginx.conf
-                sed -i '/proxy_read_timeout/d' nginx.conf
-                sed -i '/proxy_connect_timeout/d' nginx.conf
-                sed -i '/proxy_send_timeout/d' nginx.conf
-                sed -i '/keepalive_timeout/d' nginx.conf
-                sed -i '/proxy_buffering/d' nginx.conf
-            "
+            # Método 2: Iniciar contenedor y trabajar con él
+            docker start $NGINX_PROXY_CONTAINER
+            sleep 2
+
+            # Buscar y restaurar backup directamente
+            BACKUP_FILE=$(docker exec $NGINX_PROXY_CONTAINER bash -c "ls -t /etc/nginx/nginx.conf.backup_* 2>/dev/null | head -1" 2>/dev/null || echo "")
+
+            if [ -n "$BACKUP_FILE" ]; then
+                echo -e "${YELLOW}  → Restaurando desde: $BACKUP_FILE${NC}"
+                docker exec $NGINX_PROXY_CONTAINER cp "$BACKUP_FILE" /etc/nginx/nginx.conf
+                docker restart $NGINX_PROXY_CONTAINER
+            else
+                echo -e "${YELLOW}  → Limpiando directivas duplicadas...${NC}"
+                docker exec $NGINX_PROXY_CONTAINER bash -c "
+                    sed -i '/client_max_body_size/d' /etc/nginx/nginx.conf
+                    sed -i '/client_body_timeout/d' /etc/nginx/nginx.conf
+                    sed -i '/client_header_timeout/d' /etc/nginx/nginx.conf
+                    sed -i '/send_timeout[^_]/d' /etc/nginx/nginx.conf
+                    sed -i '/proxy_read_timeout/d' /etc/nginx/nginx.conf
+                    sed -i '/proxy_connect_timeout/d' /etc/nginx/nginx.conf
+                    sed -i '/proxy_send_timeout/d' /etc/nginx/nginx.conf
+                    sed -i '/keepalive_timeout/d' /etc/nginx/nginx.conf
+                    sed -i '/proxy_buffering/d' /etc/nginx/nginx.conf
+                "
+                docker restart $NGINX_PROXY_CONTAINER
+            fi
         fi
 
-        # Iniciar el contenedor
+        # Limpiar archivos temporales
+        rm -rf $TEMP_DIR
+
+        # Iniciar/reiniciar el contenedor
         echo -e "${BLUE}  → Iniciando contenedor proxy...${NC}"
-        docker start $NGINX_PROXY_CONTAINER
-        sleep 3
+        docker start $NGINX_PROXY_CONTAINER 2>/dev/null || docker restart $NGINX_PROXY_CONTAINER
+        sleep 5
 
         # Verificar si arrancó correctamente
         if docker ps | grep -q $NGINX_PROXY_CONTAINER; then
