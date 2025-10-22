@@ -653,36 +653,37 @@ if [ -n "$NGINX_PROXY_CONTAINER" ]; then
             docker cp $NGINX_PROXY_CONTAINER:/etc/nginx/ $TEMP_DIR/ 2>/dev/null
             LATEST_BACKUP=$(ls -t $TEMP_DIR/nginx/nginx.conf.backup_* 2>/dev/null | head -2 | tail -1)
 
-        if [ -n "$LATEST_BACKUP" ]; then
-            echo -e "${YELLOW}     → Restaurando desde: $LATEST_BACKUP${NC}"
-            docker exec $NGINX_PROXY_CONTAINER cp "$LATEST_BACKUP" $NGINX_PROXY_CONF
+            if [ -n "$LATEST_BACKUP" ]; then
+                echo -e "${YELLOW}     → Restaurando desde: $LATEST_BACKUP${NC}"
+                docker exec $NGINX_PROXY_CONTAINER cp "$LATEST_BACKUP" $NGINX_PROXY_CONF
 
-            # Verificar sintaxis del backup
-            if docker exec $NGINX_PROXY_CONTAINER nginx -t 2>&1 | grep -q "syntax is ok"; then
-                echo -e "${GREEN}     ✓ Backup restaurado correctamente${NC}"
-                docker restart $NGINX_PROXY_CONTAINER
-                sleep 5
+                # Verificar sintaxis del backup
+                if docker exec $NGINX_PROXY_CONTAINER nginx -t 2>&1 | grep -q "syntax is ok"; then
+                    echo -e "${GREEN}     ✓ Backup restaurado correctamente${NC}"
+                    docker restart $NGINX_PROXY_CONTAINER
+                    sleep 5
 
-                if docker ps | grep -q $NGINX_PROXY_CONTAINER; then
-                    echo -e "${GREEN}  ✓ Nginx Proxy funcionando con configuración anterior${NC}"
-                    echo -e "${YELLOW}     ADVERTENCIA: No se aplicaron las nuevas configuraciones de timeout${NC}"
-                    echo -e "${YELLOW}     Puede intentar ejecutar el script nuevamente después de revisar el proxy${NC}"
+                    if docker ps | grep -q $NGINX_PROXY_CONTAINER; then
+                        echo -e "${GREEN}  ✓ Nginx Proxy funcionando con configuración anterior${NC}"
+                        echo -e "${YELLOW}     ADVERTENCIA: No se aplicaron las nuevas configuraciones de timeout${NC}"
+                        echo -e "${YELLOW}     Puede intentar ejecutar el script nuevamente después de revisar el proxy${NC}"
+                    fi
+                else
+                    echo -e "${RED}     ✗ El backup también tiene errores${NC}"
+                    echo -e "${YELLOW}     Para restaurar manualmente:${NC}"
+                    echo -e "${YELLOW}     docker exec $NGINX_PROXY_CONTAINER cp $LATEST_BACKUP $NGINX_PROXY_CONF${NC}"
+                    echo -e "${YELLOW}     docker restart $NGINX_PROXY_CONTAINER${NC}"
                 fi
             else
-                echo -e "${RED}     ✗ El backup también tiene errores${NC}"
-                echo -e "${YELLOW}     Para restaurar manualmente:${NC}"
-                echo -e "${YELLOW}     docker exec $NGINX_PROXY_CONTAINER cp $LATEST_BACKUP $NGINX_PROXY_CONF${NC}"
-                echo -e "${YELLOW}     docker restart $NGINX_PROXY_CONTAINER${NC}"
+                echo -e "${RED}     ✗ No se encontró backup anterior${NC}"
+                echo -e "${YELLOW}     Revise manualmente: docker exec -it $NGINX_PROXY_CONTAINER bash${NC}"
             fi
-        else
-            echo -e "${RED}     ✗ No se encontró backup anterior${NC}"
-            echo -e "${YELLOW}     Revise manualmente: docker exec -it $NGINX_PROXY_CONTAINER bash${NC}"
         fi
-        fi
-    else
-        echo -e "${YELLOW}    Para restaurar: docker exec $NGINX_PROXY_CONTAINER cp ${NGINX_PROXY_CONF}.backup_${BACKUP_SUFFIX} $NGINX_PROXY_CONF && docker restart $NGINX_PROXY_CONTAINER${NC}"
     fi
 fi
+
+echo -e "${YELLOW}Para restaurar configuración: docker exec $NGINX_PROXY_CONTAINER cp ${NGINX_PROXY_CONF}.backup_${BACKUP_SUFFIX} $NGINX_PROXY_CONF && docker restart $NGINX_PROXY_CONTAINER${NC}"
+echo ""
 
 ################################################################################
 # 6. VERIFICACIÓN
