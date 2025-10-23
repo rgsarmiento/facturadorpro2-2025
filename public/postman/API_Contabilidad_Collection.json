@@ -1,0 +1,480 @@
+{
+	"info": {
+		"_postman_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+		"name": "API Contabilidad - Facturador PRO2",
+		"description": "# 📊 API de Módulo de Contabilidad\n\n## Descripción General\n\nEsta API RESTful permite gestionar el módulo de contabilidad de Facturador PRO2, incluyendo:\n- **Plan Único de Cuentas (PUC)**: CRUD completo de cuentas contables\n- **Asientos Contables**: Creación, consulta, aprobación y gestión de comprobantes contables\n- **Catálogos**: Tipos de comprobantes, terceros y consecutivos\n\n## 🔐 Autenticación\n\n**Método**: Bearer Token (API Token)\n\nLa API utiliza autenticación mediante `api_token` que se encuentra en la tabla `users` del tenant.\n\n### ¿Cómo autenticarse?\n\n1. Obtén el `api_token` de tu usuario desde la base de datos del tenant\n2. Incluye el token en el header de cada petición:\n   ```\n   Authorization: Bearer {api_token}\n   ```\n\n### Generar API Token (si no existe)\n\nPuedes generar un token ejecutando en la base de datos del tenant:\n```sql\nUPDATE users SET api_token = MD5(CONCAT(email, NOW(), RAND())) WHERE id = {user_id};\n```\n\n## 🌐 URL Base\n\n**Ejemplo**: `http://torres.facturadorpro2.oo/api/contabilidad`\n\n**IMPORTANTE**: Las rutas coinciden con el frontend\n- Frontend: `/contabilidad/cuentas-contables`\n- API: `/api/contabilidad/cuentas-contables`\n\n## 📋 Endpoints Disponibles\n\n### Plan Único de Cuentas\n- `GET /cuentas-contables` - Listar cuentas (paginado, filtros)\n- `GET /cuentas-contables/{id}` - Obtener cuenta específica\n- `GET /cuentas-contables/tree` - Árbol jerárquico de cuentas\n- `POST /cuentas-contables` - Crear cuenta\n- `PUT /cuentas-contables/{id}` - Actualizar cuenta\n- `DELETE /cuentas-contables/{id}` - Eliminar cuenta\n\n### Asientos Contables\n- `GET /asientos-contables` - Listar asientos (paginado, filtros)\n- `GET /asientos-contables/{id}` - Obtener asiento específico\n- `POST /asientos-contables` - Crear asiento\n- `PUT /asientos-contables/{id}` - Actualizar asiento (solo BORRADOR)\n- `DELETE /asientos-contables/{id}` - Eliminar asiento (solo BORRADOR)\n- `POST /asientos-contables/{id}/confirmar` - Aprobar asiento\n\n### Catálogos\n- `GET /tipos-comprobantes` - Listar tipos de comprobantes\n- `GET /terceros` - Listar terceros/personas\n- `GET /proximo-consecutivo/{tipo_id}` - Obtener próximo consecutivo\n\n## 📦 Formato de Respuestas\n\n### Respuesta Exitosa\n```json\n{\n  \"success\": true,\n  \"data\": { ... },\n  \"message\": \"Operación exitosa\" // opcional\n}\n```\n\n### Respuesta con Error\n```json\n{\n  \"success\": false,\n  \"message\": \"Descripción del error\",\n  \"errors\": { ... } // solo en errores de validación\n}\n```\n\n## 🔧 Token de Autenticación\n\nConfigura el `api_token` en el header Authorization de cada petición:\n```\nAuthorization: Bearer FRhP2rsd318LzTvLtqfGMAW6E6QvtnA0Bks2sGK58nyL2TtNew\n```\n\n## 📝 Notas Importantes\n\n1. **Estados de Asientos**:\n   - `BORRADOR`: Puede editarse y eliminarse\n   - `CONFIRMADO`: No puede modificarse\n   - `ANULADO`: Registrado como anulado\n\n2. **Balance de Asientos**: Los asientos deben estar balanceados (Débito = Crédito) para poder confirmarse\n\n3. **Niveles de Cuentas**: Las cuentas tienen jerarquía. Solo las cuentas de último nivel permiten movimientos\n\n4. **Paginación**: Los listados están paginados (15 items por defecto). Usa `?per_page=N` para cambiar",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "1. Plan Único de Cuentas (PUC)",
+			"item": [
+				{
+					"name": "1.1 Listar Cuentas Contables",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer FRhP2rsd318LzTvLtqfGMAW6E6QvtnA0Bks2sGK58nyL2TtNew",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "http://torres.facturadorpro2.oo/api/contabilidad/cuentas-contables?per_page=20&activa=1&tipo_cuenta=activo&search=caja",
+							"protocol": "http",
+							"host": ["torres", "facturadorpro2", "oo"],
+							"path": ["api", "contabilidad", "cuentas-contables"],
+							"query": [
+								{
+									"key": "per_page",
+									"value": "20",
+									"description": "Registros por página (opcional, default: 15)"
+								},
+								{
+									"key": "activa",
+									"value": "1",
+									"description": "Filtrar por estado (1=activa, 0=inactiva) - opcional"
+								},
+								{
+									"key": "tipo_cuenta",
+									"value": "activo",
+									"description": "Filtrar por tipo: activo, pasivo, patrimonio, ingreso, gasto, costo - opcional"
+								},
+								{
+									"key": "nivel",
+									"value": "3",
+									"description": "Filtrar por nivel jerárquico - opcional",
+									"disabled": true
+								},
+								{
+									"key": "permite_movimiento",
+									"value": "1",
+									"description": "Filtrar cuentas que permiten movimiento - opcional",
+									"disabled": true
+								},
+								{
+									"key": "search",
+									"value": "caja",
+									"description": "Buscar en código, nombre o descripción - opcional"
+								}
+							]
+						},
+						"description": "Obtiene un listado paginado de todas las cuentas contables del PUC.\n\n**Filtros disponibles**:\n- `activa`: 1 (activas) o 0 (inactivas)\n- `tipo_cuenta`: activo, pasivo, patrimonio, ingreso, gasto, costo\n- `nivel`: Nivel jerárquico de la cuenta\n- `permite_movimiento`: 1 (permite) o 0 (no permite)\n- `search`: Búsqueda en código, nombre o descripción\n- `per_page`: Cantidad de registros por página\n\n**Respuesta**: Listado de cuentas con paginación"
+					},
+					"response": []
+				},
+				{
+					"name": "1.2 Obtener Cuenta por Código",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer FRhP2rsd318LzTvLtqfGMAW6E6QvtnA0Bks2sGK58nyL2TtNew",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "http://torres.facturadorpro2.oo/api/contabilidad/cuentas-contables/1105",
+							"protocol": "http",
+							"host": ["torres", "facturadorpro2", "oo"],
+							"path": ["api", "contabilidad", "cuentas-contables", "1105"]
+						},
+						"description": "Obtiene los detalles completos de una cuenta contable específica, incluyendo:\n- Datos de la cuenta\n- Cuenta padre (si existe)\n- Cuentas hijas (si tiene)\n\n**Parámetros**:\n- `{codigo}`: Código de la cuenta a consultar"
+					},
+					"response": []
+				},
+				{
+					"name": "1.3 Árbol Jerárquico de Cuentas",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer FRhP2rsd318LzTvLtqfGMAW6E6QvtnA0Bks2sGK58nyL2TtNew",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "http://torres.facturadorpro2.oo/api/contabilidad/cuentas-contables/tree",
+							"protocol": "http",
+							"host": ["torres", "facturadorpro2", "oo"],
+							"path": ["api", "contabilidad", "cuentas-contables", "tree"]
+						},
+						"description": "Obtiene la estructura jerárquica completa del plan de cuentas en formato de árbol.\n\nÚtil para:\n- Mostrar el PUC en un TreeView\n- Visualizar la jerarquía completa\n- Navegar por la estructura de cuentas\n\n**Respuesta**: Array de cuentas padre con sus respectivas cuentas hijas anidadas"
+					},
+					"response": []
+				},
+				{
+					"name": "1.4 Crear Cuenta Contable",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer FRhP2rsd318LzTvLtqfGMAW6E6QvtnA0Bks2sGK58nyL2TtNew",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"codigo\": \"110505\",\n    \"nombre\": \"Caja General\",\n    \"tipo_cuenta\": \"activo\",\n    \"naturaleza\": \"debito\",\n    \"cuenta_padre_codigo\": \"1105\",\n    \"descripcion\": \"Caja general de la empresa\",\n    \"activa\": true,\n    \"permite_movimiento\": true,\n    \"requiere_tercero\": false,\n    \"saldo_inicial\": 0,\n    \"codigo_niif\": \"1105\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://torres.facturadorpro2.oo/api/contabilidad/cuentas-contables",
+							"protocol": "http",
+							"host": ["torres", "facturadorpro2", "oo"],
+							"path": ["api", "contabilidad", "cuentas-contables"]
+						},
+						"description": "Crea una nueva cuenta en el plan único de cuentas.\n\n**Campos requeridos**:\n- `codigo`: Código único de la cuenta (máx 20 caracteres)\n- `nombre`: Nombre de la cuenta (máx 255 caracteres)\n- `tipo_cuenta`: activo | pasivo | patrimonio | ingreso | gasto | costo\n- `naturaleza`: debito | credito\n\n**Campos opcionales**:\n- `cuenta_padre_codigo`: Código de la cuenta padre (el nivel se calcula automáticamente)\n- `descripcion`: Descripción detallada\n- `activa`: true/false (default: true)\n- `permite_movimiento`: true/false\n- `requiere_tercero`: true/false\n- `saldo_inicial`: Saldo inicial (número)\n- `codigo_niif`: Código NIIF\n\n**Validaciones**:\n- El código debe ser único\n- La cuenta padre debe existir si se especifica\n\n**Nota**: El nivel se calcula automáticamente según el código de la cuenta y la cuenta padre"
+					},
+					"response": []
+				},
+				{
+					"name": "1.5 Actualizar Cuenta Contable",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer FRhP2rsd318LzTvLtqfGMAW6E6QvtnA0Bks2sGK58nyL2TtNew",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"codigo\": \"110505\",\n    \"nombre\": \"Caja General Principal\",\n    \"tipo_cuenta\": \"activo\",\n    \"naturaleza\": \"debito\",\n    \"cuenta_padre_codigo\": \"1105\",\n    \"descripcion\": \"Caja general principal de la empresa - Actualizada\",\n    \"activa\": true,\n    \"permite_movimiento\": true,\n    \"requiere_tercero\": false,\n    \"saldo_inicial\": 1000000\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://torres.facturadorpro2.oo/api/contabilidad/cuentas-contables/110505",
+							"protocol": "http",
+							"host": ["torres", "facturadorpro2", "oo"],
+							"path": ["api", "contabilidad", "cuentas-contables", "110505"]
+						},
+						"description": "Actualiza una cuenta contable existente.\n\n**Parámetros**:\n- `{codigo}`: Código de la cuenta a actualizar\n\n**Campos**: Mismos que en crear cuenta\n- Use `cuenta_padre_codigo` en lugar de `cuenta_padre_id`\n- El nivel se calcula automáticamente\n\n**Validaciones**:\n- El código debe ser único (excepto para la misma cuenta)\n- No se puede cambiar si tiene movimientos en ciertos casos"
+					},
+					"response": []
+				},
+				{
+					"name": "1.6 Eliminar Cuenta Contable",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer FRhP2rsd318LzTvLtqfGMAW6E6QvtnA0Bks2sGK58nyL2TtNew",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "http://torres.facturadorpro2.oo/api/contabilidad/cuentas-contables/110505",
+							"protocol": "http",
+							"host": ["torres", "facturadorpro2", "oo"],
+							"path": ["api", "contabilidad", "cuentas-contables", "110505"]
+						},
+						"description": "Elimina una cuenta contable del sistema.\n\n**Parámetros**:\n- `{codigo}`: Código de la cuenta a eliminar\n\n**Restricciones**:\n- ❌ No se puede eliminar si tiene cuentas hijas\n- ❌ No se puede eliminar si tiene movimientos contables\n\n**Respuesta**: Confirmación de eliminación exitosa"
+					},
+					"response": []
+				}
+			],
+			"description": "Gestión completa del Plan Único de Cuentas (PUC). \n\nPermite:\n- Consultar cuentas con filtros\n- Crear nuevas cuentas\n- Actualizar cuentas existentes  \n- Eliminar cuentas sin movimientos\n- Ver estructura jerárquica"
+		},
+		{
+			"name": "2. Asientos Contables",
+			"item": [
+				{
+					"name": "2.1 Listar Asientos Contables",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer FRhP2rsd318LzTvLtqfGMAW6E6QvtnA0Bks2sGK58nyL2TtNew",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "http://torres.facturadorpro2.oo/api/contabilidad/asientos-contables?per_page=15&fecha_inicio=2025-01-01&fecha_fin=2025-12-31&estado=BORRADOR&tipo_comprobante_id=1",
+							"protocol": "http",
+							"host": ["torres", "facturadorpro2", "oo"],
+							"path": ["api", "contabilidad", "asientos-contables"],
+							"query": [
+								{
+									"key": "per_page",
+									"value": "15",
+									"description": "Registros por página (opcional)"
+								},
+								{
+									"key": "fecha_inicio",
+									"value": "2025-01-01",
+									"description": "Fecha inicio filtro (opcional)"
+								},
+								{
+									"key": "fecha_fin",
+									"value": "2025-12-31",
+									"description": "Fecha fin filtro (opcional)"
+								},
+								{
+									"key": "estado",
+									"value": "BORRADOR",
+									"description": "BORRADOR, CONFIRMADO, ANULADO (opcional)"
+								},
+								{
+									"key": "tipo_comprobante_id",
+									"value": "1",
+									"description": "Filtrar por tipo de comprobante (opcional)"
+								},
+								{
+									"key": "search",
+									"value": "concepto",
+									"description": "Buscar en número o concepto (opcional)",
+									"disabled": true
+								},
+								{
+									"key": "incluir_eliminados",
+									"value": "true",
+									"description": "Incluir asientos eliminados (opcional)",
+									"disabled": true
+								}
+							]
+						},
+						"description": "Obtiene un listado paginado de asientos contables.\n\n**Filtros disponibles**:\n- `fecha_inicio` y `fecha_fin`: Rango de fechas\n- `estado`: BORRADOR, CONFIRMADO, ANULADO\n- `tipo_comprobante_id`: Filtrar por tipo de comprobante\n- `search`: Búsqueda en número de comprobante o concepto\n- `incluir_eliminados`: true para incluir eliminados\n- `per_page`: Registros por página\n\n**Respuesta**: Listado de asientos con tipo de comprobante y usuario creación"
+					},
+					"response": []
+				},
+				{
+					"name": "2.2 Obtener Asiento por ID",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer FRhP2rsd318LzTvLtqfGMAW6E6QvtnA0Bks2sGK58nyL2TtNew",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "http://torres.facturadorpro2.oo/api/contabilidad/asientos-contables/1",
+							"protocol": "http",
+							"host": ["torres", "facturadorpro2", "oo"],
+							"path": ["api", "contabilidad", "asientos-contables", "1"]
+						},
+						"description": "Obtiene los detalles completos de un asiento contable, incluyendo:\n- Datos del asiento (fecha, número, concepto, totales, estado)\n- Detalles del asiento (cuentas, débitos, créditos, terceros)\n- Tipo de comprobante\n- Usuario que lo creó\n- Archivos adjuntos\n\n**Parámetros**:\n- `{id}`: ID del asiento a consultar\n\n**Nota**: También recupera asientos eliminados (soft-deleted)"
+					},
+					"response": []
+				},
+				{
+					"name": "2.3 Crear Asiento Contable",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer FRhP2rsd318LzTvLtqfGMAW6E6QvtnA0Bks2sGK58nyL2TtNew",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"fecha_asiento\": \"2025-10-23\",\n    \"tipo_comprobante_id\": 1,\n    \"concepto\": \"Apertura de caja del día\",\n    \"detalles\": [\n        {\n            \"cuenta_contable_codigo\": \"110505\",\n            \"concepto\": \"Efectivo recibido en caja\",\n            \"debito\": 500000,\n            \"credito\": 0,\n            \"tercero_number\": null\n        },\n        {\n            \"cuenta_contable_codigo\": \"310505\",\n            \"concepto\": \"Aporte de socios\",\n            \"debito\": 0,\n            \"credito\": 500000,\n            \"tercero_number\": \"123456789\"\n        }\n    ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://torres.facturadorpro2.oo/api/contabilidad/asientos-contables",
+							"protocol": "http",
+							"host": ["torres", "facturadorpro2", "oo"],
+							"path": ["api", "contabilidad", "asientos-contables"]
+						},
+						"description": "Crea un nuevo asiento contable en estado BORRADOR.\n\n**Campos requeridos**:\n- `fecha_asiento`: Fecha del asiento (formato: YYYY-MM-DD)\n- `tipo_comprobante_id`: ID del tipo de comprobante\n- `concepto`: Descripción general del asiento (máx 500 caracteres)\n- `detalles`: Array con mínimo 2 detalles\n\n**Estructura de cada detalle**:\n- `cuenta_contable_codigo`: Código de la cuenta contable (requerido)\n- `concepto`: Descripción del movimiento (requerido, máx 255)\n- `debito`: Valor débito (requerido, número >= 0)\n- `credito`: Valor crédito (requerido, número >= 0)\n- `tercero_number`: Número de identificación del tercero (opcional)\n\n**Proceso automático**:\n1. Genera número de comprobante con prefijo y consecutivo\n2. Calcula totales de débito y crédito\n3. Actualiza consecutivo del tipo de comprobante\n4. Crea el asiento en estado BORRADOR\n\n**Nota**: El asiento debe estar balanceado para poder confirmarse posteriormente"
+					},
+					"response": []
+				},
+				{
+					"name": "2.4 Actualizar Asiento Contable",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer FRhP2rsd318LzTvLtqfGMAW6E6QvtnA0Bks2sGK58nyL2TtNew",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"fecha_asiento\": \"2025-10-23\",\n    \"concepto\": \"Apertura de caja del día - Actualizado\",\n    \"detalles\": [\n        {\n            \"cuenta_contable_codigo\": \"110505\",\n            \"concepto\": \"Efectivo recibido en caja - Corregido\",\n            \"debito\": 600000,\n            \"credito\": 0,\n            \"tercero_number\": null\n        },\n        {\n            \"cuenta_contable_codigo\": \"310505\",\n            \"concepto\": \"Aporte de socios\",\n            \"debito\": 0,\n            \"credito\": 600000,\n            \"tercero_number\": \"123456789\"\n        }\n    ]\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://torres.facturadorpro2.oo/api/contabilidad/asientos-contables/1",
+							"protocol": "http",
+							"host": ["torres", "facturadorpro2", "oo"],
+							"path": ["api", "contabilidad", "asientos-contables", "1"]
+						},
+						"description": "Actualiza un asiento contable existente.\n\n**⚠️ RESTRICCIÓN IMPORTANTE**: Solo se pueden actualizar asientos en estado **BORRADOR**\n\n**Parámetros**:\n- `{id}`: ID del asiento a actualizar\n\n**Campos**: Mismos que en crear asiento (excepto tipo_comprobante_id)\n\n**Proceso**:\n1. Valida que esté en BORRADOR\n2. Elimina los detalles anteriores\n3. Crea los nuevos detalles\n4. Recalcula los totales\n5. Actualiza fecha de modificación\n\n**Nota**: El número de comprobante NO cambia al actualizar"
+					},
+					"response": []
+				},
+				{
+					"name": "2.5 Confirmar/Aprobar Asiento",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer FRhP2rsd318LzTvLtqfGMAW6E6QvtnA0Bks2sGK58nyL2TtNew",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "http://torres.facturadorpro2.oo/api/contabilidad/asientos-contables/1/confirmar",
+							"protocol": "http",
+							"host": ["torres", "facturadorpro2", "oo"],
+							"path": ["api", "contabilidad", "asientos-contables", "1", "confirmar"]
+						},
+						"description": "Confirma/Aprueba un asiento contable, cambiando su estado de BORRADOR a CONFIRMADO.\n\n**Parámetros**:\n- `{id}`: ID del asiento a confirmar\n\n**Validaciones**:\n- ✅ Solo asientos en estado BORRADOR pueden confirmarse\n- ✅ El asiento debe estar balanceado (Débito = Crédito)\n\n**Proceso**:\n1. Valida estado BORRADOR\n2. Verifica balance (Débito = Crédito)\n3. Cambia estado a CONFIRMADO\n4. Registra usuario y fecha de confirmación\n5. Actualiza saldos de cuentas contables\n\n**⚠️ IMPORTANTE**: Una vez confirmado, el asiento **NO puede editarse ni eliminarse**"
+					},
+					"response": []
+				},
+				{
+					"name": "2.6 Eliminar Asiento Contable",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer FRhP2rsd318LzTvLtqfGMAW6E6QvtnA0Bks2sGK58nyL2TtNew",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "http://torres.facturadorpro2.oo/api/contabilidad/asientos-contables/1",
+							"protocol": "http",
+							"host": ["torres", "facturadorpro2", "oo"],
+							"path": ["api", "contabilidad", "asientos-contables", "1"]
+						},
+						"description": "Elimina (soft delete) un asiento contable.\n\n**Parámetros**:\n- `{id}`: ID del asiento a eliminar\n\n**⚠️ RESTRICCIÓN**: Solo se pueden eliminar asientos en estado **BORRADOR**\n\n**Tipo de eliminación**: \n- Soft Delete (se marca como eliminado pero se conserva en BD)\n- Aparece como ANULADO en los listados si se filtra por estado anulado\n\n**Respuesta**: Confirmación de eliminación exitosa"
+					},
+					"response": []
+				}
+			],
+			"description": "Gestión completa de Asientos Contables (Comprobantes Contables).\n\nPermite:\n- Consultar asientos con múltiples filtros\n- Crear asientos en borrador\n- Actualizar asientos no confirmados\n- Aprobar/Confirmar asientos\n- Eliminar asientos en borrador\n\nEstados del ciclo de vida:\n1. **BORRADOR**: Editable y eliminable\n2. **CONFIRMADO**: Solo lectura (no editable)\n3. **ANULADO**: Marcado como eliminado"
+		},
+		{
+			"name": "3. Catálogos y Auxiliares",
+			"item": [
+				{
+					"name": "3.1 Listar Tipos de Comprobantes",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer FRhP2rsd318LzTvLtqfGMAW6E6QvtnA0Bks2sGK58nyL2TtNew",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "http://torres.facturadorpro2.oo/api/contabilidad/tipos-comprobantes",
+							"protocol": "http",
+							"host": ["torres", "facturadorpro2", "oo"],
+							"path": ["api", "contabilidad", "tipos-comprobantes"]
+						},
+						"description": "Obtiene el listado de tipos de comprobantes contables activos.\n\nLos tipos de comprobantes definen:\n- Código y nombre del comprobante\n- Prefijo para numeración (ej: CV, AJ, NC)\n- Consecutivo actual\n- Estado (activo/inactivo)\n\n**Ejemplos comunes**:\n- CV: Comprobante de Venta\n- AJ: Asiento de Ajuste  \n- NC: Nota Contable\n- CI: Comprobante de Ingreso\n- CE: Comprobante de Egreso\n\n**Respuesta**: Array de tipos de comprobantes activos ordenados por código"
+					},
+					"response": []
+				},
+				{
+					"name": "3.2 Listar Terceros",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer FRhP2rsd318LzTvLtqfGMAW6E6QvtnA0Bks2sGK58nyL2TtNew",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "http://torres.facturadorpro2.oo/api/contabilidad/terceros?search=juan",
+							"protocol": "http",
+							"host": ["torres", "facturadorpro2", "oo"],
+							"path": ["api", "contabilidad", "terceros"],
+							"query": [
+								{
+									"key": "search",
+									"value": "juan",
+									"description": "Buscar por nombre o número de documento (opcional)"
+								}
+							]
+						},
+						"description": "Obtiene el listado de terceros/personas habilitadas.\n\nLos terceros son:\n- Clientes\n- Proveedores\n- Empleados\n- Socios\n- Otros contactos\n\nÚtil para:\n- Asignar terceros a movimientos contables\n- Cuentas que requieren tercero\n- Reportes por tercero\n\n**Filtros**:\n- `search`: Busca en nombre y número de documento\n\n**Respuesta**: Array con id, nombre y número de documento"
+					},
+					"response": []
+				},
+				{
+					"name": "3.3 Obtener Próximo Consecutivo",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer FRhP2rsd318LzTvLtqfGMAW6E6QvtnA0Bks2sGK58nyL2TtNew",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "http://torres.facturadorpro2.oo/api/contabilidad/proximo-consecutivo/1",
+							"protocol": "http",
+							"host": ["torres", "facturadorpro2", "oo"],
+							"path": ["api", "contabilidad", "proximo-consecutivo", "1"]
+						},
+						"description": "Obtiene el próximo número consecutivo disponible para un tipo de comprobante.\n\n**Parámetros**:\n- `{tipo_comprobante_id}`: ID del tipo de comprobante\n\n**Respuesta incluye**:\n- `proximo_consecutivo`: Número consecutivo sin prefijo\n- `numero_formateado`: Número completo con prefijo (ej: CV15)\n- `tipo_comprobante`: Nombre del tipo de comprobante\n\n**Uso**:\nÚtil para mostrar al usuario el número que se asignará antes de crear el asiento.\n\n**Nota**: El consecutivo NO se reserva hasta que se crea efectivamente el asiento"
+					},
+					"response": []
+				}
+			],
+			"description": "Endpoints auxiliares para obtener catálogos y datos de soporte.\n\nIncluye:\n- Tipos de comprobantes contables\n- Terceros/Personas\n- Generación de consecutivos"
+		}
+	]
+}
+

@@ -4,7 +4,7 @@ namespace App\Models\Tenant;
 
 use Illuminate\Database\Eloquent\Model;
 
-class TipoComprobanteContable extends Model
+class TipoComprobanteContable extends ModelTenant
 {
 
     protected $table = 'tipo_comprobantes_contables';

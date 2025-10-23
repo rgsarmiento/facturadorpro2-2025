@@ -37,6 +37,34 @@ if ($hostname) {
             Route::post('documents_server', 'Tenant\Api\DocumentController@storeServer');
             Route::get('document_check_server/{external_id}', 'Tenant\Api\DocumentController@documentCheckServer');
         });
+
+        // ============================================
+        // API DE CONTABILIDAD - Autenticación por API Token
+        // ============================================
+        Route::prefix('contabilidad')->middleware(['auth.token', 'locked.tenant'])->group(function() {
+
+            // Plan Único de Cuentas (PUC) - Rutas coincidentes con frontend
+            Route::get('cuentas-contables', 'Tenant\Api\ContabilidadController@getCuentas');
+            Route::get('cuentas-contables/tree', 'Tenant\Api\ContabilidadController@getCuentasTree');
+            Route::get('cuentas-contables/{codigo}', 'Tenant\Api\ContabilidadController@getCuenta');
+            Route::post('cuentas-contables', 'Tenant\Api\ContabilidadController@storeCuenta');
+            Route::put('cuentas-contables/{codigo}', 'Tenant\Api\ContabilidadController@updateCuenta');
+            Route::delete('cuentas-contables/{codigo}', 'Tenant\Api\ContabilidadController@deleteCuenta');
+
+            // Asientos Contables - Rutas coincidentes con frontend
+            Route::get('asientos-contables', 'Tenant\Api\ContabilidadController@getAsientos');
+            Route::get('asientos-contables/{id}', 'Tenant\Api\ContabilidadController@getAsiento');
+            Route::post('asientos-contables', 'Tenant\Api\ContabilidadController@storeAsiento');
+            Route::put('asientos-contables/{id}', 'Tenant\Api\ContabilidadController@updateAsiento');
+            Route::delete('asientos-contables/{id}', 'Tenant\Api\ContabilidadController@deleteAsiento');
+            Route::post('asientos-contables/{id}/confirmar', 'Tenant\Api\ContabilidadController@confirmarAsiento');
+
+            // Catálogos
+            Route::get('tipos-comprobantes', 'Tenant\Api\ContabilidadController@getTiposComprobantes');
+            Route::get('terceros', 'Tenant\Api\ContabilidadController@getTerceros');
+            Route::get('proximo-consecutivo/{tipo_comprobante_id}', 'Tenant\Api\ContabilidadController@getProximoConsecutivo');
+        });
+
         Route::get('documents/search/customers', 'Tenant\DocumentController@searchCustomers');
 
         Route::post('services/validate_cpe', 'Tenant\Api\ServiceController@validateCpe');
