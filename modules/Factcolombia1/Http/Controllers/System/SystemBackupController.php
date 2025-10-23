@@ -1596,8 +1596,6 @@ class SystemBackupController extends Controller
                 json_encode($metadata, JSON_PRETTY_PRINT)
             );
 
-            $this->safeLog("CHUNK UPLOAD: Iniciada carga por chunks - Upload ID: {$uploadId}, Archivo: {$request->filename}, Tamaño: " . number_format($request->filesize / (1024*1024*1024), 2) . " GB");
-
             return response()->json([
                 'success' => true,
                 'upload_id' => $uploadId,
@@ -1605,7 +1603,6 @@ class SystemBackupController extends Controller
             ]);
 
         } catch (\Throwable $e) {
-            $this->safeLog('CHUNK UPLOAD ERROR (init): ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Error al iniciar carga: ' . $e->getMessage()
@@ -1676,8 +1673,6 @@ class SystemBackupController extends Controller
 
             $progress = count($metadata['uploaded_chunks']) / $metadata['total_chunks'] * 100;
 
-            $this->safeLog("CHUNK UPLOAD: Chunk {$chunkIndex} subido - Progreso: " . number_format($progress, 2) . "%");
-
             return response()->json([
                 'success' => true,
                 'message' => 'Chunk subido correctamente',
@@ -1688,7 +1683,6 @@ class SystemBackupController extends Controller
             ]);
 
         } catch (\Throwable $e) {
-            $this->safeLog('CHUNK UPLOAD ERROR (chunk): ' . $e->getMessage());
             return response()->json([
                 'success' => false,
                 'message' => 'Error al subir chunk: ' . $e->getMessage()
@@ -1775,8 +1769,6 @@ class SystemBackupController extends Controller
                 ], 400);
             }
 
-            $this->safeLog("CHUNK UPLOAD: Ensamblando archivo final - Upload ID: {$uploadId}");
-
             // Ensamblar archivo final
             $backupsPath = storage_path('app/system_backups');
             if (!is_dir($backupsPath)) {
@@ -1808,42 +1800,22 @@ class SystemBackupController extends Controller
                 }
 
                 while (!feof($chunkHandle)) {
-                    $data = fread($chunkHandle, 8192); // Leer en bloques de 8KB
+                    $data = fread($chunkHandle, 8192);
                     fwrite($finalHandle, $data);
                 }
 
                 fclose($chunkHandle);
-
-                // Log de progreso cada 10 chunks
-                if ($i % 10 === 0) {
-                    $assemblyProgress = ($i / $metadata['total_chunks']) * 100;
-                    $this->safeLog("CHUNK UPLOAD: Ensamblando... " . number_format($assemblyProgress, 2) . "%");
-                }
             }
 
             fclose($finalHandle);
-
-            // Verificar tamaño del archivo ensamblado
-            $finalSize = filesize($finalFile);
-            $expectedSize = $metadata['filesize'];
-
-            $this->safeLog("CHUNK UPLOAD: Archivo ensamblado - Tamaño: " . number_format($finalSize / (1024*1024*1024), 2) . " GB (Esperado: " . number_format($expectedSize / (1024*1024*1024), 2) . " GB)");
-
-            if (abs($finalSize - $expectedSize) > 1024) { // Tolerancia de 1KB
-                $this->safeLog("CHUNK UPLOAD WARNING: Diferencia de tamaño detectada - Real: {$finalSize}, Esperado: {$expectedSize}");
-            }
 
             // Limpiar chunks
             $this->cleanupChunkUpload($uploadId);
 
             // Iniciar proceso de restauración
-            $this->safeLog("CHUNK UPLOAD: Iniciando restauración del sistema...");
-
             return $this->performRestore($finalFile, true);
 
         } catch (\Throwable $e) {
-            $this->safeLog('CHUNK UPLOAD ERROR (finalize): ' . $e->getMessage());
-
             // Limpiar en caso de error
             if (isset($finalFile) && file_exists($finalFile)) {
                 $this->safeUnlinkWithRetry($finalFile);
@@ -1875,11 +1847,9 @@ class SystemBackupController extends Controller
 
                 // Eliminar directorio
                 rmdir($uploadPath);
-
-                $this->safeLog("CHUNK UPLOAD: Limpieza completada para upload ID: {$uploadId}");
             }
         } catch (\Exception $e) {
-            $this->safeLog("CHUNK UPLOAD WARNING: Error al limpiar chunks: " . $e->getMessage());
+            // Error silencioso al limpiar
         }
     }
 

@@ -459,26 +459,21 @@ function deleteBackup(filename) {
 // Función para mostrar diálogo de restauración
 // Función para mostrar el modal de restore
 function showRestoreDialog() {
-    console.log('Mostrando modal custom...');
     const modal = document.getElementById('restoreModal');
     if (modal) {
         modal.style.display = 'block';
-        document.body.style.overflow = 'hidden'; // Prevenir scroll
-        console.log('Modal mostrado exitosamente');
+        document.body.style.overflow = 'hidden';
     } else {
-        console.error('Modal no encontrado');
         showError('Error: Modal no encontrado');
     }
 }
 
 // Función para cerrar el modal de restore
 function closeRestoreModal() {
-    console.log('Cerrando modal custom...');
     const modal = document.getElementById('restoreModal');
     if (modal) {
         modal.style.display = 'none';
-        document.body.style.overflow = 'auto'; // Restaurar scroll
-        console.log('Modal cerrado exitosamente');
+        document.body.style.overflow = 'auto';
 
         // Limpiar formulario
         const form = document.getElementById('restoreForm');
@@ -525,9 +520,6 @@ function initializeRestoreForm() {
             e.preventDefault();
             handleRestore();
         });
-        console.log('Restore form initialized');
-    } else {
-        console.log('Restore form not found');
     }
 
     // Cerrar modal al hacer click en el backdrop
@@ -540,8 +532,7 @@ function initializeRestoreForm() {
             });
         }
     }
-
-    console.log('Modal event listeners initialized');
+    }
 }
 
 // Función para manejar la restauración
@@ -590,8 +581,6 @@ function handleRestore() {
     uploadState.isPaused = false;
     uploadState.retryCount = 0;
 
-    console.log(`Iniciando carga por chunks - Archivo: ${file.name}, Tamaño: ${(file.size / (1024*1024*1024)).toFixed(2)} GB, Chunks: ${uploadState.totalChunks}`);
-
     // Preparar UI
     const progressDiv = document.getElementById('restore-progress');
     const restoreBtn = document.getElementById('restore-btn');
@@ -636,7 +625,6 @@ function initChunkUpload() {
     .then(data => {
         if (data.success) {
             uploadState.uploadId = data.upload_id;
-            console.log(`Sesión de carga iniciada - Upload ID: ${data.upload_id}`);
 
             updateProgressUI(0, 'Subiendo archivo...');
 
@@ -647,7 +635,6 @@ function initChunkUpload() {
         }
     })
     .catch(error => {
-        console.error('Error al iniciar carga:', error);
         showError('Error al iniciar carga: ' + error.message);
         resetUploadUI();
     });
@@ -675,9 +662,6 @@ function uploadNextChunk(chunkIndex) {
     formData.append('chunk', chunk);
     formData.append('_token', document.querySelector('meta[name="csrf-token"]').getAttribute('content'));
 
-    const chunkSizeMB = (chunk.size / (1024 * 1024)).toFixed(2);
-    console.log(`Subiendo chunk ${chunkIndex + 1}/${uploadState.totalChunks} (${chunkSizeMB} MB)`);
-
     fetch('/co-companies/system-backup/chunk/upload', {
         method: 'POST',
         body: formData,
@@ -704,21 +688,18 @@ function uploadNextChunk(chunkIndex) {
         }
     })
     .catch(error => {
-        console.error(`Error al subir chunk ${chunkIndex}:`, error);
-
         // Reintentar con backoff exponencial
         if (uploadState.retryCount < uploadState.maxRetries) {
             uploadState.retryCount++;
-            const retryDelay = Math.min(1000 * Math.pow(2, uploadState.retryCount), 30000); // Max 30s
+            const retryDelay = Math.min(1000 * Math.pow(2, uploadState.retryCount), 30000);
 
-            console.log(`Reintentando en ${retryDelay/1000}s... (intento ${uploadState.retryCount}/${uploadState.maxRetries})`);
             updateProgressUI(
                 (chunkIndex / uploadState.totalChunks * 100),
                 `Conexión perdida. Reintentando en ${retryDelay/1000}s... (${uploadState.retryCount}/${uploadState.maxRetries})`
             );
 
             setTimeout(() => {
-                uploadNextChunk(chunkIndex); // Reintentar el mismo chunk
+                uploadNextChunk(chunkIndex);
             }, retryDelay);
         } else {
             // Máximo de reintentos alcanzado, pausar y esperar acción del usuario
@@ -770,7 +751,6 @@ function resumeUpload(chunkIndex) {
     .then(response => response.json())
     .then(data => {
         if (data.success) {
-            console.log(`Estado sincronizado - ${data.uploaded_chunks.length}/${data.total_chunks} chunks subidos`);
             uploadState.uploadedChunks = data.uploaded_chunks;
 
             // Encontrar el primer chunk no subido
@@ -785,14 +765,12 @@ function resumeUpload(chunkIndex) {
         }
     })
     .catch(error => {
-        console.error('Error al reanudar:', error);
         showError('Error al reanudar carga: ' + error.message);
         resetUploadUI();
     });
 }
 
 function finalizeUpload() {
-    console.log('Finalizando carga y ensamblando archivo...');
     updateProgressUI(100, 'Ensamblando archivo y restaurando sistema (esto puede tomar varias horas)...');
 
     const restoreBtn = document.getElementById('restore-btn');
@@ -833,7 +811,6 @@ function finalizeUpload() {
         }
     })
     .catch(error => {
-        console.error('Error al finalizar:', error);
         showError('Error al restaurar el sistema: ' + error.message);
         resetUploadUI();
     });
@@ -865,7 +842,6 @@ function cancelChunkUpload() {
             resetUploadState();
         })
         .catch(error => {
-            console.error('Error al cancelar:', error);
             closeRestoreModal();
             resetUploadState();
         });
