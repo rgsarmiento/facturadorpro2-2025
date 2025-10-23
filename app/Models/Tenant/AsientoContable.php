@@ -173,9 +173,9 @@ class AsientoContable extends Model
             $cuenta = $detalle->cuentaContable;
 
             if ($cuenta->naturaleza === 'DEBITO') {
-                $cuenta->saldo += ($detalle->debito - $detalle->credito);
+                $cuenta->saldo_anterior += ($detalle->debito - $detalle->credito);
             } else {
-                $cuenta->saldo += ($detalle->credito - $detalle->debito);
+                $cuenta->saldo_anterior += ($detalle->credito - $detalle->debito);
             }
 
             $cuenta->save();
@@ -188,9 +188,9 @@ class AsientoContable extends Model
             $cuenta = $detalle->cuentaContable;
 
             if ($cuenta->naturaleza === 'DEBITO') {
-                $cuenta->saldo -= ($detalle->debito - $detalle->credito);
+                $cuenta->saldo_anterior -= ($detalle->debito - $detalle->credito);
             } else {
-                $cuenta->saldo -= ($detalle->credito - $detalle->debito);
+                $cuenta->saldo_anterior -= ($detalle->credito - $detalle->debito);
             }
 
             $cuenta->save();

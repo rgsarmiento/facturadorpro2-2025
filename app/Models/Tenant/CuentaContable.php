@@ -27,7 +27,7 @@ class CuentaContable extends ModelTenant
         'requiere_tercero',
         'saldo_inicial',
         'saldo_actual',
-        'saldo',
+        'saldo_anterior',
         'codigo_niif',
         'configuracion_adicional'
     ];
@@ -38,7 +38,7 @@ class CuentaContable extends ModelTenant
         'requiere_tercero' => 'boolean',
         'saldo_inicial' => 'decimal:2',
         'saldo_actual' => 'decimal:2',
-        'saldo' => 'decimal:2',
+        'saldo_anterior' => 'decimal:2',
         'configuracion_adicional' => 'array',
         'nivel' => 'integer'
     ];
