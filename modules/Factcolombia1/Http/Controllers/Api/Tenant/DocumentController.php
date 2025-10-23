@@ -30,6 +30,7 @@ class DocumentController extends Controller
     const REGISTERED = 1;
     const ACCEPTED = 5;
     const REJECTED = 6;
+    const CANCELLED = 7;
 
     public function tables()
     {
