@@ -2,11 +2,10 @@
 
 namespace App\Models\Tenant;
 
-use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use App\Models\Tenant\User;
 
-class AsientoContable extends Model
+class AsientoContable extends ModelTenant
 {
     use SoftDeletes;
 
