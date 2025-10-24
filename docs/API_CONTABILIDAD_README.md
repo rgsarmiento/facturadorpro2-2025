@@ -111,11 +111,11 @@ http://torres.facturadorpro2.oo/api/contabilidad/cuentas       ✅
 | Método | Endpoint | Descripción |
 |--------|----------|-------------|
 | `GET` | `/asientos-contables` | Listar asientos (con paginación y filtros) |
-| `GET` | `/asientos-contables/{id}` | Obtener asiento específico |
+| `GET` | `/asientos-contables/{numero_comprobante}` | Obtener asiento específico |
 | `POST` | `/asientos-contables` | Crear nuevo asiento |
-| `PUT` | `/asientos-contables/{id}` | Actualizar asiento (solo BORRADOR) |
-| `DELETE` | `/asientos-contables/{id}` | Eliminar asiento (solo BORRADOR) |
-| `POST` | `/asientos-contables/{id}/confirmar` | Aprobar/Confirmar asiento |
+| `PUT` | `/asientos-contables/{numero_comprobante}` | Actualizar asiento (solo BORRADOR) |
+| `DELETE` | `/asientos-contables/{numero_comprobante}` | Eliminar asiento (solo BORRADOR) |
+| `POST` | `/asientos-contables/{numero_comprobante}/confirmar` | Aprobar/Confirmar asiento |
 
 ### 3️⃣ Catálogos
 
@@ -123,6 +123,15 @@ http://torres.facturadorpro2.oo/api/contabilidad/cuentas       ✅
 |--------|----------|-------------|
 | `GET` | `/tipos-comprobantes` | Listar tipos de comprobantes |
 | `GET` | `/terceros` | Listar terceros/personas |
+| `POST` | `/terceros` | Crear nuevo tercero |
+| `PUT` | `/terceros/{number}` | Actualizar tercero |
+| `DELETE` | `/terceros/{number}` | Eliminar tercero |
+| `GET` | `/tipos-documentos-identidad` | Tipos de documentos de identidad |
+| `GET` | `/paises` | Listar países |
+| `GET` | `/departamentos` | Listar departamentos/estados |
+| `GET` | `/ciudades` | Listar ciudades/municipios |
+| `GET` | `/tipos-persona` | Tipos de persona (Natural/Jurídica) |
+| `GET` | `/tipos-regimen` | Tipos de régimen tributario |
 | `GET` | `/proximo-consecutivo/{tipo_id}` | Obtener próximo consecutivo |
 
 ---
@@ -298,7 +307,7 @@ Content-Type: application/json
 
 **Request**:
 ```http
-POST /api/contabilidad/asientos-contables/1/confirmar
+POST /api/contabilidad/asientos-contables/CV1/confirmar
 Authorization: Bearer abc123def456
 ```
 
@@ -330,6 +339,114 @@ Authorization: Bearer abc123def456
 ```http
 GET /api/contabilidad/cuentas-contables?search=caja&permite_movimiento=1
 Authorization: Bearer abc123def456
+```
+
+### Ejemplo 7: Crear Tercero
+
+**Request**:
+```http
+POST /api/contabilidad/terceros
+Authorization: Bearer abc123def456
+Content-Type: application/json
+
+{
+  "type": "customers",
+  "identity_document_type_id": 1,
+  "number": "987654321",
+  "name": "Juan Pérez López",
+  "trade_name": "Comercial Pérez",
+  "email": "juan.perez@example.com",
+  "telephone": "3001234567",
+  "address": "Calle 123 # 45-67"
+}
+```
+
+**Response** (201 Created):
+```json
+{
+  "success": true,
+  "message": "Tercero creado exitosamente",
+  "data": {
+    "id": 15,
+    "type": "customers",
+    "number": "987654321",
+    "name": "Juan Pérez López",
+    "trade_name": "Comercial Pérez",
+    "email": "juan.perez@example.com",
+    "telephone": "3001234567",
+    "enabled": true
+  }
+}
+```
+
+### Ejemplo 8: Actualizar Tercero
+
+**Request**:
+```http
+PUT /api/contabilidad/terceros/987654321
+Authorization: Bearer abc123def456
+Content-Type: application/json
+
+{
+  "type": "both",
+  "identity_document_type_id": 1,
+  "number": "987654321",
+  "name": "Juan Pérez López - Actualizado",
+  "trade_name": "Comercial Pérez & Asociados",
+  "email": "juan.nuevo@example.com",
+  "telephone": "3009876543",
+  "address": "Carrera 10 # 20-30"
+}
+```
+
+### Ejemplo 9: Flujo Completo - Crear Tercero con Catálogos
+
+**Paso 1: Obtener tipo de documento**
+```http
+GET /api/contabilidad/tipos-documentos-identidad
+Authorization: Bearer abc123def456
+```
+
+**Respuesta**:
+```json
+{
+  "success": true,
+  "data": [
+    {"id": 1, "description": "Cédula de Ciudadanía", "code": "13"},
+    {"id": 2, "description": "NIT", "code": "31"}
+  ]
+}
+```
+
+**Paso 2: Obtener ubicación (país → departamento → ciudad)**
+```http
+GET /api/contabilidad/paises
+GET /api/contabilidad/departamentos?country_id=1
+GET /api/contabilidad/ciudades?department_id=5
+```
+
+**Paso 3: Obtener tipos de persona y régimen**
+```http
+GET /api/contabilidad/tipos-persona
+GET /api/contabilidad/tipos-regimen
+```
+
+**Paso 4: Crear tercero con los IDs obtenidos**
+```http
+POST /api/contabilidad/terceros
+Content-Type: application/json
+
+{
+  "type": "customers",
+  "identity_document_type_id": 1,
+  "number": "987654321",
+  "name": "Juan Pérez",
+  "country_id": 1,
+  "department_id": 5,
+  "city_id": 50,
+  "type_person_id": 1,
+  "type_regime_id": 1
+}
 ```
 
 ---
@@ -513,8 +630,8 @@ GET http://torres.facturadorpro2.oo/api/contabilidad/cuentas-contables/5
 # Crear asiento
 POST http://torres.facturadorpro2.oo/api/contabilidad/asientos-contables
 
-# Confirmar asiento
-POST http://torres.facturadorpro2.oo/api/contabilidad/asientos-contables/10/confirmar
+# Confirmar asiento (usar numero_comprobante)
+POST http://torres.facturadorpro2.oo/api/contabilidad/asientos-contables/CV10/confirmar
 
 # Tipos de comprobantes
 GET http://torres.facturadorpro2.oo/api/contabilidad/tipos-comprobantes

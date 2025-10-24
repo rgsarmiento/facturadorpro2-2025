@@ -136,8 +136,8 @@ curl -X GET "${API_BASE}/asientos?fecha_inicio=2025-10-01&estado=BORRADOR&per_pa
 ### 2.3 Obtener Asiento Específico
 
 ```bash
-# Incluye los detalles del asiento
-curl -X GET "${API_BASE}/asientos/1" \
+# Incluye los detalles del asiento - usar numero_comprobante
+curl -X GET "${API_BASE}/asientos/CV1" \
   -H "Authorization: Bearer ${API_TOKEN}"
 ```
 
@@ -212,7 +212,8 @@ curl -X POST "${API_BASE}/asientos" \
 ### 2.6 Actualizar Asiento (Solo BORRADOR)
 
 ```bash
-curl -X PUT "${API_BASE}/asientos/1" \
+# Usar numero_comprobante en la URL
+curl -X PUT "${API_BASE}/asientos/CV1" \
   -H "Authorization: Bearer ${API_TOKEN}" \
   -H "Content-Type: application/json" \
   -d '{
@@ -238,15 +239,16 @@ curl -X PUT "${API_BASE}/asientos/1" \
 ### 2.7 Confirmar/Aprobar Asiento
 
 ```bash
-# Una vez confirmado, NO se puede editar ni eliminar
-curl -X POST "${API_BASE}/asientos/1/confirmar" \
+# Una vez confirmado, NO se puede editar ni eliminar - usar numero_comprobante
+curl -X POST "${API_BASE}/asientos/CV1/confirmar" \
   -H "Authorization: Bearer ${API_TOKEN}"
 ```
 
 ### 2.8 Eliminar Asiento (Solo BORRADOR)
 
 ```bash
-curl -X DELETE "${API_BASE}/asientos/1" \
+# Usar numero_comprobante en la URL
+curl -X DELETE "${API_BASE}/asientos/CV1" \
   -H "Authorization: Bearer ${API_TOKEN}"
 ```
 
@@ -273,7 +275,116 @@ curl -X GET "${API_BASE}/terceros?search=Juan" \
   -H "Authorization: Bearer ${API_TOKEN}"
 ```
 
-### 3.3 Obtener Próximo Consecutivo
+### 3.3 Crear Tercero
+
+```bash
+curl -X POST "${API_BASE}/terceros" \
+  -H "Authorization: Bearer ${API_TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "type": "customers",
+    "identity_document_type_id": 1,
+    "number": "987654321",
+    "name": "Juan Pérez López",
+    "trade_name": "Comercial Pérez",
+    "country_id": 1,
+    "department_id": 5,
+    "city_id": 50,
+    "address": "Calle 123 # 45-67",
+    "email": "juan.perez@example.com",
+    "telephone": "3001234567",
+    "type_person_id": 1,
+    "type_regime_id": 1,
+    "code": "CLI001",
+    "dv": "5",
+    "contact_name": "María Pérez",
+    "contact_phone": "3009876543",
+    "postal_code": "110111"
+  }'
+```
+
+### 3.4 Actualizar Tercero
+
+```bash
+# Usar number del tercero en la URL
+curl -X PUT "${API_BASE}/terceros/987654321" \
+  -H "Authorization: Bearer ${API_TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "type": "both",
+    "identity_document_type_id": 1,
+    "number": "987654321",
+    "name": "Juan Pérez López - Actualizado",
+    "trade_name": "Comercial Pérez & Asociados",
+    "email": "juan.nuevo@example.com",
+    "telephone": "3009876543",
+    "address": "Carrera 10 # 20-30",
+    "type_person_id": 1,
+    "type_regime_id": 1
+  }'
+```
+
+### 3.5 Eliminar Tercero
+
+```bash
+# Solo si NO tiene movimientos contables
+curl -X DELETE "${API_BASE}/terceros/987654321" \
+  -H "Authorization: Bearer ${API_TOKEN}"
+```
+
+### 3.6 Tipos de Documentos de Identidad
+
+```bash
+curl -X GET "${API_BASE}/tipos-documentos-identidad" \
+  -H "Authorization: Bearer ${API_TOKEN}"
+```
+
+### 3.7 Listar Países
+
+```bash
+curl -X GET "${API_BASE}/paises" \
+  -H "Authorization: Bearer ${API_TOKEN}"
+```
+
+### 3.8 Listar Departamentos
+
+```bash
+# Todos los departamentos
+curl -X GET "${API_BASE}/departamentos" \
+  -H "Authorization: Bearer ${API_TOKEN}"
+
+# Filtrar por país
+curl -X GET "${API_BASE}/departamentos?country_id=1" \
+  -H "Authorization: Bearer ${API_TOKEN}"
+```
+
+### 3.9 Listar Ciudades
+
+```bash
+# Todas las ciudades
+curl -X GET "${API_BASE}/ciudades" \
+  -H "Authorization: Bearer ${API_TOKEN}"
+
+# Filtrar por departamento
+curl -X GET "${API_BASE}/ciudades?department_id=5" \
+  -H "Authorization: Bearer ${API_TOKEN}"
+```
+
+### 3.10 Tipos de Persona
+
+```bash
+curl -X GET "${API_BASE}/tipos-persona" \
+  -H "Authorization: Bearer ${API_TOKEN}"
+```
+
+### 3.11 Tipos de Régimen
+
+```bash
+curl -X GET "${API_BASE}/tipos-regimen" \
+  -H "Authorization: Bearer ${API_TOKEN}"
+```
+
+### 3.12 Obtener Próximo Consecutivo
 
 ```bash
 # Reemplaza {tipo_comprobante_id} con el ID real del tipo
@@ -328,19 +439,19 @@ curl -X POST "${API_BASE}/asientos" \
     ]
   }'
 
-# Paso 5: Consultar el asiento creado (reemplaza {id} con el ID retornado)
+# Paso 5: Consultar el asiento creado (usar numero_comprobante retornado, ej: CV1)
 echo -e "\n\n=== PASO 5: Consultar Asiento Creado ==="
-curl -X GET "${API_BASE}/asientos/1" \
+curl -X GET "${API_BASE}/asientos/CV1" \
   -H "Authorization: Bearer ${API_TOKEN}"
 
 # Paso 6: Confirmar el asiento
 echo -e "\n\n=== PASO 6: Confirmar Asiento ==="
-curl -X POST "${API_BASE}/asientos/1/confirmar" \
+curl -X POST "${API_BASE}/asientos/CV1/confirmar" \
   -H "Authorization: Bearer ${API_TOKEN}"
 
 # Paso 7: Verificar estado final
 echo -e "\n\n=== PASO 7: Verificar Estado Final ==="
-curl -X GET "${API_BASE}/asientos/1" \
+curl -X GET "${API_BASE}/asientos/CV1" \
   -H "Authorization: Bearer ${API_TOKEN}"
 ```
 
@@ -434,6 +545,14 @@ curl -X POST "${API_BASE}/asientos" \
   }'
 ```
 
+### Error 422: Eliminar Tercero con Movimientos
+
+```bash
+# Esto debería devolver error 422 si el tercero tiene movimientos contables
+curl -X DELETE "${API_BASE}/terceros/123456789" \
+  -H "Authorization: Bearer ${API_TOKEN}"
+```
+
 ---
 
 ## 📝 Notas Finales
@@ -443,4 +562,5 @@ curl -X POST "${API_BASE}/asientos" \
 3. **Windows PowerShell**: Si usas PowerShell, ajusta las comillas simples por dobles
 4. **Fechas**: Usa formato `YYYY-MM-DD` siempre
 5. **Balance**: Los asientos DEBEN estar balanceados (Débito = Crédito) para confirmarse
+6. **Terceros**: Use el campo `number` (número de documento) como identificador en URLs
 

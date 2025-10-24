@@ -264,7 +264,7 @@
 					"response": []
 				},
 				{
-					"name": "2.2 Obtener Asiento por ID",
+					"name": "2.2 Obtener Asiento por Número de Comprobante",
 					"request": {
 						"method": "GET",
 						"header": [
@@ -275,12 +275,12 @@
 							}
 						],
 						"url": {
-							"raw": "http://torres.facturadorpro2.oo/api/contabilidad/asientos-contables/1",
+							"raw": "http://torres.facturadorpro2.oo/api/contabilidad/asientos-contables/CV1",
 							"protocol": "http",
 							"host": ["torres", "facturadorpro2", "oo"],
-							"path": ["api", "contabilidad", "asientos-contables", "1"]
+							"path": ["api", "contabilidad", "asientos-contables", "CV1"]
 						},
-						"description": "Obtiene los detalles completos de un asiento contable, incluyendo:\n- Datos del asiento (fecha, número, concepto, totales, estado)\n- Detalles del asiento (cuentas, débitos, créditos, terceros)\n- Tipo de comprobante\n- Usuario que lo creó\n- Archivos adjuntos\n\n**Parámetros**:\n- `{id}`: ID del asiento a consultar\n\n**Nota**: También recupera asientos eliminados (soft-deleted)"
+						"description": "Obtiene los detalles completos de un asiento contable, incluyendo:\n- Datos del asiento (fecha, número, concepto, totales, estado)\n- Detalles del asiento (cuentas, débitos, créditos, terceros)\n- Tipo de comprobante\n- Usuario que lo creó\n- Archivos adjuntos\n\n**Parámetros**:\n- `{numero_comprobante}`: Número de comprobante del asiento a consultar (ej: CV1, CE5, etc.)\n\n**Nota**: También recupera asientos eliminados (soft-deleted)"
 					},
 					"response": []
 				},
@@ -345,12 +345,12 @@
 							}
 						},
 						"url": {
-							"raw": "http://torres.facturadorpro2.oo/api/contabilidad/asientos-contables/1",
+							"raw": "http://torres.facturadorpro2.oo/api/contabilidad/asientos-contables/CV1",
 							"protocol": "http",
 							"host": ["torres", "facturadorpro2", "oo"],
-							"path": ["api", "contabilidad", "asientos-contables", "1"]
+							"path": ["api", "contabilidad", "asientos-contables", "CV1"]
 						},
-						"description": "Actualiza un asiento contable existente.\n\n**⚠️ RESTRICCIÓN IMPORTANTE**: Solo se pueden actualizar asientos en estado **BORRADOR**\n\n**Parámetros**:\n- `{id}`: ID del asiento a actualizar\n\n**Campos**: Mismos que en crear asiento (excepto tipo_comprobante_id)\n\n**Proceso**:\n1. Valida que esté en BORRADOR\n2. Elimina los detalles anteriores\n3. Crea los nuevos detalles\n4. Recalcula los totales\n5. Actualiza fecha de modificación\n\n**Nota**: El número de comprobante NO cambia al actualizar"
+						"description": "Actualiza un asiento contable existente.\n\n**⚠️ RESTRICCIÓN IMPORTANTE**: Solo se pueden actualizar asientos en estado **BORRADOR**\n\n**Parámetros**:\n- `{numero_comprobante}`: Número de comprobante del asiento a actualizar (ej: CV1, CE5, etc.)\n\n**Campos**: Mismos que en crear asiento (excepto tipo_comprobante_id)\n\n**Proceso**:\n1. Valida que esté en BORRADOR\n2. Elimina los detalles anteriores\n3. Crea los nuevos detalles\n4. Recalcula los totales\n5. Actualiza fecha de modificación\n\n**Nota**: El número de comprobante NO cambia al actualizar"
 					},
 					"response": []
 				},
@@ -366,12 +366,12 @@
 							}
 						],
 						"url": {
-							"raw": "http://torres.facturadorpro2.oo/api/contabilidad/asientos-contables/1/confirmar",
+							"raw": "http://torres.facturadorpro2.oo/api/contabilidad/asientos-contables/CV1/confirmar",
 							"protocol": "http",
 							"host": ["torres", "facturadorpro2", "oo"],
-							"path": ["api", "contabilidad", "asientos-contables", "1", "confirmar"]
+							"path": ["api", "contabilidad", "asientos-contables", "CV1", "confirmar"]
 						},
-						"description": "Confirma/Aprueba un asiento contable, cambiando su estado de BORRADOR a CONFIRMADO.\n\n**Parámetros**:\n- `{id}`: ID del asiento a confirmar\n\n**Validaciones**:\n- ✅ Solo asientos en estado BORRADOR pueden confirmarse\n- ✅ El asiento debe estar balanceado (Débito = Crédito)\n\n**Proceso**:\n1. Valida estado BORRADOR\n2. Verifica balance (Débito = Crédito)\n3. Cambia estado a CONFIRMADO\n4. Registra usuario y fecha de confirmación\n5. Actualiza saldos de cuentas contables\n\n**⚠️ IMPORTANTE**: Una vez confirmado, el asiento **NO puede editarse ni eliminarse**"
+						"description": "Confirma/Aprueba un asiento contable, cambiando su estado de BORRADOR a CONFIRMADO.\n\n**Parámetros**:\n- `{numero_comprobante}`: Número de comprobante del asiento a confirmar (ej: CV1, CE5, etc.)\n\n**Validaciones**:\n- ✅ Solo asientos en estado BORRADOR pueden confirmarse\n- ✅ El asiento debe estar balanceado (Débito = Crédito)\n\n**Proceso**:\n1. Valida estado BORRADOR\n2. Verifica balance (Débito = Crédito)\n3. Cambia estado a CONFIRMADO\n4. Registra usuario y fecha de confirmación\n5. Actualiza saldos de cuentas contables\n\n**⚠️ IMPORTANTE**: Una vez confirmado, el asiento **NO puede editarse ni eliminarse**"
 					},
 					"response": []
 				},
@@ -387,12 +387,12 @@
 							}
 						],
 						"url": {
-							"raw": "http://torres.facturadorpro2.oo/api/contabilidad/asientos-contables/1",
+							"raw": "http://torres.facturadorpro2.oo/api/contabilidad/asientos-contables/CV1",
 							"protocol": "http",
 							"host": ["torres", "facturadorpro2", "oo"],
-							"path": ["api", "contabilidad", "asientos-contables", "1"]
+							"path": ["api", "contabilidad", "asientos-contables", "CV1"]
 						},
-						"description": "Elimina (soft delete) un asiento contable.\n\n**Parámetros**:\n- `{id}`: ID del asiento a eliminar\n\n**⚠️ RESTRICCIÓN**: Solo se pueden eliminar asientos en estado **BORRADOR**\n\n**Tipo de eliminación**: \n- Soft Delete (se marca como eliminado pero se conserva en BD)\n- Aparece como ANULADO en los listados si se filtra por estado anulado\n\n**Respuesta**: Confirmación de eliminación exitosa"
+						"description": "Elimina (soft delete) un asiento contable.\n\n**Parámetros**:\n- `{numero_comprobante}`: Número de comprobante del asiento a eliminar (ej: CV1, CE5, etc.)\n\n**⚠️ RESTRICCIÓN**: Solo se pueden eliminar asientos en estado **BORRADOR**\n\n**Tipo de eliminación**: \n- Soft Delete (se marca como eliminado pero se conserva en BD)\n- Aparece como ANULADO en los listados si se filtra por estado anulado\n\n**Respuesta**: Confirmación de eliminación exitosa"
 					},
 					"response": []
 				}
@@ -452,7 +452,238 @@
 					"response": []
 				},
 				{
-					"name": "3.3 Obtener Próximo Consecutivo",
+					"name": "3.3 Crear Tercero",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer FRhP2rsd318LzTvLtqfGMAW6E6QvtnA0Bks2sGK58nyL2TtNew",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"type\": \"customers\",\n    \"identity_document_type_id\": 1,\n    \"number\": \"987654321\",\n    \"name\": \"Juan Pérez López\",\n    \"trade_name\": \"Comercial Pérez\",\n    \"country_id\": 1,\n    \"department_id\": 5,\n    \"city_id\": 50,\n    \"address\": \"Calle 123 # 45-67\",\n    \"email\": \"juan.perez@example.com\",\n    \"telephone\": \"3001234567\",\n    \"type_person_id\": 1,\n    \"type_regime_id\": 1,\n    \"code\": \"CLI001\",\n    \"dv\": \"5\",\n    \"contact_name\": \"María Pérez\",\n    \"contact_phone\": \"3009876543\",\n    \"postal_code\": \"110111\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://torres.facturadorpro2.oo/api/contabilidad/terceros",
+							"protocol": "http",
+							"host": ["torres", "facturadorpro2", "oo"],
+							"path": ["api", "contabilidad", "terceros"]
+						},
+						"description": "Crea un nuevo tercero (cliente, proveedor, socio, etc.).\n\n**Campos requeridos**:\n- `type`: Tipo de tercero (customers, suppliers, both)\n- `identity_document_type_id`: ID del tipo de documento\n- `number`: Número de identificación (debe ser único)\n- `name`: Nombre completo o razón social\n\n**Campos opcionales**:\n- `trade_name`: Nombre comercial\n- `country_id`, `department_id`, `city_id`: Ubicación\n- `address`: Dirección\n- `email`: Correo electrónico\n- `telephone`: Teléfono\n- `type_person_id`: Tipo de persona\n- `type_regime_id`: Tipo de régimen\n- `code`: Código interno\n- `dv`: Dígito de verificación\n- `contact_name`: Nombre del contacto\n- `contact_phone`: Teléfono del contacto\n- `postal_code`: Código postal"
+					},
+					"response": []
+				},
+				{
+					"name": "3.4 Actualizar Tercero",
+					"request": {
+						"method": "PUT",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer FRhP2rsd318LzTvLtqfGMAW6E6QvtnA0Bks2sGK58nyL2TtNew",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"type\": \"both\",\n    \"identity_document_type_id\": 1,\n    \"number\": \"987654321\",\n    \"name\": \"Juan Pérez López - Actualizado\",\n    \"trade_name\": \"Comercial Pérez & Asociados\",\n    \"country_id\": 1,\n    \"department_id\": 5,\n    \"city_id\": 50,\n    \"address\": \"Carrera 10 # 20-30\",\n    \"email\": \"juan.perez.nuevo@example.com\",\n    \"telephone\": \"3001234567\",\n    \"type_person_id\": 1,\n    \"type_regime_id\": 1,\n    \"code\": \"CLI001\",\n    \"dv\": \"5\",\n    \"contact_name\": \"María Pérez\",\n    \"contact_phone\": \"3009876543\",\n    \"postal_code\": \"110111\"\n}",
+							"options": {
+								"raw": {
+									"language": "json"
+								}
+							}
+						},
+						"url": {
+							"raw": "http://torres.facturadorpro2.oo/api/contabilidad/terceros/987654321",
+							"protocol": "http",
+							"host": ["torres", "facturadorpro2", "oo"],
+							"path": ["api", "contabilidad", "terceros", "987654321"]
+						},
+						"description": "Actualiza los datos de un tercero existente.\n\n**Parámetros**:\n- `{number}`: Número de identificación del tercero a actualizar\n\n**Campos**: Mismos que en crear tercero\n\n**Validación**:\n- El `number` puede mantenerse igual o cambiarse (debe ser único)\n- Todos los campos requeridos deben enviarse completos"
+					},
+					"response": []
+				},
+				{
+					"name": "3.5 Eliminar Tercero",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer FRhP2rsd318LzTvLtqfGMAW6E6QvtnA0Bks2sGK58nyL2TtNew",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "http://torres.facturadorpro2.oo/api/contabilidad/terceros/987654321",
+							"protocol": "http",
+							"host": ["torres", "facturadorpro2", "oo"],
+							"path": ["api", "contabilidad", "terceros", "987654321"]
+						},
+						"description": "Elimina un tercero del sistema.\n\n**Parámetros**:\n- `{number}`: Número de identificación del tercero a eliminar\n\n**⚠️ VALIDACIÓN IMPORTANTE**:\nNo se puede eliminar si el tercero tiene movimientos contables asociados.\n\n**Respuesta de error** (422):\n```json\n{\n  \"success\": false,\n  \"message\": \"No se puede eliminar el tercero porque tiene movimientos contables asociados\"\n}\n```"
+					},
+					"response": []
+				},
+				{
+					"name": "3.6 Tipos de Documentos de Identidad",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer FRhP2rsd318LzTvLtqfGMAW6E6QvtnA0Bks2sGK58nyL2TtNew",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "http://torres.facturadorpro2.oo/api/contabilidad/tipos-documentos-identidad",
+							"protocol": "http",
+							"host": ["torres", "facturadorpro2", "oo"],
+							"path": ["api", "contabilidad", "tipos-documentos-identidad"]
+						},
+						"description": "Obtiene el listado de tipos de documentos de identidad activos.\n\n**Respuesta incluye**:\n- `id`: ID del tipo de documento\n- `description`: Descripción (ej: Cédula de Ciudadanía, NIT, etc.)\n- `code`: Código del tipo de documento\n\n**Uso**: Para el campo `identity_document_type_id` al crear/actualizar terceros"
+					},
+					"response": []
+				},
+				{
+					"name": "3.7 Listar Países",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer FRhP2rsd318LzTvLtqfGMAW6E6QvtnA0Bks2sGK58nyL2TtNew",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "http://torres.facturadorpro2.oo/api/contabilidad/paises",
+							"protocol": "http",
+							"host": ["torres", "facturadorpro2", "oo"],
+							"path": ["api", "contabilidad", "paises"]
+						},
+						"description": "Obtiene el listado de países.\n\n**Respuesta incluye**:\n- `id`: ID del país\n- `description`: Nombre del país\n- `code`: Código del país\n\n**Uso**: Para el campo `country_id` al crear/actualizar terceros"
+					},
+					"response": []
+				},
+				{
+					"name": "3.8 Listar Departamentos",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer FRhP2rsd318LzTvLtqfGMAW6E6QvtnA0Bks2sGK58nyL2TtNew",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "http://torres.facturadorpro2.oo/api/contabilidad/departamentos?country_id=1",
+							"protocol": "http",
+							"host": ["torres", "facturadorpro2", "oo"],
+							"path": ["api", "contabilidad", "departamentos"],
+							"query": [
+								{
+									"key": "country_id",
+									"value": "1",
+									"description": "Filtrar por país (opcional)"
+								}
+							]
+						},
+						"description": "Obtiene el listado de departamentos/estados.\n\n**Filtros opcionales**:\n- `country_id`: Filtrar departamentos por país\n\n**Respuesta incluye**:\n- `id`: ID del departamento\n- `description`: Nombre del departamento\n- `code`: Código del departamento\n- `country_id`: ID del país al que pertenece\n\n**Uso**: Para el campo `department_id` al crear/actualizar terceros"
+					},
+					"response": []
+				},
+				{
+					"name": "3.9 Listar Ciudades",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer FRhP2rsd318LzTvLtqfGMAW6E6QvtnA0Bks2sGK58nyL2TtNew",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "http://torres.facturadorpro2.oo/api/contabilidad/ciudades?department_id=5",
+							"protocol": "http",
+							"host": ["torres", "facturadorpro2", "oo"],
+							"path": ["api", "contabilidad", "ciudades"],
+							"query": [
+								{
+									"key": "department_id",
+									"value": "5",
+									"description": "Filtrar por departamento (opcional)"
+								}
+							]
+						},
+						"description": "Obtiene el listado de ciudades/municipios.\n\n**Filtros opcionales**:\n- `department_id`: Filtrar ciudades por departamento\n\n**Respuesta incluye**:\n- `id`: ID de la ciudad\n- `description`: Nombre de la ciudad\n- `code`: Código de la ciudad\n- `department_id`: ID del departamento al que pertenece\n\n**Uso**: Para el campo `city_id` al crear/actualizar terceros"
+					},
+					"response": []
+				},
+				{
+					"name": "3.10 Tipos de Persona",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer FRhP2rsd318LzTvLtqfGMAW6E6QvtnA0Bks2sGK58nyL2TtNew",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "http://torres.facturadorpro2.oo/api/contabilidad/tipos-persona",
+							"protocol": "http",
+							"host": ["torres", "facturadorpro2", "oo"],
+							"path": ["api", "contabilidad", "tipos-persona"]
+						},
+						"description": "Obtiene el listado de tipos de persona activos.\n\n**Respuesta incluye**:\n- `id`: ID del tipo de persona\n- `description`: Descripción (ej: Persona Natural, Persona Jurídica)\n- `code`: Código del tipo\n\n**Uso**: Para el campo `type_person_id` al crear/actualizar terceros"
+					},
+					"response": []
+				},
+				{
+					"name": "3.11 Tipos de Régimen",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer FRhP2rsd318LzTvLtqfGMAW6E6QvtnA0Bks2sGK58nyL2TtNew",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "http://torres.facturadorpro2.oo/api/contabilidad/tipos-regimen",
+							"protocol": "http",
+							"host": ["torres", "facturadorpro2", "oo"],
+							"path": ["api", "contabilidad", "tipos-regimen"]
+						},
+						"description": "Obtiene el listado de tipos de régimen tributario activos.\n\n**Respuesta incluye**:\n- `id`: ID del tipo de régimen\n- `description`: Descripción (ej: Régimen Común, Régimen Simplificado)\n- `code`: Código del régimen\n\n**Uso**: Para el campo `type_regime_id` al crear/actualizar terceros"
+					},
+					"response": []
+				},
+				{
+					"name": "3.12 Obtener Próximo Consecutivo",
 					"request": {
 						"method": "GET",
 						"header": [

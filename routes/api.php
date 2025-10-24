@@ -53,15 +53,27 @@ if ($hostname) {
 
             // Asientos Contables - Rutas coincidentes con frontend
             Route::get('asientos-contables', 'Tenant\Api\ContabilidadController@getAsientos');
-            Route::get('asientos-contables/{id}', 'Tenant\Api\ContabilidadController@getAsiento');
+            Route::get('asientos-contables/{numero_comprobante}', 'Tenant\Api\ContabilidadController@getAsiento');
             Route::post('asientos-contables', 'Tenant\Api\ContabilidadController@storeAsiento');
-            Route::put('asientos-contables/{id}', 'Tenant\Api\ContabilidadController@updateAsiento');
-            Route::delete('asientos-contables/{id}', 'Tenant\Api\ContabilidadController@deleteAsiento');
-            Route::post('asientos-contables/{id}/confirmar', 'Tenant\Api\ContabilidadController@confirmarAsiento');
+            Route::put('asientos-contables/{numero_comprobante}', 'Tenant\Api\ContabilidadController@updateAsiento');
+            Route::delete('asientos-contables/{numero_comprobante}', 'Tenant\Api\ContabilidadController@deleteAsiento');
+            Route::post('asientos-contables/{numero_comprobante}/confirmar', 'Tenant\Api\ContabilidadController@confirmarAsiento');
 
             // Catálogos
             Route::get('tipos-comprobantes', 'Tenant\Api\ContabilidadController@getTiposComprobantes');
             Route::get('terceros', 'Tenant\Api\ContabilidadController@getTerceros');
+            Route::post('terceros', 'Tenant\Api\ContabilidadController@storeTercero');
+            Route::put('terceros/{number}', 'Tenant\Api\ContabilidadController@updateTercero');
+            Route::delete('terceros/{number}', 'Tenant\Api\ContabilidadController@deleteTercero');
+
+            // Catálogos para Terceros
+            Route::get('tipos-documentos-identidad', 'Tenant\Api\ContabilidadController@getTiposDocumentosIdentidad');
+            Route::get('paises', 'Tenant\Api\ContabilidadController@getPaises');
+            Route::get('departamentos', 'Tenant\Api\ContabilidadController@getDepartamentos');
+            Route::get('ciudades', 'Tenant\Api\ContabilidadController@getCiudades');
+            Route::get('tipos-persona', 'Tenant\Api\ContabilidadController@getTiposPersona');
+            Route::get('tipos-regimen', 'Tenant\Api\ContabilidadController@getTiposRegimen');
+
             Route::get('proximo-consecutivo/{tipo_comprobante_id}', 'Tenant\Api\ContabilidadController@getProximoConsecutivo');
         });
 

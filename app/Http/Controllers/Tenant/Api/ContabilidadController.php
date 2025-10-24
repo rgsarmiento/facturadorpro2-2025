@@ -8,6 +8,14 @@ use App\Models\Tenant\AsientoContable;
 use App\Models\Tenant\DetalleAsientoContable;
 use App\Models\Tenant\TipoComprobanteContable;
 use App\Models\Tenant\Person;
+use Modules\Factcolombia1\Models\Tenant\{
+    TypeIdentityDocument,
+    Country,
+    Department,
+    City,
+    TypePerson,
+    TypeRegime
+};
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Validator;
@@ -424,7 +432,7 @@ class ContabilidadController extends Controller
      * Obtener asiento contable por ID
      * GET /api/contabilidad/asientos/{id}
      */
-    public function getAsiento($id)
+    public function getAsiento($numero_comprobante)
     {
         try {
             $asiento = AsientoContable::on('tenant')
@@ -436,7 +444,8 @@ class ContabilidadController extends Controller
                     'usuarioCreacion',
                     'adjuntos'
                 ])
-                ->findOrFail($id);
+                ->where('numero_comprobante', $numero_comprobante)
+                ->firstOrFail();
 
             return response()->json([
                 'success' => true,
@@ -574,12 +583,14 @@ class ContabilidadController extends Controller
 
     /**
      * Actualizar asiento contable (solo en borrador)
-     * PUT /api/contabilidad/asientos/{id}
+     * PUT /api/contabilidad/asientos/{numero_comprobante}
      */
-    public function updateAsiento(Request $request, $id)
+    public function updateAsiento(Request $request, $numero_comprobante)
     {
         try {
-            $asiento = AsientoContable::on('tenant')->findOrFail($id);
+            $asiento = AsientoContable::on('tenant')
+                ->where('numero_comprobante', $numero_comprobante)
+                ->firstOrFail();
 
             // Solo borrador puede editarse
             if (strtoupper($asiento->estado) !== 'BORRADOR') {
@@ -683,12 +694,14 @@ class ContabilidadController extends Controller
 
     /**
      * Confirmar/Aprobar asiento contable
-     * POST /api/contabilidad/asientos/{id}/confirmar
+     * POST /api/contabilidad/asientos/{numero_comprobante}/confirmar
      */
-    public function confirmarAsiento($id)
+    public function confirmarAsiento($numero_comprobante)
     {
         try {
-            $asiento = AsientoContable::on('tenant')->findOrFail($id);
+            $asiento = AsientoContable::on('tenant')
+                ->where('numero_comprobante', $numero_comprobante)
+                ->firstOrFail();
 
             if (strtoupper($asiento->estado) !== 'BORRADOR') {
                 return response()->json([
@@ -726,12 +739,14 @@ class ContabilidadController extends Controller
 
     /**
      * Eliminar asiento contable (solo borrador)
-     * DELETE /api/contabilidad/asientos/{id}
+     * DELETE /api/contabilidad/asientos/{numero_comprobante}
      */
-    public function deleteAsiento($id)
+    public function deleteAsiento($numero_comprobante)
     {
         try {
-            $asiento = AsientoContable::on('tenant')->findOrFail($id);
+            $asiento = AsientoContable::on('tenant')
+                ->where('numero_comprobante', $numero_comprobante)
+                ->firstOrFail();
 
             if (strtoupper($asiento->estado) !== 'BORRADOR') {
                 return response()->json([
@@ -844,6 +859,317 @@ class ContabilidadController extends Controller
                 'success' => false,
                 'message' => 'Tipo de comprobante no encontrado'
             ], 404);
+        }
+    }
+
+    /**
+     * Crear nuevo tercero
+     * POST /api/contabilidad/terceros
+     */
+    public function storeTercero(Request $request)
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'type' => 'required|in:customers,suppliers,both',
+                'identity_document_type_id' => 'required|exists:tenant.co_type_identity_documents,id',
+                'number' => 'required|string|max:20|unique:tenant.persons,number',
+                'name' => 'required|string|max:255',
+                'trade_name' => 'nullable|string|max:255',
+                'country_id' => 'nullable|exists:tenant.co_countries,id',
+                'department_id' => 'nullable|exists:tenant.co_departments,id',
+                'city_id' => 'nullable|exists:tenant.co_cities,id',
+                'address' => 'nullable|string|max:255',
+                'email' => 'nullable|email|max:255',
+                'telephone' => 'nullable|string|max:50',
+                'type_person_id' => 'nullable|exists:tenant.co_type_people,id',
+                'type_regime_id' => 'nullable|exists:tenant.co_type_regimes,id',
+                'code' => 'nullable|string|max:50',
+                'dv' => 'nullable|string|max:2',
+                'contact_name' => 'nullable|string|max:255',
+                'contact_phone' => 'nullable|string|max:50',
+                'postal_code' => 'nullable|string|max:20',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Errores de validación',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $tercero = Person::on('tenant')->create(array_merge(
+                $request->all(),
+                ['enabled' => true]
+            ));
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Tercero creado exitosamente',
+                'data' => $tercero
+            ], 201);
+
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al crear tercero: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Actualizar tercero
+     * PUT /api/contabilidad/terceros/{number}
+     */
+    public function updateTercero(Request $request, $number)
+    {
+        try {
+            $tercero = Person::on('tenant')
+                ->where('number', $number)
+                ->firstOrFail();
+
+            $validator = Validator::make($request->all(), [
+                'type' => 'required|in:customers,suppliers,both',
+                'identity_document_type_id' => 'required|exists:tenant.co_type_identity_documents,id',
+                'number' => 'required|string|max:20|unique:tenant.persons,number,' . $tercero->id,
+                'name' => 'required|string|max:255',
+                'trade_name' => 'nullable|string|max:255',
+                'country_id' => 'nullable|exists:tenant.co_countries,id',
+                'department_id' => 'nullable|exists:tenant.co_departments,id',
+                'city_id' => 'nullable|exists:tenant.co_cities,id',
+                'address' => 'nullable|string|max:255',
+                'email' => 'nullable|email|max:255',
+                'telephone' => 'nullable|string|max:50',
+                'type_person_id' => 'nullable|exists:tenant.co_type_people,id',
+                'type_regime_id' => 'nullable|exists:tenant.co_type_regimes,id',
+                'code' => 'nullable|string|max:50',
+                'dv' => 'nullable|string|max:2',
+                'contact_name' => 'nullable|string|max:255',
+                'contact_phone' => 'nullable|string|max:50',
+                'postal_code' => 'nullable|string|max:20',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Errores de validación',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $tercero->update($request->all());
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Tercero actualizado exitosamente',
+                'data' => $tercero->fresh()
+            ], 200);
+
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al actualizar tercero: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Eliminar tercero
+     * DELETE /api/contabilidad/terceros/{number}
+     */
+    public function deleteTercero($number)
+    {
+        try {
+            $tercero = Person::on('tenant')
+                ->where('number', $number)
+                ->firstOrFail();
+
+            // Validar si tiene movimientos contables
+            $tieneMovimientos = DetalleAsientoContable::on('tenant')
+                ->where('person_id', $tercero->id)
+                ->exists();
+
+            if ($tieneMovimientos) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No se puede eliminar el tercero porque tiene movimientos contables asociados'
+                ], 422);
+            }
+
+            $tercero->delete();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Tercero eliminado exitosamente'
+            ], 200);
+
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al eliminar tercero: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * ============================================
+     * CATÁLOGOS PARA TERCEROS - ENDPOINTS
+     * ============================================
+     */
+
+    /**
+     * Listar tipos de documentos de identidad
+     * GET /api/contabilidad/tipos-documentos-identidad
+     */
+    public function getTiposDocumentosIdentidad()
+    {
+        try {
+            $tipos = TypeIdentityDocument::on('tenant')
+                ->orderBy('name')
+                ->get(['id', 'name as description', 'code']);
+
+            return response()->json([
+                'success' => true,
+                'data' => $tipos
+            ], 200);
+
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener tipos de documentos: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Listar países
+     * GET /api/contabilidad/paises
+     */
+    public function getPaises()
+    {
+        try {
+            $paises = Country::on('tenant')
+                ->orderBy('name')
+                ->get(['id', 'name as description', 'code']);
+
+            return response()->json([
+                'success' => true,
+                'data' => $paises
+            ], 200);
+
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener países: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Listar departamentos
+     * GET /api/contabilidad/departamentos
+     * GET /api/contabilidad/departamentos?country_id=1
+     */
+    public function getDepartamentos(Request $request)
+    {
+        try {
+            $query = Department::on('tenant');
+
+            if ($request->has('country_id')) {
+                $query->where('country_id', $request->country_id);
+            }
+
+            $departamentos = $query->orderBy('name')
+                ->get(['id', 'name as description', 'country_id']);
+
+            return response()->json([
+                'success' => true,
+                'data' => $departamentos
+            ], 200);
+
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener departamentos: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Listar ciudades
+     * GET /api/contabilidad/ciudades
+     * GET /api/contabilidad/ciudades?department_id=5
+     */
+    public function getCiudades(Request $request)
+    {
+        try {
+            $query = City::on('tenant');
+
+            if ($request->has('department_id')) {
+                $query->where('department_id', $request->department_id);
+            }
+
+            $ciudades = $query->orderBy('name')
+                ->get(['id', 'name as description', 'department_id']);
+
+            return response()->json([
+                'success' => true,
+                'data' => $ciudades
+            ], 200);
+
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener ciudades: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Listar tipos de persona
+     * GET /api/contabilidad/tipos-persona
+     */
+    public function getTiposPersona()
+    {
+        try {
+            $tipos = TypePerson::on('tenant')
+                ->orderBy('name')
+                ->get(['id', 'name as description']);
+
+            return response()->json([
+                'success' => true,
+                'data' => $tipos
+            ], 200);
+
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener tipos de persona: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Listar tipos de régimen
+     * GET /api/contabilidad/tipos-regimen
+     */
+    public function getTiposRegimen()
+    {
+        try {
+            $tipos = TypeRegime::on('tenant')
+                ->orderBy('name')
+                ->get(['id', 'name as description', 'code']);
+
+            return response()->json([
+                'success' => true,
+                'data' => $tipos
+            ], 200);
+
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener tipos de régimen: ' . $e->getMessage()
+            ], 500);
         }
     }
 }
