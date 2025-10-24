@@ -536,7 +536,7 @@
         const btnAprobarTest = document.getElementById('btn-aprobar-test');
         const btnEliminarTest = document.getElementById('btn-eliminar-test');
 
-        console.log('Botones encontrados:', { btnAprobar, btnAnular, btnEliminar, btnAprobarTest, btnEliminarTest });
+        console.log('Botones encontrados:', { btnAprobar, btnEliminar, btnAprobarTest, btnEliminarTest });
 
         // Prevenir navegación en enlace de editar si está disabled
         const btnEditar = document.querySelector('a[href*="edit"]:not(#btn-aprobar-test)');

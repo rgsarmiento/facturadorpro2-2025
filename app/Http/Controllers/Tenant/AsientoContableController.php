@@ -9,6 +9,7 @@ use App\Models\Tenant\DetalleAsientoContable;
 use App\Models\Tenant\CuentaContable;
 use App\Models\Tenant\AsientoAdjunto;
 use App\Models\Tenant\Person;
+use App\Services\CuentaContableService;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
@@ -19,6 +20,12 @@ use Hyn\Tenancy\Database\Connection;
 
 class AsientoContableController extends Controller
 {
+    protected $cuentaService;
+
+    public function __construct(CuentaContableService $cuentaService)
+    {
+        $this->cuentaService = $cuentaService;
+    }
     public function index()
     {
         return view('tenant.asientos_contables.index');
@@ -126,6 +133,26 @@ class AsientoContableController extends Controller
             $this->ensureTenantConnection();
 
             DB::beginTransaction();
+
+            // Validar partida doble
+            if ($request->has('detalles')) {
+                $validacionPartidaDoble = $this->cuentaService->validarPartidaDoble($request->detalles);
+                if (!$validacionPartidaDoble['valido']) {
+                    return [
+                        'success' => false,
+                        'message' => $validacionPartidaDoble['mensaje']
+                    ];
+                }
+
+                // Validar detalles del asiento (permisos y terceros)
+                $validacionDetalles = $this->cuentaService->validarDetallesAsiento($request->detalles);
+                if (!$validacionDetalles['valido']) {
+                    return [
+                        'success' => false,
+                        'message' => $validacionDetalles['mensaje']
+                    ];
+                }
+            }
 
             // Validar el tipo de comprobante y bloquear la fila para manejo seguro del consecutivo
             $tipoComprobante = TipoComprobanteContable::on('tenant')
@@ -241,6 +268,35 @@ class AsientoContableController extends Controller
                 ];
             }
 
+            // Validar partida doble
+            if ($request->has('detalles')) {
+                $validacionPartidaDoble = $this->cuentaService->validarPartidaDoble($request->detalles);
+                if (!$validacionPartidaDoble['valido']) {
+                    return [
+                        'success' => false,
+                        'message' => $validacionPartidaDoble['mensaje']
+                    ];
+                }
+
+                // Validar detalles del asiento (permisos y terceros)
+                $validacionDetalles = $this->cuentaService->validarDetallesAsiento($request->detalles);
+                if (!$validacionDetalles['valido']) {
+                    return [
+                        'success' => false,
+                        'message' => $validacionDetalles['mensaje']
+                    ];
+                }
+            }
+
+            // Guardar detalles anteriores para revertir saldos
+            $detallesAnteriores = $asiento->detalles->map(function($detalle) {
+                return [
+                    'cuenta_contable_id' => $detalle->cuenta_contable_id,
+                    'debito' => $detalle->debito,
+                    'credito' => $detalle->credito
+                ];
+            })->toArray();
+
             // Actualizar datos del asiento (sin los totales, se actualizarán después)
             $asiento->update([
                 'fecha_asiento' => $request->fecha_asiento,
@@ -351,6 +407,10 @@ class AsientoContableController extends Controller
                 \Log::info('No se recibieron adjuntos en update');
             }
 
+            // NOTA: Los asientos en BORRADOR no afectan saldos.
+            // Solo cuando se CONFIRMAN se actualizan los saldos.
+            // Por lo tanto, NO actualizamos saldos aquí en update().
+
             DB::commit();
 
             return [
@@ -383,6 +443,9 @@ class AsientoContableController extends Controller
                 ];
             }
 
+            // Los asientos en BORRADOR no afectan saldos, por lo tanto
+            // no es necesario revertir saldos al eliminarlos
+
             $asiento->delete();
 
             return [
@@ -404,6 +467,8 @@ class AsientoContableController extends Controller
         try {
             $this->ensureTenantConnection();
 
+            DB::beginTransaction();
+
             $asiento = AsientoContable::on('tenant')->findOrFail($id);
 
             if (strtoupper($asiento->estado) !== 'BORRADOR') {
@@ -422,8 +487,14 @@ class AsientoContableController extends Controller
                     'message' => 'El asiento no está balanceado. La diferencia entre Débito y Crédito debe ser 0 para aprobar.'
                 ];
             }
+
+            // Actualizar saldos de cuentas contables
+            $this->cuentaService->actualizarSaldosPorAsiento($asiento->id, 'crear');
+
             // Confirmar usando la lógica del modelo
             $asiento->confirmar(Auth::id());
+
+            DB::commit();
 
             return [
                 'success' => true,
@@ -431,6 +502,7 @@ class AsientoContableController extends Controller
             ];
 
         } catch (Exception $e) {
+            DB::rollBack();
             return [
                 'success' => false,
                 'message' => 'Error al aprobar el asiento contable: ' . $e->getMessage()
@@ -444,6 +516,8 @@ class AsientoContableController extends Controller
         try {
             $this->ensureTenantConnection();
 
+            DB::beginTransaction();
+
             $asiento = AsientoContable::on('tenant')->findOrFail($id);
 
             if (strtoupper($asiento->estado) !== 'CONFIRMADO') {
@@ -453,11 +527,16 @@ class AsientoContableController extends Controller
                 ];
             }
 
+            // Revertir saldos de las cuentas afectadas
+            $this->cuentaService->revertirSaldosPorAsiento($asiento->id);
+
             $asiento->update([
                 'estado' => 'ANULADO',
                 'fecha_anulacion' => now(),
                 'usuario_anulacion' => Auth::id(),
             ]);
+
+            DB::commit();
 
             return [
                 'success' => true,
@@ -465,6 +544,7 @@ class AsientoContableController extends Controller
             ];
 
         } catch (Exception $e) {
+            DB::rollBack();
             return [
                 'success' => false,
                 'message' => 'Error al anular el asiento contable: ' . $e->getMessage()

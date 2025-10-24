@@ -16,15 +16,9 @@
         padding: 10px 0;
     }
     .detalle-row:last-child {
-        border-bottom: non        async mounted() {
-            await this.loadTiposComprobantes();
-            this.loadCuentasContables();
-            this.loadTerceros();
-
-            if (this.asientoData) {
-                this.loadAsientoData();
-            }
-        }, .balance-info {
+        border-bottom: none;
+    }
+    .balance-info {
         background-color: #f8f9fa;
         padding: 15px;
         border-radius: 5px;
