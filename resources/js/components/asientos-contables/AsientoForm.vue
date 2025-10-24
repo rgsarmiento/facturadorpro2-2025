@@ -102,35 +102,31 @@
                             <tr v-for="(detalle, index) in form.detalles" :key="index">
                                 <!-- Cuenta Contable -->
                                 <td>
-                                    <select :ref="'cuentaSelect' + index"
-                                            v-model="detalle.cuenta_contable_id"
-                                            @change="onCuentaChanged(index)"
-                                            class="form-control"
-                                            required>
-                                        <option value="">Seleccionar cuenta</option>
-                                        <option v-for="cuenta in cuentasContables"
-                                                :key="cuenta.id"
-                                                :value="cuenta.id">
-                                            {{ getCuentaDisplayText(cuenta) }}
-                                        </option>
-                                    </select>
+                                    <searchable-select
+                                        :value="detalle.cuenta_contable_id"
+                                        :items="cuentasContables"
+                                        :display-template="getCuentaDisplayText"
+                                        :search-fields="['codigo', 'nombre', 'descripcion', 'tipo_cuenta', 'naturaleza']"
+                                        placeholder="Buscar cuenta..."
+                                        select-type="cuenta"
+                                        @input="onCuentaChanged(index, $event)"
+                                        required>
+                                    </searchable-select>
                                 </td>
 
                                 <!-- Tercero -->
                                 <!-- Tercero -->
                                 <td>
-                                    <select v-if="detalle.requiere_tercero"
-                                            :ref="`terceroSelect${index}`"
-                                            v-model="detalle.tercero_id"
-                                            class="form-control"
-                                            required>
-                                        <option value="">Seleccionar tercero</option>
-                                        <option v-for="tercero in terceros"
-                                                :key="tercero.id"
-                                                :value="tercero.id">
-                                            {{ getTerceroDisplayText(tercero) }}
-                                        </option>
-                                    </select>
+                                    <searchable-select v-if="detalle.requiere_tercero"
+                                        :value="detalle.tercero_id"
+                                        :items="terceros"
+                                        :display-template="getTerceroDisplayText"
+                                        :search-fields="['number', 'name', 'email', 'type']"
+                                        placeholder="Buscar tercero..."
+                                        select-type="tercero"
+                                        @input="onTerceroChanged(index, $event)"
+                                        required>
+                                    </searchable-select>
                                     <span v-else class="text-muted">N/A</span>
                                 </td>                                <!-- Concepto -->
                                 <td>
@@ -646,15 +642,28 @@ export default {
         removeDetalle(index) {
             this.form.detalles.splice(index, 1);
         },
-        onCuentaChanged(index) {
-            const cuenta = this.cuentasContables.find(c => c.id == this.form.detalles[index].cuenta_contable_id);
+        onCuentaChanged(index, cuentaId) {
+            // Si viene del SearchableSelect, cuentaId será el parámetro
+            // Si viene directamente, se usa el v-model actual
+            const realCuentaId = cuentaId !== undefined ? cuentaId : this.form.detalles[index].cuenta_contable_id;
+
+            const cuenta = this.cuentasContables.find(c => c.id == realCuentaId);
             if (cuenta) {
+                this.form.detalles[index].cuenta_contable_id = realCuentaId;
                 this.form.detalles[index].cuenta_contable = cuenta;
                 this.form.detalles[index].requiere_tercero = cuenta.requiere_tercero;
                 if (!cuenta.requiere_tercero) {
                     this.form.detalles[index].tercero_id = '';
                     this.form.detalles[index].tercero = null;
                 }
+            }
+        },
+        onTerceroChanged(index, terceroId) {
+            // Manejador para cambios en el select de terceros
+            const tercero = this.terceros.find(t => t.id == terceroId);
+            if (tercero) {
+                this.form.detalles[index].tercero_id = terceroId;
+                this.form.detalles[index].tercero = tercero;
             }
         },
         async loadTiposComprobantes() {

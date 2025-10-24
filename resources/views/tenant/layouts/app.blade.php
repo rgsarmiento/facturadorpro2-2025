@@ -56,6 +56,7 @@
     {{--<link href="https://fonts.googleapis.com/css?family=Nunito" rel="stylesheet" type="text/css">--}}
 
     <link href="{{ asset('css/app.css') }}" rel="stylesheet">
+    <link href="{{ asset('css/searchable-select-dropdown.css') }}" rel="stylesheet">
 
     <!-- Styles -->
     <link href="https://fonts.googleapis.com/css?family=Open+Sans:300,400,600,700,800|Shadows+Into+Light" rel="stylesheet" type="text/css">
@@ -228,6 +229,9 @@
 
 </head>
 <body class="pr-0">
+    <!-- Contenedor para dropdowns de SearchableSelect -->
+    <div id="searchable-dropdown-container"></div>
+
     <section class="body">
         <!-- start: header -->
         @include('tenant.layouts.partials.header')
