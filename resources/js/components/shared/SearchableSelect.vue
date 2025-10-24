@@ -243,8 +243,6 @@ export default {
             this.dropdownElement.style.top = (rect.top + inputHeight) + 'px';
             this.dropdownElement.style.left = rect.left + 'px';
             this.dropdownElement.style.width = rect.width + 'px';
-
-            console.log(`Dropdown positioned with z-index: ${globalZIndex}`);
         },
 
         closeDropdown() {
