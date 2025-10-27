@@ -1,15 +1,24 @@
 <template>
     <div>
         <div class="page-header pr-0">
-            <h2>
-                <i class="fas fa-balance-scale"></i> Saldos Iniciales
-            </h2>
-            <div class="actions">
-                <button @click="showCreateModal" class="btn btn-primary btn-sm">
-                    <i class="fas fa-plus"></i> Cargar Saldos
+            <h2><a href="/dashboard"><i class="fas fa-tachometer-alt"></i></a></h2>
+            <ol class="breadcrumbs">
+                <li><a href="/dashboard">Inicio</a></li>
+                <li><a href="#" @click.prevent>Contabilidad</a></li>
+                <li class="active"><span>Saldos Iniciales</span></li>
+            </ol>
+            <div class="right-wrapper pull-right">
+                <button type="button" class="btn btn-custom btn-sm mt-2 mr-2" @click.prevent="prepareCreateModal">
+                    <i class="fa fa-plus-circle"></i> Cargar Saldos
                 </button>
             </div>
         </div>
+
+        <div class="card mb-0">
+            <div class="card-header bg-info">
+                <h3 class="my-0">Gestión de Saldos Iniciales</h3>
+            </div>
+            <div class="card-body">
 
         <!-- Filtros -->
         <div class="row mb-3">
@@ -56,7 +65,7 @@
 
         <!-- Botón de contabilizar -->
         <div v-if="hasDraftBalances" class="mb-3 text-right">
-            <button @click="showPostModal" class="btn btn-success" :disabled="!isBalanced">
+            <button @click="preparePostModal" class="btn btn-success" :disabled="!isBalanced">
                 <i class="fas fa-check-circle"></i> Contabilizar Saldos
             </button>
         </div>
@@ -146,196 +155,213 @@
                 </tfoot>
             </table>
         </div>
+        </div>
+        </div>
 
-        <!-- Modal: Cargar Saldos -->
-        <div class="modal fade" id="modalCreateBalances" tabindex="-1" role="dialog" aria-labelledby="modalCreateBalancesLabel" aria-hidden="true" data-backdrop="static">
-            <div class="modal-dialog modal-xl" role="document">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="modalCreateBalancesLabel">
-                            <i class="fas fa-plus"></i> Cargar Saldos Iniciales
-                        </h5>
-                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                            <span aria-hidden="true">&times;</span>
-                        </button>
+        <!-- Modal: Cargar Saldos usando Element UI -->
+        <el-dialog
+            title="Cargar Saldos Iniciales"
+            :visible.sync="showCreateModal"
+            width="90%"
+            :close-on-click-modal="false">
+
+            <!-- Información general -->
+            <div class="row mb-3">
+                <div class="col-md-4">
+                    <label>Período <span class="text-danger">*</span></label>
+                    <select v-model="form.period_id" class="form-control">
+                        <option value="">Seleccione...</option>
+                        <option v-for="period in periods" :key="period.id" :value="period.id">
+                            {{ getMonthName(period.month) }} {{ period.year }}
+                        </option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <label>Fecha de Saldos <span class="text-danger">*</span></label>
+                    <input type="date" v-model="form.balance_date" class="form-control">
+                </div>
+                <div class="col-md-4">
+                    <button @click="addBalanceLine" class="btn btn-success btn-sm mt-4">
+                        <i class="fas fa-plus"></i> Agregar Línea
+                    </button>
+                </div>
+            </div>
+
+            <!-- Validación en tiempo real -->
+            <div class="alert" :class="{'alert-success': formIsBalanced, 'alert-danger': !formIsBalanced}">
+                <div class="row">
+                    <div class="col-md-3">
+                        <strong>Débito:</strong> ${{ formatNumber(formTotalDebito) }}
                     </div>
-                    <div class="modal-body">
-                        <!-- Información general -->
-                        <div class="row mb-3">
-                            <div class="col-md-4">
-                                <label>Período <span class="text-danger">*</span></label>
-                                <select v-model="form.period_id" class="form-control">
-                                    <option value="">Seleccione...</option>
-                                    <option v-for="period in periods" :key="period.id" :value="period.id">
-                                        {{ getMonthName(period.month) }} {{ period.year }}
-                                    </option>
-                                </select>
-                            </div>
-                            <div class="col-md-4">
-                                <label>Fecha de Saldos <span class="text-danger">*</span></label>
-                                <input type="date" v-model="form.balance_date" class="form-control">
-                            </div>
-                            <div class="col-md-4">
-                                <button @click="addBalanceLine" class="btn btn-success btn-sm mt-4">
-                                    <i class="fas fa-plus"></i> Agregar Línea
+                    <div class="col-md-3">
+                        <strong>Crédito:</strong> ${{ formatNumber(formTotalCredito) }}
+                    </div>
+                    <div class="col-md-3">
+                        <strong>Diferencia:</strong> ${{ formatNumber(formDiferencia) }}
+                    </div>
+                    <div class="col-md-3">
+                        <span v-if="formIsBalanced" class="badge badge-success">
+                            <i class="fas fa-check"></i> Balanceado
+                        </span>
+                        <span v-else class="badge badge-danger">
+                            <i class="fas fa-times"></i> No Balanceado
+                        </span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabla de saldos -->
+            <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                <table class="table table-sm table-bordered">
+                    <thead class="thead-light" style="position: sticky; top: 0;">
+                        <tr>
+                            <th width="250">Cuenta *</th>
+                            <th width="250">Tercero</th>
+                            <th width="150">Débito *</th>
+                            <th width="150">Crédito *</th>
+                            <th width="150">Notas</th>
+                            <th width="50"></th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr v-for="(line, index) in form.balances" :key="index">
+                            <td>
+                                <el-select
+                                    v-model="line.cuenta_contable_codigo"
+                                    filterable
+                                    remote
+                                    reserve-keyword
+                                    placeholder="Buscar cuenta..."
+                                    :remote-method="(query) => searchCuentasRemote(query, index)"
+                                    :loading="line.loadingCuentas"
+                                    @change="onCuentaSelected(index)"
+                                    @focus="onCuentaFocus(index)"
+                                    size="small"
+                                    style="width: 100%;">
+                                    <el-option
+                                        v-for="cuenta in line.cuentasOptions"
+                                        :key="cuenta.codigo"
+                                        :label="`${cuenta.codigo} - ${cuenta.nombre}`"
+                                        :value="cuenta.codigo">
+                                        <span style="float: left">{{ cuenta.codigo }}</span>
+                                        <span style="float: right; color: #8492a6; font-size: 13px">{{ cuenta.nombre }}</span>
+                                    </el-option>
+                                </el-select>
+                                <small v-if="line.cuenta_nombre" class="text-muted d-block mt-1">{{ line.cuenta_nombre }}</small>
+                            </td>
+                            <td>
+                                <el-select
+                                    v-model="line.person_number"
+                                    filterable
+                                    remote
+                                    reserve-keyword
+                                    placeholder="Buscar tercero..."
+                                    :remote-method="(query) => searchTercerosRemote(query, index)"
+                                    :loading="line.loadingTerceros"
+                                    @change="onTerceroSelected(index)"
+                                    @focus="onTerceroFocus(index)"
+                                    size="small"
+                                    clearable
+                                    style="width: 100%;">
+                                    <el-option
+                                        v-for="tercero in line.tercerosOptions"
+                                        :key="tercero.number"
+                                        :label="`${tercero.number} - ${tercero.name}`"
+                                        :value="tercero.number">
+                                        <span style="float: left">{{ tercero.number }}</span>
+                                        <span style="float: right; color: #8492a6; font-size: 13px">{{ tercero.name }}</span>
+                                    </el-option>
+                                </el-select>
+                                <small v-if="line.person_name" class="text-muted d-block mt-1">{{ line.person_name }}</small>
+                            </td>
+                            <td>
+                                <input type="number"
+                                       v-model.number="line.debito"
+                                       @input="onDebitoChange(index)"
+                                       class="form-control form-control-sm text-right"
+                                       step="0.01"
+                                       min="0"
+                                       placeholder="0.00">
+                            </td>
+                            <td>
+                                <input type="number"
+                                       v-model.number="line.credito"
+                                       @input="onCreditoChange(index)"
+                                       class="form-control form-control-sm text-right"
+                                       step="0.01"
+                                       min="0"
+                                       placeholder="0.00">
+                            </td>
+                            <td>
+                                <input type="text"
+                                       v-model="line.notes"
+                                       class="form-control form-control-sm"
+                                       placeholder="Notas">
+                            </td>
+                            <td>
+                                <button @click="removeBalanceLine(index)"
+                                        class="btn btn-danger btn-sm">
+                                    <i class="fas fa-trash"></i>
                                 </button>
-                            </div>
-                        </div>
-
-                        <!-- Validación en tiempo real -->
-                        <div class="alert" :class="{'alert-success': formIsBalanced, 'alert-danger': !formIsBalanced}">
-                            <div class="row">
-                                <div class="col-md-3">
-                                    <strong>Débito:</strong> ${{ formatNumber(formTotalDebito) }}
-                                </div>
-                                <div class="col-md-3">
-                                    <strong>Crédito:</strong> ${{ formatNumber(formTotalCredito) }}
-                                </div>
-                                <div class="col-md-3">
-                                    <strong>Diferencia:</strong> ${{ formatNumber(formDiferencia) }}
-                                </div>
-                                <div class="col-md-3">
-                                    <span v-if="formIsBalanced" class="badge badge-success">
-                                        <i class="fas fa-check"></i> Balanceado
-                                    </span>
-                                    <span v-else class="badge badge-danger">
-                                        <i class="fas fa-times"></i> No Balanceado
-                                    </span>
-                                </div>
-                            </div>
-                        </div>
-
-                        <!-- Tabla de saldos -->
-                        <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
-                            <table class="table table-sm table-bordered">
-                                <thead class="thead-light" style="position: sticky; top: 0;">
-                                    <tr>
-                                        <th width="150">Cuenta *</th>
-                                        <th width="150">Tercero</th>
-                                        <th width="120">Débito *</th>
-                                        <th width="120">Crédito *</th>
-                                        <th>Notas</th>
-                                        <th width="50"></th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                                    <tr v-for="(line, index) in form.balances" :key="index">
-                                        <td>
-                                            <input type="text"
-                                                   v-model="line.cuenta_contable_codigo"
-                                                   @blur="searchCuenta(index)"
-                                                   class="form-control form-control-sm"
-                                                   placeholder="Código cuenta">
-                                            <small v-if="line.cuenta_nombre" class="text-muted">{{ line.cuenta_nombre }}</small>
-                                        </td>
-                                        <td>
-                                            <input type="text"
-                                                   v-model="line.person_number"
-                                                   @blur="searchTercero(index)"
-                                                   class="form-control form-control-sm"
-                                                   placeholder="NIT/CC">
-                                            <small v-if="line.person_name" class="text-muted">{{ line.person_name }}</small>
-                                        </td>
-                                        <td>
-                                            <input type="number"
-                                                   v-model.number="line.debito"
-                                                   @input="calculateTotals"
-                                                   class="form-control form-control-sm text-right"
-                                                   step="0.01"
-                                                   min="0">
-                                        </td>
-                                        <td>
-                                            <input type="number"
-                                                   v-model.number="line.credito"
-                                                   @input="calculateTotals"
-                                                   class="form-control form-control-sm text-right"
-                                                   step="0.01"
-                                                   min="0">
-                                        </td>
-                                        <td>
-                                            <input type="text"
-                                                   v-model="line.notes"
-                                                   class="form-control form-control-sm"
-                                                   placeholder="Notas">
-                                        </td>
-                                        <td>
-                                            <button @click="removeBalanceLine(index)"
-                                                    class="btn btn-danger btn-sm">
-                                                <i class="fas fa-trash"></i>
-                                            </button>
-                                        </td>
-                                    </tr>
-                                </tbody>
-                            </table>
-                        </div>
-
-                        <div v-if="formErrors.length > 0" class="alert alert-danger mt-3">
-                            <ul class="mb-0">
-                                <li v-for="(error, index) in formErrors" :key="index">{{ error }}</li>
-                            </ul>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
-                        <button type="button" @click="saveBalances" class="btn btn-primary" :disabled="saving || !formIsBalanced">
-                            <i v-if="saving" class="fas fa-spinner fa-spin"></i>
-                            <i v-else class="fas fa-save"></i>
-                            {{ saving ? 'Guardando...' : 'Guardar Saldos' }}
-                        </button>
-                    </div>
-                </div>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
-        </div>
 
-        <!-- Modal: Contabilizar Saldos -->
-        <div class="modal fade" id="modalPostBalances" tabindex="-1" role="dialog" aria-labelledby="modalPostBalancesLabel" aria-hidden="true" data-backdrop="static">
-            <div class="modal-dialog" role="document">
-                <div class="modal-content">
-                    <div class="modal-header bg-success text-white">
-                        <h5 class="modal-title" id="modalPostBalancesLabel">
-                            <i class="fas fa-check-circle"></i> Contabilizar Saldos Iniciales
-                        </h5>
-                        <button type="button" class="close text-white" data-dismiss="modal" aria-label="Close">
-                            <span aria-hidden="true">&times;</span>
-                        </button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="alert alert-info">
-                            <i class="fas fa-info-circle"></i>
-                            <strong>Importante:</strong> Esta acción generará un asiento contable de apertura automáticamente y actualizará los saldos de todas las cuentas.
-                        </div>
-                        <div class="form-group">
-                            <label>Período <span class="text-danger">*</span></label>
-                            <select v-model="postForm.period_id" class="form-control">
-                                <option value="">Seleccione...</option>
-                                <option v-for="period in periods" :key="period.id" :value="period.id">
-                                    {{ getMonthName(period.month) }} {{ period.year }}
-                                </option>
-                            </select>
-                        </div>
-                        <div class="form-group">
-                            <label>Fecha del Asiento <span class="text-danger">*</span></label>
-                            <input type="date" v-model="postForm.fecha_asiento" class="form-control">
-                        </div>
-                        <div class="form-group">
-                            <label>Concepto <span class="text-danger">*</span></label>
-                            <textarea v-model="postForm.concepto"
-                                      class="form-control"
-                                      rows="3"
-                                      placeholder="Asiento de apertura - Saldos iniciales"></textarea>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
-                        <button type="button" @click="postBalances" class="btn btn-success" :disabled="posting">
-                            <i v-if="posting" class="fas fa-spinner fa-spin"></i>
-                            <i v-else class="fas fa-check"></i>
-                            {{ posting ? 'Contabilizando...' : 'Contabilizar' }}
-                        </button>
-                    </div>
-                </div>
+            <div v-if="formErrors.length > 0" class="alert alert-danger mt-3">
+                <ul class="mb-0">
+                    <li v-for="(error, index) in formErrors" :key="index">{{ error }}</li>
+                </ul>
             </div>
-        </div>
+
+            <div slot="footer" class="dialog-footer">
+                <el-button @click="showCreateModal = false">Cancelar</el-button>
+                <el-button type="primary" @click="saveBalances" :loading="saving" :disabled="!formIsBalanced">
+                    {{ saving ? 'Guardando...' : 'Guardar Saldos' }}
+                </el-button>
+            </div>
+        </el-dialog>
+
+        <!-- Modal: Contabilizar Saldos usando Element UI -->
+        <el-dialog
+            title="Contabilizar Saldos Iniciales"
+            :visible.sync="showPostModal"
+            width="500px"
+            :close-on-click-modal="false">
+
+            <div class="alert alert-info">
+                <i class="fas fa-info-circle"></i>
+                <strong>Importante:</strong> Esta acción generará un asiento contable de apertura automáticamente y actualizará los saldos de todas las cuentas.
+            </div>
+            <div class="form-group">
+                <label>Período <span class="text-danger">*</span></label>
+                <select v-model="postForm.period_id" class="form-control">
+                    <option value="">Seleccione...</option>
+                    <option v-for="period in periods" :key="period.id" :value="period.id">
+                        {{ getMonthName(period.month) }} {{ period.year }}
+                    </option>
+                </select>
+            </div>
+            <div class="form-group">
+                <label>Fecha del Asiento <span class="text-danger">*</span></label>
+                <input type="date" v-model="postForm.fecha_asiento" class="form-control">
+            </div>
+            <div class="form-group">
+                <label>Concepto <span class="text-danger">*</span></label>
+                <textarea v-model="postForm.concepto"
+                          class="form-control"
+                          rows="3"
+                          placeholder="Asiento de apertura - Saldos iniciales"></textarea>
+            </div>
+
+            <div slot="footer" class="dialog-footer">
+                <el-button @click="showPostModal = false">Cancelar</el-button>
+                <el-button type="success" @click="postBalances" :loading="posting">
+                    {{ posting ? 'Contabilizando...' : 'Contabilizar' }}
+                </el-button>
+            </div>
+        </el-dialog>
     </div>
 </template>
 
@@ -348,6 +374,8 @@ export default {
             loading: false,
             saving: false,
             posting: false,
+            showCreateModal: false,
+            showPostModal: false,
             filters: {
                 period_id: '',
                 status: ''
@@ -430,14 +458,15 @@ export default {
                     this.loading = false;
                 });
         },
-        showCreateModal() {
+        prepareCreateModal() {
             this.form = {
                 period_id: '',
                 balance_date: new Date().toISOString().split('T')[0],
                 balances: [this.createEmptyLine()]
             };
             this.formErrors = [];
-            $('#modalCreateBalances').modal('show');
+            // Abrir modal usando Element UI
+            this.showCreateModal = true;
         },
         createEmptyLine() {
             return {
@@ -447,7 +476,11 @@ export default {
                 person_name: '',
                 debito: 0,
                 credito: 0,
-                notes: ''
+                notes: '',
+                cuentasOptions: [],
+                tercerosOptions: [],
+                loadingCuentas: false,
+                loadingTerceros: false
             };
         },
         addBalanceLine() {
@@ -460,6 +493,90 @@ export default {
         calculateTotals() {
             // Trigger reactivity
             this.$forceUpdate();
+        },
+        onDebitoChange(index) {
+            // Si se escribe en Débito, Crédito debe ser 0
+            if (this.form.balances[index].debito && this.form.balances[index].debito > 0) {
+                this.form.balances[index].credito = 0;
+            }
+            this.calculateTotals();
+        },
+        onCreditoChange(index) {
+            // Si se escribe en Crédito, Débito debe ser 0
+            if (this.form.balances[index].credito && this.form.balances[index].credito > 0) {
+                this.form.balances[index].debito = 0;
+            }
+            this.calculateTotals();
+        },
+        searchCuentasRemote(query, index) {
+            this.form.balances[index].loadingCuentas = true;
+            axios.get('/contabilidad/cuentas-contables/search', {
+                params: {
+                    q: query || '',
+                    limit: 20
+                }
+            })
+            .then(response => {
+                this.form.balances[index].cuentasOptions = response.data.data || [];
+            })
+            .catch(error => {
+                console.error('Error al buscar cuentas:', error);
+                this.form.balances[index].cuentasOptions = [];
+            })
+            .finally(() => {
+                this.form.balances[index].loadingCuentas = false;
+            });
+        },
+        onCuentaSelected(index) {
+            const codigo = this.form.balances[index].cuenta_contable_codigo;
+            if (codigo) {
+                const cuenta = this.form.balances[index].cuentasOptions.find(c => c.codigo === codigo);
+                if (cuenta) {
+                    this.form.balances[index].cuenta_nombre = cuenta.nombre;
+                }
+            }
+        },
+        searchTercerosRemote(query, index) {
+            this.form.balances[index].loadingTerceros = true;
+            axios.get('/contabilidad/terceros/search', {
+                params: {
+                    q: query || '',
+                    limit: 20
+                }
+            })
+            .then(response => {
+                this.form.balances[index].tercerosOptions = response.data.data || [];
+            })
+            .catch(error => {
+                console.error('Error al buscar terceros:', error);
+                this.form.balances[index].tercerosOptions = [];
+            })
+            .finally(() => {
+                this.form.balances[index].loadingTerceros = false;
+            });
+        },
+        onTerceroSelected(index) {
+            const number = this.form.balances[index].person_number;
+            if (number) {
+                const tercero = this.form.balances[index].tercerosOptions.find(t => t.number === number);
+                if (tercero) {
+                    this.form.balances[index].person_name = tercero.name;
+                }
+            } else {
+                this.form.balances[index].person_name = '';
+            }
+        },
+        onCuentaFocus(index) {
+            // Cargar las primeras cuentas al hacer foco si no hay opciones cargadas
+            if (this.form.balances[index].cuentasOptions.length === 0) {
+                this.searchCuentasRemote('', index);
+            }
+        },
+        onTerceroFocus(index) {
+            // Cargar los primeros terceros al hacer foco si no hay opciones cargadas
+            if (this.form.balances[index].tercerosOptions.length === 0) {
+                this.searchTercerosRemote('', index);
+            }
         },
         searchCuenta(index) {
             const codigo = this.form.balances[index].cuenta_contable_codigo;
@@ -515,7 +632,7 @@ export default {
             axios.post('/contabilidad/saldos-iniciales', this.form)
                 .then(response => {
                     this.$message.success('Saldos guardados exitosamente');
-                    $('#modalCreateBalances').modal('hide');
+                    this.showCreateModal = false;
                     this.loadRecords();
                 })
                 .catch(error => {
@@ -529,7 +646,7 @@ export default {
                     this.saving = false;
                 });
         },
-        showPostModal() {
+        preparePostModal() {
             if (!this.isBalanced) {
                 this.$message.warning('Los saldos deben estar balanceados antes de contabilizar');
                 return;
@@ -540,7 +657,9 @@ export default {
                 fecha_asiento: new Date().toISOString().split('T')[0],
                 concepto: 'Asiento de apertura - Saldos iniciales ' + new Date().getFullYear()
             };
-            $('#modalPostBalances').modal('show');
+
+            // Abrir modal usando Element UI
+            this.showPostModal = true;
         },
         postBalances() {
             if (!this.postForm.period_id || !this.postForm.fecha_asiento || !this.postForm.concepto) {
@@ -552,7 +671,7 @@ export default {
             axios.post('/contabilidad/saldos-iniciales/post', this.postForm)
                 .then(response => {
                     this.$message.success('Saldos contabilizados exitosamente');
-                    $('#modalPostBalances').modal('hide');
+                    this.showPostModal = false;
                     this.loadRecords();
                 })
                 .catch(error => {
@@ -598,18 +717,3 @@ export default {
     }
 }
 </script>
-
-<style scoped>
-.page-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-    padding-bottom: 15px;
-    border-bottom: 2px solid #e9ecef;
-}
-.page-header h2 {
-    margin: 0;
-    color: #495057;
-}
-</style>

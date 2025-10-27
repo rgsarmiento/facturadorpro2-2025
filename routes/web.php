@@ -568,6 +568,7 @@ if ($hostname) {
                // Cuentas Contables - API endpoints para AJAX/JSON
                Route::get('columns', 'Tenant\CuentaContableController@columns');
                Route::get('cuentas-contables/records', 'Tenant\CuentaContableController@records');
+               Route::get('cuentas-contables/search', 'Tenant\CuentaContableController@search');
                Route::get('cuentas-contables/tree', 'Tenant\CuentaContableController@tree');
                Route::get('cuentas-contables/movimiento', 'Tenant\CuentaContableController@movimiento');
                Route::get('cuentas-contables/padres', 'Tenant\CuentaContableController@padres');
@@ -583,6 +584,9 @@ if ($hostname) {
 
                // Cuentas Contables - Importación y exportación
                Route::post('cuentas-contables/import-puc', 'Tenant\CuentaContableController@importPuc');
+
+               // Terceros - API endpoints para búsqueda
+               Route::get('terceros/search', 'Tenant\PersonController@search');
 
                // Asientos Contables - API endpoints para AJAX/JSON (DEBEN IR ANTES QUE LAS RUTAS CON {id})
                Route::get('asientos-contables/records', 'Tenant\AsientoContableController@records');

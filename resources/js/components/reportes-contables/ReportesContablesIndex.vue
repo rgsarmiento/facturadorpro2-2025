@@ -1,30 +1,39 @@
 <template>
     <div>
         <div class="page-header pr-0">
-            <h2>
-                <i class="fas fa-chart-bar"></i> Reportes Contables
-            </h2>
+            <h2><a href="/dashboard"><i class="fas fa-tachometer-alt"></i></a></h2>
+            <ol class="breadcrumbs">
+                <li><a href="/dashboard">Inicio</a></li>
+                <li><a href="#" @click.prevent>Contabilidad</a></li>
+                <li class="active"><span>Reportes Contables</span></li>
+            </ol>
         </div>
+
+        <div class="card mb-0">
+            <div class="card-header bg-info">
+                <h3 class="my-0">Reportes Contables</h3>
+            </div>
+            <div class="card-body">
 
         <!-- Tabs de reportes -->
         <ul class="nav nav-tabs mb-3" role="tablist">
             <li class="nav-item">
-                <a class="nav-link active" data-toggle="tab" href="#balance-prueba">
+                <a class="nav-link" :class="{ active: activeTab === 'balance-prueba' }" @click="activeTab = 'balance-prueba'" href="javascript:void(0)">
                     <i class="fas fa-balance-scale"></i> Balance de Prueba
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" data-toggle="tab" href="#balance-general">
+                <a class="nav-link" :class="{ active: activeTab === 'balance-general' }" @click="activeTab = 'balance-general'" href="javascript:void(0)">
                     <i class="fas fa-chart-pie"></i> Balance General
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" data-toggle="tab" href="#mayor-auxiliar">
+                <a class="nav-link" :class="{ active: activeTab === 'mayor-auxiliar' }" @click="activeTab = 'mayor-auxiliar'" href="javascript:void(0)">
                     <i class="fas fa-book"></i> Mayor Auxiliar
                 </a>
             </li>
             <li class="nav-item">
-                <a class="nav-link" data-toggle="tab" href="#libro-diario">
+                <a class="nav-link" :class="{ active: activeTab === 'libro-diario' }" @click="activeTab = 'libro-diario'" href="javascript:void(0)">
                     <i class="fas fa-book-open"></i> Libro Diario
                 </a>
             </li>
@@ -33,44 +42,40 @@
         <!-- Tab content -->
         <div class="tab-content">
             <!-- Balance de Prueba -->
-            <div class="tab-pane fade show active" id="balance-prueba" role="tabpanel">
-                <div class="card">
-                    <div class="card-header">
-                        <h5 class="mb-0">Balance de Prueba</h5>
+            <div v-show="activeTab === 'balance-prueba'">
+                <!-- Filtros -->
+                <div class="row mb-3">
+                    <div class="col-md-3">
+                        <label>Fecha Inicio</label>
+                        <input type="date" v-model="balancePruebaFilters.fecha_inicio" class="form-control">
                     </div>
-                    <div class="card-body">
-                        <!-- Filtros -->
-                        <div class="row mb-3">
-                            <div class="col-md-3">
-                                <label>Fecha Inicio</label>
-                                <input type="date" v-model="balancePruebaFilters.fecha_inicio" class="form-control">
-                            </div>
-                            <div class="col-md-3">
-                                <label>Fecha Fin</label>
-                                <input type="date" v-model="balancePruebaFilters.fecha_fin" class="form-control">
-                            </div>
-                            <div class="col-md-2">
-                                <label>Nivel</label>
-                                <select v-model="balancePruebaFilters.nivel" class="form-control">
-                                    <option value="">Todos</option>
-                                    <option value="1">Nivel 1</option>
-                                    <option value="2">Nivel 2</option>
-                                    <option value="3">Nivel 3</option>
-                                    <option value="4">Nivel 4</option>
-                                    <option value="5">Nivel 5</option>
-                                </select>
-                            </div>
-                            <div class="col-md-4">
-                                <button @click="loadBalancePrueba" class="btn btn-primary mt-4" :disabled="loadingBP">
-                                    <i v-if="loadingBP" class="fas fa-spinner fa-spin"></i>
-                                    <i v-else class="fas fa-search"></i>
-                                    Generar Reporte
-                                </button>
-                                <button @click="exportBalancePrueba" class="btn btn-success mt-4 ml-2" :disabled="!balancePruebaData">
-                                    <i class="fas fa-file-excel"></i> Excel
-                                </button>
-                            </div>
-                        </div>
+                    <div class="col-md-3">
+                        <label>Fecha Fin</label>
+                        <input type="date" v-model="balancePruebaFilters.fecha_fin" class="form-control">
+                    </div>
+                    <div class="col-md-2">
+                        <label>Nivel</label>
+                        <select v-model="balancePruebaFilters.nivel" class="form-control">
+                            <option value="">Todos</option>
+                            <option value="1">Nivel 1</option>
+                            <option value="2">Nivel 2</option>
+                            <option value="3">Nivel 3</option>
+                            <option value="4">Nivel 4</option>
+                            <option value="5">Nivel 5</option>
+                        </select>
+                    </div>
+                    <div class="col-md-4">
+                        <label>&nbsp;</label><br>
+                        <button @click="loadBalancePrueba" class="btn btn-primary" :disabled="loadingBP">
+                            <i v-if="loadingBP" class="fas fa-spinner fa-spin"></i>
+                            <i v-else class="fas fa-search"></i>
+                            Generar Reporte
+                        </button>
+                        <button @click="exportBalancePrueba" class="btn btn-success ml-2" :disabled="!balancePruebaData">
+                            <i class="fas fa-file-excel"></i> Excel
+                        </button>
+                    </div>
+                </div>
 
                         <!-- Resultado -->
                         <div v-if="loadingBP" class="text-center py-5">
@@ -124,20 +129,13 @@
                                 </table>
                             </div>
                         </div>
-                    </div>
-                </div>
             </div>
 
             <!-- Balance General -->
-            <div class="tab-pane fade" id="balance-general" role="tabpanel">
-                <div class="card">
-                    <div class="card-header">
-                        <h5 class="mb-0">Balance General</h5>
-                    </div>
-                    <div class="card-body">
-                        <!-- Filtros -->
-                        <div class="row mb-3">
-                            <div class="col-md-3">
+            <div v-show="activeTab === 'balance-general'">
+                <!-- Filtros -->
+                <div class="row mb-3">
+                    <div class="col-md-3">
                                 <label>Fecha de Corte</label>
                                 <input type="date" v-model="balanceGeneralFilters.fecha_corte" class="form-control">
                             </div>
@@ -238,18 +236,11 @@
                                 </div>
                             </div>
                         </div>
-                    </div>
-                </div>
             </div>
 
             <!-- Mayor Auxiliar -->
-            <div class="tab-pane fade" id="mayor-auxiliar" role="tabpanel">
-                <div class="card">
-                    <div class="card-header">
-                        <h5 class="mb-0">Mayor Auxiliar</h5>
-                    </div>
-                    <div class="card-body">
-                        <!-- Filtros -->
+            <div v-show="activeTab === 'mayor-auxiliar'">
+                <!-- Filtros -->
                         <div class="row mb-3">
                             <div class="col-md-3">
                                 <label>Código de Cuenta <span class="text-danger">*</span></label>
@@ -342,18 +333,11 @@
                                 </table>
                             </div>
                         </div>
-                    </div>
-                </div>
             </div>
 
             <!-- Libro Diario -->
-            <div class="tab-pane fade" id="libro-diario" role="tabpanel">
-                <div class="card">
-                    <div class="card-header">
-                        <h5 class="mb-0">Libro Diario</h5>
-                    </div>
-                    <div class="card-body">
-                        <!-- Filtros -->
+            <div v-show="activeTab === 'libro-diario'">
+                <!-- Filtros -->
                         <div class="row mb-3">
                             <div class="col-md-3">
                                 <label>Fecha Inicio</label>
@@ -460,8 +444,8 @@
                                 </div>
                             </div>
                         </div>
-                    </div>
-                </div>
+            </div>
+        </div>
             </div>
         </div>
     </div>
@@ -471,6 +455,9 @@
 export default {
     data() {
         return {
+            // Control de tabs
+            activeTab: 'balance-prueba',
+
             // Balance de Prueba
             balancePruebaFilters: {
                 fecha_inicio: '',
@@ -528,7 +515,7 @@ export default {
             this.libroDiarioFilters.fecha_fin = today.toISOString().split('T')[0];
         },
         loadTiposComprobantes() {
-            axios.get('/contabilidad/tipos-comprobantes/records')
+            axios.get('/contabilidad/asientos-contables/tipos-comprobantes')
                 .then(response => {
                     this.tiposComprobantes = response.data.data;
                 });
@@ -623,21 +610,3 @@ export default {
     }
 }
 </script>
-
-<style scoped>
-.page-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-    padding-bottom: 15px;
-    border-bottom: 2px solid #e9ecef;
-}
-.page-header h2 {
-    margin: 0;
-    color: #495057;
-}
-.card-header {
-    background-color: #f8f9fa;
-}
-</style>

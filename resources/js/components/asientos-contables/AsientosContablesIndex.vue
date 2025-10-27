@@ -1,65 +1,88 @@
 <template>
     <div>
-        <!-- Filtros -->
-        <div class="row mb-1">
-            <div class="col-md-3">
-                <input type="text"
-                       v-model="filters.search"
-                       @input="searchRecords"
-                       class="form-control"
-                       placeholder="Buscar por número o concepto">
-            </div>
-            <div class="col-md-2">
-                <input type="date"
-                       v-model="filters.fecha_inicio"
-                       @change="searchRecords"
-                       class="form-control"
-                       placeholder="Fecha inicio">
-            </div>
-            <div class="col-md-2">
-                <input type="date"
-                       v-model="filters.fecha_fin"
-                       @change="searchRecords"
-                       class="form-control"
-                       placeholder="Fecha fin">
-            </div>
-            <div class="col-md-2">
-                <select v-model="filters.tipo_comprobante_id" @change="searchRecords" class="form-control">
-                    <option value="">Todos los tipos</option>
-                    <option v-for="tipo in tiposComprobantes" :key="tipo.id" :value="tipo.id">
-                        {{ tipo.nombre }}
-                    </option>
-                </select>
-            </div>
-            <div class="col-md-2">
-                <select v-model="filters.estado" @change="searchRecords" class="form-control">
-                    <option value="">Todos los estados</option>
-                    <option v-for="estado in estados" :key="estado.value" :value="estado.value">
-                        {{ estado.text }}
-                    </option>
-                </select>
-            </div>
-            <div class="col-md-1">
-                <button @click="searchRecords" class="btn btn-primary btn-block" :disabled="loading">
-                    <i v-if="loading" class="fas fa-spinner fa-spin"></i>
-                    <i v-else class="fas fa-search"></i>
-                </button>
+        <div class="page-header pr-0">
+            <h2><a href="/dashboard"><i class="fas fa-tachometer-alt"></i></a></h2>
+            <ol class="breadcrumbs">
+                <li><a href="/dashboard">Inicio</a></li>
+                <li><a href="#" @click.prevent>Contabilidad</a></li>
+                <li class="active"><span>Asientos Contables</span></li>
+            </ol>
+            <div class="right-wrapper pull-right">
+                <a :href="createUrl" class="btn btn-custom btn-sm mt-2 mr-2">
+                    <i class="fa fa-plus-circle"></i> Nuevo Asiento
+                </a>
             </div>
         </div>
 
-        <!-- Loading -->
-        <div v-if="loading" class="text-center py-4">
-            <div class="spinner-border" role="status">
-                <span class="sr-only">Cargando...</span>
+        <div class="card mb-0">
+            <div class="card-header bg-info">
+                <h3 class="my-0">Asientos Contables</h3>
             </div>
-            <div class="mt-2">Cargando asientos contables...</div>
-        </div>
+            <div class="card-body">
+                <!-- Filtros -->
+                <div class="row mb-3">
+                    <div class="col-md-3">
+                        <label>Búsqueda:</label>
+                        <input type="text"
+                               v-model="filters.search"
+                               @input="searchRecords"
+                               class="form-control"
+                               placeholder="Buscar por número o concepto">
+                    </div>
+                    <div class="col-md-2">
+                        <label>Fecha Inicio:</label>
+                        <input type="date"
+                               v-model="filters.fecha_inicio"
+                               @change="searchRecords"
+                               class="form-control">
+                    </div>
+                    <div class="col-md-2">
+                        <label>Fecha Fin:</label>
+                        <input type="date"
+                               v-model="filters.fecha_fin"
+                               @change="searchRecords"
+                               class="form-control">
+                    </div>
+                    <div class="col-md-2">
+                        <label>Tipo Comprobante:</label>
+                        <select v-model="filters.tipo_comprobante_id" @change="searchRecords" class="form-control">
+                            <option value="">Todos los tipos</option>
+                            <option v-for="tipo in tiposComprobantes" :key="tipo.id" :value="tipo.id">
+                                {{ tipo.nombre }}
+                            </option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label>Estado:</label>
+                        <select v-model="filters.estado" @change="searchRecords" class="form-control">
+                            <option value="">Todos los estados</option>
+                            <option v-for="estado in estados" :key="estado.value" :value="estado.value">
+                                {{ estado.text }}
+                            </option>
+                        </select>
+                    </div>
+                    <div class="col-md-1">
+                        <label>&nbsp;</label>
+                        <button @click="searchRecords" class="btn btn-primary btn-block" :disabled="loading">
+                            <i v-if="loading" class="fas fa-spinner fa-spin"></i>
+                            <i v-else class="fas fa-search"></i>
+                        </button>
+                    </div>
+                </div>
 
-        <!-- Tabla -->
-        <div v-show="!loading">
-            <div class="table-responsive">
-                <table class="table table-striped">
-                    <thead class="thead-light">
+                <!-- Loading -->
+                <div v-if="loading" class="text-center py-4">
+                    <div class="spinner-border" role="status">
+                        <span class="sr-only">Cargando...</span>
+                    </div>
+                    <div class="mt-2">Cargando asientos contables...</div>
+                </div>
+
+                <!-- Tabla -->
+                <div v-show="!loading">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead class="thead-light">
                         <tr>
                             <th>Número</th>
                             <th>Fecha</th>
@@ -118,7 +141,7 @@
             </div>
 
             <!-- Paginación -->
-            <div v-if="pagination.total > 0" class="d-flex justify-content-between align-items-center">
+            <div v-if="pagination.total > 0" class="d-flex justify-content-between align-items-center mt-3">
                 <div>
                     Mostrando {{ paginationStart }} a {{ paginationEnd }} de {{ pagination.total }} registros
                 </div>
@@ -136,6 +159,8 @@
                     </ul>
                 </nav>
             </div>
+                </div>
+            </div>
         </div>
     </div>
 </template>
@@ -145,6 +170,7 @@ export default {
     name: 'AsientosContablesIndex',
     data() {
         return {
+            createUrl: '/contabilidad/asientos-contables/create',
             records: [],
             pagination: {
                 total: 0,

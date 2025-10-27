@@ -1,15 +1,24 @@
 <template>
     <div>
         <div class="page-header pr-0">
-            <h2>
-                <i class="fas fa-calendar-alt"></i> Períodos Contables
-            </h2>
-            <div class="actions">
-                <button @click="showCreateModal" class="btn btn-primary btn-sm">
-                    <i class="fas fa-plus"></i> Nuevo Período
+            <h2><a href="/dashboard"><i class="fas fa-tachometer-alt"></i></a></h2>
+            <ol class="breadcrumbs">
+                <li><a href="/dashboard">Inicio</a></li>
+                <li><a href="#" @click.prevent>Contabilidad</a></li>
+                <li class="active"><span>Períodos Contables</span></li>
+            </ol>
+            <div class="right-wrapper pull-right">
+                <button type="button" class="btn btn-custom btn-sm mt-2 mr-2" @click.prevent="prepareCreateModal">
+                    <i class="fa fa-plus-circle"></i> Nuevo Período
                 </button>
             </div>
         </div>
+
+        <div class="card mb-0">
+            <div class="card-header bg-info">
+                <h3 class="my-0">Gestión de Períodos Contables</h3>
+            </div>
+            <div class="card-body">
 
         <!-- Filtros -->
         <div class="row mb-3">
@@ -126,131 +135,113 @@
                 </tbody>
             </table>
         </div>
+        </div>
+        </div>
 
         <!-- Modal: Crear Período -->
-        <div class="modal fade" id="modalCreatePeriod" tabindex="-1" role="dialog" aria-labelledby="modalCreatePeriodLabel" aria-hidden="true" data-backdrop="static">
-            <div class="modal-dialog" role="document">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="modalCreatePeriodLabel">
-                            <i class="fas fa-plus"></i> Crear Nuevo Período
-                        </h5>
-                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                            <span aria-hidden="true">&times;</span>
-                        </button>
-                    </div>
-                    <div class="modal-body">
-                        <div class="form-group">
-                            <label>Año <span class="text-danger">*</span></label>
-                            <input type="number" v-model="form.year" class="form-control"
-                                   min="2000" max="2100" placeholder="2025">
-                        </div>
-                        <div class="form-group">
-                            <label>Mes <span class="text-danger">*</span></label>
-                            <select v-model="form.month" class="form-control">
-                                <option value="">Seleccione...</option>
-                                <option v-for="(name, index) in monthNames" :key="index" :value="index + 1">
-                                    {{ name }}
-                                </option>
-                            </select>
-                        </div>
-                        <div v-if="formErrors.length > 0" class="alert alert-danger">
-                            <ul class="mb-0">
-                                <li v-for="(error, index) in formErrors" :key="index">{{ error }}</li>
-                            </ul>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
-                        <button type="button" @click="createPeriod" class="btn btn-primary" :disabled="saving">
-                            <i v-if="saving" class="fas fa-spinner fa-spin"></i>
-                            <i v-else class="fas fa-save"></i>
-                            {{ saving ? 'Guardando...' : 'Crear Período' }}
-                        </button>
-                    </div>
+        <el-dialog
+            title="Crear Nuevo Período"
+            :visible.sync="showCreateModal"
+            width="500px"
+            :close-on-click-modal="false">
+            <el-form label-position="top">
+                <el-form-item label="Año" required>
+                    <input type="number" v-model="form.year" class="form-control"
+                           min="2000" max="2100" placeholder="2025">
+                </el-form-item>
+                <el-form-item label="Mes" required>
+                    <select v-model="form.month" class="form-control">
+                        <option value="">Seleccione...</option>
+                        <option v-for="(name, index) in monthNames" :key="index" :value="index + 1">
+                            {{ name }}
+                        </option>
+                    </select>
+                </el-form-item>
+                <div v-if="formErrors.length > 0" class="alert alert-danger">
+                    <ul class="mb-0">
+                        <li v-for="(error, index) in formErrors" :key="index">{{ error }}</li>
+                    </ul>
                 </div>
+            </el-form>
+            <div slot="footer" class="dialog-footer">
+                <el-button @click="showCreateModal = false">Cancelar</el-button>
+                <el-button type="primary" @click="createPeriod" :loading="saving">
+                    {{ saving ? 'Guardando...' : 'Crear Período' }}
+                </el-button>
             </div>
-        </div>
+        </el-dialog>
 
         <!-- Modal: Detalles del Período -->
-        <div class="modal fade" id="modalDetails" tabindex="-1" role="dialog" aria-labelledby="modalDetailsLabel" aria-hidden="true" data-backdrop="static">
-            <div class="modal-dialog modal-lg" role="document">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <h5 class="modal-title" id="modalDetailsLabel">
-                            <i class="fas fa-info-circle"></i> Detalles del Período
-                        </h5>
-                        <button type="button" class="close" data-dismiss="modal" aria-label="Close">
-                            <span aria-hidden="true">&times;</span>
-                        </button>
+        <el-dialog
+            title="Detalles del Período"
+            :visible.sync="showDetailsModal"
+            width="800px"
+            :close-on-click-modal="false">
+            <div v-if="selectedRecord">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>Información General</h6>
+                        <table class="table table-sm">
+                            <tr>
+                                <th>Período:</th>
+                                <td>{{ getMonthName(selectedRecord.month) }} {{ selectedRecord.year }}</td>
+                            </tr>
+                            <tr>
+                                <th>Fecha Inicio:</th>
+                                <td>{{ formatDate(selectedRecord.start_date) }}</td>
+                            </tr>
+                            <tr>
+                                <th>Fecha Fin:</th>
+                                <td>{{ formatDate(selectedRecord.end_date) }}</td>
+                            </tr>
+                            <tr>
+                                <th>Estado:</th>
+                                <td>
+                                    <span v-if="selectedRecord.status === 'open'" class="badge badge-success">Abierto</span>
+                                    <span v-else-if="selectedRecord.status === 'closed'" class="badge badge-warning">Cerrado</span>
+                                    <span v-else class="badge badge-danger">Bloqueado</span>
+                                </td>
+                            </tr>
+                            <tr>
+                                <th>Permite Modificaciones:</th>
+                                <td>
+                                    <span v-if="selectedRecord.allow_modifications" class="badge badge-success">Sí</span>
+                                    <span v-else class="badge badge-danger">No</span>
+                                </td>
+                            </tr>
+                        </table>
                     </div>
-                    <div class="modal-body" v-if="selectedRecord">
-                        <div class="row">
-                            <div class="col-md-6">
-                                <h6>Información General</h6>
-                                <table class="table table-sm">
-                                    <tr>
-                                        <th>Período:</th>
-                                        <td>{{ getMonthName(selectedRecord.month) }} {{ selectedRecord.year }}</td>
-                                    </tr>
-                                    <tr>
-                                        <th>Fecha Inicio:</th>
-                                        <td>{{ formatDate(selectedRecord.start_date) }}</td>
-                                    </tr>
-                                    <tr>
-                                        <th>Fecha Fin:</th>
-                                        <td>{{ formatDate(selectedRecord.end_date) }}</td>
-                                    </tr>
-                                    <tr>
-                                        <th>Estado:</th>
-                                        <td>
-                                            <span v-if="selectedRecord.status === 'open'" class="badge badge-success">Abierto</span>
-                                            <span v-else-if="selectedRecord.status === 'closed'" class="badge badge-warning">Cerrado</span>
-                                            <span v-else class="badge badge-danger">Bloqueado</span>
-                                        </td>
-                                    </tr>
-                                    <tr>
-                                        <th>Permite Modificaciones:</th>
-                                        <td>
-                                            <span v-if="selectedRecord.allow_modifications" class="badge badge-success">Sí</span>
-                                            <span v-else class="badge badge-danger">No</span>
-                                        </td>
-                                    </tr>
-                                </table>
-                            </div>
-                            <div class="col-md-6">
-                                <h6>Información de Cierre</h6>
-                                <table class="table table-sm">
-                                    <tr>
-                                        <th>Cerrado Por:</th>
-                                        <td>{{ selectedRecord.usuario_cierre ? selectedRecord.usuario_cierre.name : '—' }}</td>
-                                    </tr>
-                                    <tr>
-                                        <th>Fecha Cierre:</th>
-                                        <td>{{ selectedRecord.closed_at ? formatDate(selectedRecord.closed_at) : '—' }}</td>
-                                    </tr>
-                                    <tr>
-                                        <th>Saldo Débito:</th>
-                                        <td>${{ formatNumber(selectedRecord.closing_debit_balance || 0) }}</td>
-                                    </tr>
-                                    <tr>
-                                        <th>Saldo Crédito:</th>
-                                        <td>${{ formatNumber(selectedRecord.closing_credit_balance || 0) }}</td>
-                                    </tr>
-                                    <tr>
-                                        <th>Notas de Cierre:</th>
-                                        <td>{{ selectedRecord.closing_notes || '—' }}</td>
-                                    </tr>
-                                </table>
-                            </div>
-                        </div>
-                    </div>
-                    <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-dismiss="modal">Cerrar</button>
+                    <div class="col-md-6">
+                        <h6>Información de Cierre</h6>
+                        <table class="table table-sm">
+                            <tr>
+                                <th>Cerrado Por:</th>
+                                <td>{{ selectedRecord.usuario_cierre ? selectedRecord.usuario_cierre.name : '—' }}</td>
+                            </tr>
+                            <tr>
+                                <th>Fecha Cierre:</th>
+                                <td>{{ selectedRecord.closed_at ? formatDate(selectedRecord.closed_at) : '—' }}</td>
+                            </tr>
+                            <tr>
+                                <th>Saldo Débito:</th>
+                                <td>${{ formatNumber(selectedRecord.closing_debit_balance || 0) }}</td>
+                            </tr>
+                            <tr>
+                                <th>Saldo Crédito:</th>
+                                <td>${{ formatNumber(selectedRecord.closing_credit_balance || 0) }}</td>
+                            </tr>
+                            <tr>
+                                <th>Notas de Cierre:</th>
+                                <td>{{ selectedRecord.closing_notes || '—' }}</td>
+                            </tr>
+                        </table>
                     </div>
                 </div>
             </div>
-        </div>
+            <div slot="footer" class="dialog-footer">
+                <el-button @click="showDetailsModal = false">Cerrar</el-button>
+            </div>
+        </el-dialog>
     </div>
 </template>
 
@@ -261,6 +252,8 @@ export default {
             records: [],
             loading: false,
             saving: false,
+            showCreateModal: false,
+            showDetailsModal: false,
             filters: {
                 year: new Date().getFullYear(),
                 status: ''
@@ -309,13 +302,13 @@ export default {
                     this.loading = false;
                 });
         },
-        showCreateModal() {
+        prepareCreateModal() {
             this.form = {
                 year: new Date().getFullYear(),
                 month: new Date().getMonth() + 1
             };
             this.formErrors = [];
-            $('#modalCreatePeriod').modal('show');
+            this.showCreateModal = true;
         },
         createPeriod() {
             this.formErrors = [];
@@ -329,7 +322,7 @@ export default {
             axios.post('/contabilidad/periodos-contables', this.form)
                 .then(response => {
                     this.$message.success('Período creado exitosamente');
-                    $('#modalCreatePeriod').modal('hide');
+                    this.showCreateModal = false;
                     this.loadRecords();
                 })
                 .catch(error => {
@@ -394,7 +387,7 @@ export default {
         },
         showDetails(record) {
             this.selectedRecord = record;
-            $('#modalDetails').modal('show');
+            this.showDetailsModal = true;
         },
         getMonthName(month) {
             return this.monthNames[month - 1];
@@ -416,18 +409,3 @@ export default {
     }
 }
 </script>
-
-<style scoped>
-.page-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 20px;
-    padding-bottom: 15px;
-    border-bottom: 2px solid #e9ecef;
-}
-.page-header h2 {
-    margin: 0;
-    color: #495057;
-}
-</style>
