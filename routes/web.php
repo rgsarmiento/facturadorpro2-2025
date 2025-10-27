@@ -609,6 +609,30 @@ if ($hostname) {
                Route::post('asientos-contables/{id}/anular', 'Tenant\AsientoContableController@anular');
                Route::get('asientos-contables/adjuntos/{id}/descargar', 'Tenant\AsientoContableController@descargarAdjunto')->name('tenant.asientos_contables.adjuntos.descargar');
                Route::delete('asientos-adjuntos/{id}', 'Tenant\AsientoContableController@eliminarAdjunto');
+
+               // Períodos Contables
+               Route::get('periodos-contables', 'Tenant\AccountingPeriodController@index')->name('tenant.periodos_contables.index');
+               Route::get('periodos-contables/records', 'Tenant\AccountingPeriodController@records');
+               Route::get('periodos-contables/current', 'Tenant\AccountingPeriodController@current');
+               Route::post('periodos-contables', 'Tenant\AccountingPeriodController@store');
+               Route::post('periodos-contables/{id}/close', 'Tenant\AccountingPeriodController@close');
+               Route::post('periodos-contables/{id}/reopen', 'Tenant\AccountingPeriodController@reopen');
+               Route::post('periodos-contables/{id}/lock', 'Tenant\AccountingPeriodController@lock');
+
+               // Saldos Iniciales
+               Route::get('saldos-iniciales', 'Tenant\InitialBalanceController@index')->name('tenant.saldos_iniciales.index');
+               Route::get('saldos-iniciales/records', 'Tenant\InitialBalanceController@records');
+               Route::post('saldos-iniciales', 'Tenant\InitialBalanceController@store');
+               Route::post('saldos-iniciales/post', 'Tenant\InitialBalanceController@post');
+               Route::post('saldos-iniciales/validate', 'Tenant\InitialBalanceController@validateBalances');
+               Route::delete('saldos-iniciales/{id}', 'Tenant\InitialBalanceController@destroy');
+
+               // Reportes Contables
+               Route::get('reportes-contables', 'Tenant\AccountingReportController@index')->name('tenant.reportes_contables.index');
+               Route::get('reportes-contables/balance-prueba', 'Tenant\AccountingReportController@trialBalance');
+               Route::get('reportes-contables/balance-general', 'Tenant\AccountingReportController@balanceSheet');
+               Route::get('reportes-contables/mayor-auxiliar', 'Tenant\AccountingReportController@generalLedger');
+               Route::get('reportes-contables/libro-diario', 'Tenant\AccountingReportController@journalBook');
            });
 
         });

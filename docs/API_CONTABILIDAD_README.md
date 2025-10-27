@@ -117,7 +117,39 @@ http://torres.facturadorpro2.oo/api/contabilidad/cuentas       ✅
 | `DELETE` | `/asientos-contables/{numero_comprobante}` | Eliminar asiento (solo BORRADOR) |
 | `POST` | `/asientos-contables/{numero_comprobante}/confirmar` | Aprobar/Confirmar asiento |
 
-### 3️⃣ Catálogos
+### 3️⃣ Períodos Contables
+
+| Método | Endpoint | Descripción |
+|--------|----------|-------------|
+| `GET` | `/periodos-contables` | Listar períodos contables |
+| `GET` | `/periodos-contables/current` | Obtener período actual (o crearlo automáticamente) |
+| `GET` | `/periodos-contables/{id}` | Obtener período específico |
+| `POST` | `/periodos-contables` | Crear nuevo período |
+| `POST` | `/periodos-contables/{id}/close` | Cerrar período contable |
+| `POST` | `/periodos-contables/{id}/reopen` | Reabrir período cerrado |
+| `POST` | `/periodos-contables/{id}/lock` | Bloquear período (irreversible) |
+
+### 4️⃣ Saldos Iniciales
+
+| Método | Endpoint | Descripción |
+|--------|----------|-------------|
+| `GET` | `/saldos-iniciales` | Listar saldos iniciales |
+| `GET` | `/saldos-iniciales/{id}` | Obtener saldo inicial específico |
+| `POST` | `/saldos-iniciales` | Crear saldos iniciales en lote |
+| `POST` | `/saldos-iniciales/validate` | Validar balanceo débito=crédito |
+| `POST` | `/saldos-iniciales/post` | Contabilizar saldos (genera asiento de apertura) |
+| `DELETE` | `/saldos-iniciales/{id}` | Eliminar saldo inicial (solo DRAFT) |
+
+### 5️⃣ Reportes Contables
+
+| Método | Endpoint | Descripción |
+|--------|----------|-------------|
+| `GET` | `/reportes/balance-prueba` | Balance de prueba con filtros |
+| `GET` | `/reportes/balance-general` | Balance general (Activos vs Pasivos+Patrimonio) |
+| `GET` | `/reportes/mayor-auxiliar` | Mayor auxiliar por cuenta |
+| `GET` | `/reportes/libro-diario` | Libro diario (todas las transacciones) |
+
+### 6️⃣ Catálogos
 
 | Método | Endpoint | Descripción |
 |--------|----------|-------------|
@@ -659,9 +691,11 @@ Para reportar problemas o sugerencias sobre la API:
 
 Funcionalidades planificadas para próximas versiones:
 
-- [ ] Reportes contables (balance, estado de resultados)
+- [x] ~~Reportes contables (balance, estado de resultados)~~ ✅ **Implementado**
+- [x] ~~Cierre de periodos contables~~ ✅ **Implementado**
+- [x] ~~Consulta de mayor y balance de cuentas~~ ✅ **Implementado**
 - [ ] Exportación de asientos a Excel/PDF
-- [ ] Cierre de periodos contables
 - [ ] Asientos recurrentes/plantillas
-- [ ] Consulta de mayor y balance de cuentas
 - [ ] Webhooks para eventos contables
+- [ ] Integración con bancos (conciliación bancaria)
+- [ ] Análisis financiero avanzado

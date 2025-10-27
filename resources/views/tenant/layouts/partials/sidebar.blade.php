@@ -983,11 +983,29 @@ html.horizontal-menu.sidebar-left-collapsed .content {
                                     Plan único de cuentas - PUC
                                 </a>
                             </li>
+                            <li class="{{(($path[0] === 'contabilidad') && ($path[1] === 'periodos-contables')) ? 'nav-active' : ''}}">
+                                <a href="{{ route('tenant.periodos_contables.index') }}">
+                                    <i class="fas fa-calendar-alt" aria-hidden="true"></i>
+                                    Períodos Contables
+                                </a>
+                            </li>
+                            <li class="{{(($path[0] === 'contabilidad') && ($path[1] === 'saldos-iniciales')) ? 'nav-active' : ''}}">
+                                <a href="{{ route('tenant.saldos_iniciales.index') }}">
+                                    <i class="fas fa-balance-scale" aria-hidden="true"></i>
+                                    Saldos Iniciales
+                                </a>
+                            </li>
                             <li class="{{(($path[0] === 'contabilidad') && ($path[1] === 'asientos-contables')) ? 'nav-active' : ''}}">
                                 <a href="{{ route('tenant.asientos_contables.index') }}">
                                     <i class="fas fa-clipboard-list" aria-hidden="true"></i>
                                     Asientos contables
                                     <i class="fas fa-wrench text-warning ml-1" style="font-size: 8px;" title="En construcción"></i>
+                                </a>
+                            </li>
+                            <li class="{{(($path[0] === 'contabilidad') && ($path[1] === 'reportes-contables')) ? 'nav-active' : ''}}">
+                                <a href="{{ route('tenant.reportes_contables.index') }}">
+                                    <i class="fas fa-chart-bar" aria-hidden="true"></i>
+                                    Reportes Contables
                                 </a>
                             </li>
                             <li class="{{(($path[0] === 'account') && ($path[1] === 'format')) ? 'nav-active' : ''}}">

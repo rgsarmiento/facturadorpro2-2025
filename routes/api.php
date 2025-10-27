@@ -75,6 +75,29 @@ if ($hostname) {
             Route::get('tipos-regimen', 'Tenant\Api\ContabilidadController@getTiposRegimen');
 
             Route::get('proximo-consecutivo/{tipo_comprobante_id}', 'Tenant\Api\ContabilidadController@getProximoConsecutivo');
+
+            // Períodos Contables - API
+            Route::get('periodos-contables', 'Tenant\Api\ContabilidadController@getPeriodos');
+            Route::get('periodos-contables/current', 'Tenant\Api\ContabilidadController@getPeriodoActual');
+            Route::get('periodos-contables/{id}', 'Tenant\Api\ContabilidadController@getPeriodo');
+            Route::post('periodos-contables', 'Tenant\Api\ContabilidadController@storePeriodo');
+            Route::post('periodos-contables/{id}/close', 'Tenant\Api\ContabilidadController@closePeriodo');
+            Route::post('periodos-contables/{id}/reopen', 'Tenant\Api\ContabilidadController@reopenPeriodo');
+            Route::post('periodos-contables/{id}/lock', 'Tenant\Api\ContabilidadController@lockPeriodo');
+
+            // Saldos Iniciales - API
+            Route::get('saldos-iniciales', 'Tenant\Api\ContabilidadController@getSaldosIniciales');
+            Route::get('saldos-iniciales/{id}', 'Tenant\Api\ContabilidadController@getSaldoInicial');
+            Route::post('saldos-iniciales', 'Tenant\Api\ContabilidadController@storeSaldosIniciales');
+            Route::post('saldos-iniciales/validate', 'Tenant\Api\ContabilidadController@validateSaldosIniciales');
+            Route::post('saldos-iniciales/post', 'Tenant\Api\ContabilidadController@postSaldosIniciales');
+            Route::delete('saldos-iniciales/{id}', 'Tenant\Api\ContabilidadController@deleteSaldoInicial');
+
+            // Reportes Contables - API
+            Route::get('reportes/balance-prueba', 'Tenant\Api\ContabilidadController@reporteBalancePrueba');
+            Route::get('reportes/balance-general', 'Tenant\Api\ContabilidadController@reporteBalanceGeneral');
+            Route::get('reportes/mayor-auxiliar', 'Tenant\Api\ContabilidadController@reporteMayorAuxiliar');
+            Route::get('reportes/libro-diario', 'Tenant\Api\ContabilidadController@reporteLibroDiario');
         });
 
         Route::get('documents/search/customers', 'Tenant\DocumentController@searchCustomers');

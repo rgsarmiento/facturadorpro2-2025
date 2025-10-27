@@ -16,6 +16,7 @@ class AsientoContable extends ModelTenant
         'numero_comprobante',
         'consecutivo',
         'fecha_asiento',
+        'period_id',
         'concepto',
         'total_debito',
         'total_credito',
@@ -45,6 +46,11 @@ class AsientoContable extends ModelTenant
     public function tipoComprobante()
     {
         return $this->belongsTo(TipoComprobanteContable::class, 'tipo_comprobante_id');
+    }
+
+    public function period()
+    {
+        return $this->belongsTo(AccountingPeriod::class, 'period_id');
     }
 
     public function detalles()

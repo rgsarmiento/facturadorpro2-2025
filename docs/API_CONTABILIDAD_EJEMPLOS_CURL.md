@@ -499,6 +499,429 @@ curl -X GET "${API_BASE}/cuentas-contables" \
 
 ---
 
+## 4️⃣ Períodos Contables
+
+### 4.1 Listar Períodos Contables
+
+```bash
+# Listar todos los períodos
+curl -X GET "${API_BASE}/periodos-contables" \
+  -H "Authorization: Bearer ${API_TOKEN}"
+
+# Filtrar por año
+curl -X GET "${API_BASE}/periodos-contables?year=2025" \
+  -H "Authorization: Bearer ${API_TOKEN}"
+
+# Filtrar por estado
+curl -X GET "${API_BASE}/periodos-contables?status=open" \
+  -H "Authorization: Bearer ${API_TOKEN}"
+```
+
+### 4.2 Obtener Período Actual
+
+```bash
+# Obtiene el período actual (año/mes actual) o lo crea automáticamente
+curl -X GET "${API_BASE}/periodos-contables/current" \
+  -H "Authorization: Bearer ${API_TOKEN}"
+```
+
+### 4.3 Obtener Período Específico
+
+```bash
+# Reemplaza {id} con el ID del período
+curl -X GET "${API_BASE}/periodos-contables/1" \
+  -H "Authorization: Bearer ${API_TOKEN}"
+```
+
+### 4.4 Crear Nuevo Período
+
+```bash
+curl -X POST "${API_BASE}/periodos-contables" \
+  -H "Authorization: Bearer ${API_TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "year": 2025,
+    "month": 11
+  }'
+```
+
+### 4.5 Cerrar Período Contable
+
+**Nota**: No se puede cerrar si hay asientos en BORRADOR
+
+```bash
+# Reemplaza {id} con el ID del período
+curl -X POST "${API_BASE}/periodos-contables/1/close" \
+  -H "Authorization: Bearer ${API_TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "closing_notes": "Cierre mensual de octubre 2025"
+  }'
+```
+
+### 4.6 Reabrir Período Cerrado
+
+**Nota**: No se puede reabrir si el período está BLOQUEADO
+
+```bash
+curl -X POST "${API_BASE}/periodos-contables/1/reopen" \
+  -H "Authorization: Bearer ${API_TOKEN}"
+```
+
+### 4.7 Bloquear Período (Irreversible)
+
+**Nota**: Una vez bloqueado, no se puede reabrir ni modificar
+
+```bash
+curl -X POST "${API_BASE}/periodos-contables/1/lock" \
+  -H "Authorization: Bearer ${API_TOKEN}"
+```
+
+---
+
+## 5️⃣ Saldos Iniciales
+
+### 5.1 Listar Saldos Iniciales
+
+```bash
+# Listar todos los saldos
+curl -X GET "${API_BASE}/saldos-iniciales" \
+  -H "Authorization: Bearer ${API_TOKEN}"
+
+# Filtrar por período
+curl -X GET "${API_BASE}/saldos-iniciales?period_id=1" \
+  -H "Authorization: Bearer ${API_TOKEN}"
+
+# Filtrar por estado
+curl -X GET "${API_BASE}/saldos-iniciales?status=draft" \
+  -H "Authorization: Bearer ${API_TOKEN}"
+```
+
+### 5.2 Obtener Saldo Inicial Específico
+
+```bash
+curl -X GET "${API_BASE}/saldos-iniciales/1" \
+  -H "Authorization: Bearer ${API_TOKEN}"
+```
+
+### 5.3 Crear Saldos Iniciales en Lote
+
+**Nota**: La suma de débitos DEBE ser igual a la suma de créditos
+
+```bash
+curl -X POST "${API_BASE}/saldos-iniciales" \
+  -H "Authorization: Bearer ${API_TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "balance_date": "2025-01-01",
+    "period_id": 1,
+    "balances": [
+      {
+        "cuenta_contable_codigo": "110505",
+        "person_number": null,
+        "debito": 5000000,
+        "credito": 0,
+        "notes": "Saldo inicial caja"
+      },
+      {
+        "cuenta_contable_codigo": "130505",
+        "person_number": "123456789",
+        "debito": 3000000,
+        "credito": 0,
+        "notes": "Saldo cliente Juan Pérez"
+      },
+      {
+        "cuenta_contable_codigo": "220505",
+        "person_number": "987654321",
+        "debito": 0,
+        "credito": 2000000,
+        "notes": "Saldo proveedor ABC Ltda"
+      },
+      {
+        "cuenta_contable_codigo": "310505",
+        "person_number": null,
+        "debito": 0,
+        "credito": 6000000,
+        "notes": "Capital inicial"
+      }
+    ]
+  }'
+```
+
+### 5.4 Validar Balanceo de Saldos (Tiempo Real)
+
+```bash
+# Valida si débitos = créditos sin guardar
+curl -X POST "${API_BASE}/saldos-iniciales/validate" \
+  -H "Authorization: Bearer ${API_TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "balances": [
+      {
+        "cuenta_contable_codigo": "110505",
+        "debito": 5000000,
+        "credito": 0
+      },
+      {
+        "cuenta_contable_codigo": "310505",
+        "debito": 0,
+        "credito": 5000000
+      }
+    ]
+  }'
+```
+
+**Respuesta**:
+```json
+{
+  "success": true,
+  "data": {
+    "total_debito": 5000000,
+    "total_credito": 5000000,
+    "diferencia": 0,
+    "is_balanced": true
+  }
+}
+```
+
+### 5.5 Contabilizar Saldos Iniciales
+
+**Nota**: Genera automáticamente el asiento de apertura y actualiza los saldos de las cuentas
+
+```bash
+curl -X POST "${API_BASE}/saldos-iniciales/post" \
+  -H "Authorization: Bearer ${API_TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "period_id": 1,
+    "fecha_asiento": "2025-01-01",
+    "concepto": "Asiento de apertura - Saldos iniciales 2025"
+  }'
+```
+
+### 5.6 Eliminar Saldo Inicial
+
+**Nota**: Solo se pueden eliminar saldos en estado DRAFT (no contabilizados)
+
+```bash
+curl -X DELETE "${API_BASE}/saldos-iniciales/1" \
+  -H "Authorization: Bearer ${API_TOKEN}"
+```
+
+---
+
+## 6️⃣ Reportes Contables
+
+### 6.1 Balance de Prueba
+
+```bash
+# Balance de prueba básico
+curl -X GET "${API_BASE}/reportes/balance-prueba" \
+  -H "Authorization: Bearer ${API_TOKEN}"
+
+# Con filtros de fecha
+curl -X GET "${API_BASE}/reportes/balance-prueba?fecha_inicio=2025-01-01&fecha_fin=2025-10-27" \
+  -H "Authorization: Bearer ${API_TOKEN}"
+
+# Filtrar por nivel de cuenta
+curl -X GET "${API_BASE}/reportes/balance-prueba?nivel=3&fecha_inicio=2025-01-01&fecha_fin=2025-10-27" \
+  -H "Authorization: Bearer ${API_TOKEN}"
+```
+
+**Respuesta esperada**:
+```json
+{
+  "success": true,
+  "data": {
+    "fecha_inicio": "2025-01-01",
+    "fecha_fin": "2025-10-27",
+    "cuentas": [
+      {
+        "codigo": "110505",
+        "nombre": "Caja General",
+        "naturaleza": "debito",
+        "debito": 10000000,
+        "credito": 3000000,
+        "saldo": 7000000
+      }
+    ],
+    "totales": {
+      "total_debito": 50000000,
+      "total_credito": 50000000,
+      "diferencia": 0
+    }
+  }
+}
+```
+
+### 6.2 Balance General
+
+```bash
+# Balance general (Activos vs Pasivos + Patrimonio)
+curl -X GET "${API_BASE}/reportes/balance-general" \
+  -H "Authorization: Bearer ${API_TOKEN}"
+
+# Con fecha de corte
+curl -X GET "${API_BASE}/reportes/balance-general?fecha_corte=2025-10-27" \
+  -H "Authorization: Bearer ${API_TOKEN}"
+```
+
+**Respuesta esperada**:
+```json
+{
+  "success": true,
+  "data": {
+    "fecha_corte": "2025-10-27",
+    "activos": {
+      "cuentas": [
+        {
+          "codigo": "1105",
+          "nombre": "Caja",
+          "saldo": 7000000
+        }
+      ],
+      "total": 25000000
+    },
+    "pasivos": {
+      "cuentas": [
+        {
+          "codigo": "2205",
+          "nombre": "Proveedores",
+          "saldo": 10000000
+        }
+      ],
+      "total": 10000000
+    },
+    "patrimonio": {
+      "cuentas": [
+        {
+          "codigo": "3105",
+          "nombre": "Capital Social",
+          "saldo": 15000000
+        }
+      ],
+      "total": 15000000
+    },
+    "validacion": {
+      "activos": 25000000,
+      "pasivos_patrimonio": 25000000,
+      "diferencia": 0,
+      "balanced": true
+    }
+  }
+}
+```
+
+### 6.3 Mayor Auxiliar por Cuenta
+
+```bash
+# Mayor auxiliar de una cuenta específica
+curl -X GET "${API_BASE}/reportes/mayor-auxiliar?cuenta_codigo=110505" \
+  -H "Authorization: Bearer ${API_TOKEN}"
+
+# Con rango de fechas
+curl -X GET "${API_BASE}/reportes/mayor-auxiliar?cuenta_codigo=110505&fecha_inicio=2025-01-01&fecha_fin=2025-10-27" \
+  -H "Authorization: Bearer ${API_TOKEN}"
+
+# Incluir terceros
+curl -X GET "${API_BASE}/reportes/mayor-auxiliar?cuenta_codigo=130505&incluir_tercero=1" \
+  -H "Authorization: Bearer ${API_TOKEN}"
+```
+
+**Respuesta esperada**:
+```json
+{
+  "success": true,
+  "data": {
+    "cuenta": {
+      "codigo": "110505",
+      "nombre": "Caja General",
+      "naturaleza": "debito"
+    },
+    "fecha_inicio": "2025-01-01",
+    "fecha_fin": "2025-10-27",
+    "saldo_inicial": 5000000,
+    "movimientos": [
+      {
+        "fecha": "2025-01-15",
+        "comprobante": "CV1",
+        "concepto": "Venta de contado",
+        "tercero": "Juan Pérez",
+        "debito": 1000000,
+        "credito": 0,
+        "saldo": 6000000
+      }
+    ],
+    "totales": {
+      "total_debito": 8000000,
+      "total_credito": 3000000,
+      "saldo_final": 10000000
+    }
+  }
+}
+```
+
+### 6.4 Libro Diario
+
+```bash
+# Libro diario completo
+curl -X GET "${API_BASE}/reportes/libro-diario" \
+  -H "Authorization: Bearer ${API_TOKEN}"
+
+# Con rango de fechas
+curl -X GET "${API_BASE}/reportes/libro-diario?fecha_inicio=2025-10-01&fecha_fin=2025-10-27" \
+  -H "Authorization: Bearer ${API_TOKEN}"
+
+# Filtrar por tipo de comprobante
+curl -X GET "${API_BASE}/reportes/libro-diario?tipo_comprobante_id=1&fecha_inicio=2025-10-01" \
+  -H "Authorization: Bearer ${API_TOKEN}"
+```
+
+**Respuesta esperada**:
+```json
+{
+  "success": true,
+  "data": {
+    "fecha_inicio": "2025-10-01",
+    "fecha_fin": "2025-10-27",
+    "asientos": [
+      {
+        "numero_comprobante": "CV1",
+        "fecha": "2025-10-15",
+        "tipo_comprobante": "Comprobante de Venta",
+        "concepto": "Venta de contado",
+        "estado": "CONFIRMADO",
+        "detalles": [
+          {
+            "cuenta_codigo": "110505",
+            "cuenta_nombre": "Caja General",
+            "concepto": "Ingreso por venta",
+            "debito": 1000000,
+            "credito": 0
+          },
+          {
+            "cuenta_codigo": "413505",
+            "cuenta_nombre": "Ventas Producto A",
+            "concepto": "Venta producto",
+            "debito": 0,
+            "credito": 1000000
+          }
+        ],
+        "total_debito": 1000000,
+        "total_credito": 1000000
+      }
+    ],
+    "totales": {
+      "total_asientos": 25,
+      "total_debito": 50000000,
+      "total_credito": 50000000
+    }
+  }
+}
+```
+
+---
+
 ## 🐛 Validación de Errores
 
 ### Error 401: Token Inválido
