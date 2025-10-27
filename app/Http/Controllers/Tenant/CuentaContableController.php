@@ -215,7 +215,7 @@ class CuentaContableController extends Controller
                 ->where('activa', true)
                 ->orderBy('codigo', 'asc')
                 ->limit($limit)
-                ->get(['codigo', 'nombre', 'tipo_cuenta', 'naturaleza']);
+                ->get(['codigo', 'nombre', 'tipo_cuenta', 'naturaleza', 'requiere_tercero', 'permite_movimiento']);
 
             return response()->json([
                 'data' => $results

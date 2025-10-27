@@ -239,8 +239,8 @@
                                     size="small"
                                     style="width: 100%;">
                                     <el-option
-                                        v-for="cuenta in line.cuentasOptions"
-                                        :key="cuenta.codigo"
+                                        v-for="(cuenta, cuentaIdx) in line.cuentasOptions"
+                                        :key="`cuenta-${index}-${cuentaIdx}`"
                                         :label="`${cuenta.codigo} - ${cuenta.nombre}`"
                                         :value="cuenta.codigo">
                                         <span style="float: left">{{ cuenta.codigo }}</span>
@@ -250,29 +250,39 @@
                                 <small v-if="line.cuenta_nombre" class="text-muted d-block mt-1">{{ line.cuenta_nombre }}</small>
                             </td>
                             <td>
-                                <el-select
-                                    v-model="line.person_number"
-                                    filterable
-                                    remote
-                                    reserve-keyword
-                                    placeholder="Buscar tercero..."
-                                    :remote-method="(query) => searchTercerosRemote(query, index)"
-                                    :loading="line.loadingTerceros"
-                                    @change="onTerceroSelected(index)"
-                                    @focus="onTerceroFocus(index)"
-                                    size="small"
-                                    clearable
-                                    style="width: 100%;">
-                                    <el-option
-                                        v-for="tercero in line.tercerosOptions"
-                                        :key="tercero.number"
-                                        :label="`${tercero.number} - ${tercero.name}`"
-                                        :value="tercero.number">
-                                        <span style="float: left">{{ tercero.number }}</span>
-                                        <span style="float: right; color: #8492a6; font-size: 13px">{{ tercero.name }}</span>
-                                    </el-option>
-                                </el-select>
-                                <small v-if="line.person_name" class="text-muted d-block mt-1">{{ line.person_name }}</small>
+                                <div v-if="line.requiere_tercero">
+                                    <el-select
+                                        v-model="line.person_number"
+                                        filterable
+                                        remote
+                                        reserve-keyword
+                                        placeholder="Buscar tercero..."
+                                        :remote-method="(query) => searchTercerosRemote(query, index)"
+                                        :loading="line.loadingTerceros"
+                                        @change="onTerceroSelected(index)"
+                                        @focus="onTerceroFocus(index)"
+                                        size="small"
+                                        clearable
+                                        style="width: 100%;">
+                                        <el-option
+                                            v-for="(tercero, terceroIdx) in line.tercerosOptions"
+                                            :key="`tercero-${index}-${terceroIdx}`"
+                                            :label="`${tercero.number} - ${tercero.name}`"
+                                            :value="tercero.number">
+                                            <span style="float: left">{{ tercero.number }}</span>
+                                            <span style="float: right; color: #8492a6; font-size: 13px">{{ tercero.name }}</span>
+                                        </el-option>
+                                    </el-select>
+                                    <small v-if="line.person_name" class="text-muted d-block mt-1">
+                                        {{ line.person_name }}
+                                    </small>
+                                    <small v-else class="text-danger d-block mt-1">
+                                        <i class="fas fa-exclamation-circle"></i> Requerido
+                                    </small>
+                                </div>
+                                <div v-else class="text-center text-muted py-2">
+                                    <small>—</small>
+                                </div>
                             </td>
                             <td>
                                 <input type="number"
@@ -448,10 +458,12 @@ export default {
 
             axios.get(`/contabilidad/saldos-iniciales/records?${params.toString()}`)
                 .then(response => {
+                    console.log('Respuesta de records:', response.data);
+                    console.log('Primer registro:', response.data.data[0]);
                     this.records = response.data.data;
                 })
                 .catch(error => {
-                    console.error(error);
+                    console.error('Error al cargar records:', error);
                     this.$message.error('Error al cargar saldos');
                 })
                 .finally(() => {
@@ -472,6 +484,7 @@ export default {
             return {
                 cuenta_contable_codigo: '',
                 cuenta_nombre: '',
+                requiere_tercero: false,
                 person_number: '',
                 person_name: '',
                 debito: 0,
@@ -532,7 +545,17 @@ export default {
             if (codigo) {
                 const cuenta = this.form.balances[index].cuentasOptions.find(c => c.codigo === codigo);
                 if (cuenta) {
-                    this.form.balances[index].cuenta_nombre = cuenta.nombre;
+                    console.log('Cuenta seleccionada:', cuenta);
+                    console.log('Requiere tercero:', cuenta.requiere_tercero);
+                    
+                    this.$set(this.form.balances[index], 'cuenta_nombre', cuenta.nombre);
+                    this.$set(this.form.balances[index], 'requiere_tercero', cuenta.requiere_tercero || false);
+
+                    // Si la cuenta no requiere tercero, limpiar el campo
+                    if (!cuenta.requiere_tercero) {
+                        this.$set(this.form.balances[index], 'person_number', '');
+                        this.$set(this.form.balances[index], 'person_name', '');
+                    }
                 }
             }
         },
@@ -623,19 +646,51 @@ export default {
                 return;
             }
 
+            // Validar que las cuentas que requieren tercero lo tengan
+            for (let i = 0; i < this.form.balances.length; i++) {
+                const line = this.form.balances[i];
+                if (line.requiere_tercero && !line.person_number) {
+                    this.formErrors.push(`La línea ${i + 1} (${line.cuenta_contable_codigo}) requiere un tercero`);
+                }
+                if (!line.cuenta_contable_codigo) {
+                    this.formErrors.push(`La línea ${i + 1} requiere una cuenta contable`);
+                }
+            }
+
+            if (this.formErrors.length > 0) {
+                return;
+            }
+
             if (!this.formIsBalanced) {
                 this.formErrors.push('Los saldos no están balanceados (Débito ≠ Crédito)');
                 return;
             }
 
+            // Transformar datos para enviar al backend
+            const dataToSend = {
+                period_id: this.form.period_id,
+                balance_date: this.form.balance_date,
+                balances: this.form.balances.map(line => ({
+                    cuenta_contable_codigo: line.cuenta_contable_codigo,
+                    person_number: line.person_number || null,
+                    debito: parseFloat(line.debito) || 0,
+                    credito: parseFloat(line.credito) || 0,
+                    notes: line.notes || null
+                }))
+            };
+
+            console.log('Datos a enviar:', dataToSend);
+
             this.saving = true;
-            axios.post('/contabilidad/saldos-iniciales', this.form)
+            axios.post('/contabilidad/saldos-iniciales', dataToSend)
                 .then(response => {
+                    console.log('Respuesta de guardar:', response.data);
                     this.$message.success('Saldos guardados exitosamente');
                     this.showCreateModal = false;
                     this.loadRecords();
                 })
                 .catch(error => {
+                    console.error('Error al guardar:', error);
                     if (error.response && error.response.data.message) {
                         this.formErrors.push(error.response.data.message);
                     } else {

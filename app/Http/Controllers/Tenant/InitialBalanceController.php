@@ -73,19 +73,39 @@ class InitialBalanceController extends Controller
 
             $request->validate([
                 'balances' => 'required|array|min:1',
-                'balances.*.cuenta_contable_id' => 'required|exists:tenant.cuentas_contables,id',
-                'balances.*.person_id' => 'nullable|exists:tenant.persons,id',
+                'balances.*.cuenta_contable_codigo' => 'required|exists:tenant.cuentas_contables,codigo',
+                'balances.*.person_number' => 'nullable|exists:tenant.persons,number',
                 'balances.*.debito' => 'required|numeric|min:0',
                 'balances.*.credito' => 'required|numeric|min:0',
                 'period_id' => 'nullable|exists:tenant.accounting_periods,id',
                 'balance_date' => 'required|date',
             ]);
 
+            // Convertir códigos a IDs
+            $balancesWithIds = collect($request->balances)->map(function ($balance) {
+                $cuenta = CuentaContable::on('tenant')->where('codigo', $balance['cuenta_contable_codigo'])->first();
+
+                $result = [
+                    'cuenta_contable_id' => $cuenta->id,
+                    'person_id' => null,
+                    'debito' => $balance['debito'],
+                    'credito' => $balance['credito'],
+                    'notes' => $balance['notes'] ?? null,
+                ];
+
+                if (!empty($balance['person_number'])) {
+                    $person = Person::on('tenant')->where('number', $balance['person_number'])->first();
+                    $result['person_id'] = $person ? $person->id : null;
+                }
+
+                return $result;
+            })->toArray();
+
             // Validar balance global
             $totalDebito = 0;
             $totalCredito = 0;
 
-            foreach ($request->balances as $balance) {
+            foreach ($balancesWithIds as $balance) {
                 $totalDebito += $balance['debito'];
                 $totalCredito += $balance['credito'];
             }
@@ -107,7 +127,7 @@ class InitialBalanceController extends Controller
             $created = [];
             $errors = [];
 
-            foreach ($request->balances as $balanceData) {
+            foreach ($balancesWithIds as $balanceData) {
                 try {
                     // Validar cuenta
                     $cuenta = CuentaContable::on('tenant')->find($balanceData['cuenta_contable_id']);
@@ -134,6 +154,14 @@ class InitialBalanceController extends Controller
                         continue;
                     }
 
+                    // Calcular balance según naturaleza de la cuenta
+                    $balance = 0;
+                    if ($cuenta->naturaleza === 'debito') {
+                        $balance = $balanceData['debito'] - $balanceData['credito'];
+                    } else {
+                        $balance = $balanceData['credito'] - $balanceData['debito'];
+                    }
+
                     $balance = AccountInitialBalance::on('tenant')->create([
                         'cuenta_contable_id' => $balanceData['cuenta_contable_id'],
                         'person_id' => $balanceData['person_id'] ?? null,
@@ -141,6 +169,7 @@ class InitialBalanceController extends Controller
                         'balance_date' => $request->balance_date,
                         'debito' => $balanceData['debito'],
                         'credito' => $balanceData['credito'],
+                        'balance' => $balance,
                         'notes' => $balanceData['notes'] ?? null,
                         'created_by' => Auth::id(),
                         'status' => 'draft',
@@ -159,6 +188,12 @@ class InitialBalanceController extends Controller
             if (count($errors) > 0) {
                 $message .= '. ' . count($errors) . ' errores: ' . implode(', ', $errors);
             }
+
+            \Log::info('Saldos creados', [
+                'count' => count($created),
+                'errors' => $errors,
+                'balances_ids' => array_map(fn($b) => $b->id, $created)
+            ]);
 
             return response()->json([
                 'success' => true,
