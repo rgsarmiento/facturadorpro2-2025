@@ -192,7 +192,7 @@ class InitialBalanceController extends Controller
             \Log::info('Saldos creados', [
                 'count' => count($created),
                 'errors' => $errors,
-                'balances_ids' => array_map(fn($b) => $b->id, $created)
+                'balances_ids' => array_map(function($b) { return $b->id; }, $created)
             ]);
 
             return response()->json([
