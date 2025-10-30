@@ -547,7 +547,7 @@ export default {
                 if (cuenta) {
                     console.log('Cuenta seleccionada:', cuenta);
                     console.log('Requiere tercero:', cuenta.requiere_tercero);
-                    
+
                     this.$set(this.form.balances[index], 'cuenta_nombre', cuenta.nombre);
                     this.$set(this.form.balances[index], 'requiere_tercero', cuenta.requiere_tercero || false);
 

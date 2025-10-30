@@ -7,8 +7,6 @@
                         <div class="row">
                         </div>
                         <div class="row mt-4">
-
-
                             <div class="col-lg-6 pb-2">
                                 <div class="form-group" :class="{'has-danger': errors.note_concept_id}">
                                     <label class="control-label">Concepto</label>
