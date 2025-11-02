@@ -85,7 +85,66 @@ class SupportDocumentHelper
      * @param  array $inputs
      * @return array
      */
+
     public function sendToApi($support_document, $inputs)
+    {
+        $connection_api = new HttpConnectionApi($this->company->api_token);
+
+        $params = $this->getParamsForApi($support_document, $inputs);
+        $url = $support_document->isAdjustNote() ? 'ubl2.1/sd-credit-note' : "ubl2.1/support-document";
+        if($support_document->isAdjustNote())
+                $invoice_lines = $params['credit_note_lines'];
+        else
+                $invoice_lines = $params['invoice_lines'];
+        $new_invoice_lines = array();
+        if($support_document->isAdjustNote()){
+                $tax = ['tax_id' => 1, 'tax_amount' => '0.00', 'percent' => '0', 'taxable_amount' => $params['legal_monetary_totals']['line_extension_amount']];
+                if (isset($params['tax_totals']) && is_array($params['tax_totals'])) {
+                        // Reemplaza cada elemento por $tax
+                        foreach ($params['tax_totals'] as &$item) {
+                                $item = $tax;
+                        }
+                        unset($item); // buena práctica al usar referencias
+                }
+        }
+        $params['legal_monetary_totals']['line_extension_amount'] = 0;
+        $params['legal_monetary_totals']['tax_exclusive_amount'] = 0;
+        $params['legal_monetary_totals']['tax_inclusive_amount'] = 0;
+        $params['legal_monetary_totals']['payable_amount'] = 0;
+        foreach($invoice_lines as $invoice_line){
+                $tax = [['tax_id' => 1, 'tax_amount' => '0.00', 'percent' => '0', 'taxable_amount' => $invoice_line['invoiced_quantity'] * $invoice_line['price_amount']]];
+                $invoice_line['tax_totals'] = $tax;
+                if($support_document->isAdjustNote())
+                        $invoice_line['line_extension_amount'] = $invoice_line['invoiced_quantity'] * $invoice_line['price_amount'];
+                $params['legal_monetary_totals']['line_extension_amount'] = $params['legal_monetary_totals']['line_extension_amount'] + $invoice_line['line_extension_amount'];
+                $params['legal_monetary_totals']['tax_exclusive_amount'] = $params['legal_monetary_totals']['tax_exclusive_amount'] + $invoice_line['line_extension_amount'];
+                $params['legal_monetary_totals']['tax_inclusive_amount'] = $params['legal_monetary_totals']['tax_inclusive_amount'] + $invoice_line['line_extension_amount'];
+                $params['legal_monetary_totals']['payable_amount'] = $params['legal_monetary_totals']['payable_amount'] + $invoice_line['line_extension_amount'];
+                array_push($new_invoice_lines, $invoice_line);
+        }
+        if($support_document->isAdjustNote())
+                $params['credit_note_lines'] = $new_invoice_lines;
+        else
+                $params['invoice_lines'] = $new_invoice_lines;
+
+        $send_request_to_api = $connection_api->sendRequestToApi($url, $params, 'POST');
+        // dd($send_request_to_api);
+
+        //error validacion form request api
+        if(isset($send_request_to_api['errors']))
+        {
+            $message = $connection_api->parseErrorsToString($send_request_to_api['errors']);
+            $this->throwException($message);
+        }
+
+        // validacion respuesta api
+        $this->validateResponseApi($send_request_to_api, $support_document->number_full, $connection_api, $support_document);
+
+        return $send_request_to_api;
+    }
+
+
+/*    public function sendToApi($support_document, $inputs)
     {
         $connection_api = new HttpConnectionApi($this->company->api_token);
 
@@ -120,8 +179,7 @@ class SupportDocumentHelper
         $this->validateResponseApi($send_request_to_api, $support_document->number_full, $connection_api, $support_document);
 
         return $send_request_to_api;
-    }
-
+    }   */
 
     /**
      *

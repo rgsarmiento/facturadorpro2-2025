@@ -479,10 +479,11 @@
                     this.form.supplier_id = supplier_id
                 })
             },
+
             changeSupplier() {
             },
-            async submit() {
 
+            async submit() {
                 if(!this.form.type_document_id)
                 {
                     return this.$message.error('Debe seleccionar una Resolución')

@@ -124,8 +124,8 @@ export const operations_api = {
 
             return seller
         },
-        getLegacyMonetaryTotal()
-        {
+
+        getLegacyMonetaryTotal(){
             let line_ext_am = 0
             let tax_incl_am = 0
             let allowance_total_amount = 0
