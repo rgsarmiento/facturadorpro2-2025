@@ -532,7 +532,6 @@ function initializeRestoreForm() {
             });
         }
     }
-    }
 }
 
 // Función para manejar la restauración

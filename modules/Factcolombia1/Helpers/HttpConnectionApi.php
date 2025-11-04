@@ -29,9 +29,9 @@ class HttpConnectionApi
                     }
                 }
             }
-            \Log::debug($url);
-            \Log::debug(json_encode($params));
-            \Log::debug($this->api_token);
+//            \Log::debug($url);
+//            \Log::debug(json_encode($params));
+//            \Log::debug($this->api_token);
             $ch = curl_init("{$this->base_url}{$url}");
             curl_setopt($ch, CURLOPT_RETURNTRANSFER, true);
             curl_setopt($ch, CURLOPT_CUSTOMREQUEST, $method);
@@ -45,7 +45,7 @@ class HttpConnectionApi
             ));
 
             $response = curl_exec($ch);
-            \Log::debug($response);
+//            \Log::debug($response);
             $curl_error = curl_error($ch);
             if($curl_error) return $this->responseMessage(false, 'Error en la petición a la Api');
                         // dd($response);
