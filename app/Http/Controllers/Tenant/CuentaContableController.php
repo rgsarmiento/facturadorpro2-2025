@@ -199,6 +199,37 @@ class CuentaContableController extends Controller
     }
 
     /**
+     * Search accounts for select dropdowns (autocomplete)
+     */
+    public function search(Request $request)
+    {
+        try {
+            $query = $request->get('q', '');
+            $limit = $request->get('limit', 20);
+
+            $results = CuentaContable::on('tenant')
+                ->where(function($q) use ($query) {
+                    $q->where('codigo', 'like', "%{$query}%")
+                      ->orWhere('nombre', 'like', "%{$query}%");
+                })
+                ->where('activa', true)
+                ->orderBy('codigo', 'asc')
+                ->limit($limit)
+                ->get(['codigo', 'nombre', 'tipo_cuenta', 'naturaleza', 'requiere_tercero', 'permite_movimiento']);
+
+            return response()->json([
+                'data' => $results
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'Error al buscar cuentas',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
      * Get records in tree structure
      */
     public function tree(Request $request)

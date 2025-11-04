@@ -705,7 +705,515 @@
 				}
 			],
 			"description": "Endpoints auxiliares para obtener catálogos y datos de soporte.\n\nIncluye:\n- Tipos de comprobantes contables\n- Terceros/Personas\n- Generación de consecutivos"
+		},
+		{
+			"name": "4. Períodos Contables",
+			"item": [
+				{
+					"name": "4.1 Listar Períodos Contables",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer FRhP2rsd318LzTvLtqfGMAW6E6QvtnA0Bks2sGK58nyL2TtNew",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "http://torres.facturadorpro2.oo/api/contabilidad/periodos-contables?year=2025&status=open",
+							"protocol": "http",
+							"host": ["torres", "facturadorpro2", "oo"],
+							"path": ["api", "contabilidad", "periodos-contables"],
+							"query": [
+								{
+									"key": "year",
+									"value": "2025",
+									"description": "Filtrar por año (opcional)"
+								},
+								{
+									"key": "status",
+									"value": "open",
+									"description": "Filtrar por estado: open, closed, locked (opcional)"
+								}
+							]
+						},
+						"description": "Obtiene el listado de períodos contables.\n\n**Filtros disponibles**:\n- `year`: Año del período\n- `status`: Estado (open, closed, locked)\n\n**Estados**:\n- `open`: Período abierto (permite movimientos)\n- `closed`: Período cerrado (puede reabrirse)\n- `locked`: Período bloqueado (irreversible)"
+					},
+					"response": []
+				},
+				{
+					"name": "4.2 Obtener Período Actual",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer FRhP2rsd318LzTvLtqfGMAW6E6QvtnA0Bks2sGK58nyL2TtNew",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "http://torres.facturadorpro2.oo/api/contabilidad/periodos-contables/current",
+							"protocol": "http",
+							"host": ["torres", "facturadorpro2", "oo"],
+							"path": ["api", "contabilidad", "periodos-contables", "current"]
+						},
+						"description": "Obtiene el período actual (año/mes actual) o lo crea automáticamente si no existe.\n\n**Comportamiento**:\n1. Busca período del mes actual\n2. Si no existe, lo crea automáticamente en estado 'open'\n3. Retorna el período encontrado o creado"
+					},
+					"response": []
+				},
+				{
+					"name": "4.3 Obtener Período Específico",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer FRhP2rsd318LzTvLtqfGMAW6E6QvtnA0Bks2sGK58nyL2TtNew",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "http://torres.facturadorpro2.oo/api/contabilidad/periodos-contables/1",
+							"protocol": "http",
+							"host": ["torres", "facturadorpro2", "oo"],
+							"path": ["api", "contabilidad", "periodos-contables", "1"]
+						},
+						"description": "Obtiene los detalles de un período contable específico.\n\n**Incluye**:\n- Información del período\n- Usuario que cerró (si aplica)\n- Saldos de cierre\n- Notas de cierre"
+					},
+					"response": []
+				},
+				{
+					"name": "4.4 Crear Período",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer FRhP2rsd318LzTvLtqfGMAW6E6QvtnA0Bks2sGK58nyL2TtNew",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"year\": 2025,\n    \"month\": 11\n}"
+						},
+						"url": {
+							"raw": "http://torres.facturadorpro2.oo/api/contabilidad/periodos-contables",
+							"protocol": "http",
+							"host": ["torres", "facturadorpro2", "oo"],
+							"path": ["api", "contabilidad", "periodos-contables"]
+						},
+						"description": "Crea un nuevo período contable.\n\n**Campos requeridos**:\n- `year`: Año (2000-2100)\n- `month`: Mes (1-12)\n\n**Validaciones**:\n- No puede existir período duplicado (año+mes único)\n- Se calculan automáticamente start_date y end_date\n- Se crea en estado 'open'"
+					},
+					"response": []
+				},
+				{
+					"name": "4.5 Cerrar Período",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer FRhP2rsd318LzTvLtqfGMAW6E6QvtnA0Bks2sGK58nyL2TtNew",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"closing_notes\": \"Cierre mensual de octubre 2025\"\n}"
+						},
+						"url": {
+							"raw": "http://torres.facturadorpro2.oo/api/contabilidad/periodos-contables/1/close",
+							"protocol": "http",
+							"host": ["torres", "facturadorpro2", "oo"],
+							"path": ["api", "contabilidad", "periodos-contables", "1", "close"]
+						},
+						"description": "Cierra un período contable.\n\n**Validaciones**:\n- El período debe estar en estado 'open'\n- No debe haber asientos en BORRADOR\n\n**Acciones**:\n1. Calcula saldos de cierre (débito/crédito)\n2. Registra usuario y fecha de cierre\n3. Cambia estado a 'closed'\n4. Deshabilita modificaciones\n\n**Nota**: Un período cerrado puede reabrirse (si no está bloqueado)"
+					},
+					"response": []
+				},
+				{
+					"name": "4.6 Reabrir Período",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer FRhP2rsd318LzTvLtqfGMAW6E6QvtnA0Bks2sGK58nyL2TtNew",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "http://torres.facturadorpro2.oo/api/contabilidad/periodos-contables/1/reopen",
+							"protocol": "http",
+							"host": ["torres", "facturadorpro2", "oo"],
+							"path": ["api", "contabilidad", "periodos-contables", "1", "reopen"]
+						},
+						"description": "Reabre un período contable cerrado.\n\n**Validaciones**:\n- El período debe estar en estado 'closed'\n- NO puede reabrirse si está en estado 'locked'\n\n**Acciones**:\n1. Cambia estado a 'open'\n2. Habilita modificaciones\n3. Limpia datos de cierre"
+					},
+					"response": []
+				},
+				{
+					"name": "4.7 Bloquear Período",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer FRhP2rsd318LzTvLtqfGMAW6E6QvtnA0Bks2sGK58nyL2TtNew",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "http://torres.facturadorpro2.oo/api/contabilidad/periodos-contables/1/lock",
+							"protocol": "http",
+							"host": ["torres", "facturadorpro2", "oo"],
+							"path": ["api", "contabilidad", "periodos-contables", "1", "lock"]
+						},
+						"description": "Bloquea permanentemente un período contable.\n\n**⚠️ ADVERTENCIA**: Esta acción es IRREVERSIBLE\n\n**Validaciones**:\n- El período debe estar en estado 'closed'\n\n**Acciones**:\n1. Cambia estado a 'locked'\n2. Impide cualquier modificación futura\n3. No se puede reabrir\n\n**Uso**: Para períodos finalizados que no deben modificarse (ej: cierre anual)"
+					},
+					"response": []
+				}
+			],
+			"description": "Gestión de períodos contables mensuales.\n\n**Funcionalidades**:\n- Crear y gestionar períodos por mes/año\n- Cerrar períodos (impide modificaciones)\n- Reabrir períodos cerrados\n- Bloquear períodos permanentemente\n\n**Estados del período**:\n1. **open**: Permite crear/modificar asientos\n2. **closed**: Período cerrado, puede reabrirse\n3. **locked**: Bloqueado permanentemente (no se puede reabrir)"
+		},
+		{
+			"name": "5. Saldos Iniciales",
+			"item": [
+				{
+					"name": "5.1 Listar Saldos Iniciales",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer FRhP2rsd318LzTvLtqfGMAW6E6QvtnA0Bks2sGK58nyL2TtNew",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "http://torres.facturadorpro2.oo/api/contabilidad/saldos-iniciales?period_id=1&status=draft",
+							"protocol": "http",
+							"host": ["torres", "facturadorpro2", "oo"],
+							"path": ["api", "contabilidad", "saldos-iniciales"],
+							"query": [
+								{
+									"key": "period_id",
+									"value": "1",
+									"description": "Filtrar por período (opcional)"
+								},
+								{
+									"key": "status",
+									"value": "draft",
+									"description": "Filtrar por estado: draft, posted, voided (opcional)"
+								}
+							]
+						},
+						"description": "Obtiene el listado de saldos iniciales.\n\n**Filtros disponibles**:\n- `period_id`: ID del período contable\n- `status`: Estado (draft, posted, voided)\n\n**Estados**:\n- `draft`: Borrador (puede editarse/eliminarse)\n- `posted`: Contabilizado (genera asiento)\n- `voided`: Anulado"
+					},
+					"response": []
+				},
+				{
+					"name": "5.2 Obtener Saldo Inicial",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer FRhP2rsd318LzTvLtqfGMAW6E6QvtnA0Bks2sGK58nyL2TtNew",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "http://torres.facturadorpro2.oo/api/contabilidad/saldos-iniciales/1",
+							"protocol": "http",
+							"host": ["torres", "facturadorpro2", "oo"],
+							"path": ["api", "contabilidad", "saldos-iniciales", "1"]
+						},
+						"description": "Obtiene los detalles de un saldo inicial específico.\n\n**Incluye**:\n- Información del saldo\n- Cuenta contable relacionada\n- Tercero (si aplica)\n- Período contable\n- Asiento generado (si está contabilizado)"
+					},
+					"response": []
+				},
+				{
+					"name": "5.3 Crear Saldos en Lote",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer FRhP2rsd318LzTvLtqfGMAW6E6QvtnA0Bks2sGK58nyL2TtNew",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"balance_date\": \"2025-01-01\",\n    \"period_id\": 1,\n    \"balances\": [\n        {\n            \"cuenta_contable_codigo\": \"110505\",\n            \"person_number\": null,\n            \"debito\": 5000000,\n            \"credito\": 0,\n            \"notes\": \"Saldo inicial caja\"\n        },\n        {\n            \"cuenta_contable_codigo\": \"130505\",\n            \"person_number\": \"123456789\",\n            \"debito\": 3000000,\n            \"credito\": 0,\n            \"notes\": \"Saldo cliente Juan Pérez\"\n        },\n        {\n            \"cuenta_contable_codigo\": \"220505\",\n            \"person_number\": \"987654321\",\n            \"debito\": 0,\n            \"credito\": 2000000,\n            \"notes\": \"Saldo proveedor ABC Ltda\"\n        },\n        {\n            \"cuenta_contable_codigo\": \"310505\",\n            \"person_number\": null,\n            \"debito\": 0,\n            \"credito\": 6000000,\n            \"notes\": \"Capital inicial\"\n        }\n    ]\n}"
+						},
+						"url": {
+							"raw": "http://torres.facturadorpro2.oo/api/contabilidad/saldos-iniciales",
+							"protocol": "http",
+							"host": ["torres", "facturadorpro2", "oo"],
+							"path": ["api", "contabilidad", "saldos-iniciales"]
+						},
+						"description": "Crea saldos iniciales en lote (carga masiva).\n\n**Campos requeridos**:\n- `balance_date`: Fecha de los saldos\n- `balances[]`: Array de saldos\n  - `cuenta_contable_codigo`: Código de cuenta\n  - `debito`: Valor débito\n  - `credito`: Valor crédito\n  - `person_number`: Número de tercero (opcional)\n  - `notes`: Notas (opcional)\n\n**⚠️ VALIDACIÓN CRÍTICA**:\n- La suma de débitos DEBE ser igual a la suma de créditos\n- Tolerancia: < 0.01\n- Si no balancea, retorna error 422\n\n**Notas**:\n- Los saldos se crean en estado 'draft'\n- Use el endpoint 'Contabilizar Saldos' para generar el asiento"
+					},
+					"response": []
+				},
+				{
+					"name": "5.4 Validar Balanceo (Tiempo Real)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer FRhP2rsd318LzTvLtqfGMAW6E6QvtnA0Bks2sGK58nyL2TtNew",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"balances\": [\n        {\n            \"cuenta_contable_codigo\": \"110505\",\n            \"debito\": 5000000,\n            \"credito\": 0\n        },\n        {\n            \"cuenta_contable_codigo\": \"310505\",\n            \"debito\": 0,\n            \"credito\": 5000000\n        }\n    ]\n}"
+						},
+						"url": {
+							"raw": "http://torres.facturadorpro2.oo/api/contabilidad/saldos-iniciales/validate",
+							"protocol": "http",
+							"host": ["torres", "facturadorpro2", "oo"],
+							"path": ["api", "contabilidad", "saldos-iniciales", "validate"]
+						},
+						"description": "Valida si los saldos iniciales están balanceados (débito = crédito).\n\n**Uso**: Para validación en tiempo real desde el frontend sin guardar datos.\n\n**Respuesta**:\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"total_debito\": 5000000,\n    \"total_credito\": 5000000,\n    \"diferencia\": 0,\n    \"is_balanced\": true\n  }\n}\n```\n\n**Útil para**:\n- Mostrar totales en tiempo real\n- Validar antes de guardar\n- Indicar diferencia al usuario"
+					},
+					"response": []
+				},
+				{
+					"name": "5.5 Contabilizar Saldos",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer FRhP2rsd318LzTvLtqfGMAW6E6QvtnA0Bks2sGK58nyL2TtNew",
+								"type": "text"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json",
+								"type": "text"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"period_id\": 1,\n    \"fecha_asiento\": \"2025-01-01\",\n    \"concepto\": \"Asiento de apertura - Saldos iniciales 2025\"\n}"
+						},
+						"url": {
+							"raw": "http://torres.facturadorpro2.oo/api/contabilidad/saldos-iniciales/post",
+							"protocol": "http",
+							"host": ["torres", "facturadorpro2", "oo"],
+							"path": ["api", "contabilidad", "saldos-iniciales", "post"]
+						},
+						"description": "Contabiliza los saldos iniciales en estado DRAFT de un período.\n\n**Proceso automático**:\n1. Valida que débitos = créditos\n2. Busca tipo de comprobante 'Saldos Iniciales' (código 24)\n3. Crea AsientoContable en estado CONFIRMADO\n4. Crea DetalleAsientoContable por cada saldo\n5. Actualiza saldos de todas las cuentas afectadas\n6. Marca todos los saldos como 'posted'\n7. Vincula asiento generado\n\n**Campos requeridos**:\n- `period_id`: ID del período\n- `fecha_asiento`: Fecha del asiento de apertura\n- `concepto`: Descripción del asiento\n\n**Importante**:\n- Solo contabiliza saldos en estado 'draft'\n- El asiento se crea en estado CONFIRMADO\n- Los saldos no pueden eliminarse después de contabilizar"
+					},
+					"response": []
+				},
+				{
+					"name": "5.6 Eliminar Saldo",
+					"request": {
+						"method": "DELETE",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer FRhP2rsd318LzTvLtqfGMAW6E6QvtnA0Bks2sGK58nyL2TtNew",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "http://torres.facturadorpro2.oo/api/contabilidad/saldos-iniciales/1",
+							"protocol": "http",
+							"host": ["torres", "facturadorpro2", "oo"],
+							"path": ["api", "contabilidad", "saldos-iniciales", "1"]
+						},
+						"description": "Elimina un saldo inicial.\n\n**⚠️ RESTRICCIÓN**:\n- Solo se pueden eliminar saldos en estado 'draft'\n- Saldos contabilizados (posted) NO pueden eliminarse\n\n**Uso**:\n- Corregir errores en carga de saldos\n- Eliminar saldos antes de contabilizar"
+					},
+					"response": []
+				}
+			],
+			"description": "Gestión de saldos iniciales para apertura de períodos contables.\n\n**Funcionalidades**:\n- Carga masiva de saldos iniciales\n- Validación débito = crédito\n- Generación automática de asiento de apertura\n- Soporte para terceros (clientes/proveedores)\n\n**Flujo de trabajo**:\n1. Crear saldos en estado 'draft'\n2. Validar balanceo en tiempo real\n3. Contabilizar (genera asiento automático)\n4. Los saldos pasan a 'posted' y no pueden eliminarse\n\n**Notas**:\n- El asiento se genera con tipo de comprobante 'Saldos Iniciales'\n- Se actualiza automáticamente el saldo de todas las cuentas"
+		},
+		{
+			"name": "6. Reportes Contables",
+			"item": [
+				{
+					"name": "6.1 Balance de Prueba",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer FRhP2rsd318LzTvLtqfGMAW6E6QvtnA0Bks2sGK58nyL2TtNew",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "http://torres.facturadorpro2.oo/api/contabilidad/reportes/balance-prueba?fecha_inicio=2025-01-01&fecha_fin=2025-10-27&nivel=3",
+							"protocol": "http",
+							"host": ["torres", "facturadorpro2", "oo"],
+							"path": ["api", "contabilidad", "reportes", "balance-prueba"],
+							"query": [
+								{
+									"key": "fecha_inicio",
+									"value": "2025-01-01",
+									"description": "Fecha inicial del rango (opcional)"
+								},
+								{
+									"key": "fecha_fin",
+									"value": "2025-10-27",
+									"description": "Fecha final del rango (opcional)"
+								},
+								{
+									"key": "nivel",
+									"value": "3",
+									"description": "Filtrar por nivel de cuenta (opcional)"
+								}
+							]
+						},
+						"description": "Genera el balance de prueba (trial balance).\n\n**Filtros disponibles**:\n- `fecha_inicio`: Fecha inicial del rango\n- `fecha_fin`: Fecha final del rango\n- `nivel`: Nivel jerárquico de cuentas\n\n**Incluye**:\n- Todas las cuentas con movimientos\n- Total débito por cuenta\n- Total crédito por cuenta\n- Saldo (según naturaleza de cuenta)\n- Totales generales\n\n**Respuesta esperada**:\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"fecha_inicio\": \"2025-01-01\",\n    \"fecha_fin\": \"2025-10-27\",\n    \"cuentas\": [...],\n    \"totales\": {\n      \"total_debito\": 50000000,\n      \"total_credito\": 50000000,\n      \"diferencia\": 0\n    }\n  }\n}\n```"
+					},
+					"response": []
+				},
+				{
+					"name": "6.2 Balance General",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer FRhP2rsd318LzTvLtqfGMAW6E6QvtnA0Bks2sGK58nyL2TtNew",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "http://torres.facturadorpro2.oo/api/contabilidad/reportes/balance-general?fecha_corte=2025-10-27",
+							"protocol": "http",
+							"host": ["torres", "facturadorpro2", "oo"],
+							"path": ["api", "contabilidad", "reportes", "balance-general"],
+							"query": [
+								{
+									"key": "fecha_corte",
+									"value": "2025-10-27",
+									"description": "Fecha de corte del balance (opcional, default: hoy)"
+								}
+							]
+						},
+						"description": "Genera el balance general (balance sheet).\n\n**Filtros**:\n- `fecha_corte`: Fecha de corte (default: fecha actual)\n\n**Estructura**:\n- **Activos**: Todas las cuentas tipo 'activo' con saldo\n- **Pasivos**: Todas las cuentas tipo 'pasivo' con saldo\n- **Patrimonio**: Todas las cuentas tipo 'patrimonio' con saldo\n\n**Validación**:\n- Verifica que: Activos = Pasivos + Patrimonio\n\n**Respuesta esperada**:\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"fecha_corte\": \"2025-10-27\",\n    \"activos\": { \"cuentas\": [...], \"total\": 25000000 },\n    \"pasivos\": { \"cuentas\": [...], \"total\": 10000000 },\n    \"patrimonio\": { \"cuentas\": [...], \"total\": 15000000 },\n    \"validacion\": {\n      \"activos\": 25000000,\n      \"pasivos_patrimonio\": 25000000,\n      \"diferencia\": 0,\n      \"balanced\": true\n    }\n  }\n}\n```"
+					},
+					"response": []
+				},
+				{
+					"name": "6.3 Mayor Auxiliar",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer FRhP2rsd318LzTvLtqfGMAW6E6QvtnA0Bks2sGK58nyL2TtNew",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "http://torres.facturadorpro2.oo/api/contabilidad/reportes/mayor-auxiliar?cuenta_codigo=110505&fecha_inicio=2025-01-01&fecha_fin=2025-10-27&incluir_tercero=1",
+							"protocol": "http",
+							"host": ["torres", "facturadorpro2", "oo"],
+							"path": ["api", "contabilidad", "reportes", "mayor-auxiliar"],
+							"query": [
+								{
+									"key": "cuenta_codigo",
+									"value": "110505",
+									"description": "Código de cuenta (REQUERIDO)"
+								},
+								{
+									"key": "fecha_inicio",
+									"value": "2025-01-01",
+									"description": "Fecha inicial (opcional)"
+								},
+								{
+									"key": "fecha_fin",
+									"value": "2025-10-27",
+									"description": "Fecha final (opcional)"
+								},
+								{
+									"key": "incluir_tercero",
+									"value": "1",
+									"description": "Incluir información de tercero (opcional)"
+								}
+							]
+						},
+						"description": "Genera el mayor auxiliar de una cuenta específica.\n\n**Parámetros requeridos**:\n- `cuenta_codigo`: Código de la cuenta\n\n**Filtros opcionales**:\n- `fecha_inicio`: Fecha inicial del rango\n- `fecha_fin`: Fecha final del rango\n- `incluir_tercero`: Mostrar tercero (1=sí, 0=no)\n\n**Incluye**:\n- Información de la cuenta\n- Saldo inicial\n- Todos los movimientos (débito/crédito)\n- Saldo corrido después de cada movimiento\n- Totales\n\n**Respuesta esperada**:\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"cuenta\": {\n      \"codigo\": \"110505\",\n      \"nombre\": \"Caja General\",\n      \"naturaleza\": \"debito\"\n    },\n    \"saldo_inicial\": 5000000,\n    \"movimientos\": [\n      {\n        \"fecha\": \"2025-01-15\",\n        \"comprobante\": \"CV1\",\n        \"concepto\": \"Venta\",\n        \"tercero\": \"Juan Pérez\",\n        \"debito\": 1000000,\n        \"credito\": 0,\n        \"saldo\": 6000000\n      }\n    ],\n    \"totales\": {\n      \"total_debito\": 8000000,\n      \"total_credito\": 3000000,\n      \"saldo_final\": 10000000\n    }\n  }\n}\n```"
+					},
+					"response": []
+				},
+				{
+					"name": "6.4 Libro Diario",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer FRhP2rsd318LzTvLtqfGMAW6E6QvtnA0Bks2sGK58nyL2TtNew",
+								"type": "text"
+							}
+						],
+						"url": {
+							"raw": "http://torres.facturadorpro2.oo/api/contabilidad/reportes/libro-diario?fecha_inicio=2025-10-01&fecha_fin=2025-10-27&tipo_comprobante_id=1",
+							"protocol": "http",
+							"host": ["torres", "facturadorpro2", "oo"],
+							"path": ["api", "contabilidad", "reportes", "libro-diario"],
+							"query": [
+								{
+									"key": "fecha_inicio",
+									"value": "2025-10-01",
+									"description": "Fecha inicial (opcional)"
+								},
+								{
+									"key": "fecha_fin",
+									"value": "2025-10-27",
+									"description": "Fecha final (opcional)"
+								},
+								{
+									"key": "tipo_comprobante_id",
+									"value": "1",
+									"description": "Filtrar por tipo de comprobante (opcional)"
+								}
+							]
+						},
+						"description": "Genera el libro diario (journal book) con todas las transacciones.\n\n**Filtros opcionales**:\n- `fecha_inicio`: Fecha inicial del rango\n- `fecha_fin`: Fecha final del rango\n- `tipo_comprobante_id`: Filtrar por tipo de comprobante\n\n**Incluye**:\n- Todos los asientos confirmados\n- Detalles expandidos de cada asiento\n- Información de cuentas y terceros\n- Totales por asiento\n- Totales generales\n\n**Respuesta esperada**:\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"fecha_inicio\": \"2025-10-01\",\n    \"fecha_fin\": \"2025-10-27\",\n    \"asientos\": [\n      {\n        \"numero_comprobante\": \"CV1\",\n        \"fecha\": \"2025-10-15\",\n        \"tipo_comprobante\": \"Comprobante de Venta\",\n        \"concepto\": \"Venta de contado\",\n        \"estado\": \"CONFIRMADO\",\n        \"detalles\": [\n          {\n            \"cuenta_codigo\": \"110505\",\n            \"cuenta_nombre\": \"Caja General\",\n            \"concepto\": \"Ingreso\",\n            \"debito\": 1000000,\n            \"credito\": 0\n          }\n        ],\n        \"total_debito\": 1000000,\n        \"total_credito\": 1000000\n      }\n    ],\n    \"totales\": {\n      \"total_asientos\": 25,\n      \"total_debito\": 50000000,\n      \"total_credito\": 50000000\n    }\n  }\n}\n```"
+					},
+					"response": []
+				}
+			],
+			"description": "Reportes contables para análisis financiero.\n\n**Reportes disponibles**:\n\n1. **Balance de Prueba**: Lista todas las cuentas con movimientos, mostrando débitos, créditos y saldos\n\n2. **Balance General**: Estado de situación financiera (Activos vs Pasivos + Patrimonio)\n\n3. **Mayor Auxiliar**: Detalle de todos los movimientos de una cuenta específica con saldo corrido\n\n4. **Libro Diario**: Registro cronológico de todos los asientos contables\n\n**Características**:\n- Filtros por fechas\n- Agrupaciones por tipo de cuenta\n- Validación de balances\n- Totales automáticos\n- Información de terceros"
 		}
 	]
 }
+
 

@@ -52,15 +52,14 @@ export const operations_api = {
                 allowance_charges: {},
                 credit_note_lines: {},
             }
-
             form_api.seller =  await this.getSeller()
             form_api.legal_monetary_totals = await this.getLegacyMonetaryTotal()
             form_api.allowance_charges = await this.getAllowanceCharge(form_api.legal_monetary_totals.allowance_total_amount, form_api.legal_monetary_totals.line_extension_amount)
             form_api.credit_note_lines = await this.getCreditNoteLines()
             form_api.tax_totals = await this.getTaxTotals()
-
             return form_api
         },
+
         getTaxTotals() {
 
             let tax = []
@@ -125,8 +124,8 @@ export const operations_api = {
 
             return seller
         },
-        getLegacyMonetaryTotal()
-        {
+
+        getLegacyMonetaryTotal(){
             let line_ext_am = 0
             let tax_incl_am = 0
             let allowance_total_amount = 0
@@ -152,6 +151,7 @@ export const operations_api = {
                 payable_amount: this.stringDecimals(tax_incl_am - allowance_total_amount)
             }
         },
+
         getInvoiceLines()
         {
             return this.form.items.map(x => {
@@ -176,12 +176,10 @@ export const operations_api = {
                     type_generation_transmition_id: x.type_generation_transmition_id,
                     start_date: x.start_date
                 }
-
             })
-
         },
-        getCreditNoteLines()
-        {
+
+        getCreditNoteLines(){
             return this.form.items.map(x => {
                 return {
                     unit_measure_id: x.item.unit_type.code, //codigo api dian de unidad
@@ -196,14 +194,14 @@ export const operations_api = {
                             base_amount: this.stringDecimals(Number(x.price) * Number(x.quantity))
                         }
                     ],
-                    tax_totals: [
-                        {
-                            tax_id: x.tax.type_tax_id,
-                            tax_amount: this.stringDecimals(x.total_tax),
-                            taxable_amount: this.stringDecimals((Number(x.price) * Number(x.quantity)) - x.discount),
-                            percent: this.stringDecimals(x.tax.rate)
-                        }
-                    ],
+//                    tax_totals: [
+//                        {
+//                            tax_id: x.tax.type_tax_id,
+//                            tax_amount: this.stringDecimals(x.total_tax),
+//                            taxable_amount: this.stringDecimals((Number(x.price) * Number(x.quantity)) - x.discount),
+//                            percent: this.stringDecimals(x.tax.rate)
+//                        }
+//                    ],
                     description: x.item.name,
                     code: x.item.internal_id,
                     type_item_identification_id: 4,
@@ -212,10 +210,9 @@ export const operations_api = {
                     brandname: x.item.brand,
                     modelname: x.item.model,
                 }
-
             })
-
         },
+
         getWithHolding() {
             let total_iva = this.form.total_tax
             let total = this.form.sale

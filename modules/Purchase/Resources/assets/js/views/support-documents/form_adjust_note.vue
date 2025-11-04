@@ -7,8 +7,6 @@
                         <div class="row">
                         </div>
                         <div class="row mt-4">
-
-
                             <div class="col-lg-6 pb-2">
                                 <div class="form-group" :class="{'has-danger': errors.note_concept_id}">
                                     <label class="control-label">Concepto</label>
@@ -481,10 +479,11 @@
                     this.form.supplier_id = supplier_id
                 })
             },
+
             changeSupplier() {
             },
-            async submit() {
 
+            async submit() {
                 if(!this.form.type_document_id)
                 {
                     return this.$message.error('Debe seleccionar una Resolución')

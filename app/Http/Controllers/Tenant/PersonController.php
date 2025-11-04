@@ -59,6 +59,35 @@ class PersonController extends Controller
         return new PersonCollection($records->paginate(config('tenant.items_per_page')));
     }
 
+    /**
+     * Search persons for select dropdowns (autocomplete)
+     */
+    public function search(Request $request)
+    {
+        try {
+            $query = $request->get('q', '');
+            $limit = $request->get('limit', 20);
+
+            $results = Person::where(function($q) use ($query) {
+                    $q->where('number', 'like', "%{$query}%")
+                      ->orWhere('name', 'like', "%{$query}%");
+                })
+                ->orderBy('name', 'asc')
+                ->limit($limit)
+                ->get(['number', 'name', 'identity_document_type_id']);
+
+            return response()->json([
+                'data' => $results
+            ]);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'error' => 'Error al buscar terceros',
+                'message' => $e->getMessage()
+            ], 500);
+        }
+    }
+
     public function create()
     {
         return view('tenant.customers.form');

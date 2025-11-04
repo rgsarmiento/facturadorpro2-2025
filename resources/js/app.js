@@ -386,6 +386,11 @@ Vue.component('system-update', require('./views/system/update/index.vue'));
 Vue.component('asiento-form-vue-component', require('@components/asientos-contables/AsientoForm.vue'));
 Vue.component('asientos-contables-index', require('@components/asientos-contables/AsientosContablesIndex.vue'));
 
+// Componentes de Contabilidad - Nuevos Módulos
+Vue.component('periodos-contables-index', require('@components/periodos-contables/PeriodosContablesIndex.vue'));
+Vue.component('saldos-iniciales-index', require('@components/saldos-iniciales/SaldosInicialesIndex.vue'));
+Vue.component('reportes-contables-index', require('@components/reportes-contables/ReportesContablesIndex.vue'));
+
 // Componente de Select searchable
 Vue.component('searchable-select', require('@components/shared/SearchableSelect.vue'));
 

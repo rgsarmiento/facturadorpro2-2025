@@ -568,6 +568,7 @@ if ($hostname) {
                // Cuentas Contables - API endpoints para AJAX/JSON
                Route::get('columns', 'Tenant\CuentaContableController@columns');
                Route::get('cuentas-contables/records', 'Tenant\CuentaContableController@records');
+               Route::get('cuentas-contables/search', 'Tenant\CuentaContableController@search');
                Route::get('cuentas-contables/tree', 'Tenant\CuentaContableController@tree');
                Route::get('cuentas-contables/movimiento', 'Tenant\CuentaContableController@movimiento');
                Route::get('cuentas-contables/padres', 'Tenant\CuentaContableController@padres');
@@ -583,6 +584,9 @@ if ($hostname) {
 
                // Cuentas Contables - Importación y exportación
                Route::post('cuentas-contables/import-puc', 'Tenant\CuentaContableController@importPuc');
+
+               // Terceros - API endpoints para búsqueda
+               Route::get('terceros/search', 'Tenant\PersonController@search');
 
                // Asientos Contables - API endpoints para AJAX/JSON (DEBEN IR ANTES QUE LAS RUTAS CON {id})
                Route::get('asientos-contables/records', 'Tenant\AsientoContableController@records');
@@ -609,6 +613,30 @@ if ($hostname) {
                Route::post('asientos-contables/{id}/anular', 'Tenant\AsientoContableController@anular');
                Route::get('asientos-contables/adjuntos/{id}/descargar', 'Tenant\AsientoContableController@descargarAdjunto')->name('tenant.asientos_contables.adjuntos.descargar');
                Route::delete('asientos-adjuntos/{id}', 'Tenant\AsientoContableController@eliminarAdjunto');
+
+               // Períodos Contables
+               Route::get('periodos-contables', 'Tenant\AccountingPeriodController@index')->name('tenant.periodos_contables.index');
+               Route::get('periodos-contables/records', 'Tenant\AccountingPeriodController@records');
+               Route::get('periodos-contables/current', 'Tenant\AccountingPeriodController@current');
+               Route::post('periodos-contables', 'Tenant\AccountingPeriodController@store');
+               Route::post('periodos-contables/{id}/close', 'Tenant\AccountingPeriodController@close');
+               Route::post('periodos-contables/{id}/reopen', 'Tenant\AccountingPeriodController@reopen');
+               Route::post('periodos-contables/{id}/lock', 'Tenant\AccountingPeriodController@lock');
+
+               // Saldos Iniciales
+               Route::get('saldos-iniciales', 'Tenant\InitialBalanceController@index')->name('tenant.saldos_iniciales.index');
+               Route::get('saldos-iniciales/records', 'Tenant\InitialBalanceController@records');
+               Route::post('saldos-iniciales', 'Tenant\InitialBalanceController@store');
+               Route::post('saldos-iniciales/post', 'Tenant\InitialBalanceController@post');
+               Route::post('saldos-iniciales/validate', 'Tenant\InitialBalanceController@validateBalances');
+               Route::delete('saldos-iniciales/{id}', 'Tenant\InitialBalanceController@destroy');
+
+               // Reportes Contables
+               Route::get('reportes-contables', 'Tenant\AccountingReportController@index')->name('tenant.reportes_contables.index');
+               Route::get('reportes-contables/balance-prueba', 'Tenant\AccountingReportController@trialBalance');
+               Route::get('reportes-contables/balance-general', 'Tenant\AccountingReportController@balanceSheet');
+               Route::get('reportes-contables/mayor-auxiliar', 'Tenant\AccountingReportController@generalLedger');
+               Route::get('reportes-contables/libro-diario', 'Tenant\AccountingReportController@journalBook');
            });
 
         });

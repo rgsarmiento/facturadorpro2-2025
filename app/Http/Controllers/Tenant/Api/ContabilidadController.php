@@ -8,6 +8,9 @@ use App\Models\Tenant\AsientoContable;
 use App\Models\Tenant\DetalleAsientoContable;
 use App\Models\Tenant\TipoComprobanteContable;
 use App\Models\Tenant\Person;
+use App\Models\Tenant\AccountingPeriod;
+use App\Models\Tenant\AccountInitialBalance;
+use App\Services\CuentaContableService;
 use Modules\Factcolombia1\Models\Tenant\{
     TypeIdentityDocument,
     Country,
@@ -1169,6 +1172,513 @@ class ContabilidadController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Error al obtener tipos de régimen: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * ============================================
+     * PERÍODOS CONTABLES - ENDPOINTS
+     * ============================================
+     */
+
+    public function getPeriodos(Request $request)
+    {
+        try {
+            $query = AccountingPeriod::on('tenant')->with('usuarioCierre');
+
+            if ($request->year) {
+                $query->where('year', $request->year);
+            }
+
+            if ($request->status) {
+                $query->where('status', $request->status);
+            }
+
+            $periodos = $query->orderBy('year', 'desc')
+                            ->orderBy('month', 'desc')
+                            ->get();
+
+            return response()->json([
+                'success' => true,
+                'data' => $periodos
+            ], 200);
+
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener períodos: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function getPeriodoActual()
+    {
+        try {
+            $period = AccountingPeriod::findOrCreateCurrent();
+
+            return response()->json([
+                'success' => true,
+                'data' => $period
+            ], 200);
+
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener período actual: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function getPeriodo($id)
+    {
+        try {
+            $period = AccountingPeriod::on('tenant')
+                ->with('usuarioCierre')
+                ->findOrFail($id);
+
+            return response()->json([
+                'success' => true,
+                'data' => $period
+            ], 200);
+
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Período no encontrado'
+            ], 404);
+        }
+    }
+
+    public function storePeriodo(Request $request)
+    {
+        try {
+            $validator = Validator::make($request->all(), [
+                'year' => 'required|integer|min:2000|max:2100',
+                'month' => 'required|integer|min:1|max:12',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Errores de validación',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $exists = AccountingPeriod::on('tenant')
+                ->where('year', $request->year)
+                ->where('month', $request->month)
+                ->exists();
+
+            if ($exists) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'El período ya existe'
+                ], 422);
+            }
+
+            $startDate = \Carbon\Carbon::create($request->year, $request->month, 1)->startOfMonth();
+            $endDate = $startDate->copy()->endOfMonth();
+
+            $period = AccountingPeriod::on('tenant')->create([
+                'year' => $request->year,
+                'month' => $request->month,
+                'start_date' => $startDate->toDateString(),
+                'end_date' => $endDate->toDateString(),
+                'status' => 'open',
+                'allow_modifications' => true,
+            ]);
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Período creado exitosamente',
+                'data' => $period
+            ], 201);
+
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al crear período: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function closePeriodo(Request $request, $id)
+    {
+        try {
+            DB::connection('tenant')->beginTransaction();
+
+            $period = AccountingPeriod::on('tenant')->findOrFail($id);
+
+            if (!$period->isOpen()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'El período ya está cerrado o bloqueado'
+                ], 422);
+            }
+
+            $pendingVouchers = AsientoContable::on('tenant')
+                ->where('period_id', $id)
+                ->where('estado', 'BORRADOR')
+                ->count();
+
+            if ($pendingVouchers > 0) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "Hay {$pendingVouchers} asientos en borrador"
+                ], 422);
+            }
+
+            $period->close(Auth::id(), $request->closing_notes);
+
+            DB::connection('tenant')->commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Período cerrado exitosamente',
+                'data' => $period->fresh()
+            ], 200);
+
+        } catch (Exception $e) {
+            DB::connection('tenant')->rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al cerrar período: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function reopenPeriodo($id)
+    {
+        try {
+            DB::connection('tenant')->beginTransaction();
+
+            $period = AccountingPeriod::on('tenant')->findOrFail($id);
+            $period->reopen();
+
+            DB::connection('tenant')->commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Período reabierto exitosamente',
+                'data' => $period->fresh()
+            ], 200);
+
+        } catch (Exception $e) {
+            DB::connection('tenant')->rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al reabrir período: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function lockPeriodo($id)
+    {
+        try {
+            DB::connection('tenant')->beginTransaction();
+
+            $period = AccountingPeriod::on('tenant')->findOrFail($id);
+            $period->lock();
+
+            DB::connection('tenant')->commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Período bloqueado exitosamente',
+                'data' => $period->fresh()
+            ], 200);
+
+        } catch (Exception $e) {
+            DB::connection('tenant')->rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al bloquear período: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * ============================================
+     * SALDOS INICIALES - ENDPOINTS
+     * ============================================
+     */
+
+    public function getSaldosIniciales(Request $request)
+    {
+        try {
+            $query = AccountInitialBalance::on('tenant')
+                ->with(['cuentaContable', 'tercero', 'period', 'asientoContable']);
+
+            if ($request->period_id) {
+                $query->where('period_id', $request->period_id);
+            }
+
+            if ($request->status) {
+                $query->where('status', $request->status);
+            }
+
+            $balances = $query->orderBy('balance_date', 'desc')->get();
+
+            return response()->json([
+                'success' => true,
+                'data' => $balances
+            ], 200);
+
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al obtener saldos iniciales: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function getSaldoInicial($id)
+    {
+        try {
+            $balance = AccountInitialBalance::on('tenant')
+                ->with(['cuentaContable', 'tercero', 'period'])
+                ->findOrFail($id);
+
+            return response()->json([
+                'success' => true,
+                'data' => $balance
+            ], 200);
+
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Saldo inicial no encontrado'
+            ], 404);
+        }
+    }
+
+    public function storeSaldosIniciales(Request $request)
+    {
+        try {
+            DB::connection('tenant')->beginTransaction();
+
+            $validator = Validator::make($request->all(), [
+                'balances' => 'required|array|min:1',
+                'balances.*.cuenta_contable_codigo' => 'required',
+                'balances.*.person_number' => 'nullable',
+                'balances.*.debito' => 'required|numeric|min:0',
+                'balances.*.credito' => 'required|numeric|min:0',
+                'period_id' => 'nullable|exists:tenant.accounting_periods,id',
+                'balance_date' => 'required|date',
+            ]);
+
+            if ($validator->fails()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Errores de validación',
+                    'errors' => $validator->errors()
+                ], 422);
+            }
+
+            $totalDebito = 0;
+            $totalCredito = 0;
+
+            foreach ($request->balances as $balance) {
+                $totalDebito += $balance['debito'];
+                $totalCredito += $balance['credito'];
+            }
+
+            $diferencia = abs($totalDebito - $totalCredito);
+
+            if ($diferencia > 0.01) {
+                return response()->json([
+                    'success' => false,
+                    'message' => "Los saldos no están balanceados. Diferencia: " . number_format($diferencia, 2)
+                ], 422);
+            }
+
+            $created = [];
+
+            foreach ($request->balances as $balanceData) {
+                $cuenta = CuentaContable::on('tenant')
+                    ->where('codigo', $balanceData['cuenta_contable_codigo'])
+                    ->first();
+
+                if (!$cuenta) {
+                    continue;
+                }
+
+                $personId = null;
+                if (!empty($balanceData['person_number'])) {
+                    $person = Person::on('tenant')
+                        ->where('number', $balanceData['person_number'])
+                        ->first();
+                    $personId = $person ? $person->id : null;
+                }
+
+                $balance = AccountInitialBalance::on('tenant')->create([
+                    'cuenta_contable_id' => $cuenta->id,
+                    'person_id' => $personId,
+                    'period_id' => $request->period_id,
+                    'balance_date' => $request->balance_date,
+                    'debito' => $balanceData['debito'],
+                    'credito' => $balanceData['credito'],
+                    'notes' => $balanceData['notes'] ?? null,
+                    'created_by' => Auth::id(),
+                    'status' => 'draft',
+                ]);
+
+                $created[] = $balance;
+            }
+
+            DB::connection('tenant')->commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => count($created) . ' saldos iniciales creados',
+                'data' => $created
+            ], 201);
+
+        } catch (Exception $e) {
+            DB::connection('tenant')->rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al crear saldos: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function validateSaldosIniciales(Request $request)
+    {
+        try {
+            $totalDebito = 0;
+            $totalCredito = 0;
+
+            foreach ($request->balances as $balance) {
+                $totalDebito += $balance['debito'] ?? 0;
+                $totalCredito += $balance['credito'] ?? 0;
+            }
+
+            $diferencia = abs($totalDebito - $totalCredito);
+
+            return response()->json([
+                'success' => true,
+                'data' => [
+                    'total_debito' => $totalDebito,
+                    'total_credito' => $totalCredito,
+                    'diferencia' => $diferencia,
+                    'is_balanced' => $diferencia < 0.01,
+                ]
+            ], 200);
+
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al validar: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function postSaldosIniciales(Request $request)
+    {
+        try {
+            $controller = new \App\Http\Controllers\Tenant\InitialBalanceController(
+                app(\App\Services\CuentaContableService::class)
+            );
+
+            return $controller->post($request);
+
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al contabilizar: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function deleteSaldoInicial($id)
+    {
+        try {
+            DB::connection('tenant')->beginTransaction();
+
+            $balance = AccountInitialBalance::on('tenant')->findOrFail($id);
+
+            if ($balance->isPosted()) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No se puede eliminar un saldo contabilizado'
+                ], 422);
+            }
+
+            $balance->delete();
+
+            DB::connection('tenant')->commit();
+
+            return response()->json([
+                'success' => true,
+                'message' => 'Saldo eliminado exitosamente'
+            ], 200);
+
+        } catch (Exception $e) {
+            DB::connection('tenant')->rollBack();
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al eliminar: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * ============================================
+     * REPORTES CONTABLES - ENDPOINTS
+     * ============================================
+     */
+
+    public function reporteBalancePrueba(Request $request)
+    {
+        try {
+            $controller = new \App\Http\Controllers\Tenant\AccountingReportController();
+            return $controller->trialBalance($request);
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function reporteBalanceGeneral(Request $request)
+    {
+        try {
+            $controller = new \App\Http\Controllers\Tenant\AccountingReportController();
+            return $controller->balanceSheet($request);
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function reporteMayorAuxiliar(Request $request)
+    {
+        try {
+            $controller = new \App\Http\Controllers\Tenant\AccountingReportController();
+            return $controller->generalLedger($request);
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    public function reporteLibroDiario(Request $request)
+    {
+        try {
+            $controller = new \App\Http\Controllers\Tenant\AccountingReportController();
+            return $controller->journalBook($request);
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error: ' . $e->getMessage()
             ], 500);
         }
     }
