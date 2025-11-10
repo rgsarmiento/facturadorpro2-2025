@@ -9,6 +9,7 @@ use App\Models\Tenant\Catalogs\SystemIscType;
 use App\Models\Tenant\Catalogs\UnitType;
 use App\Models\Tenant\Item;
 use App\Models\Tenant\ItemImage;
+use App\Models\Tenant\ItemWarehouse;
 use Modules\Item\Models\ItemLot;
 use App\Http\Controllers\Controller;
 use Illuminate\Support\Facades\Storage;
@@ -688,6 +689,104 @@ class ItemController extends Controller
                         ->transform(function($row) use($warehouse) {
                             return $row->getRowSearchResource($warehouse);
                         });
+    }
+
+    /**
+     * Obtiene los establecimientos actualmente asignados a un artículo
+     * y retorna todos los establecimientos disponibles
+     *
+     * @param  Item $item
+     * @return array
+     */
+    public function getEstablishments(Item $item)
+    {
+        try {
+            // Obtener todos los establecimientos del tenant
+            $establishments = Establishment::all();
+
+            // Obtener los almacenes asociados a este artículo
+            $itemWarehouses = ItemWarehouse::where('item_id', $item->id)->get();
+
+            // Obtener los IDs de establecimientos asociados
+            $assignedEstablishmentIds = $itemWarehouses->map(function($iw) {
+                return $iw->warehouse->establishment_id;
+            })->unique()->values()->toArray();
+
+            // Preparar los datos de establecimientos con estado
+            $establishmentsData = $establishments->map(function($est) use($assignedEstablishmentIds) {
+                return [
+                    'id' => $est->id,
+                    'name' => $est->name,
+                    'description' => $est->description,
+                    'assigned' => in_array($est->id, $assignedEstablishmentIds),
+                ];
+            });
+
+            return [
+                'success' => true,
+                'item' => [
+                    'id' => $item->id,
+                    'name' => $item->name,
+                    'internal_id' => $item->internal_id,
+                ],
+                'establishments' => $establishmentsData,
+                'assigned_establishment_ids' => $assignedEstablishmentIds,
+            ];
+        } catch (Exception $e) {
+            Log::error('Error in getEstablishments: ' . $e->getMessage());
+            return [
+                'success' => false,
+                'message' => 'Error al obtener los establecimientos: ' . $e->getMessage(),
+            ];
+        }
+    }
+
+    /**
+     * Asigna un artículo a uno o varios establecimientos
+     *
+     * @param  Request $request
+     * @param  Item $item
+     * @return array
+     */
+    public function assignEstablishments(Request $request, Item $item)
+    {
+        try {
+            $establishmentIds = $request->establishment_ids ?? [];
+
+            // Obtener los almacenes de los establecimientos seleccionados
+            $selectedWarehouses = Warehouse::whereIn('establishment_id', $establishmentIds)->get();
+
+            if ($selectedWarehouses->isEmpty()) {
+                return [
+                    'success' => false,
+                    'message' => 'No se encontraron almacenes para los establecimientos seleccionados',
+                ];
+            }
+
+            // Eliminar las asignaciones actuales del artículo
+            ItemWarehouse::where('item_id', $item->id)->delete();
+
+            // Asignar el artículo a los almacenes de los establecimientos seleccionados
+            foreach ($selectedWarehouses as $warehouse) {
+                ItemWarehouse::create([
+                    'item_id' => $item->id,
+                    'warehouse_id' => $warehouse->id,
+                    'stock' => 0, // Stock inicial en 0
+                ]);
+            }
+
+            return [
+                'success' => true,
+                'message' => 'Artículo asignado a ' . count($selectedWarehouses) . ' almacén(ces)',
+                'assigned_count' => count($selectedWarehouses),
+            ];
+        } catch (Exception $e) {
+            Log::error('Error in assignEstablishments: ' . $e->getMessage());
+            return [
+                'success' => false,
+                'message' => 'Error al asignar establecimientos: ' . $e->getMessage(),
+            ];
+        }
     }
 
 }

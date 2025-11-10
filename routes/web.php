@@ -128,6 +128,8 @@ if ($hostname) {
             Route::get('items/tables', 'Tenant\ItemController@tables');
             Route::get('items/record/{item}', 'Tenant\ItemController@record');
             Route::post('items', 'Tenant\ItemController@store');
+            Route::get('items/establishments/{item}', 'Tenant\ItemController@getEstablishments');
+            Route::post('items/establishments/{item}', 'Tenant\ItemController@assignEstablishments');
             Route::delete('items/{item}', 'Tenant\ItemController@destroy');
             Route::delete('items/item-unit-type/{item}', 'Tenant\ItemController@destroyItemUnitType');
             Route::post('items/import', 'Tenant\ItemController@import');

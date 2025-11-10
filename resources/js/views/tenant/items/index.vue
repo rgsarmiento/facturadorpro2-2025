@@ -66,6 +66,7 @@
                                 <button type="button" class="btn waves-effect waves-light btn-xs btn-info" @click.prevent="clickCreate(row.id)">Editar</button>
                                 <button type="button" class="btn waves-effect waves-light btn-xs btn-danger" @click.prevent="clickDelete(row.id)">Eliminar</button>
                                 <button type="button" class="btn waves-effect waves-light btn-xs btn-warning" @click.prevent="duplicate(row.id)">Duplicar</button>
+                                <button type="button" class="btn waves-effect waves-light btn-xs btn-secondary" @click.prevent="clickEditEstablishments(row.id)">Establec.</button>
 
                                 <button type="button" class="btn waves-effect waves-light btn-xs btn-danger" @click.prevent="clickDisable(row.id)" v-if="row.active">Inhabilitar</button>
                                 <button type="button" class="btn waves-effect waves-light btn-xs btn-primary" @click.prevent="clickEnable(row.id)" v-else>Habilitar</button>
@@ -90,6 +91,9 @@
 
             <items-import-list-price :showDialog.sync="showImportListPriceDialog"></items-import-list-price>
 
+            <items-establishments :showDialog.sync="showEstablishmentsDialog"
+                                 :itemId="itemEstablishmentsId"></items-establishments>
+
         </div>
     </div>
 </template>
@@ -99,6 +103,7 @@
     import WarehousesDetail from './partials/warehouses.vue'
     import ItemsImport from './import.vue'
     import ItemsImportListPrice from './partials/import_list_price.vue'
+    import ItemsEstablishments from './partials/establishments.vue'
     import DataTable from '../../../components/DataTable.vue'
     import {deletable} from '../../../mixins/deletable'
     import {functions} from '@mixins/functions'
@@ -106,15 +111,17 @@
     export default {
         props:['typeUser'],
         mixins: [deletable, functions],
-        components: {ItemsForm, ItemsImport, DataTable, WarehousesDetail, ItemsImportListPrice},
+        components: {ItemsForm, ItemsImport, DataTable, WarehousesDetail, ItemsImportListPrice, ItemsEstablishments},
         data() {
             return {
                 showDialog: false,
                 showImportDialog: false,
                 showImportListPriceDialog: false,
                 showWarehousesDetail: false,
+                showEstablishmentsDialog: false,
                 resource: 'items',
                 recordId: null,
+                itemEstablishmentsId: null,
                 warehousesDetail:[],
                 config: {}
             }
@@ -188,6 +195,10 @@
                     this.$eventHub.$emit('reloadData')
                 )
 
+            },
+            clickEditEstablishments(itemId) {
+                this.itemEstablishmentsId = itemId
+                this.showEstablishmentsDialog = true
             },
         }
     }
