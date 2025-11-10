@@ -54,7 +54,7 @@
                             $totalUtility += $row['utility'];
                             $totalTax += $row['total_tax'];
                             $totalDiscount += is_array($row['discount']) ? 0 : $row['discount'];
-                            $grandTotal += $row['total'];
+                            $grandTotal += ($row['total'] * $row['quantity']);
                         @endphp
                         <tr>
                             <td class="celda">{{ $row['type_name'] }}</td>
@@ -68,7 +68,7 @@
                             <td class="celda">
                                 {{ is_array($row['discount']) ? 'N/A' : number_format($row['discount'], 2, ',', '.') }}
                             </td>
-                            <td class="celda">{{ number_format($row['total'], 2, ',', '.') }}</td>
+                            <td class="celda">{{ number_format($row['total'] * $row['quantity'], 2, ',', '.') }}</td>
                         </tr>
                     @endforeach
 

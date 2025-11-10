@@ -3908,6 +3908,9 @@ export default {
             if (!this.form.items[0])
                 return this.$message.error("Seleccione un producto");
 
+            // Asegurar que la fecha de emisión sea la fecha actual
+            this.form.date_of_issue = moment().format("YYYY-MM-DD");
+
             this.form.establishment_id = this.establishment.id;
             this.loading = true;
             await this.sleep(800);

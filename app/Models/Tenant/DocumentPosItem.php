@@ -119,17 +119,19 @@ class DocumentPosItem extends ModelTenant
     public function getDataReportSoldItems()
     {
         $cost = $this->generalApplyNumberFormat($this->relation_item->purchase_unit_price * $this->quantity);
+        $internal_id = $this->relation_item->internal_id ?? ($this->item->internal_id ?? '');
+        $name = $this->relation_item->name ?? ($this->item->name ?? '');
 
         return [
             'type_name' => 'POS',
-            'internal_id' => $this->item->internal_id,
-            'name' => $this->item->name,
+            'internal_id' => $internal_id,
+            'name' => $name,
             'quantity' => (float) $this->quantity,
             'cost' => $cost,
             'net_value' => $this->net_value,
             'utility' => $this->generalApplyNumberFormat($this->net_value - $cost),
             'total_tax' => $this->total_tax,
-            'total' => $this->total,
+            'total' => $this->net_value,
         ];
     }
 
@@ -147,7 +149,16 @@ class DocumentPosItem extends ModelTenant
         $brand_id = $request->brand_id ?? null;
         $item_id = $request->item_id ?? null;
 
-        return $query->with([
+        return $query->select([
+                    'id',
+                    'document_pos_id',
+                    'item_id',
+                    'quantity',
+                    'unit_price',
+                    'total',
+                    'total_tax',
+                ])
+                ->with([
                     'document_pos' => function($query){
                         return $query->select([
                             'id',
@@ -158,9 +169,11 @@ class DocumentPosItem extends ModelTenant
                     'relation_item' => function($query){
                         return $query->select([
                             'id',
-                            'purchase_unit_price'
+                            'purchase_unit_price',
+                            'internal_id',
+                            'name'
                         ]);
-                    },
+                    }
                 ])
                 ->filterSoldItemsDocumentPos($request)
                 ->filterByItem($item_id)
