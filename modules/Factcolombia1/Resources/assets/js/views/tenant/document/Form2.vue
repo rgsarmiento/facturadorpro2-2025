@@ -596,7 +596,16 @@ export default {
                     this.payment_methods = response.data.payment_methods
                     this.payment_forms = response.data.payment_forms
                     this.form.currency_id = (this.currencies.length > 0) ? 170 : null;
-                    this.form.type_invoice_id = (this.type_invoices.length > 0) ? this.type_invoices[0].id : null;
+
+                    // Establecer type_invoice_id según si es contingencia o no
+                    if (this.is_contingency && this.type_invoices.length > 0) {
+                        // Buscar el tipo de factura "Factura de Contingencia"
+                        const contingencyInvoice = this.type_invoices.find(invoice => invoice.name === 'Factura de Contingencia');
+                        this.form.type_invoice_id = contingencyInvoice ? contingencyInvoice.id : this.type_invoices[0].id;
+                    } else {
+                        this.form.type_invoice_id = (this.type_invoices.length > 0) ? this.type_invoices[0].id : null;
+                    }
+
                     //his.form.payment_form_id = (this.payment_forms.length > 0)?this.payment_forms[0].id:null;
                     this.form.payment_method_id = 10;//(this.payment_methods.length > 0)?this.payment_methods[0].id:null;
                     this.resolutions = response.data.resolutions
@@ -649,6 +658,15 @@ export default {
             selectedResolutionDetails() {
                 const selectedDocument = this.typeDocuments.find(doc => doc.id === this.form.resolution_id);
                 if (selectedDocument) {
+                    // Si correlative_api aún no se ha cargado, no calcular remainingInvoices
+                    if (this.correlative_api === null || this.correlative_api === undefined) {
+                        return {
+                            dateEnd: selectedDocument.resolution_date_end,
+                            generatedCount: null,
+                            remainingInvoices: null
+                        };
+                    }
+
                     const remainingInvoices = selectedDocument.to - this.correlative_api;
                     return {
                         dateEnd: selectedDocument.resolution_date_end,
@@ -656,7 +674,7 @@ export default {
                         remainingInvoices: remainingInvoices >= 0 ? remainingInvoices : 0
                     };
                 } else {
-                    return { dateEnd: '', generatedCount: 0, remainingInvoices: 0 };
+                    return { dateEnd: '', generatedCount: null, remainingInvoices: null };
                 }
             }
         },
@@ -675,8 +693,10 @@ export default {
             checkResolutionAlerts(resolutionDetails) {
                 if (!resolutionDetails || !this.form.resolution_id) return;
 
-                // Depuración para verificar los valores
-                //console.log('Detalles de resolución:', resolutionDetails);
+                // No mostrar alertas si correlative_api aún no se ha cargado
+                if (this.correlative_api === null || this.correlative_api === undefined) {
+                    return;
+                }
 
                 // Alertar si faltan menos de 20 días para que la resolución expire
                 const remainingDays = moment(resolutionDetails.dateEnd).diff(moment(), 'days');
@@ -706,7 +726,7 @@ export default {
                         // Si no quedan facturas disponibles
                         this.$message({
                             type: 'error', // Alerta de error
-                            message: `¡Advertencia! No quedan facturas disponibles en esta resolución.`,
+                            message: `¡Advertencia! No quedan facturas disponibles en esta resolución`,
                             duration: 0, // Alerta que se mantiene
                             showClose: true,
                             offset: 150 // Mayor espacio desde la parte superior
