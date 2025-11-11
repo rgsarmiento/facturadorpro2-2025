@@ -405,38 +405,79 @@
                 this.titleAction = (this.recordItem) ? ' Editar' : ' Agregar';
 
                 if (this.recordItem) {
-                    // console.log(this.recordItem)
-                    this.form.item_id = await this.recordItem.item_id
+                    try {
+                        // Obtener el item_id de recordItem
+                        this.form.item_id = this.recordItem.item_id;
 
-                    // Si hay un item_id válido, asegurar que esté en la lista
-                    if (this.form.item_id) {
-                        // Verificar si el item está en la lista actual
-                        const existingItem = this.items.find(item => item.id === this.form.item_id);
-                        if (!existingItem) {
-                            console.log(`Item ID ${this.form.item_id} no encontrado en lista, recargando...`);
-                            // Si no está, intentar recargarlo específicamente
-                            await this.reloadDataItems(this.form.item_id);
+                        // Esperar un tick para que Vue procese el cambio en el v-model del select
+                        await this.$nextTick();
+
+                        // Si hay un item_id válido, asegurar que esté disponible
+                        if (this.form.item_id) {
+                            // Verificar si el item está en la lista actual
+                            let existingItem = this.items.find(item => item.id === this.form.item_id);
+                            if (!existingItem) {
+                                console.log(`Item ID ${this.form.item_id} no encontrado en lista, recargando...`);
+                                // Si no está, intentar recargarlo específicamente
+                                await this.reloadDataItems(this.form.item_id);
+                                // Esperar un tick para asegurar que la lista se actualice
+                                await this.$nextTick();
+                                // Verificar de nuevo después de recargar
+                                existingItem = this.items.find(item => item.id === this.form.item_id);
+                            }
+
+                            // Si después de recargar aún no existe, usar los datos directamente del recordItem
+                            if (!existingItem && this.recordItem.item) {
+                                console.log('Item no encontrado después de recargar, usando datos del recordItem');
+                                this.form.item = this.recordItem.item;
+                            }
                         }
-                    }
 
-                    await this.changeItem()
-                    this.form.quantity = this.recordItem.quantity
-                    this.form.unit_price = this.recordItem.unit_price
-                    this.form.discount_type = this.recordItem.discount_type
+                        // Llamar changeItem para procesar el item seleccionado
+                        this.changeItem();
 
-                    if(this.form.discount_type == 'percentage') {
-                        this.form.discount = this.recordItem.discount_percentage
-                    } else {
-                        this.form.discount = this.recordItem.discount
-                    }
+                        // Esperar a que Vue procese los cambios en changeItem
+                        await this.$nextTick();
 
-                    // Asignar tax_id desde el recordItem XML (si existe tax_id_mapped)
-                    if (this.recordItem.tax_id_mapped) {
-                        this.form.tax_id = this.recordItem.tax_id_mapped;
-                        console.log('Tax ID assigned from recordItem:', this.recordItem.tax_id_mapped);
-                    } else if (this.recordItem.tax_id) {
-                        this.form.tax_id = this.recordItem.tax_id;
-                        console.log('Tax ID assigned from recordItem (direct):', this.recordItem.tax_id);
+                        // Ahora cargar los datos del recordItem
+                        this.form.quantity = this.recordItem.quantity || 0;
+                        this.form.unit_price = this.recordItem.unit_price || 0;
+                        this.form.discount_type = this.recordItem.discount_type || 'percentage';
+                        this.form.warehouse_id = this.recordItem.warehouse_id || null;
+
+                        if(this.form.discount_type == 'percentage') {
+                            this.form.discount = this.recordItem.discount_percentage || 0;
+                        } else {
+                            this.form.discount = this.recordItem.discount || 0;
+                        }
+
+                        // Asignar tax_id desde el recordItem
+                        if (this.recordItem.tax_id_mapped) {
+                            this.form.tax_id = this.recordItem.tax_id_mapped;
+                            console.log('Tax ID assigned from recordItem:', this.recordItem.tax_id_mapped);
+                        } else if (this.recordItem.tax_id) {
+                            this.form.tax_id = this.recordItem.tax_id;
+                            console.log('Tax ID assigned from recordItem (direct):', this.recordItem.tax_id);
+                        }
+
+                        // Si recordItem tiene lotes, cargarlos
+                        if (this.recordItem.lots) {
+                            this.lots = this.recordItem.lots;
+                        }
+
+                        // Si recordItem tiene lot_code, cargarlo
+                        if (this.recordItem.lot_code) {
+                            this.lot_code = this.recordItem.lot_code;
+                        }
+
+                        // Si recordItem tiene date_of_due, cargarlo
+                        if (this.recordItem.date_of_due) {
+                            this.form.date_of_due = this.recordItem.date_of_due;
+                        }
+
+                    } catch (error) {
+                        console.error('Error al cargar datos del item para edición:', error);
+                        this.$message.error('Error al cargar los datos del item');
                     }
                 }
             },
@@ -557,6 +598,8 @@
                 // this.initializeFields()
                 this.$emit('add', this.form)
                 this.initForm()
+                // Cerrar el diálogo después de agregar/editar el item
+                this.$emit('update:showDialog', false)
             },
             changeWarehouse(form){
                 let warehouse = _.find(this.warehouses,{'id':this.form.warehouse_id})
