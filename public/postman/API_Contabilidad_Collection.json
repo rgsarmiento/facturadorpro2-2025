@@ -890,181 +890,10 @@
 			"description": "Gestión de períodos contables mensuales.\n\n**Funcionalidades**:\n- Crear y gestionar períodos por mes/año\n- Cerrar períodos (impide modificaciones)\n- Reabrir períodos cerrados\n- Bloquear períodos permanentemente\n\n**Estados del período**:\n1. **open**: Permite crear/modificar asientos\n2. **closed**: Período cerrado, puede reabrirse\n3. **locked**: Bloqueado permanentemente (no se puede reabrir)"
 		},
 		{
-			"name": "5. Saldos Iniciales",
+			"name": "5. Reportes Contables",
 			"item": [
 				{
-					"name": "5.1 Listar Saldos Iniciales",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer FRhP2rsd318LzTvLtqfGMAW6E6QvtnA0Bks2sGK58nyL2TtNew",
-								"type": "text"
-							}
-						],
-						"url": {
-							"raw": "http://torres.facturadorpro2.oo/api/contabilidad/saldos-iniciales?period_id=1&status=draft",
-							"protocol": "http",
-							"host": ["torres", "facturadorpro2", "oo"],
-							"path": ["api", "contabilidad", "saldos-iniciales"],
-							"query": [
-								{
-									"key": "period_id",
-									"value": "1",
-									"description": "Filtrar por período (opcional)"
-								},
-								{
-									"key": "status",
-									"value": "draft",
-									"description": "Filtrar por estado: draft, posted, voided (opcional)"
-								}
-							]
-						},
-						"description": "Obtiene el listado de saldos iniciales.\n\n**Filtros disponibles**:\n- `period_id`: ID del período contable\n- `status`: Estado (draft, posted, voided)\n\n**Estados**:\n- `draft`: Borrador (puede editarse/eliminarse)\n- `posted`: Contabilizado (genera asiento)\n- `voided`: Anulado"
-					},
-					"response": []
-				},
-				{
-					"name": "5.2 Obtener Saldo Inicial",
-					"request": {
-						"method": "GET",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer FRhP2rsd318LzTvLtqfGMAW6E6QvtnA0Bks2sGK58nyL2TtNew",
-								"type": "text"
-							}
-						],
-						"url": {
-							"raw": "http://torres.facturadorpro2.oo/api/contabilidad/saldos-iniciales/1",
-							"protocol": "http",
-							"host": ["torres", "facturadorpro2", "oo"],
-							"path": ["api", "contabilidad", "saldos-iniciales", "1"]
-						},
-						"description": "Obtiene los detalles de un saldo inicial específico.\n\n**Incluye**:\n- Información del saldo\n- Cuenta contable relacionada\n- Tercero (si aplica)\n- Período contable\n- Asiento generado (si está contabilizado)"
-					},
-					"response": []
-				},
-				{
-					"name": "5.3 Crear Saldos en Lote",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer FRhP2rsd318LzTvLtqfGMAW6E6QvtnA0Bks2sGK58nyL2TtNew",
-								"type": "text"
-							},
-							{
-								"key": "Content-Type",
-								"value": "application/json",
-								"type": "text"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"balance_date\": \"2025-01-01\",\n    \"period_id\": 1,\n    \"balances\": [\n        {\n            \"cuenta_contable_codigo\": \"110505\",\n            \"person_number\": null,\n            \"debito\": 5000000,\n            \"credito\": 0,\n            \"notes\": \"Saldo inicial caja\"\n        },\n        {\n            \"cuenta_contable_codigo\": \"130505\",\n            \"person_number\": \"123456789\",\n            \"debito\": 3000000,\n            \"credito\": 0,\n            \"notes\": \"Saldo cliente Juan Pérez\"\n        },\n        {\n            \"cuenta_contable_codigo\": \"220505\",\n            \"person_number\": \"987654321\",\n            \"debito\": 0,\n            \"credito\": 2000000,\n            \"notes\": \"Saldo proveedor ABC Ltda\"\n        },\n        {\n            \"cuenta_contable_codigo\": \"310505\",\n            \"person_number\": null,\n            \"debito\": 0,\n            \"credito\": 6000000,\n            \"notes\": \"Capital inicial\"\n        }\n    ]\n}"
-						},
-						"url": {
-							"raw": "http://torres.facturadorpro2.oo/api/contabilidad/saldos-iniciales",
-							"protocol": "http",
-							"host": ["torres", "facturadorpro2", "oo"],
-							"path": ["api", "contabilidad", "saldos-iniciales"]
-						},
-						"description": "Crea saldos iniciales en lote (carga masiva).\n\n**Campos requeridos**:\n- `balance_date`: Fecha de los saldos\n- `balances[]`: Array de saldos\n  - `cuenta_contable_codigo`: Código de cuenta\n  - `debito`: Valor débito\n  - `credito`: Valor crédito\n  - `person_number`: Número de tercero (opcional)\n  - `notes`: Notas (opcional)\n\n**⚠️ VALIDACIÓN CRÍTICA**:\n- La suma de débitos DEBE ser igual a la suma de créditos\n- Tolerancia: < 0.01\n- Si no balancea, retorna error 422\n\n**Notas**:\n- Los saldos se crean en estado 'draft'\n- Use el endpoint 'Contabilizar Saldos' para generar el asiento"
-					},
-					"response": []
-				},
-				{
-					"name": "5.4 Validar Balanceo (Tiempo Real)",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer FRhP2rsd318LzTvLtqfGMAW6E6QvtnA0Bks2sGK58nyL2TtNew",
-								"type": "text"
-							},
-							{
-								"key": "Content-Type",
-								"value": "application/json",
-								"type": "text"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"balances\": [\n        {\n            \"cuenta_contable_codigo\": \"110505\",\n            \"debito\": 5000000,\n            \"credito\": 0\n        },\n        {\n            \"cuenta_contable_codigo\": \"310505\",\n            \"debito\": 0,\n            \"credito\": 5000000\n        }\n    ]\n}"
-						},
-						"url": {
-							"raw": "http://torres.facturadorpro2.oo/api/contabilidad/saldos-iniciales/validate",
-							"protocol": "http",
-							"host": ["torres", "facturadorpro2", "oo"],
-							"path": ["api", "contabilidad", "saldos-iniciales", "validate"]
-						},
-						"description": "Valida si los saldos iniciales están balanceados (débito = crédito).\n\n**Uso**: Para validación en tiempo real desde el frontend sin guardar datos.\n\n**Respuesta**:\n```json\n{\n  \"success\": true,\n  \"data\": {\n    \"total_debito\": 5000000,\n    \"total_credito\": 5000000,\n    \"diferencia\": 0,\n    \"is_balanced\": true\n  }\n}\n```\n\n**Útil para**:\n- Mostrar totales en tiempo real\n- Validar antes de guardar\n- Indicar diferencia al usuario"
-					},
-					"response": []
-				},
-				{
-					"name": "5.5 Contabilizar Saldos",
-					"request": {
-						"method": "POST",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer FRhP2rsd318LzTvLtqfGMAW6E6QvtnA0Bks2sGK58nyL2TtNew",
-								"type": "text"
-							},
-							{
-								"key": "Content-Type",
-								"value": "application/json",
-								"type": "text"
-							}
-						],
-						"body": {
-							"mode": "raw",
-							"raw": "{\n    \"period_id\": 1,\n    \"fecha_asiento\": \"2025-01-01\",\n    \"concepto\": \"Asiento de apertura - Saldos iniciales 2025\"\n}"
-						},
-						"url": {
-							"raw": "http://torres.facturadorpro2.oo/api/contabilidad/saldos-iniciales/post",
-							"protocol": "http",
-							"host": ["torres", "facturadorpro2", "oo"],
-							"path": ["api", "contabilidad", "saldos-iniciales", "post"]
-						},
-						"description": "Contabiliza los saldos iniciales en estado DRAFT de un período.\n\n**Proceso automático**:\n1. Valida que débitos = créditos\n2. Busca tipo de comprobante 'Saldos Iniciales' (código 24)\n3. Crea AsientoContable en estado CONFIRMADO\n4. Crea DetalleAsientoContable por cada saldo\n5. Actualiza saldos de todas las cuentas afectadas\n6. Marca todos los saldos como 'posted'\n7. Vincula asiento generado\n\n**Campos requeridos**:\n- `period_id`: ID del período\n- `fecha_asiento`: Fecha del asiento de apertura\n- `concepto`: Descripción del asiento\n\n**Importante**:\n- Solo contabiliza saldos en estado 'draft'\n- El asiento se crea en estado CONFIRMADO\n- Los saldos no pueden eliminarse después de contabilizar"
-					},
-					"response": []
-				},
-				{
-					"name": "5.6 Eliminar Saldo",
-					"request": {
-						"method": "DELETE",
-						"header": [
-							{
-								"key": "Authorization",
-								"value": "Bearer FRhP2rsd318LzTvLtqfGMAW6E6QvtnA0Bks2sGK58nyL2TtNew",
-								"type": "text"
-							}
-						],
-						"url": {
-							"raw": "http://torres.facturadorpro2.oo/api/contabilidad/saldos-iniciales/1",
-							"protocol": "http",
-							"host": ["torres", "facturadorpro2", "oo"],
-							"path": ["api", "contabilidad", "saldos-iniciales", "1"]
-						},
-						"description": "Elimina un saldo inicial.\n\n**⚠️ RESTRICCIÓN**:\n- Solo se pueden eliminar saldos en estado 'draft'\n- Saldos contabilizados (posted) NO pueden eliminarse\n\n**Uso**:\n- Corregir errores en carga de saldos\n- Eliminar saldos antes de contabilizar"
-					},
-					"response": []
-				}
-			],
-			"description": "Gestión de saldos iniciales para apertura de períodos contables.\n\n**Funcionalidades**:\n- Carga masiva de saldos iniciales\n- Validación débito = crédito\n- Generación automática de asiento de apertura\n- Soporte para terceros (clientes/proveedores)\n\n**Flujo de trabajo**:\n1. Crear saldos en estado 'draft'\n2. Validar balanceo en tiempo real\n3. Contabilizar (genera asiento automático)\n4. Los saldos pasan a 'posted' y no pueden eliminarse\n\n**Notas**:\n- El asiento se genera con tipo de comprobante 'Saldos Iniciales'\n- Se actualiza automáticamente el saldo de todas las cuentas"
-		},
-		{
-			"name": "6. Reportes Contables",
-			"item": [
-				{
-					"name": "6.1 Balance de Prueba",
+					"name": "5.1 Balance de Prueba",
 					"request": {
 						"method": "GET",
 						"header": [
@@ -1102,7 +931,7 @@
 					"response": []
 				},
 				{
-					"name": "6.2 Balance General",
+					"name": "5.2 Balance General",
 					"request": {
 						"method": "GET",
 						"header": [
@@ -1130,7 +959,7 @@
 					"response": []
 				},
 				{
-					"name": "6.3 Mayor Auxiliar",
+					"name": "5.3 Mayor Auxiliar",
 					"request": {
 						"method": "GET",
 						"header": [
@@ -1173,7 +1002,7 @@
 					"response": []
 				},
 				{
-					"name": "6.4 Libro Diario",
+					"name": "5.4 Libro Diario",
 					"request": {
 						"method": "GET",
 						"header": [

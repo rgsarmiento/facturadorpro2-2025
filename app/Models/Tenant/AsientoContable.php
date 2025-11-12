@@ -152,6 +152,29 @@ class AsientoContable extends ModelTenant
         $this->fecha_confirmacion = now();
         $this->save();
 
+        // Si es comprobante de Saldos Iniciales (código 24), actualizar saldo_inicial en cuentas_contables
+        $tipoComprobante = $this->tipoComprobante;
+        if ($tipoComprobante && $tipoComprobante->codigo === '24') {
+            // Actualizar el saldo inicial de cada cuenta según los detalles del asiento
+            foreach ($this->detalles as $detalle) {
+                $cuenta = $detalle->cuentaContable;
+                if ($cuenta) {
+                    // Calcular el saldo inicial según la naturaleza
+                    $nuevoSaldoInicial = 0;
+                    if ($cuenta->naturaleza === 'debito') {
+                        $nuevoSaldoInicial = floatval($detalle->debito) - floatval($detalle->credito);
+                    } else {
+                        $nuevoSaldoInicial = floatval($detalle->credito) - floatval($detalle->debito);
+                    }
+
+                    // Actualizar el saldo inicial de la cuenta
+                    $cuenta->update([
+                        'saldo_inicial' => $nuevoSaldoInicial
+                    ]);
+                }
+            }
+        }
+
         // Actualizar saldos de cuentas
         $this->actualizarSaldosCuentas();
     }

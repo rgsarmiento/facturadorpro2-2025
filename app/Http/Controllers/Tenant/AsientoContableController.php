@@ -134,8 +134,44 @@ class AsientoContableController extends Controller
 
             DB::beginTransaction();
 
+            // Validar el tipo de comprobante y bloquear la fila para manejo seguro del consecutivo
+            $tipoComprobante = TipoComprobanteContable::on('tenant')
+                ->lockForUpdate()
+                ->findOrFail($request->tipo_comprobante_id);
+
+            // Validar si es comprobante de "Saldos Iniciales" (código 24)
+            if ($tipoComprobante->codigo === '24') {
+                // Verificar si ya existe un comprobante de saldos iniciales (en cualquier estado)
+                $existeSaldosIniciales = AsientoContable::on('tenant')
+                    ->where('tipo_comprobante_id', $tipoComprobante->id)
+                    ->whereIn('estado', ['BORRADOR', 'CONFIRMADO'])
+                    ->exists();
+
+                if ($existeSaldosIniciales) {
+                    DB::rollBack();
+                    return [
+                        'success' => false,
+                        'message' => 'Ya existe un comprobante de Saldos Iniciales. Solo puede haber uno por empresa.'
+                    ];
+                }
+            }
+
             // Validar partida doble
             if ($request->has('detalles')) {
+                // Si es comprobante de Saldos Iniciales (código 24), validar que no haya cuentas que requieren tercero
+                if ($tipoComprobante->codigo === '24') {
+                    foreach ($request->detalles as $detalle) {
+                        $cuenta = CuentaContable::on('tenant')->find($detalle['cuenta_contable_id']);
+                        if ($cuenta && $cuenta->requiere_tercero) {
+                            DB::rollBack();
+                            return [
+                                'success' => false,
+                                'message' => "La cuenta {$cuenta->codigo} requiere tercero y no puede ser usada en comprobantes de Saldos Iniciales."
+                            ];
+                        }
+                    }
+                }
+
                 $validacionPartidaDoble = $this->cuentaService->validarPartidaDoble($request->detalles);
                 if (!$validacionPartidaDoble['valido']) {
                     return [
@@ -153,11 +189,6 @@ class AsientoContableController extends Controller
                     ];
                 }
             }
-
-            // Validar el tipo de comprobante y bloquear la fila para manejo seguro del consecutivo
-            $tipoComprobante = TipoComprobanteContable::on('tenant')
-                ->lockForUpdate()
-                ->findOrFail($request->tipo_comprobante_id);
 
             // Calcular el próximo consecutivo basado en el consecutivo_actual del tipo
             $consecutivo = (int)($tipoComprobante->consecutivo_actual ?? 0) + 1;
@@ -491,6 +522,29 @@ class AsientoContableController extends Controller
             // Actualizar saldos de cuentas contables
             $this->cuentaService->actualizarSaldosPorAsiento($asiento->id, 'crear');
 
+            // Si es comprobante de Saldos Iniciales (código 24), actualizar saldo_inicial en cuentas_contables
+            $tipoComprobante = TipoComprobanteContable::on('tenant')->find($asiento->tipo_comprobante_id);
+            if ($tipoComprobante && $tipoComprobante->codigo === '24') {
+                // Actualizar el saldo inicial de cada cuenta según los detalles del asiento
+                foreach ($asiento->detalles as $detalle) {
+                    $cuenta = CuentaContable::on('tenant')->find($detalle->cuenta_contable_id);
+                    if ($cuenta) {
+                        // Calcular el saldo inicial según la naturaleza
+                        $nuevoSaldoInicial = 0;
+                        if ($cuenta->naturaleza === 'debito') {
+                            $nuevoSaldoInicial = floatval($detalle->debito) - floatval($detalle->credito);
+                        } else {
+                            $nuevoSaldoInicial = floatval($detalle->credito) - floatval($detalle->debito);
+                        }
+
+                        // Actualizar el saldo inicial de la cuenta
+                        $cuenta->update([
+                            'saldo_inicial' => $nuevoSaldoInicial
+                        ]);
+                    }
+                }
+            }
+
             // Confirmar usando la lógica del modelo
             $asiento->confirmar(Auth::id());
 
@@ -570,6 +624,41 @@ class AsientoContableController extends Controller
             return [
                 'success' => false,
                 'message' => 'Error al cargar tipos de comprobantes: ' . $e->getMessage()
+            ];
+        }
+    }
+
+    public function verificarSaldosIniciales()
+    {
+        try {
+            $this->ensureTenantConnection();
+
+            // Buscar el tipo de comprobante de Saldos Iniciales (código 24)
+            $tipoSaldosIniciales = TipoComprobanteContable::on('tenant')
+                ->where('codigo', '24')
+                ->first();
+
+            if (!$tipoSaldosIniciales) {
+                return [
+                    'success' => true,
+                    'data' => ['existe' => false]
+                ];
+            }
+
+            // Verificar si existe un asiento de Saldos Iniciales (en cualquier estado)
+            $existeSaldosIniciales = AsientoContable::on('tenant')
+                ->where('tipo_comprobante_id', $tipoSaldosIniciales->id)
+                ->whereIn('estado', ['BORRADOR', 'CONFIRMADO'])
+                ->exists();
+
+            return [
+                'success' => true,
+                'data' => ['existe' => $existeSaldosIniciales]
+            ];
+        } catch (\Exception $e) {
+            return [
+                'success' => false,
+                'message' => 'Error al verificar saldos iniciales: ' . $e->getMessage()
             ];
         }
     }

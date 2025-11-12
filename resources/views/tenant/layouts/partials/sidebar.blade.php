@@ -989,12 +989,12 @@ html.horizontal-menu.sidebar-left-collapsed .content {
                                     Períodos Contables
                                 </a>
                             </li>
-                            <li class="{{(($path[0] === 'contabilidad') && ($path[1] === 'saldos-iniciales')) ? 'nav-active' : ''}}">
+<!--                            <li class="{{(($path[0] === 'contabilidad') && ($path[1] === 'saldos-iniciales')) ? 'nav-active' : ''}}">
                                 <a href="{{ route('tenant.saldos_iniciales.index') }}">
                                     <i class="fas fa-balance-scale" aria-hidden="true"></i>
                                     Saldos Iniciales
                                 </a>
-                            </li>
+                            </li>   -->
                             <li class="{{(($path[0] === 'contabilidad') && ($path[1] === 'asientos-contables')) ? 'nav-active' : ''}}">
                                 <a href="{{ route('tenant.asientos_contables.index') }}">
                                     <i class="fas fa-clipboard-list" aria-hidden="true"></i>

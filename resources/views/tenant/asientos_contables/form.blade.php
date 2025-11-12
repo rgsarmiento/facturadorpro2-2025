@@ -129,18 +129,27 @@
 
                                 <div class="form-group">
                                     <label>Tipo de Comprobante *</label>
-                                    <select v-model="form.tipo_comprobante_id"
+                                    <el-select v-model="form.tipo_comprobante_id"
                                             @change="onTipoComprobanteChanged"
-                                            class="form-control"
+                                            @focus="onTipoComprobanteFocus"
+                                            filterable
+                                            remote
+                                            reserve-keyword
+                                            placeholder="Buscar tipo de comprobante..."
+                                            :remote-method="searchTiposComprobantes"
+                                            :loading="loadingTiposComprobantesList"
                                             required
-                                            :disabled="isEditing">
-                                        <option value="">Seleccionar tipo de comprobante</option>
-                                        <option v-for="tipo in tiposComprobantes"
-                                                :key="tipo.id"
-                                                :value="tipo.id"
-                                                v-text="tipo.codigo + ' - ' + tipo.nombre">
-                                        </option>
-                                    </select>
+                                            :disabled="isEditing"
+                                            class="w-100">
+                                        <el-option
+                                            v-for="tipo in tiposComprobantesOptions"
+                                            :key="tipo.id"
+                                            :label="`${tipo.codigo} - ${tipo.nombre}`"
+                                            :value="tipo.id">
+                                            <span style="float: left"><strong>{{ tipo.codigo }}</strong></span>
+                                            <span style="float: right; color: #8492a6; font-size: 13px">{{ tipo.nombre }}</span>
+                                        </el-option>
+                                    </el-select>
                                     <small v-if="proximoConsecutivo" class="form-text text-muted">
                                         Próximo consecutivo: <strong>#<span v-text="proximoConsecutivo"></span></strong>
                                     </small>
@@ -398,6 +407,8 @@
                     ]
                 },
                 tiposComprobantes: [],
+                tiposComprobantesOptions: [],
+                loadingTiposComprobantesList: false,
                 cuentasContables: [],
                 terceros: [],
                 proximoConsecutivo: null,
@@ -489,9 +500,36 @@
                         try {
                             const response = await axios.get('/contabilidad/asientos-contables/tipos-comprobantes');
                             this.tiposComprobantes = response.data.data;
+                            this.tiposComprobantesOptions = response.data.data;
                         } catch (error) {
                             console.error('Error loading tipos comprobantes:', error);
                         }
+                    },
+                    searchTiposComprobantes(query) {
+                        this.loadingTiposComprobantesList = true;
+
+                        // Si no hay query, mostrar todos
+                        if (!query) {
+                            this.tiposComprobantesOptions = this.tiposComprobantes;
+                            this.loadingTiposComprobantesList = false;
+                            return;
+                        }
+
+                        // Buscar por código o nombre
+                        const queryLower = query.toLowerCase();
+                        this.tiposComprobantesOptions = this.tiposComprobantes.filter(tipo =>
+                            tipo.codigo.toLowerCase().includes(queryLower) ||
+                            tipo.nombre.toLowerCase().includes(queryLower)
+                        );
+
+                        this.loadingTiposComprobantesList = false;
+                    },
+                    onTipoComprobanteFocus() {
+                        // Cargar todas las opciones al hacer foco si no hay opciones cargadas
+                        if (this.tiposComprobantesOptions.length === 0) {
+                            this.searchTiposComprobantes('');
+                        }
+                    },
                     },
                     async loadProximoConsecutivo() {
                         if (!this.form.tipo_comprobante_id) {

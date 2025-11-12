@@ -7,18 +7,27 @@
 
                 <div class="form-group">
                     <label>Tipo de Comprobante *</label>
-                    <select ref="tipoComprobanteSelect"
+                    <el-select ref="tipoComprobanteSelect"
                             v-model="form.tipo_comprobante_id"
                             @change="onTipoComprobanteChanged"
-                            class="form-control"
-                            required>
-                        <option value="">Seleccionar tipo de comprobante</option>
-                        <option v-for="tipo in tiposComprobantes"
-                                :key="tipo.id"
-                                :value="tipo.id">
-                            {{ tipo.codigo }} - {{ tipo.nombre }}
-                        </option>
-                    </select>
+                            @focus="onTipoComprobanteFocus"
+                            filterable
+                            remote
+                            reserve-keyword
+                            placeholder="Buscar tipo de comprobante..."
+                            :remote-method="searchTiposComprobantes"
+                            :loading="loadingTiposComprobantesList"
+                            required
+                            class="w-100">
+                        <el-option
+                            v-for="tipo in tiposComprobantesOptions"
+                            :key="tipo.id"
+                            :label="`${tipo.codigo} - ${tipo.nombre}`"
+                            :value="tipo.id">
+                            <span style="float: left"><strong>{{ tipo.codigo }}</strong></span>
+                            <span style="float: right; color: #8492a6; font-size: 13px">{{ tipo.nombre }}</span>
+                        </el-option>
+                    </el-select>
                     <small v-if="proximoConsecutivo" class="form-text text-muted">
                         Próximo comprobante: <strong><span v-text="proximoNumeroFormateado"></span></strong>
                     </small>
@@ -104,7 +113,7 @@
                                 <td>
                                     <searchable-select
                                         :value="detalle.cuenta_contable_id"
-                                        :items="cuentasContables"
+                                        :items="cuentasContablesDisponibles"
                                         :display-template="getCuentaDisplayText"
                                         :search-fields="['codigo', 'nombre', 'descripcion', 'tipo_cuenta', 'naturaleza']"
                                         placeholder="Buscar cuenta..."
@@ -323,6 +332,8 @@ export default {
                 ]
             },
             tiposComprobantes: [],
+            tiposComprobantesOptions: [],
+            loadingTiposComprobantesList: false,
             cuentasContables: [],
             terceros: [],
             proximoConsecutivo: null,
@@ -350,6 +361,17 @@ export default {
         },
         proximoNumeroFormateado() {
             return this.proximoNumeroPreview || (this.proximoConsecutivo ? `#${this.proximoConsecutivo}` : '');
+        },
+        cuentasContablesDisponibles() {
+            // Filtrar cuentas según el tipo de comprobante
+            const tipoSeleccionado = this.tiposComprobantes.find(t => t.id == this.form.tipo_comprobante_id);
+
+            // Si es comprobante de Saldos Iniciales (código 24), no permitir cuentas que requieren tercero
+            if (tipoSeleccionado && tipoSeleccionado.codigo === '24') {
+                return this.cuentasContables.filter(c => !c.requiere_tercero);
+            }
+
+            return this.cuentasContables;
         },
         totalDebitos() {
             return this.form.detalles.reduce((sum, detalle) => {
@@ -671,11 +693,35 @@ export default {
                 const response = await axios.get('/contabilidad/asientos-contables/tipos-comprobantes');
                 if (response.data.success) {
                     this.tiposComprobantes = response.data.data;
-
-                    // Como ahora usamos v-model en el template, Vue automáticamente populará las opciones
+                    this.tiposComprobantesOptions = response.data.data;
                 }
             } catch (error) {
                 // Error loading tipos comprobantes (log removido)
+            }
+        },
+        searchTiposComprobantes(query) {
+            this.loadingTiposComprobantesList = true;
+
+            // Si no hay query, mostrar todos
+            if (!query) {
+                this.tiposComprobantesOptions = this.tiposComprobantes;
+                this.loadingTiposComprobantesList = false;
+                return;
+            }
+
+            // Buscar por código o nombre
+            const queryLower = query.toLowerCase();
+            this.tiposComprobantesOptions = this.tiposComprobantes.filter(tipo =>
+                tipo.codigo.toLowerCase().includes(queryLower) ||
+                tipo.nombre.toLowerCase().includes(queryLower)
+            );
+
+            this.loadingTiposComprobantesList = false;
+        },
+        onTipoComprobanteFocus() {
+            // Cargar todas las opciones al hacer foco si no hay opciones cargadas
+            if (this.tiposComprobantesOptions.length === 0) {
+                this.searchTiposComprobantes('');
             }
         },
         async loadCuentasContables() {
@@ -961,7 +1007,26 @@ export default {
         },
         onTipoComprobanteChanged() {
             if (this.form.tipo_comprobante_id) {
-                this.loadProximoConsecutivo();
+                // Validar si es comprobante de Saldos Iniciales (código 24)
+                const tipoSeleccionado = this.tiposComprobantes.find(t => t.id == this.form.tipo_comprobante_id);
+                if (tipoSeleccionado && tipoSeleccionado.codigo === '24') {
+                    this.verificarSaldosInicialesExistentes();
+                } else {
+                    this.loadProximoConsecutivo();
+                }
+            }
+        },
+        async verificarSaldosInicialesExistentes() {
+            try {
+                const response = await axios.get('/contabilidad/asientos-contables/verificar-saldos-iniciales');
+                if (response.data.data.existe) {
+                    this.$message.error('Ya existe un comprobante de Saldos Iniciales. Solo puede haber uno por empresa.');
+                    this.form.tipo_comprobante_id = '';
+                } else {
+                    this.loadProximoConsecutivo();
+                }
+            } catch (error) {
+                console.error('Error verificando saldos iniciales:', error);
             }
         },
         async loadProximoConsecutivo() {

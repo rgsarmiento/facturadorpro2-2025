@@ -116,6 +116,17 @@ http://torres.facturadorpro2.oo/api/contabilidad/cuentas       ✅
 | `PUT` | `/asientos-contables/{numero_comprobante}` | Actualizar asiento (solo BORRADOR) |
 | `DELETE` | `/asientos-contables/{numero_comprobante}` | Eliminar asiento (solo BORRADOR) |
 | `POST` | `/asientos-contables/{numero_comprobante}/confirmar` | Aprobar/Confirmar asiento |
+| `GET` | `/asientos-contables/verificar/saldos-iniciales` | Verificar existencia de comprobante tipo "Saldos Iniciales" (código 24) |
+
+**Nota especial - Comprobante "Saldos Iniciales" (Tipo Código 24)**:
+
+Dentro de la sección de Asientos Contables, existe un tipo especial para registrar saldos iniciales:
+- **Código único**: Solo puede existir UN comprobante de tipo 24 por empresa
+- **Restricción de cuentas**: No permite cuentas que requieran tercero
+- **Actualización automática**: Al confirmar tipo 24, actualiza `saldo_inicial` de cada cuenta
+- **Validación**: El endpoint `/asientos-contables/verificar/saldos-iniciales` permite verificar si ya existe
+
+Para detalles completos, ver: [API_SALDOS_INICIALES.md](API_SALDOS_INICIALES.md)
 
 ### 3️⃣ Períodos Contables
 
@@ -129,18 +140,7 @@ http://torres.facturadorpro2.oo/api/contabilidad/cuentas       ✅
 | `POST` | `/periodos-contables/{id}/reopen` | Reabrir período cerrado |
 | `POST` | `/periodos-contables/{id}/lock` | Bloquear período (irreversible) |
 
-### 4️⃣ Saldos Iniciales
-
-| Método | Endpoint | Descripción |
-|--------|----------|-------------|
-| `GET` | `/saldos-iniciales` | Listar saldos iniciales |
-| `GET` | `/saldos-iniciales/{id}` | Obtener saldo inicial específico |
-| `POST` | `/saldos-iniciales` | Crear saldos iniciales en lote |
-| `POST` | `/saldos-iniciales/validate` | Validar balanceo débito=crédito |
-| `POST` | `/saldos-iniciales/post` | Contabilizar saldos (genera asiento de apertura) |
-| `DELETE` | `/saldos-iniciales/{id}` | Eliminar saldo inicial (solo DRAFT) |
-
-### 5️⃣ Reportes Contables
+### 4️⃣ Reportes Contables
 
 | Método | Endpoint | Descripción |
 |--------|----------|-------------|
@@ -149,7 +149,7 @@ http://torres.facturadorpro2.oo/api/contabilidad/cuentas       ✅
 | `GET` | `/reportes/mayor-auxiliar` | Mayor auxiliar por cuenta |
 | `GET` | `/reportes/libro-diario` | Libro diario (todas las transacciones) |
 
-### 6️⃣ Catálogos
+### 5️⃣ Catálogos
 
 | Método | Endpoint | Descripción |
 |--------|----------|-------------|
@@ -356,6 +356,81 @@ Authorization: Bearer abc123def456
   }
 }
 ```
+
+### Ejemplo 4.5: Crear Asiento de Saldos Iniciales (Tipo Código 24)
+
+**Request**:
+```http
+POST /api/contabilidad/asientos-contables
+Authorization: Bearer abc123def456
+Content-Type: application/json
+
+{
+  "fecha_asiento": "2024-01-01",
+  "tipo_comprobante_id": 24,
+  "concepto": "Comprobante de Saldos Iniciales",
+  "detalles": [
+    {
+      "cuenta_contable_codigo": "1105",
+      "concepto": "Saldo inicial caja general",
+      "debito": 5000000,
+      "credito": 0
+    },
+    {
+      "cuenta_contable_codigo": "2105",
+      "concepto": "Saldo inicial cuentas por pagar",
+      "debito": 0,
+      "credito": 3000000
+    },
+    {
+      "cuenta_contable_codigo": "3105",
+      "concepto": "Saldo inicial capital",
+      "debito": 0,
+      "credito": 2000000
+    }
+  ]
+}
+```
+
+**Características especiales**:
+- ✅ Validación: Solo permite UN comprobante de tipo 24
+- ✅ Restricción: No permite cuentas que requieran tercero
+- ✅ Automático: Al confirmar, actualiza `saldo_inicial` de cada cuenta
+
+**Response** (201 Created):
+```json
+{
+  "success": true,
+  "message": "Asiento creado exitosamente",
+  "data": {
+    "id": 50,
+    "fecha_asiento": "2024-01-01",
+    "tipo_comprobante_id": 24,
+    "numero_comprobante": "SI1",
+    "estado": "BORRADOR",
+    "total_debito": 5000000,
+    "total_credito": 5000000
+  }
+}
+```
+
+### Ejemplo 4.6: Verificar Existencia de Saldos Iniciales
+
+**Request**:
+```http
+GET /api/contabilidad/asientos-contables/verificar/saldos-iniciales
+Authorization: Bearer abc123def456
+```
+
+**Response** (200 OK):
+```json
+{
+  "existe": false,
+  "message": "No existe comprobante de Saldos Iniciales"
+}
+```
+
+Para más detalles sobre Saldos Iniciales: [API_SALDOS_INICIALES.md](API_SALDOS_INICIALES.md)
 
 ### Ejemplo 5: Filtrar Asientos por Rango de Fechas
 

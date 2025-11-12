@@ -58,6 +58,7 @@ if ($hostname) {
             Route::put('asientos-contables/{numero_comprobante}', 'Tenant\Api\ContabilidadController@updateAsiento');
             Route::delete('asientos-contables/{numero_comprobante}', 'Tenant\Api\ContabilidadController@deleteAsiento');
             Route::post('asientos-contables/{numero_comprobante}/confirmar', 'Tenant\Api\ContabilidadController@confirmarAsiento');
+            Route::get('asientos-contables/verificar/saldos-iniciales', 'Tenant\Api\ContabilidadController@verificarSaldosIniciales');
 
             // Catálogos
             Route::get('tipos-comprobantes', 'Tenant\Api\ContabilidadController@getTiposComprobantes');
@@ -84,14 +85,6 @@ if ($hostname) {
             Route::post('periodos-contables/{id}/close', 'Tenant\Api\ContabilidadController@closePeriodo');
             Route::post('periodos-contables/{id}/reopen', 'Tenant\Api\ContabilidadController@reopenPeriodo');
             Route::post('periodos-contables/{id}/lock', 'Tenant\Api\ContabilidadController@lockPeriodo');
-
-            // Saldos Iniciales - API
-            Route::get('saldos-iniciales', 'Tenant\Api\ContabilidadController@getSaldosIniciales');
-            Route::get('saldos-iniciales/{id}', 'Tenant\Api\ContabilidadController@getSaldoInicial');
-            Route::post('saldos-iniciales', 'Tenant\Api\ContabilidadController@storeSaldosIniciales');
-            Route::post('saldos-iniciales/validate', 'Tenant\Api\ContabilidadController@validateSaldosIniciales');
-            Route::post('saldos-iniciales/post', 'Tenant\Api\ContabilidadController@postSaldosIniciales');
-            Route::delete('saldos-iniciales/{id}', 'Tenant\Api\ContabilidadController@deleteSaldoInicial');
 
             // Reportes Contables - API
             Route::get('reportes/balance-prueba', 'Tenant\Api\ContabilidadController@reporteBalancePrueba');

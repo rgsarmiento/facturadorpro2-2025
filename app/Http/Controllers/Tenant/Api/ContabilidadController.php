@@ -492,6 +492,43 @@ class ContabilidadController extends Controller
 
             DB::beginTransaction();
 
+            // Obtener tipo de comprobante
+            $tipoComprobante = TipoComprobanteContable::on('tenant')
+                ->lockForUpdate()
+                ->findOrFail($request->tipo_comprobante_id);
+
+            // Validar si es comprobante de "Saldos Iniciales" (código 24)
+            if ($tipoComprobante->codigo === '24') {
+                // Verificar si ya existe un comprobante de saldos iniciales
+                $existeSaldosIniciales = AsientoContable::on('tenant')
+                    ->where('tipo_comprobante_id', $tipoComprobante->id)
+                    ->whereIn('estado', ['BORRADOR', 'CONFIRMADO'])
+                    ->exists();
+
+                if ($existeSaldosIniciales) {
+                    DB::rollBack();
+                    return response()->json([
+                        'success' => false,
+                        'message' => 'Ya existe un comprobante de Saldos Iniciales. Solo puede haber uno por empresa.'
+                    ], 422);
+                }
+
+                // Validar que no haya cuentas que requieren tercero
+                foreach ($request->detalles as $detalle) {
+                    $cuenta = CuentaContable::on('tenant')
+                        ->where('codigo', $detalle['cuenta_contable_codigo'])
+                        ->first();
+
+                    if ($cuenta && $cuenta->requiere_tercero) {
+                        DB::rollBack();
+                        return response()->json([
+                            'success' => false,
+                            'message' => "La cuenta {$cuenta->codigo} requiere tercero y no puede ser usada en comprobantes de Saldos Iniciales."
+                        ], 422);
+                    }
+                }
+            }
+
             // Validar que todos los detalles tengan concepto
             foreach ($request->detalles as $index => $detalle) {
                 if (empty($detalle['concepto']) || trim($detalle['concepto']) === '') {
@@ -501,11 +538,6 @@ class ContabilidadController extends Controller
                     ], 422);
                 }
             }
-
-            // Obtener tipo de comprobante y generar número
-            $tipoComprobante = TipoComprobanteContable::on('tenant')
-                ->lockForUpdate()
-                ->findOrFail($request->tipo_comprobante_id);
 
             $consecutivo = (int)($tipoComprobante->consecutivo_actual ?? 0) + 1;
             $numeroComprobante = (string)($tipoComprobante->prefijo ?? '') . $consecutivo;
@@ -769,6 +801,42 @@ class ContabilidadController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Error al eliminar asiento: ' . $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Verificar si existe comprobante de Saldos Iniciales
+     * GET /api/contabilidad/asientos-contables/verificar/saldos-iniciales
+     */
+    public function verificarSaldosIniciales()
+    {
+        try {
+            $tipoComprobante = TipoComprobanteContable::on('tenant')
+                ->where('codigo', '24')
+                ->first();
+
+            if (!$tipoComprobante) {
+                return response()->json([
+                    'existe' => false,
+                    'message' => 'Tipo comprobante Saldos Iniciales no encontrado'
+                ], 200);
+            }
+
+            $existe = AsientoContable::on('tenant')
+                ->where('tipo_comprobante_id', $tipoComprobante->id)
+                ->whereIn('estado', ['BORRADOR', 'CONFIRMADO'])
+                ->exists();
+
+            return response()->json([
+                'existe' => $existe,
+                'message' => $existe ? 'Ya existe un comprobante de Saldos Iniciales' : 'No existe comprobante de Saldos Iniciales'
+            ], 200);
+
+        } catch (Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Error al verificar saldos iniciales: ' . $e->getMessage()
             ], 500);
         }
     }
@@ -1401,11 +1469,11 @@ class ContabilidadController extends Controller
 
     /**
      * ============================================
-     * SALDOS INICIALES - ENDPOINTS
+     * REPORTES CONTABLES - ENDPOINTS
      * ============================================
      */
 
-    public function getSaldosIniciales(Request $request)
+    public function reporteBalancePrueba(Request $request)
     {
         try {
             $query = AccountInitialBalance::on('tenant')
@@ -1621,64 +1689,6 @@ class ContabilidadController extends Controller
             return response()->json([
                 'success' => false,
                 'message' => 'Error al eliminar: ' . $e->getMessage()
-            ], 500);
-        }
-    }
-
-    /**
-     * ============================================
-     * REPORTES CONTABLES - ENDPOINTS
-     * ============================================
-     */
-
-    public function reporteBalancePrueba(Request $request)
-    {
-        try {
-            $controller = new \App\Http\Controllers\Tenant\AccountingReportController();
-            return $controller->trialBalance($request);
-        } catch (Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Error: ' . $e->getMessage()
-            ], 500);
-        }
-    }
-
-    public function reporteBalanceGeneral(Request $request)
-    {
-        try {
-            $controller = new \App\Http\Controllers\Tenant\AccountingReportController();
-            return $controller->balanceSheet($request);
-        } catch (Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Error: ' . $e->getMessage()
-            ], 500);
-        }
-    }
-
-    public function reporteMayorAuxiliar(Request $request)
-    {
-        try {
-            $controller = new \App\Http\Controllers\Tenant\AccountingReportController();
-            return $controller->generalLedger($request);
-        } catch (Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Error: ' . $e->getMessage()
-            ], 500);
-        }
-    }
-
-    public function reporteLibroDiario(Request $request)
-    {
-        try {
-            $controller = new \App\Http\Controllers\Tenant\AccountingReportController();
-            return $controller->journalBook($request);
-        } catch (Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Error: ' . $e->getMessage()
             ], 500);
         }
     }

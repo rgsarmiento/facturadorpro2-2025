@@ -252,6 +252,77 @@ curl -X DELETE "${API_BASE}/asientos/CV1" \
   -H "Authorization: Bearer ${API_TOKEN}"
 ```
 
+### 2.9 Crear Asiento de Saldos Iniciales (Tipo Código 24)
+
+**⚠️ IMPORTANTE**: Los Saldos Iniciales se crean como asientos normales pero con tipo_comprobante_id = 24 (código 24)
+
+```bash
+curl -X POST "${API_BASE}/asientos-contables" \
+  -H "Authorization: Bearer ${API_TOKEN}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "fecha_asiento": "2024-01-01",
+    "tipo_comprobante_id": 24,
+    "concepto": "Comprobante de Saldos Iniciales",
+    "detalles": [
+      {
+        "cuenta_contable_codigo": "1105",
+        "concepto": "Saldo inicial caja general",
+        "debito": 5000000,
+        "credito": 0
+      },
+      {
+        "cuenta_contable_codigo": "2105",
+        "concepto": "Saldo inicial cuentas por pagar",
+        "debito": 0,
+        "credito": 3000000
+      },
+      {
+        "cuenta_contable_codigo": "3105",
+        "concepto": "Saldo inicial capital",
+        "debito": 0,
+        "credito": 2000000
+      }
+    ]
+  }'
+```
+
+**Restricciones especiales para tipo 24**:
+- ✅ Solo puede existir UN comprobante de tipo 24 por empresa
+- ✅ NO permite cuentas que requieran tercero (requiere_tercero=false)
+- ✅ Al confirmar, actualiza automáticamente `saldo_inicial` de cada cuenta
+
+### 2.10 Verificar Existencia de Saldos Iniciales
+
+```bash
+# Valida si ya existe un comprobante de tipo 24
+curl -X GET "${API_BASE}/asientos-contables/verificar/saldos-iniciales" \
+  -H "Authorization: Bearer ${API_TOKEN}"
+
+# Respuesta si NO existe:
+# {"existe": false, "message": "No existe comprobante de Saldos Iniciales"}
+
+# Respuesta si YA existe:
+# {"existe": true, "message": "Ya existe un comprobante de Saldos Iniciales"}
+```
+
+### 2.11 Confirmar Asiento de Saldos Iniciales
+
+```bash
+# Una vez confirmado, actualiza automáticamente saldo_inicial en cuentas_contables
+curl -X POST "${API_BASE}/asientos-contables/SI1/confirmar" \
+  -H "Authorization: Bearer ${API_TOKEN}"
+
+# Esto hará que:
+# 1. El estado cambie a CONFIRMADO
+# 2. Para cada detalle, se actualice cuentas_contables.saldo_inicial
+#    - Si naturaleza=DEBITO: saldo_inicial = débito - crédito
+#    - Si naturaleza=CREDITO: saldo_inicial = crédito - débito
+# 3. Los saldos anteriores se recalculen como base
+```
+
+Para documentación completa: Ver [API_SALDOS_INICIALES.md](../docs/API_SALDOS_INICIALES.md)
+
 ---
 
 ## 3️⃣ Catálogos
@@ -579,140 +650,9 @@ curl -X POST "${API_BASE}/periodos-contables/1/lock" \
 
 ---
 
-## 5️⃣ Saldos Iniciales
+## 4️⃣ Reportes Contables
 
-### 5.1 Listar Saldos Iniciales
-
-```bash
-# Listar todos los saldos
-curl -X GET "${API_BASE}/saldos-iniciales" \
-  -H "Authorization: Bearer ${API_TOKEN}"
-
-# Filtrar por período
-curl -X GET "${API_BASE}/saldos-iniciales?period_id=1" \
-  -H "Authorization: Bearer ${API_TOKEN}"
-
-# Filtrar por estado
-curl -X GET "${API_BASE}/saldos-iniciales?status=draft" \
-  -H "Authorization: Bearer ${API_TOKEN}"
-```
-
-### 5.2 Obtener Saldo Inicial Específico
-
-```bash
-curl -X GET "${API_BASE}/saldos-iniciales/1" \
-  -H "Authorization: Bearer ${API_TOKEN}"
-```
-
-### 5.3 Crear Saldos Iniciales en Lote
-
-**Nota**: La suma de débitos DEBE ser igual a la suma de créditos
-
-```bash
-curl -X POST "${API_BASE}/saldos-iniciales" \
-  -H "Authorization: Bearer ${API_TOKEN}" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "balance_date": "2025-01-01",
-    "period_id": 1,
-    "balances": [
-      {
-        "cuenta_contable_codigo": "110505",
-        "person_number": null,
-        "debito": 5000000,
-        "credito": 0,
-        "notes": "Saldo inicial caja"
-      },
-      {
-        "cuenta_contable_codigo": "130505",
-        "person_number": "123456789",
-        "debito": 3000000,
-        "credito": 0,
-        "notes": "Saldo cliente Juan Pérez"
-      },
-      {
-        "cuenta_contable_codigo": "220505",
-        "person_number": "987654321",
-        "debito": 0,
-        "credito": 2000000,
-        "notes": "Saldo proveedor ABC Ltda"
-      },
-      {
-        "cuenta_contable_codigo": "310505",
-        "person_number": null,
-        "debito": 0,
-        "credito": 6000000,
-        "notes": "Capital inicial"
-      }
-    ]
-  }'
-```
-
-### 5.4 Validar Balanceo de Saldos (Tiempo Real)
-
-```bash
-# Valida si débitos = créditos sin guardar
-curl -X POST "${API_BASE}/saldos-iniciales/validate" \
-  -H "Authorization: Bearer ${API_TOKEN}" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "balances": [
-      {
-        "cuenta_contable_codigo": "110505",
-        "debito": 5000000,
-        "credito": 0
-      },
-      {
-        "cuenta_contable_codigo": "310505",
-        "debito": 0,
-        "credito": 5000000
-      }
-    ]
-  }'
-```
-
-**Respuesta**:
-```json
-{
-  "success": true,
-  "data": {
-    "total_debito": 5000000,
-    "total_credito": 5000000,
-    "diferencia": 0,
-    "is_balanced": true
-  }
-}
-```
-
-### 5.5 Contabilizar Saldos Iniciales
-
-**Nota**: Genera automáticamente el asiento de apertura y actualiza los saldos de las cuentas
-
-```bash
-curl -X POST "${API_BASE}/saldos-iniciales/post" \
-  -H "Authorization: Bearer ${API_TOKEN}" \
-  -H "Content-Type: application/json" \
-  -d '{
-    "period_id": 1,
-    "fecha_asiento": "2025-01-01",
-    "concepto": "Asiento de apertura - Saldos iniciales 2025"
-  }'
-```
-
-### 5.6 Eliminar Saldo Inicial
-
-**Nota**: Solo se pueden eliminar saldos en estado DRAFT (no contabilizados)
-
-```bash
-curl -X DELETE "${API_BASE}/saldos-iniciales/1" \
-  -H "Authorization: Bearer ${API_TOKEN}"
-```
-
----
-
-## 6️⃣ Reportes Contables
-
-### 6.1 Balance de Prueba
+### 4.1 Balance de Prueba
 
 ```bash
 # Balance de prueba básico
@@ -754,7 +694,7 @@ curl -X GET "${API_BASE}/reportes/balance-prueba?nivel=3&fecha_inicio=2025-01-01
 }
 ```
 
-### 6.2 Balance General
+### 4.2 Balance General
 
 ```bash
 # Balance general (Activos vs Pasivos + Patrimonio)
@@ -812,7 +752,7 @@ curl -X GET "${API_BASE}/reportes/balance-general?fecha_corte=2025-10-27" \
 }
 ```
 
-### 6.3 Mayor Auxiliar por Cuenta
+### 4.3 Mayor Auxiliar por Cuenta
 
 ```bash
 # Mayor auxiliar de una cuenta específica
@@ -861,7 +801,7 @@ curl -X GET "${API_BASE}/reportes/mayor-auxiliar?cuenta_codigo=130505&incluir_te
 }
 ```
 
-### 6.4 Libro Diario
+### 4.4 Libro Diario
 
 ```bash
 # Libro diario completo

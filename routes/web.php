@@ -594,6 +594,7 @@ if ($hostname) {
                Route::get('asientos-contables/records', 'Tenant\AsientoContableController@records');
 
                Route::get('asientos-contables/tipos-comprobantes', 'Tenant\AsientoContableController@getTiposComprobantes');
+               Route::get('asientos-contables/verificar-saldos-iniciales', 'Tenant\AsientoContableController@verificarSaldosIniciales');
                Route::get('asientos-contables/cuentas-contables', 'Tenant\AsientoContableController@getCuentasContables');
                Route::get('asientos-contables/terceros', 'Tenant\AsientoContableController@getTerceros');
                Route::get('asientos-contables/proximo-consecutivo', 'Tenant\AsientoContableController@getProximoConsecutivo');

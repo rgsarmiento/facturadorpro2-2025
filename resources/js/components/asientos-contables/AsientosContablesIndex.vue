@@ -45,12 +45,27 @@
                     </div>
                     <div class="col-md-2">
                         <label>Tipo Comprobante:</label>
-                        <select v-model="filters.tipo_comprobante_id" @change="searchRecords" class="form-control">
-                            <option value="">Todos los tipos</option>
-                            <option v-for="tipo in tiposComprobantes" :key="tipo.id" :value="tipo.id">
-                                {{ tipo.nombre }}
-                            </option>
-                        </select>
+                        <el-select
+                            v-model="filters.tipo_comprobante_id"
+                            @change="searchRecords"
+                            @focus="onTipoComprobanteFocus"
+                            filterable
+                            remote
+                            reserve-keyword
+                            placeholder="Buscar tipo..."
+                            :remote-method="searchTiposComprobantes"
+                            :loading="loadingTipos"
+                            clearable
+                            class="w-100">
+                            <el-option
+                                v-for="tipo in tiposComprobantesOptions"
+                                :key="tipo.id"
+                                :label="`${tipo.codigo} - ${tipo.nombre}`"
+                                :value="tipo.id">
+                                <span style="float: left"><strong>{{ tipo.codigo }}</strong></span>
+                                <span style="float: right; color: #8492a6; font-size: 13px">{{ tipo.nombre }}</span>
+                            </el-option>
+                        </el-select>
                     </div>
                     <div class="col-md-2">
                         <label>Estado:</label>
@@ -187,6 +202,8 @@ export default {
                 estado: ''
             },
             tiposComprobantes: [],
+            tiposComprobantesOptions: [],
+            loadingTipos: false,
             estados: [
                 { value: '', text: 'Todos los estados' },
                 { value: 'BORRADOR', text: 'Borrador' },
@@ -206,11 +223,39 @@ export default {
                 const response = await axios.get('/contabilidad/asientos-contables/tipos-comprobantes');
                 if (response.data.success && Array.isArray(response.data.data)) {
                     this.tiposComprobantes = response.data.data;
+                    this.tiposComprobantesOptions = response.data.data;
                 } else {
                     this.tiposComprobantes = [];
+                    this.tiposComprobantesOptions = [];
                 }
             } catch (error) {
                 this.tiposComprobantes = [];
+                this.tiposComprobantesOptions = [];
+            }
+        },
+        searchTiposComprobantes(query) {
+            this.loadingTipos = true;
+
+            // Si no hay query, mostrar todos
+            if (!query) {
+                this.tiposComprobantesOptions = this.tiposComprobantes;
+                this.loadingTipos = false;
+                return;
+            }
+
+            // Buscar por código o nombre
+            const queryLower = query.toLowerCase();
+            this.tiposComprobantesOptions = this.tiposComprobantes.filter(tipo =>
+                tipo.codigo.toLowerCase().includes(queryLower) ||
+                tipo.nombre.toLowerCase().includes(queryLower)
+            );
+
+            this.loadingTipos = false;
+        },
+        onTipoComprobanteFocus() {
+            // Cargar todas las opciones al hacer foco si no hay opciones cargadas
+            if (this.tiposComprobantesOptions.length === 0) {
+                this.searchTiposComprobantes('');
             }
         },
         async loadRecords(page = 1) {
