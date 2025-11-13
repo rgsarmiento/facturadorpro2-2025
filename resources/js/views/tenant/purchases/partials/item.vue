@@ -483,6 +483,8 @@
             },
             close() {
                 this.initForm()
+                // Limpiar la lista de items para forzar nueva búsqueda al abrir de nuevo
+                this.items = []
                 this.$emit('update:showDialog', false)
             },
             selectedPrice(row)
@@ -586,6 +588,9 @@
                 this.form.date_of_due = date_of_due
                 // console.log(this.form)
 
+                // Determinar si estamos en modo edición
+                const isEditMode = this.recordItem !== null && this.recordItem !== undefined;
+
                 if (this.recordItem)
                 {
                     this.form.indexi = this.recordItem.indexi
@@ -598,8 +603,11 @@
                 // this.initializeFields()
                 this.$emit('add', this.form)
                 this.initForm()
-                // Cerrar el diálogo después de agregar/editar el item
-                this.$emit('update:showDialog', false)
+
+                // Solo cerrar el diálogo si estamos en modo edición
+                if (isEditMode) {
+                    this.$emit('update:showDialog', false)
+                }
             },
             changeWarehouse(form){
                 let warehouse = _.find(this.warehouses,{'id':this.form.warehouse_id})

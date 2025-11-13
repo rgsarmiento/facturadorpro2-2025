@@ -170,7 +170,7 @@
 
                         <div class="col-lg-12 col-md-6 d-flex align-items-end mt-4">
                             <div class="form-group">
-                                <button type="button" class="btn waves-effect waves-light btn-primary" @click.prevent="showDialogAddItem = true">+ Agregar Producto</button>
+                                <button type="button" class="btn waves-effect waves-light btn-primary" @click.prevent="clickAddNewItem">+ Agregar Producto</button>
                                 <button type="button" class="btn waves-effect waves-light btn-primary" @click.prevent="dialogRetention = !dialogRetention">+ Agregar Retención</button>
                             </div>
                         </div>
@@ -1155,11 +1155,21 @@
                 current_tax.retention = 0;
                 this.calculateTotal()
             },
+            clickAddNewItem() {
+                // Limpiar recordItem para asegurar que el modal se abra en modo agregar
+                this.recordItem = null
+                this.$nextTick(() => {
+                    this.showDialogAddItem = true
+                })
+            },
             ediItem(row, index)
             {
                 row.indexi = index
                 this.recordItem = row
-                this.showDialogAddItem = true
+                // Esperar a que Vue procese el cambio de recordItem antes de abrir el modal
+                this.$nextTick(() => {
+                    this.showDialogAddItem = true
+                })
             },
             // Métodos para modal XML DIAN
             formatXMLIdentifier(value) {
