@@ -20,18 +20,38 @@
             </div>
             <div class="card-body">
                 <data-table :resource="resource" :loading="loadDataTable">
-                    <tr slot="heading" width="100%">
+                    <tr slot="heading" width="100%" slot-scope="{ sortBy, getSortIcon, getSortClass }">
                         <th>#</th>
-                        <th>Nombre</th>
-                        <th>Código</th>
-                        <th>Tasa</th>
-                        <th>Conversión</th>
-                        <th>Tasa porcentaje</th>
-                        <th>Tasa valor fijo</th>
-                        <th>Impuesto de retención</th>
-                        <th>Retención en base</th>
-                        <th>Retención en impuesto</th>
-                        <th>Tipo impuesto</th>
+                        <th :class="getSortClass('name')" @click="sortBy('name')">
+                            Nombre <i :class="getSortIcon('name')"></i>
+                        </th>
+                        <th :class="getSortClass('code')" @click="sortBy('code')">
+                            Código <i :class="getSortIcon('code')"></i>
+                        </th>
+                        <th :class="getSortClass('rate')" @click="sortBy('rate')">
+                            Tasa <i :class="getSortIcon('rate')"></i>
+                        </th>
+                        <th :class="getSortClass('conversion')" @click="sortBy('conversion')">
+                            Conversión <i :class="getSortIcon('conversion')"></i>
+                        </th>
+                        <th :class="getSortClass('is_percentaje')" @click="sortBy('is_percentaje')">
+                            Tasa porcentaje <i :class="getSortIcon('is_percentaje')"></i>
+                        </th>
+                        <th :class="getSortClass('is_fixed_value')" @click="sortBy('is_fixed_value')">
+                            Tasa valor fijo <i :class="getSortIcon('is_fixed_value')"></i>
+                        </th>
+                        <th :class="getSortClass('is_retention')" @click="sortBy('is_retention')">
+                            Impuesto de retención <i :class="getSortIcon('is_retention')"></i>
+                        </th>
+                        <th :class="getSortClass('in_base')" @click="sortBy('in_base')">
+                            Retención en base <i :class="getSortIcon('in_base')"></i>
+                        </th>
+                        <th :class="getSortClass('in_tax')" @click="sortBy('in_tax')">
+                            Retención en impuesto <i :class="getSortIcon('in_tax')"></i>
+                        </th>
+                        <th :class="getSortClass('type_tax_id')" @click="sortBy('type_tax_id')">
+                            Tipo impuesto <i :class="getSortIcon('type_tax_id')"></i>
+                        </th>
                         <th class="text-right">Acciones</th>
                     <tr>
                     <tr slot-scope="{ index, row }">

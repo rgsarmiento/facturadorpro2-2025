@@ -21,16 +21,30 @@
             </div>
             <div class="card-body">
                 <data-table :resource="resource">
-                    <tr slot="heading" width="100%">
+                    <tr slot="heading" width="100%" slot-scope="{ sortBy, getSortIcon, getSortClass }">
                         <th>#</th>
-                        <th>Cód. Interno</th>
-                        <th>Unidad</th>
-                        <th>Nombre</th>
-                        <th>Descripción</th>
+                        <th :class="getSortClass('internal_id')" @click="sortBy('internal_id')">
+                            Cód. Interno <i :class="getSortIcon('internal_id')"></i>
+                        </th>
+                        <th :class="getSortClass('unit_type_id')" @click="sortBy('unit_type_id')">
+                            Unidad <i :class="getSortIcon('unit_type_id')"></i>
+                        </th>
+                        <th :class="getSortClass('name')" @click="sortBy('name')">
+                            Nombre <i :class="getSortIcon('name')"></i>
+                        </th>
+                        <th :class="getSortClass('description')" @click="sortBy('description')">
+                            Descripción <i :class="getSortIcon('description')"></i>
+                        </th>
                         <!-- <th>Cód. SUNAT</th> -->
-                        <th  class="text-left">Stock</th>
-                        <th  class="text-right">P.Unitario (Venta)</th>
-                        <th v-if="typeUser != 'seller'" class="text-right">P.Unitario (Compra)</th>
+                        <th class="text-left" :class="getSortClass('stock')" @click="sortBy('stock')">
+                            Stock <i :class="getSortIcon('stock')"></i>
+                        </th>
+                        <th class="text-right" :class="getSortClass('sale_unit_price')" @click="sortBy('sale_unit_price')">
+                            P.Unitario (Venta) <i :class="getSortIcon('sale_unit_price')"></i>
+                        </th>
+                        <th v-if="typeUser != 'seller'" class="text-right" :class="getSortClass('purchase_unit_price')" @click="sortBy('purchase_unit_price')">
+                            P.Unitario (Compra) <i :class="getSortIcon('purchase_unit_price')"></i>
+                        </th>
                         <!-- <th class="text-center">Tiene Igv</th> -->
                         <th class="text-right">Acciones</th>
                     </tr>

@@ -31,19 +31,39 @@
             </div>
             <div class="card-body ">
                 <data-table :resource="resource">
-                    <tr slot="heading">
+                    <tr slot="heading" slot-scope="{ sortBy, getSortIcon, getSortClass }">
                         <th>#</th>
-                        <th class="text-center">Fecha Emisión</th>
-                        <th>Cliente</th>
-                        <th>Documento</th>
-                        <th>Estado</th>
+                        <th class="text-center" :class="getSortClass('date_of_issue')" @click="sortBy('date_of_issue')">
+                            Fecha Emisión <i :class="getSortIcon('date_of_issue')"></i>
+                        </th>
+                        <th :class="getSortClass('customer')" @click="sortBy('customer')">
+                            Cliente <i :class="getSortIcon('customer')"></i>
+                        </th>
+                        <th :class="getSortClass('number')" @click="sortBy('number')">
+                            Documento <i :class="getSortIcon('number')"></i>
+                        </th>
+                        <th :class="getSortClass('state_document_id')" @click="sortBy('state_document_id')">
+                            Estado <i :class="getSortIcon('state_document_id')"></i>
+                        </th>
                         <!-- <th>Acuse recibido cliente</th> -->
-                        <th class="text-center">Moneda</th>
-                        <th class="text-right">T.Venta</th>
-                        <th class="text-right">T.Descuentos</th>
-                        <th class="text-right">T.Impuestos</th>
-                        <th class="text-right">Subtotal</th>
-                        <th class="text-right">Total</th>
+                        <th class="text-center" :class="getSortClass('currency_id')" @click="sortBy('currency_id')">
+                            Moneda <i :class="getSortIcon('currency_id')"></i>
+                        </th>
+                        <th class="text-right" :class="getSortClass('sale')" @click="sortBy('sale')">
+                            T.Venta <i :class="getSortIcon('sale')"></i>
+                        </th>
+                        <th class="text-right" :class="getSortClass('total_discount')" @click="sortBy('total_discount')">
+                            T.Descuentos <i :class="getSortIcon('total_discount')"></i>
+                        </th>
+                        <th class="text-right" :class="getSortClass('total_tax')" @click="sortBy('total_tax')">
+                            T.Impuestos <i :class="getSortIcon('total_tax')"></i>
+                        </th>
+                        <th class="text-right" :class="getSortClass('subtotal')" @click="sortBy('subtotal')">
+                            Subtotal <i :class="getSortIcon('subtotal')"></i>
+                        </th>
+                        <th class="text-right" :class="getSortClass('total')" @click="sortBy('total')">
+                            Total <i :class="getSortIcon('total')"></i>
+                        </th>
                         <th class="text-center"></th>
                         <th class="text-right">Descargas</th>
                         <th class="text-right">Acciones</th>

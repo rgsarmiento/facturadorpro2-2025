@@ -43,6 +43,28 @@ class TaxController extends Controller
     {
         $records = Tax::where($request->column, 'like', "%{$request->value}%");
 
+        // Aplicar ordenamiento si se especifica
+        if ($request->has('sort_column') && $request->sort_column) {
+            $sortColumn = $request->sort_column;
+            $sortDirection = $request->sort_direction ?? 'asc';
+            
+            // Validar dirección
+            $sortDirection = in_array($sortDirection, ['asc', 'desc']) ? $sortDirection : 'asc';
+            
+            // Campos numéricos que deben ordenarse como números
+            $numericColumns = ['rate', 'conversion', 'type_tax_id'];
+            
+            if (in_array($sortColumn, $numericColumns)) {
+                // Ordenar como número usando CAST
+                $records = $records->orderByRaw("CAST({$sortColumn} AS DECIMAL(10,2)) {$sortDirection}");
+            } else {
+                $records = $records->orderBy($sortColumn, $sortDirection);
+            }
+        } else {
+            // Ordenamiento por defecto
+            $records = $records->orderBy('name');
+        }
+
         return new TaxCollection($records->paginate(config('tenant.items_per_page')));
     }
 

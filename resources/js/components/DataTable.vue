@@ -52,7 +52,7 @@
                 <div class="table-responsive">
                     <table class="table">
                         <thead>
-                        <slot name="heading"></slot>
+                        <slot name="heading" :sortBy="sortBy" :getSortIcon="getSortIcon" :getSortClass="getSortClass"></slot>
                         </thead>
                         <tbody>
                         <slot v-for="(row, index) in records" :row="row" :index="customIndex(index)"></slot>
@@ -96,6 +96,10 @@
                 search: {
                     column: null,
                     value: null
+                },
+                sort: {
+                    column: null,
+                    direction: 'asc' // 'asc' o 'desc'
                 },
                 columns: [],
                 records: [],
@@ -154,6 +158,8 @@
                     page: this.pagination.current_page,
                     limit: this.limit,
                     load_all: this.loadAll,
+                    sort_column: this.sort.column,
+                    sort_direction: this.sort.direction,
                     ...this.search,
                     ...this.externalFilters
                 })
@@ -171,7 +177,62 @@
                 this.getRecords().finally(() => {
                     this.loadingAll = false
                 })
+            },
+
+            sortBy(column) {
+                // Si es la misma columna, alternar dirección
+                if (this.sort.column === column) {
+                    this.sort.direction = this.sort.direction === 'asc' ? 'desc' : 'asc'
+                } else {
+                    // Nueva columna, empezar con ascendente
+                    this.sort.column = column
+                    this.sort.direction = 'asc'
+                }
+                // Resetear a primera página y recargar
+                this.pagination.current_page = 1
+                this.getRecords()
+            },
+
+            getSortIcon(column) {
+                if (this.sort.column !== column) {
+                    return 'el-icon-d-caret' // Icono neutro
+                }
+                return this.sort.direction === 'asc' ? 'el-icon-caret-top' : 'el-icon-caret-bottom'
+            },
+
+            getSortClass(column) {
+                if (this.sort.column === column) {
+                    return 'sorting-active'
+                }
+                return 'sorting'
             }
         }
     }
 </script>
+
+<style scoped>
+.sorting, .sorting-active {
+    cursor: pointer;
+    user-select: none;
+    transition: background-color 0.2s;
+}
+
+.sorting:hover {
+    background-color: #f5f7fa;
+}
+
+.sorting-active {
+    background-color: #ecf5ff;
+    font-weight: 600;
+}
+
+.sorting i, .sorting-active i {
+    margin-left: 5px;
+    font-size: 14px;
+    vertical-align: middle;
+}
+
+.sorting-active i {
+    color: #409EFF;
+}
+</style>
