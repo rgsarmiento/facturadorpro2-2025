@@ -21,17 +21,31 @@
             </div>
             <div class="card-body">
                 <data-table :resource="resource">
-                    <tr slot="heading">
+                    <tr slot="heading" slot-scope="{ sortBy, getSortIcon, getSortClass }">
                         <th>#</th>
-                        <th># Referencia</th>
-                        <th>Vendedor</th>
-                        <th class="text-center">Apertura</th>
-                        <th class="text-center">Cierre</th>
-                        <th class="text-right">Saldo inicial</th>
-                        <th class="text-right">Saldo final</th>
+                        <th :class="getSortClass('reference_number')" @click="sortBy('reference_number')">
+                            # Referencia <i :class="getSortIcon('reference_number')"></i>
+                        </th>
+                        <th :class="getSortClass('user')" @click="sortBy('user')">
+                            Vendedor <i :class="getSortIcon('user')"></i>
+                        </th>
+                        <th class="text-center" :class="getSortClass('opening')" @click="sortBy('opening')">
+                            Apertura <i :class="getSortIcon('opening')"></i>
+                        </th>
+                        <th class="text-center" :class="getSortClass('closed')" @click="sortBy('closed')">
+                            Cierre <i :class="getSortIcon('closed')"></i>
+                        </th>
+                        <th class="text-right" :class="getSortClass('beginning_balance')" @click="sortBy('beginning_balance')">
+                            Saldo inicial <i :class="getSortIcon('beginning_balance')"></i>
+                        </th>
+                        <th class="text-right" :class="getSortClass('final_balance')" @click="sortBy('final_balance')">
+                            Saldo final <i :class="getSortIcon('final_balance')"></i>
+                        </th>
                         <!-- <th>Ingreso</th> -->
                         <!-- <th>Egreso</th> -->
-                        <th>Estado</th>
+                        <th :class="getSortClass('state_description')" @click="sortBy('state_description')">
+                            Estado <i :class="getSortIcon('state_description')"></i>
+                        </th>
                         <th class="text-center">Acciones</th>
                     </tr>
                     <tr slot-scope="{ index, row }">

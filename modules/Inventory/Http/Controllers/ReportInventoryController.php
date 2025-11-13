@@ -43,28 +43,55 @@ class ReportInventoryController extends Controller
         [$relation, $id] = explode('_', $request->filter) + [null, null];
 
         if($request->warehouse_id && $request->warehouse_id != 'all') {
-            $reports = ItemWarehouse::with(['item'])
+            $reports = ItemWarehouse::with(['item', 'warehouse'])
                 ->where('warehouse_id', $request->warehouse_id)
                 ->whereFilterDate($date)
                 ->whereHas('item', function($q) use ($relation, $id) {
                     $q->where([['item_type_id', '01'], ['unit_type_id', '!=','ZZ']]);
                     $q->whereNotIsSet();
                     $q->whereFilterByRelation($relation, $id);
-                })
-                ->latest()
-                ->paginate(config('tenant.items_per_page'));
+                });
         }
         else {
-            $reports = ItemWarehouse::with(['item'])
+            $reports = ItemWarehouse::with(['item', 'warehouse'])
                 ->whereFilterDate($date)
                 ->whereHas('item',function($q) use ($relation, $id){
                     $q->where([['item_type_id', '01'], ['unit_type_id', '!=','ZZ']]);
                     $q->whereNotIsSet();
                     $q->whereFilterByRelation($relation, $id);
-                })
-                ->latest()
-                ->paginate(config('tenant.items_per_page'));
+                });
         }
+
+        // Apply sorting
+        if ($request->has('sort_column') && $request->sort_column) {
+            $sortColumn = $request->sort_column;
+            $sortDirection = in_array($request->sort_direction, ['asc', 'desc']) ? $request->sort_direction : 'asc';
+
+            // Numeric columns that should be sorted as numbers
+            $numericColumns = ['stock', 'sale_unit_price', 'purchase_unit_price'];
+
+            if ($sortColumn === 'item_description') {
+                $reports = $reports->whereHas('item', function($q) use ($sortDirection) {
+                    $q->orderBy('name', $sortDirection);
+                })->orderBy('warehouse_id');
+            } elseif ($sortColumn === 'warehouse_description') {
+                $reports = $reports->orderBy(\DB::raw('(SELECT description FROM warehouses WHERE warehouses.id = item_warehouse.warehouse_id)'), $sortDirection);
+            } elseif ($sortColumn === 'stock') {
+                $reports = $reports->orderByRaw("CAST(item_warehouse.stock AS DECIMAL(10,2)) {$sortDirection}");
+            } elseif ($sortColumn === 'sale_unit_price') {
+                $reports = $reports->whereHas('item', function($q) use ($sortDirection) {
+                    $q->orderByRaw("CAST(items.sale_unit_price AS DECIMAL(10,2)) {$sortDirection}");
+                });
+            } elseif ($sortColumn === 'purchase_unit_price') {
+                $reports = $reports->whereHas('item', function($q) use ($sortDirection) {
+                    $q->orderByRaw("CAST(items.purchase_unit_price AS DECIMAL(10,2)) {$sortDirection}");
+                });
+            }
+        } else {
+            $reports = $reports->latest();
+        }
+
+        $reports = $reports->paginate(config('tenant.items_per_page'));
         $warehouses = Warehouse::select('id', 'description')->get();
 
         return view('inventory::reports.inventory.index', compact('reports', 'warehouses', 'filter'));

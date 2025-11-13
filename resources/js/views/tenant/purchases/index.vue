@@ -26,23 +26,39 @@
             </div>
             <div class="card-body">
                 <data-table :resource="resource">
-                    <tr slot="heading">
+                    <tr slot="heading" slot-scope="{ sortBy, getSortIcon, getSortClass }">
                         <th>#</th>
-                        <th class="text-center">F. Emisión</th>
-                        <th class="text-center" v-if="columns.date_of_due.visible" >F. Vencimiento</th>
-                        <th>Proveedor</th>
-                        <th>Estado</th>
+                        <th class="text-center" :class="getSortClass('date_of_issue')" @click="sortBy('date_of_issue')">
+                            F. Emisión <i :class="getSortIcon('date_of_issue')"></i>
+                        </th>
+                        <th class="text-center" v-if="columns.date_of_due.visible" :class="getSortClass('date_of_due')" @click="sortBy('date_of_due')">
+                            F. Vencimiento <i :class="getSortIcon('date_of_due')"></i>
+                        </th>
+                        <th :class="getSortClass('supplier_id')" @click="sortBy('supplier_id')">
+                            Proveedor <i :class="getSortIcon('supplier_id')"></i>
+                        </th>
+                        <th :class="getSortClass('state_type_id')" @click="sortBy('state_type_id')">
+                            Estado <i :class="getSortIcon('state_type_id')"></i>
+                        </th>
                         <th>Estado de pago</th>
-                        <th>Número</th>
+                        <th :class="getSortClass('number')" @click="sortBy('number')">
+                            Número <i :class="getSortIcon('number')"></i>
+                        </th>
                         <th v-if="columns.affected_document.visible">Documento Afectado</th>
                         <th>Productos</th>
                         <th>Pagos</th>
                         <!-- <th>F. Pago</th> -->
                         <!-- <th>Estado</th> -->
-                        <th class="text-center">Moneda</th>
+                        <th class="text-center" :class="getSortClass('currency_type_id')" @click="sortBy('currency_type_id')">
+                            Moneda <i :class="getSortIcon('currency_type_id')"></i>
+                        </th>
                         <!-- <th class="text-right">T.Exportación</th> -->
-                        <th v-if="columns.total_perception.visible" >Percepcion</th>
-                        <th class="text-right">Total</th>
+                        <th v-if="columns.total_perception.visible" :class="getSortClass('total_perception')" @click="sortBy('total_perception')">
+                            Percepcion <i :class="getSortIcon('total_perception')"></i>
+                        </th>
+                        <th class="text-right" :class="getSortClass('total')" @click="sortBy('total')">
+                            Total <i :class="getSortIcon('total')"></i>
+                        </th>
                         <!-- <th class="text-center">Descargas</th> -->
                         <th class="text-right">Acciones</th>
                     </tr>

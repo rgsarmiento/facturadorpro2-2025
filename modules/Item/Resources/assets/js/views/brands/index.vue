@@ -16,10 +16,14 @@
             </div>
             <div class="card-body">
                 <data-table :resource="resource">
-                    <tr slot="heading">
+                    <tr slot="heading" slot-scope="{ sortBy, getSortIcon, getSortClass }">
                         <th>#</th>
-                        <th>Nombre</th>
-                        <th>Fecha creación</th>
+                        <th :class="getSortClass('name')" @click="sortBy('name')">
+                            Nombre <i :class="getSortIcon('name')"></i>
+                        </th>
+                        <th :class="getSortClass('created_at')" @click="sortBy('created_at')">
+                            Fecha creación <i :class="getSortIcon('created_at')"></i>
+                        </th>
                         <th class="text-right">Acciones</th>
                     <tr>
                     <tr slot-scope="{ index, row }">
@@ -34,17 +38,17 @@
                 </data-table>
             </div>
 
-            <category-form 
+            <category-form
                 :showDialog.sync="showDialog"
                 :recordId="recordId"
-                    ></category-form> 
+                    ></category-form>
         </div>
     </div>
 </template>
 
 <script>
 
-    import CategoryForm from './form.vue' 
+    import CategoryForm from './form.vue'
     import DataTable from '../../../../../../../resources/js/components/DataTable.vue'
     import {deletable} from '../../../../../../../resources/js/mixins/deletable'
 
@@ -54,7 +58,7 @@
         data() {
             return {
                 title: null,
-                showDialog: false, 
+                showDialog: false,
                 resource: 'brands',
                 recordId: null,
             }
@@ -62,11 +66,11 @@
         created() {
             this.title = 'Marcas'
         },
-        methods: { 
+        methods: {
             clickCreate(recordId = null) {
                 this.recordId = recordId
                 this.showDialog = true
-            }, 
+            },
             clickDelete(id) {
                 this.destroy(`/${this.resource}/${id}`).then(() =>
                     this.$eventHub.$emit('reloadData')

@@ -12,7 +12,7 @@ use Illuminate\Support\Str;
 use App\CoreFacturalo\Requests\Inputs\Common\PersonInput;
 use Carbon\Carbon;
 use Modules\Purchase\Models\{
-    SupportDocument   
+    SupportDocument
 };
 use Modules\Purchase\Http\Resources\{
     SupportDocumentCollection,
@@ -30,7 +30,7 @@ use Modules\Factcolombia1\Models\TenantService\{
 use Modules\Purchase\Http\Requests\SupportDocumentRequest;
 use Modules\Purchase\Helpers\SupportDocumentHelper;
 use Modules\Factcolombia1\Http\Controllers\Tenant\DocumentController;
-use Modules\Payroll\Traits\UtilityTrait; 
+use Modules\Payroll\Traits\UtilityTrait;
 
 
 class SupportDocumentController extends Controller
@@ -47,9 +47,9 @@ class SupportDocumentController extends Controller
     {
         return view('purchase::support_documents.form');
     }
-    
+
     /**
-     * 
+     *
      * Campos para filtros
      *
      * @return array
@@ -61,8 +61,8 @@ class SupportDocumentController extends Controller
             'date_of_issue' => 'Fecha de emisión',
         ];
     }
-    
-    
+
+
     /**
      * Listado
      *
@@ -73,10 +73,28 @@ class SupportDocumentController extends Controller
     {
         $records = SupportDocument::with(['type_document'])->where($request->column, 'like', "%{$request->value}%");
 
-        return new SupportDocumentCollection($records->latest()->paginate(config('tenant.items_per_page')));
+        // Aplicar ordenamiento
+        if ($request->has('sort_column') && $request->sort_column) {
+            $sortColumn = $request->sort_column;
+            $sortDirection = $request->sort_direction ?? 'asc';
+            $sortDirection = in_array($sortDirection, ['asc', 'desc']) ? $sortDirection : 'asc';
+
+            // Columnas numéricas que deben ordenarse como números
+            $numericColumns = ['total'];
+
+            if (in_array($sortColumn, $numericColumns)) {
+                $records = $records->orderByRaw("CAST({$sortColumn} AS DECIMAL(10,2)) {$sortDirection}");
+            } else {
+                $records = $records->orderBy($sortColumn, $sortDirection);
+            }
+        } else {
+            $records = $records->latest();
+        }
+
+        return new SupportDocumentCollection($records->paginate(config('tenant.items_per_page')));
     }
 
-    
+
     /**
      *
      * @return array
@@ -93,7 +111,7 @@ class SupportDocumentController extends Controller
         return compact('suppliers','payment_methods','payment_forms','currencies', 'taxes', 'resolutions');
     }
 
-    
+
     /**
      *
      * @return array
@@ -107,7 +125,7 @@ class SupportDocumentController extends Controller
         return compact('items', 'taxes', 'type_generation_transmitions');
     }
 
-        
+
     /**
      * Descarga de xml/pdf
      *
@@ -118,7 +136,7 @@ class SupportDocumentController extends Controller
         return app(DocumentController::class)->downloadFile($filename);
     }
 
-    
+
     /**
      * @param  int $id
      * @return SupportDocumentResource
@@ -128,9 +146,9 @@ class SupportDocumentController extends Controller
         return new SupportDocumentResource(SupportDocument::findOrFail($id));
     }
 
-    
+
     /**
-     * 
+     *
      * Registrar documento de soporte
      *
      * @param  SupportDocumentRequest $request
@@ -138,7 +156,7 @@ class SupportDocumentController extends Controller
      */
     public function store(SupportDocumentRequest $request)
     {
-        try 
+        try
         {
             $support_document = DB::connection('tenant')->transaction(function () use ($request) {
 
@@ -146,10 +164,10 @@ class SupportDocumentController extends Controller
                 $inputs = $helper->getInputs($request);
 
                 $document =  SupportDocument::create($inputs);
-                
+
                 foreach ($inputs['items'] as $row)
                 {
-                    $document->items()->create($row); 
+                    $document->items()->create($row);
                 }
 
                 // enviar documento a la api
@@ -171,7 +189,7 @@ class SupportDocumentController extends Controller
                     'number_full' => $support_document->number_full,
                 ],
             ];
-            
+
         } catch (Exception $e)
         {
             return $this->getErrorFromException($e->getMessage(), $e);

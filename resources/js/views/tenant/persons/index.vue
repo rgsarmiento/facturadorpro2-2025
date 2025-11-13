@@ -18,10 +18,14 @@
             </div>
             <div class="card-body">
                 <data-table :resource="resource+`/${this.type}`">
-                    <tr slot="heading">
+                    <tr slot="heading" slot-scope="{ sortBy, getSortIcon, getSortClass }">
                         <th>#</th>
-                        <th>Nombre</th>
-                        <th class="text-right">Número</th>
+                        <th :class="getSortClass('name')" @click="sortBy('name')">
+                            Nombre <i :class="getSortIcon('name')"></i>
+                        </th>
+                        <th class="text-right" :class="getSortClass('number')" @click="sortBy('number')">
+                            Número <i :class="getSortIcon('number')"></i>
+                        </th>
                         <th class="text-right">Acciones</th>
                     <tr>
                     <tr slot-scope="{ index, row }" :class="{ disable_color : !row.enabled}">

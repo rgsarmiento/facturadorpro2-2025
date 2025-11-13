@@ -57,6 +57,21 @@ class ReportValuedKardexController extends Controller
 
         $records = $this->data($params);
 
+        // Apply sorting
+        if (isset($request['sort_column']) && $request['sort_column']) {
+            $sortColumn = $request['sort_column'];
+            $sortDirection = isset($request['sort_direction']) && in_array($request['sort_direction'], ['asc', 'desc']) ? $request['sort_direction'] : 'asc';
+            
+            // Numeric columns that should be sorted as numbers
+            $numericColumns = ['quantity_sale', 'purchase_unit_price', 'total_sales', 'item_cost', 'valued_unit'];
+            
+            if (in_array($sortColumn, $numericColumns)) {
+                $records = $records->orderByRaw("CAST({$sortColumn} AS DECIMAL(10,2)) {$sortDirection}");
+            } else {
+                $records = $records->orderBy($sortColumn, $sortDirection);
+            }
+        }
+
         return $records;
 
     }

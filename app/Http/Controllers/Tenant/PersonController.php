@@ -53,8 +53,17 @@ class PersonController extends Controller
     {
       //  return 'sd';
         $records = Person::where($request->column, 'like', "%{$request->value}%")
-                            ->where('type', $type)
-                            ->orderBy('name');
+                            ->where('type', $type);
+
+        // Aplicar ordenamiento
+        if ($request->has('sort_column') && $request->sort_column) {
+            $sortColumn = $request->sort_column;
+            $sortDirection = $request->sort_direction ?? 'asc';
+            $sortDirection = in_array($sortDirection, ['asc', 'desc']) ? $sortDirection : 'asc';
+            $records = $records->orderBy($sortColumn, $sortDirection);
+        } else {
+            $records = $records->orderBy('name');
+        }
 
         return new PersonCollection($records->paginate(config('tenant.items_per_page')));
     }

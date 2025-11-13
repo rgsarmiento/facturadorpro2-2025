@@ -18,14 +18,24 @@
             </div>
             <div class="card-body">
                 <data-table :resource="resource">
-                    <tr slot="heading" width="100%">
+                    <tr slot="heading" slot-scope="{ sortBy, getSortIcon, getSortClass }" width="100%">
                         <th>#</th>
-                        <th>Cód. Interno</th>
-                        <th>Unidad</th>
-                        <th>Nombre</th>
-                        <th>Descripción</th>
+                        <th :class="getSortClass('internal_id')" @click="sortBy('internal_id')">
+                            Cód. Interno <i :class="getSortIcon('internal_id')"></i>
+                        </th>
+                        <th :class="getSortClass('unit_type_id')" @click="sortBy('unit_type_id')">
+                            Unidad <i :class="getSortIcon('unit_type_id')"></i>
+                        </th>
+                        <th :class="getSortClass('name')" @click="sortBy('name')">
+                            Nombre <i :class="getSortIcon('name')"></i>
+                        </th>
+                        <th :class="getSortClass('description')" @click="sortBy('description')">
+                            Descripción <i :class="getSortIcon('description')"></i>
+                        </th>
                         <!-- <th  class="text-left">Stock</th> -->
-                        <th  class="text-right">P.Unitario (Venta)</th>
+                        <th class="text-right" :class="getSortClass('sale_unit_price')" @click="sortBy('sale_unit_price')">
+                            P.Unitario (Venta) <i :class="getSortIcon('sale_unit_price')"></i>
+                        </th>
                         <th class="text-right">Acciones</th>
                     <tr>
                     <tr slot-scope="{ index, row }">
@@ -38,8 +48,8 @@
                             <template v-if="typeUser=='seller' && row.unit_type_id !='ZZ'">{{ row.stock }}</template>
                             <template v-else-if="typeUser!='seller'&& row.unit_type_id !='ZZ'">
                                 <button type="button" class="btn waves-effect waves-light btn-xs btn-info" @click.prevent="clickWarehouseDetail(row.warehouses)"><i class="fa fa-search"></i></button>
-                            </template> 
-                            
+                            </template>
+
                         </td> -->
                         <td class="text-right">{{ row.sale_unit_price }}</td>
                         <td class="text-right">
@@ -57,7 +67,7 @@
 
             <items-import :showDialog.sync="showImportDialog"></items-import>
 
-            <warehouses-detail 
+            <warehouses-detail
                 :showDialog.sync="showWarehousesDetail"
                 :warehouses="warehousesDetail">
             </warehouses-detail>

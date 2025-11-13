@@ -31,13 +31,23 @@
       </div>
       <div class="card-body">
         <data-table :resource="resource">
-          <tr slot="heading" width="100%">
+          <tr slot="heading" slot-scope="{ sortBy, getSortIcon, getSortClass }" width="100%">
             <th>#</th>
-            <th>Cód. Interno</th>
-            <th>Unidad</th>
-            <th>Nombre</th>
-            <th>Descripción</th>
-            <th class="text-center">P.Unitario (Venta)</th>
+            <th :class="getSortClass('internal_id')" @click="sortBy('internal_id')">
+              Cód. Interno <i :class="getSortIcon('internal_id')"></i>
+            </th>
+            <th :class="getSortClass('unit_type_id')" @click="sortBy('unit_type_id')">
+              Unidad <i :class="getSortIcon('unit_type_id')"></i>
+            </th>
+            <th :class="getSortClass('name')" @click="sortBy('name')">
+              Nombre <i :class="getSortIcon('name')"></i>
+            </th>
+            <th :class="getSortClass('description')" @click="sortBy('description')">
+              Descripción <i :class="getSortIcon('description')"></i>
+            </th>
+            <th class="text-center" :class="getSortClass('sale_unit_price')" @click="sortBy('sale_unit_price')">
+              P.Unitario (Venta) <i :class="getSortIcon('sale_unit_price')"></i>
+            </th>
             <th class="text-center">Imagen</th>
             <th class="text-center">Tags</th>
 

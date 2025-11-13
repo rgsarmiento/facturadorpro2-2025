@@ -33,7 +33,7 @@ class PromotionController extends Controller
 
     public function tables()
     {
-       
+
         $items = Item::where('apply_store', 1)->get();
         return compact('items');
     }
@@ -41,8 +41,18 @@ class PromotionController extends Controller
 
     public function records(Request $request)
     {
-        $records = Promotion::orderBy('description');
-        
+        $records = Promotion::query();
+
+        // Aplicar ordenamiento
+        if ($request->has('sort_column') && $request->sort_column) {
+            $sortColumn = $request->sort_column;
+            $sortDirection = $request->sort_direction ?? 'asc';
+            $sortDirection = in_array($sortDirection, ['asc', 'desc']) ? $sortDirection : 'asc';
+            $records = $records->orderBy($sortColumn, $sortDirection);
+        } else {
+            $records = $records->orderBy('description');
+        }
+
         return new PromotionCollection($records->paginate(config('tenant.items_per_page')));
     }
 
@@ -102,7 +112,7 @@ class PromotionController extends Controller
             'id' => $item->id
         ];
     }
-    
+
     public function destroy($id)
     {
         //return 'sd';
@@ -155,10 +165,10 @@ class PromotionController extends Controller
     }
 
 
-  
 
 
- 
+
+
 
 
 

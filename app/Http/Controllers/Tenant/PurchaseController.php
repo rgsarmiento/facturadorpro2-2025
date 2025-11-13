@@ -84,8 +84,7 @@ class PurchaseController extends Controller
                 $records = Purchase::whereHas('supplier', function($query) use($request){
                                 return $query->where($request->column, 'like', "%{$request->value}%");
                             })
-                            ->whereTypeUser()
-                            ->latest();
+                            ->whereTypeUser();
 
                 break;
 
@@ -94,18 +93,32 @@ class PurchaseController extends Controller
                 $records = Purchase::whereHas('purchase_payments', function($query) use($request){
                                 return $query->where($request->column, 'like', "%{$request->value}%");
                             })
-                            ->whereTypeUser()
-                            ->latest();
+                            ->whereTypeUser();
 
                 break;
 
             default:
 
                 $records = Purchase::where($request->column, 'like', "%{$request->value}%")
-                            ->whereTypeUser()
-                            ->latest();
+                            ->whereTypeUser();
 
                 break;
+        }
+
+        // Aplicar ordenamiento
+        if ($request->has('sort_column') && $request->sort_column) {
+            $sortColumn = $request->sort_column;
+            $sortDirection = $request->sort_direction ?? 'asc';
+            $sortDirection = in_array($sortDirection, ['asc', 'desc']) ? $sortDirection : 'asc';
+
+            $numericColumns = ['total', 'total_perception'];
+            if (in_array($sortColumn, $numericColumns)) {
+                $records = $records->orderByRaw("CAST({$sortColumn} AS DECIMAL(10,2)) {$sortDirection}");
+            } else {
+                $records = $records->orderBy($sortColumn, $sortDirection);
+            }
+        } else {
+            $records = $records->latest();
         }
 
         return $records;

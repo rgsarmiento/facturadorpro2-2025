@@ -31,10 +31,14 @@
       </div>
       <div class="card-body">
         <data-table :resource="resource">
-          <tr slot="heading" width="100%">
+          <tr slot="heading" width="100%" slot-scope="{ sortBy, getSortIcon, getSortClass }">
             <th>#</th>
-            <th>Nombre</th>
-            <th>Descripción</th>
+            <th :class="getSortClass('name')" @click="sortBy('name')">
+              Nombre <i :class="getSortIcon('name')"></i>
+            </th>
+            <th :class="getSortClass('description')" @click="sortBy('description')">
+              Descripción <i :class="getSortIcon('description')"></i>
+            </th>
             <th class="text-right">Acciones</th>
           </tr>
           <tr></tr>
@@ -80,7 +84,7 @@ export default {
     return {
       showDialog: false,
       showImportDialog: false,
-  
+
       showImageDetail: false,
       resource: "tags",
       recordId: null,

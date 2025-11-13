@@ -15,16 +15,16 @@
             <div class="card-body">
 
                 <data-table :resource="resource">
-                    <tr slot="heading">
+                    <tr slot="heading" slot-scope="{ sortBy, getSortIcon, getSortClass }">
                         <th>#</th>
-                        <th>Producto</th>
-                        <th >Categoría</th>
-                        <th class="text-center">Unidad</th>
-                        <th class="text-center">Unidades físicas vendidas</th>
-                        <th class="text-center">Costo unitario</th>
-                        <th class="text-center">Valor de ventas</th>
-                        <th class="text-center">Costo de producto</th>
-                        <th class="text-center">Unidad valorizada</th>
+                        <th :class="getSortClass('item_description')" @click="sortBy('item_description')">Producto <i :class="getSortIcon('item_description')"></i></th>
+                        <th :class="getSortClass('category_description')" @click="sortBy('category_description')">Categoría <i :class="getSortIcon('category_description')"></i></th>
+                        <th class="text-center" :class="getSortClass('unit_type_id')" @click="sortBy('unit_type_id')">Unidad <i :class="getSortIcon('unit_type_id')"></i></th>
+                        <th class="text-center" :class="getSortClass('quantity_sale')" @click="sortBy('quantity_sale')">Unidades físicas vendidas <i :class="getSortIcon('quantity_sale')"></i></th>
+                        <th class="text-center" :class="getSortClass('purchase_unit_price')" @click="sortBy('purchase_unit_price')">Costo unitario <i :class="getSortIcon('purchase_unit_price')"></i></th>
+                        <th class="text-center" :class="getSortClass('total_sales')" @click="sortBy('total_sales')">Valor de ventas <i :class="getSortIcon('total_sales')"></i></th>
+                        <th class="text-center" :class="getSortClass('item_cost')" @click="sortBy('item_cost')">Costo de producto <i :class="getSortIcon('item_cost')"></i></th>
+                        <th class="text-center" :class="getSortClass('valued_unit')" @click="sortBy('valued_unit')">Unidad valorizada <i :class="getSortIcon('valued_unit')"></i></th>
                     <tr>
                     <tr slot-scope="{ index, row }">
                         <td>{{ index }}</td>

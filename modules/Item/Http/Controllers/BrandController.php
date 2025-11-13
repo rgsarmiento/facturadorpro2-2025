@@ -28,8 +28,17 @@ class BrandController extends Controller
 
     public function records(Request $request)
     {
-        $records = Brand::where($request->column, 'like', "%{$request->value}%")
-                            ->latest();
+        $records = Brand::where($request->column, 'like', "%{$request->value}%");
+
+        // Aplicar ordenamiento si se especifica
+        if ($request->has('sort_column') && $request->sort_column) {
+            $sortColumn = $request->sort_column;
+            $sortDirection = $request->sort_direction ?? 'asc';
+            $sortDirection = in_array($sortDirection, ['asc', 'desc']) ? $sortDirection : 'asc';
+            $records = $records->orderBy($sortColumn, $sortDirection);
+        } else {
+            $records = $records->latest();
+        }
 
         return new BrandCollection($records->paginate(config('tenant.items_per_page')));
     }
@@ -80,7 +89,7 @@ class BrandController extends Controller
 
 
     /**
-     * 
+     *
      * Busqueda de registros por coincidencia o id, data inicial,  para componente
      *
      * @param  Request $request

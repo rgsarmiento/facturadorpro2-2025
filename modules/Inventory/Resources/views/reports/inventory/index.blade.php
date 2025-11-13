@@ -92,11 +92,11 @@
                                 <thead class="">
                                     <tr>
                                         <th>#</th>
-                                        <th>Descripción</th>
-                                        <th>Inventario actual</th>
-                                        <th>Precio de venta</th>
-                                        <th>Costo</th>
-                                        <th>Almacén</th>
+                                        <th class="@if(request()->sort_column == 'item_description') sorting sorting-active @else sorting @endif" onclick="sortTable('item_description')" style="cursor: pointer;">Descripción <i class="@if(request()->sort_column == 'item_description') @if(request()->sort_direction == 'asc') el-icon-caret-top @else el-icon-caret-bottom @endif @else el-icon-d-caret @endif" style="margin-left: 5px;"></i></th>
+                                        <th class="@if(request()->sort_column == 'stock') sorting sorting-active @else sorting @endif text-right" onclick="sortTable('stock')" style="cursor: pointer;">Inventario actual <i class="@if(request()->sort_column == 'stock') @if(request()->sort_direction == 'asc') el-icon-caret-top @else el-icon-caret-bottom @endif @else el-icon-d-caret @endif" style="margin-left: 5px;"></i></th>
+                                        <th class="@if(request()->sort_column == 'sale_unit_price') sorting sorting-active @else sorting @endif text-right" onclick="sortTable('sale_unit_price')" style="cursor: pointer;">Precio de venta <i class="@if(request()->sort_column == 'sale_unit_price') @if(request()->sort_direction == 'asc') el-icon-caret-top @else el-icon-caret-bottom @endif @else el-icon-d-caret @endif" style="margin-left: 5px;"></i></th>
+                                        <th class="@if(request()->sort_column == 'purchase_unit_price') sorting sorting-active @else sorting @endif text-right" onclick="sortTable('purchase_unit_price')" style="cursor: pointer;">Costo <i class="@if(request()->sort_column == 'purchase_unit_price') @if(request()->sort_direction == 'asc') el-icon-caret-top @else el-icon-caret-bottom @endif @else el-icon-d-caret @endif" style="margin-left: 5px;"></i></th>
+                                        <th class="@if(request()->sort_column == 'warehouse_description') sorting sorting-active @else sorting @endif" onclick="sortTable('warehouse_description')" style="cursor: pointer;">Almacén <i class="@if(request()->sort_column == 'warehouse_description') @if(request()->sort_direction == 'asc') el-icon-caret-top @else el-icon-caret-bottom @endif @else el-icon-d-caret @endif" style="margin-left: 5px;"></i></th>
 
                                         <th class="text-right">
                                             Precio de venta Global
@@ -156,6 +156,64 @@
 
                                 </tbody>
                             </table>
+                            <style>
+                                th.sorting {
+                                    cursor: pointer;
+                                }
+
+                                th.sorting:hover {
+                                    background-color: #f5f5f5;
+                                }
+
+                                th.sorting-active {
+                                    background-color: #e8f4f8;
+                                    font-weight: bold;
+                                }
+                            </style>
+                            <script>
+                                function sortTable(column) {
+                                    const currentSort = '{{ request()->sort_column }}';
+                                    const currentDirection = '{{ request()->sort_direction }}';
+                                    const newDirection = (currentSort === column && currentDirection === 'asc') ? 'desc' : 'asc';
+
+                                    const form = document.createElement('form');
+                                    form.method = 'GET';
+                                    form.action = '{{ route("reports.inventory.index") }}';
+
+                                    const warehouseInput = document.createElement('input');
+                                    warehouseInput.type = 'hidden';
+                                    warehouseInput.name = 'warehouse_id';
+                                    warehouseInput.value = '{{ request()->warehouse_id ?? "all" }}';
+                                    form.appendChild(warehouseInput);
+
+                                    const filterInput = document.createElement('input');
+                                    filterInput.type = 'hidden';
+                                    filterInput.name = 'filter';
+                                    filterInput.value = '{{ request()->filter ?? "" }}';
+                                    form.appendChild(filterInput);
+
+                                    const dateInput = document.createElement('input');
+                                    dateInput.type = 'hidden';
+                                    dateInput.name = 'date';
+                                    dateInput.value = '{{ request()->date ?? "" }}';
+                                    form.appendChild(dateInput);
+
+                                    const sortColumnInput = document.createElement('input');
+                                    sortColumnInput.type = 'hidden';
+                                    sortColumnInput.name = 'sort_column';
+                                    sortColumnInput.value = column;
+                                    form.appendChild(sortColumnInput);
+
+                                    const sortDirectionInput = document.createElement('input');
+                                    sortDirectionInput.type = 'hidden';
+                                    sortDirectionInput.name = 'sort_direction';
+                                    sortDirectionInput.value = newDirection;
+                                    form.appendChild(sortDirectionInput);
+
+                                    document.body.appendChild(form);
+                                    form.submit();
+                                }
+                            </script>
                             Total {{$reports->total()}}
                             <label class="pagination-wrapper ml-2">
                                 {{$reports->appends($_GET)->render()}}

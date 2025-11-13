@@ -21,7 +21,7 @@ use App\CoreFacturalo\Requests\Inputs\Common\PersonInput;
 use App\Models\Tenant\Establishment;
 use Illuminate\Support\Facades\DB;
 use App\Models\Tenant\Company;
-use Modules\Finance\Traits\FinanceTrait; 
+use Modules\Finance\Traits\FinanceTrait;
 use Modules\Factcolombia1\Models\Tenant\{
     Currency,
 };
@@ -55,8 +55,23 @@ class ExpenseController extends Controller
     public function records(Request $request)
     {
         $records = Expense::where($request->column, 'like', "%{$request->value}%")
-                            ->whereTypeUser()
-                            ->latest();
+                            ->whereTypeUser();
+
+        // Aplicar ordenamiento
+        if ($request->has('sort_column') && $request->sort_column) {
+            $sortColumn = $request->sort_column;
+            $sortDirection = $request->sort_direction ?? 'asc';
+            $sortDirection = in_array($sortDirection, ['asc', 'desc']) ? $sortDirection : 'asc';
+
+            $numericColumns = ['total'];
+            if (in_array($sortColumn, $numericColumns)) {
+                $records = $records->orderByRaw("CAST({$sortColumn} AS DECIMAL(10,2)) {$sortDirection}");
+            } else {
+                $records = $records->orderBy($sortColumn, $sortDirection);
+            }
+        } else {
+            $records = $records->latest();
+        }
 
         return new ExpenseCollection($records->paginate(config('tenant.items_per_page')));
     }
@@ -98,7 +113,7 @@ class ExpenseController extends Controller
             foreach ($data['payments'] as $row)
             {
                 $record_payment = $doc->payments()->create($row);
-                
+
                 if($row['expense_method_type_id'] == 1){
                     $row['payment_destination_id'] = 'cash';
                 }

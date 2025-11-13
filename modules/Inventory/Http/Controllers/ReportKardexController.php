@@ -145,6 +145,21 @@ class ReportKardexController extends Controller
 
         $records = $this->data($item_id, $date_start, $date_end);
 
+        // Apply sorting if provided
+        if (isset($request['sort_column']) && $request['sort_column']) {
+            $sortColumn = $request['sort_column'];
+            $sortDirection = isset($request['sort_direction']) && in_array($request['sort_direction'], ['asc', 'desc']) ? $request['sort_direction'] : 'asc';
+
+            // Numeric columns that should be sorted as numbers
+            $numericColumns = ['input', 'output', 'balance'];
+
+            if (in_array($sortColumn, $numericColumns)) {
+                $records = $records->orderByRaw("CAST({$sortColumn} AS DECIMAL(10,2)) {$sortDirection}");
+            } else {
+                $records = $records->orderBy($sortColumn, $sortDirection);
+            }
+        }
+
         return $records;
 
     }

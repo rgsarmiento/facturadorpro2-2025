@@ -33,6 +33,8 @@ trait ReportDocumentTrait
         $type_person = $request['type_person'];
         $seller_id = $request['seller_id'];
         $state_type_id = $request['state_type_id'];
+        $sort_column = $request['sort_column'] ?? null;
+        $sort_direction = $request['sort_direction'] ?? 'asc';
 
 
         $d_start = null;
@@ -59,14 +61,14 @@ trait ReportDocumentTrait
                 break;
         }
 
-        $records = $this->data($document_type_id, $establishment_id, $d_start, $d_end, $person_id, $type_person, $model, $seller_id, $state_type_id);
+        $records = $this->data($document_type_id, $establishment_id, $d_start, $d_end, $person_id, $type_person, $model, $seller_id, $state_type_id, $sort_column, $sort_direction);
 
         return $records;
 
     }
 
 
-    private function data($document_type_id, $establishment_id, $date_start, $date_end, $person_id, $type_person, $model, $seller_id, $state_type_id)
+    private function data($document_type_id, $establishment_id, $date_start, $date_end, $person_id, $type_person, $model, $seller_id, $state_type_id, $sort_column = null, $sort_direction = 'asc')
     {
         // Debug: Log básico de parámetros
         \Log::info('ReportDocumentTrait - Search params:', [
@@ -78,21 +80,21 @@ trait ReportDocumentTrait
         if($document_type_id && $establishment_id){
 
             $data = $model::where([['establishment_id', $establishment_id],['type_document_id', $document_type_id]])
-                                ->whereBetween('date_of_issue', [$date_start, $date_end])->latest()->whereTypeUser();
+                                ->whereBetween('date_of_issue', [$date_start, $date_end])->whereTypeUser();
 
         }elseif($document_type_id){
 
-            $data = $model::whereBetween('date_of_issue', [$date_start, $date_end])->latest()
+            $data = $model::whereBetween('date_of_issue', [$date_start, $date_end])
                                 ->where('type_document_id', $document_type_id)->whereTypeUser();
 
         }elseif($establishment_id){
 
-            $data = $model::whereBetween('date_of_issue', [$date_start, $date_end])->latest()
+            $data = $model::whereBetween('date_of_issue', [$date_start, $date_end])
                                 ->where('establishment_id', $establishment_id)->whereTypeUser();
                                 // ->where('establishment_id', 'like', '%' . $establishment_id . '%')->whereTypeUser();
 
         }else{
-            $data = $model::whereBetween('date_of_issue', [$date_start, $date_end])->latest()->whereTypeUser();
+            $data = $model::whereBetween('date_of_issue', [$date_start, $date_end])->whereTypeUser();
         }
 
         if($person_id && $type_person){
@@ -109,6 +111,22 @@ trait ReportDocumentTrait
 
         if($state_type_id){
             $data =  $data->where('state_type_id', $state_type_id);
+        }
+
+        // Aplicar ordenamiento
+        if ($sort_column) {
+            $sort_direction = in_array($sort_direction, ['asc', 'desc']) ? $sort_direction : 'asc';
+
+            // Columnas numéricas que deben ordenarse como números
+            $numericColumns = ['total'];
+
+            if (in_array($sort_column, $numericColumns)) {
+                $data = $data->orderByRaw("CAST({$sort_column} AS DECIMAL(10,2)) {$sort_direction}");
+            } else {
+                $data = $data->orderBy($sort_column, $sort_direction);
+            }
+        } else {
+            $data = $data->latest();
         }
 
         // Debug: Log del query SQL y conteo

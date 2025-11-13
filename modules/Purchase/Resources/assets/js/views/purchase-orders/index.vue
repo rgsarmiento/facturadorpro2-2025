@@ -20,23 +20,35 @@
     <div class="card mb-0">
       <div class="card-body">
         <data-table :resource="resource">
-          <tr slot="heading">
+          <tr slot="heading" slot-scope="{ sortBy, getSortIcon, getSortClass }">
             <th>#</th>
-            <th class="text-center">F. Emisión</th>
-            <th class="text-center">F. Vencimiento</th>
-            <th>Proveedor</th>
+            <th class="text-center" :class="getSortClass('date_of_issue')" @click="sortBy('date_of_issue')">
+              F. Emisión <i :class="getSortIcon('date_of_issue')"></i>
+            </th>
+            <th class="text-center" :class="getSortClass('date_of_due')" @click="sortBy('date_of_due')">
+              F. Vencimiento <i :class="getSortIcon('date_of_due')"></i>
+            </th>
+            <th :class="getSortClass('supplier_name')" @click="sortBy('supplier_name')">
+              Proveedor <i :class="getSortIcon('supplier_name')"></i>
+            </th>
             <!-- <th>Estado</th> -->
-            <th>O. Compra</th>
+            <th :class="getSortClass('number')" @click="sortBy('number')">
+              O. Compra <i :class="getSortIcon('number')"></i>
+            </th>
             <th>O. Venta</th>
             <!-- <th>F. Pago</th> -->
-            <th class="text-center">Moneda</th>
+            <th class="text-center" :class="getSortClass('currency_type_id')" @click="sortBy('currency_type_id')">
+              Moneda <i :class="getSortIcon('currency_type_id')"></i>
+            </th>
             <!-- <th class="text-right">T.Gratuita</th>
             <th class="text-right">T.Inafecta</th>
             <th class="text-right">T.Exonerado</th> -->
             <!-- <th class="text-right">T.Gravado</th>
             <th class="text-right">T.Igv</th> -->
             <!-- <th>Percepcion</th> -->
-            <th class="text-right">Total</th>
+            <th class="text-right" :class="getSortClass('total')" @click="sortBy('total')">
+              Total <i :class="getSortIcon('total')"></i>
+            </th>
             <th class="text-center">Descarga</th>
             <th class="text-right">Acciones</th>
           </tr>
@@ -70,13 +82,13 @@
             <td class="text-right">{{ row.total_igv }}</td> -->
             <!-- <td class="text-right">{{ row.total_perception ? row.total_perception : 0 }}</td> -->
             <td class="text-right">{{ row.total }}</td>
-            
-                        <td class="text-center"> 
+
+                        <td class="text-center">
 
                             <button type="button" class="btn waves-effect waves-light btn-xs btn-info"
                                     @click.prevent="clickDownload(row.external_id)">PDF</button>
                         </td>
-                        
+
             <td class="text-right">
               <!-- <el-button
                 @click.prevent="clickOptions(row.id)"
@@ -98,15 +110,15 @@
               <!-- <button type="button" v-if="!row.has_purchases && row.state_type_id!='11'" class="btn waves-effect waves-light btn-xs btn-success m-1__2"
                       @click.prevent="clickGenerateDocument(row.id)">Generar compra</button> -->
 
-                      
-              <a :href="`/purchases/create/${row.id}`" class="btn waves-effect waves-light btn-xs btn-success m-1__2"  
+
+              <a :href="`/purchases/create/${row.id}`" class="btn waves-effect waves-light btn-xs btn-success m-1__2"
                       v-if="!row.has_purchases && row.state_type_id!='11'">Generar compra</a>
 
               <button type="button" v-if="!row.has_purchases && row.state_type_id!='11'" class="btn waves-effect waves-light btn-xs btn-danger m-1__2"
                       @click.prevent="clickAnulate(row.id)">Anular</button>
 
               <button type="button" class="btn waves-effect waves-light btn-xs btn-info m-1__2"
-                      @click.prevent="clickOptions(row.id)">Opciones</button>  
+                      @click.prevent="clickOptions(row.id)">Opciones</button>
             </td>
           </tr>
         </data-table>
@@ -121,7 +133,7 @@
         :showClose="true"
       ></document-generate> -->
 
-      
+
         <purchase-options :showDialog.sync="showDialogOptions"
                           :recordId="recordId"
                           :showClose="true"></purchase-options>
@@ -161,7 +173,7 @@ export default {
             this.showDialogVoided = true;
           },
                   clickDownload(external_id) {
-                      window.open(`/${this.resource}/download/${external_id}`, '_blank');                
+                      window.open(`/${this.resource}/download/${external_id}`, '_blank');
                   },
           clickGenerateDocument(recordId) {
             this.recordId = recordId;
@@ -175,7 +187,7 @@ export default {
           clickOptions(recordId = null) {
               this.recordId = recordId
               this.showDialogOptions = true
-          },  
+          },
     }
 };
 </script>

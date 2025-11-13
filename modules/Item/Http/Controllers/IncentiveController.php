@@ -16,14 +16,14 @@ class IncentiveController extends Controller
     {
         return view('item::incentives.index');
     }
- 
+
     public function columns()
     {
         return [
             'name' => 'Nombre',
             'internal_id' => 'Código interno',
             'brand' => 'Marca',
-            'category' => 'Categoría', 
+            'category' => 'Categoría',
         ];
     }
 
@@ -32,9 +32,25 @@ class IncentiveController extends Controller
 
         $records = $this->getRecords($request);
 
+        // Aplicar ordenamiento
+        if ($request->has('sort_column') && $request->sort_column) {
+            $sortColumn = $request->sort_column;
+            $sortDirection = $request->sort_direction ?? 'asc';
+            $sortDirection = in_array($sortDirection, ['asc', 'desc']) ? $sortDirection : 'asc';
+
+            // Columnas numéricas que deben ordenarse como números
+            $numericColumns = ['commission_amount'];
+
+            if (in_array($sortColumn, $numericColumns)) {
+                $records = $records->orderByRaw("CAST({$sortColumn} AS DECIMAL(10,2)) {$sortDirection}");
+            } else {
+                $records = $records->orderBy($sortColumn, $sortDirection);
+            }
+        }
+
         return new IncentiveCollection($records->paginate(config('tenant.items_per_page')));
     }
-  
+
     public function getRecords($request){
 
         switch ($request->column) {
@@ -58,7 +74,7 @@ class IncentiveController extends Controller
                 break;
 
             default:
-                        
+
                 $records = Item::whereTypeUser()
                                 ->whereNotIsSet()
                                 ->where($request->column, 'like', "%{$request->value}%")
@@ -110,7 +126,7 @@ class IncentiveController extends Controller
         ];
 
     }
- 
+
 
 
 }

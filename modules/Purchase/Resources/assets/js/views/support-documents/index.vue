@@ -15,41 +15,55 @@
             </div>
             <div class="card-body">
                 <data-table :resource="resource">
-                    <tr slot="heading" width="100%">
+                    <tr slot="heading" slot-scope="{ sortBy, getSortIcon, getSortClass }" width="100%">
                         <th>#</th>
-                        <th>Fecha</th>
-                        <th>Proveedor</th>
-                        <th>Tipo</th>
-                        <th class="text-center">Documento</th>
-                        <th class="text-center">Estado</th>
+                        <th :class="getSortClass('date_of_issue')" @click="sortBy('date_of_issue')">
+                            Fecha <i :class="getSortIcon('date_of_issue')"></i>
+                        </th>
+                        <th :class="getSortClass('supplier_full_name')" @click="sortBy('supplier_full_name')">
+                            Proveedor <i :class="getSortIcon('supplier_full_name')"></i>
+                        </th>
+                        <th :class="getSortClass('type_document_name')" @click="sortBy('type_document_name')">
+                            Tipo <i :class="getSortIcon('type_document_name')"></i>
+                        </th>
+                        <th class="text-center" :class="getSortClass('number_full')" @click="sortBy('number_full')">
+                            Documento <i :class="getSortIcon('number_full')"></i>
+                        </th>
+                        <th class="text-center" :class="getSortClass('state_document_name')" @click="sortBy('state_document_name')">
+                            Estado <i :class="getSortIcon('state_document_name')"></i>
+                        </th>
                         <th>Documentos relacionados</th>
-                        <th class="text-center">Moneda</th>
-                        <th class="text-center">Total</th>
+                        <th class="text-center" :class="getSortClass('currency_type_id')" @click="sortBy('currency_type_id')">
+                            Moneda <i :class="getSortIcon('currency_type_id')"></i>
+                        </th>
+                        <th class="text-center" :class="getSortClass('total')" @click="sortBy('total')">
+                            Total <i :class="getSortIcon('total')"></i>
+                        </th>
                         <th class="text-right">Acciones</th>
                     <tr>
                     <tr slot-scope="{ index, row }">
                         <td>{{ index }}</td>
                         <td>{{ row.date_of_issue }}</td>
-                        <td>{{ row.supplier_full_name }}</td>  
-                        <td>{{ row.type_document_name }}</td>  
-                        <td class="text-center">{{ row.number_full }}</td>  
+                        <td>{{ row.supplier_full_name }}</td>
+                        <td>{{ row.type_document_name }}</td>
+                        <td class="text-center">{{ row.number_full }}</td>
                         <td class="text-center">
                             <template v-if="row.state_document_id">
                                 <span class="badge bg-secondary text-white" :class="{'bg-secondary': (row.state_document_id === 1), 'bg-success': (row.state_document_id === 5), 'bg-dark': (row.state_document_id === 6)}">
                                     {{ row.state_document_name }}
                                 </span>
                             </template>
-                        </td>  
+                        </td>
                         <td>
                             <template v-for="(item, index) in row.support_document_relateds">
                                 <span class="ml-1" :key="index">
-                                    {{ item.number_full }} 
+                                    {{ item.number_full }}
                                     <br>
                                 </span>
                             </template>
-                        </td>  
-                        <td class="text-center">{{ row.currency_name }}</td> 
-                        <td class="text-center">{{ row.total }}</td> 
+                        </td>
+                        <td class="text-center">{{ row.currency_name }}</td>
+                        <td class="text-center">{{ row.total }}</td>
                         <td class="text-right">
 
                             <template v-if="!row.is_adjust_note">
@@ -63,8 +77,8 @@
                 </data-table>
             </div>
 
-            <support-document-options 
-                :showDialog.sync="showDialogOptions"     
+            <support-document-options
+                :showDialog.sync="showDialogOptions"
                 :recordId="recordId"
                 :showClose="true">
             </support-document-options>
@@ -74,15 +88,15 @@
 </template>
 <script>
 
-    import SupportDocumentOptions from './partials/options.vue' 
+    import SupportDocumentOptions from './partials/options.vue'
     import DataTable from '@components/DataTableResource.vue'
     import {deletable} from '@mixins/deletable'
 
     export default {
         mixins: [deletable],
-        components: { 
-            DataTable, 
-            SupportDocumentOptions, 
+        components: {
+            DataTable,
+            SupportDocumentOptions,
         },
         data() {
             return {
@@ -94,13 +108,13 @@
                 loading: false,
             }
         },
-        created() { 
+        created() {
         },
-        methods: { 
+        methods: {
             clickOptions(recordId) {
                 this.recordId = recordId
                 this.showDialogOptions = true
-            },  
+            },
         }
     }
 </script>

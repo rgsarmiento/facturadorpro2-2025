@@ -33,8 +33,18 @@ class TagController extends Controller
 
     public function records(Request $request)
     {
-        $records = Tag::where($request->column, 'like', "%{$request->value}%")->orderBy('description');
-        
+        $records = Tag::where($request->column, 'like', "%{$request->value}%");
+
+        // Aplicar ordenamiento
+        if ($request->has('sort_column') && $request->sort_column) {
+            $sortColumn = $request->sort_column;
+            $sortDirection = $request->sort_direction ?? 'asc';
+            $sortDirection = in_array($sortDirection, ['asc', 'desc']) ? $sortDirection : 'asc';
+            $records = $records->orderBy($sortColumn, $sortDirection);
+        } else {
+            $records = $records->orderBy('description');
+        }
+
         return new TagCollection($records->paginate(config('tenant.items_per_page')));
     }
 
@@ -63,7 +73,7 @@ class TagController extends Controller
             'id' => $person->id
         ];
     }
-    
+
     public function destroy($id)
     {
         //return 'sd';
@@ -82,10 +92,10 @@ class TagController extends Controller
 
 
 
-  
 
 
- 
+
+
 
 
 

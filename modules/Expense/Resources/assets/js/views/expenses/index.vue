@@ -12,15 +12,23 @@
         <div class="card mb-0">
             <div class="card-body">
                 <data-table :resource="resource">
-                    <tr slot="heading">
+                    <tr slot="heading" slot-scope="{ sortBy, getSortIcon, getSortClass }">
                         <th>#</th>
-                        <th class="text-center">Fecha Emisión</th>
-                        <th>Proveedor</th>
-                        <th>Número</th>
+                        <th class="text-center" :class="getSortClass('date_of_issue')" @click="sortBy('date_of_issue')">
+                            Fecha Emisión <i :class="getSortIcon('date_of_issue')"></i>
+                        </th>
+                        <th :class="getSortClass('supplier_id')" @click="sortBy('supplier_id')">
+                            Proveedor <i :class="getSortIcon('supplier_id')"></i>
+                        </th>
+                        <th :class="getSortClass('number')" @click="sortBy('number')">
+                            Número <i :class="getSortIcon('number')"></i>
+                        </th>
                         <th>Motivo</th>
                         <th class="text-center">Pagos</th>
                         <th class="text-center">Moneda</th>
-                        <th class="text-right">Total</th>
+                        <th class="text-right" :class="getSortClass('total')" @click="sortBy('total')">
+                            Total <i :class="getSortIcon('total')"></i>
+                        </th>
                         <th class="text-center">Dist. Gasto</th>
                     <tr>
                     <tr slot-scope="{ index, row }" :class="{'text-danger': (row.state_type_id === '11'), 'text-warning': (row.state_type_id === '13'), 'border-light': (row.state_type_id === '01'), 'border-left border-info': (row.state_type_id === '03'), 'border-left border-success': (row.state_type_id === '05'), 'border-left border-secondary': (row.state_type_id === '07'), 'border-left border-dark': (row.state_type_id === '09'), 'border-left border-danger': (row.state_type_id === '11'), 'border-left border-warning': (row.state_type_id === '13')}">

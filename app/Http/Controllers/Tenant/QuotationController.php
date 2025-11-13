@@ -112,15 +112,29 @@ class QuotationController extends Controller
             $records = Quotation::whereHas('user', function($query) use($request){
                             $query->where('name', 'like', "%{$request->value}%");
                         })
-                        ->whereTypeUser()
-                        ->latest();
+                        ->whereTypeUser();
 
         }else{
 
             $records = Quotation::where($request->column, 'like', "%{$request->value}%")
-                                ->whereTypeUser()
-                                ->latest();
+                                ->whereTypeUser();
 
+        }
+
+        // Aplicar ordenamiento
+        if ($request->has('sort_column') && $request->sort_column) {
+            $sortColumn = $request->sort_column;
+            $sortDirection = $request->sort_direction ?? 'asc';
+            $sortDirection = in_array($sortDirection, ['asc', 'desc']) ? $sortDirection : 'asc';
+
+            $numericColumns = ['total'];
+            if (in_array($sortColumn, $numericColumns)) {
+                $records = $records->orderByRaw("CAST({$sortColumn} AS DECIMAL(10,2)) {$sortDirection}");
+            } else {
+                $records = $records->orderBy($sortColumn, $sortDirection);
+            }
+        } else {
+            $records = $records->latest();
         }
 
         return $records;

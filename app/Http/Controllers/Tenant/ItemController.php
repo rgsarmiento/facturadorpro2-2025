@@ -128,13 +128,13 @@ class ItemController extends Controller
         if ($request->has('sort_column') && $request->sort_column) {
             $sortColumn = $request->sort_column;
             $sortDirection = $request->sort_direction ?? 'asc';
-            
+
             // Validar dirección
             $sortDirection = in_array($sortDirection, ['asc', 'desc']) ? $sortDirection : 'asc';
-            
+
             // Campos numéricos que deben ordenarse como números
             $numericColumns = ['stock', 'sale_unit_price', 'purchase_unit_price'];
-            
+
             if (in_array($sortColumn, $numericColumns)) {
                 // Ordenar como número usando CAST
                 $records = $records->orderByRaw("CAST({$sortColumn} AS DECIMAL(10,2)) {$sortDirection}");

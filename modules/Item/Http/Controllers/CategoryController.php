@@ -28,8 +28,17 @@ class CategoryController extends Controller
 
     public function records(Request $request)
     {
-        $records = Category::where($request->column, 'like', "%{$request->value}%")
-                            ->latest();
+        $records = Category::where($request->column, 'like', "%{$request->value}%");
+
+        // Aplicar ordenamiento si se especifica
+        if ($request->has('sort_column') && $request->sort_column) {
+            $sortColumn = $request->sort_column;
+            $sortDirection = $request->sort_direction ?? 'asc';
+            $sortDirection = in_array($sortDirection, ['asc', 'desc']) ? $sortDirection : 'asc';
+            $records = $records->orderBy($sortColumn, $sortDirection);
+        } else {
+            $records = $records->latest();
+        }
 
         return new CategoryCollection($records->paginate(config('tenant.items_per_page')));
     }

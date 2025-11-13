@@ -6,16 +6,32 @@
         <div class="card mb-0">
             <div class="card-body">
                 <data-table :applyCustomer="true" :resource="resource">
-                    <tr slot="heading">
+                    <tr slot="heading" slot-scope="{ sortBy, getSortIcon, getSortClass }">
                         <th class="">#</th>
-                        <th class="">Usuario/Vendedor</th>
-                        <th class="">Tipo Documento</th>
-                        <th class="text-center">Documento</th>
-                        <th class="text-center">Fecha emisión</th>
-                        <th class="">Cliente</th>
-                        <th class="text-center">Estado</th>
-                        <th class="text-center">Moneda</th>
-                        <th class="text-right">Total</th>
+                        <th class="" :class="getSortClass('user_name')" @click="sortBy('user_name')">
+                            Usuario/Vendedor <i :class="getSortIcon('user_name')"></i>
+                        </th>
+                        <th class="" :class="getSortClass('document_type_description')" @click="sortBy('document_type_description')">
+                            Tipo Documento <i :class="getSortIcon('document_type_description')"></i>
+                        </th>
+                        <th class="text-center" :class="getSortClass('number_full')" @click="sortBy('number_full')">
+                            Documento <i :class="getSortIcon('number_full')"></i>
+                        </th>
+                        <th class="text-center" :class="getSortClass('date_of_issue')" @click="sortBy('date_of_issue')">
+                            Fecha emisión <i :class="getSortIcon('date_of_issue')"></i>
+                        </th>
+                        <th class="" :class="getSortClass('customer_name')" @click="sortBy('customer_name')">
+                            Cliente <i :class="getSortIcon('customer_name')"></i>
+                        </th>
+                        <th class="text-center" :class="getSortClass('state_type_description')" @click="sortBy('state_type_description')">
+                            Estado <i :class="getSortIcon('state_type_description')"></i>
+                        </th>
+                        <th class="text-center" :class="getSortClass('currency_type_id')" @click="sortBy('currency_type_id')">
+                            Moneda <i :class="getSortIcon('currency_type_id')"></i>
+                        </th>
+                        <th class="text-right" :class="getSortClass('total')" @click="sortBy('total')">
+                            Total <i :class="getSortIcon('total')"></i>
+                        </th>
                     <tr>
                     <tr slot-scope="{ index, row }">
                         <td>{{ index }}</td>

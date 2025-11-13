@@ -47,12 +47,24 @@ class TransferController extends Controller
     {
         if($request->column)
         {
-            $records = InventoryTransfer::with(['warehouse','warehouse_destination', 'inventory'])->where('created_at', 'like', "%{$request->value}%")->latest();
+            $records = InventoryTransfer::with(['warehouse','warehouse_destination', 'inventory'])->where('created_at', 'like', "%{$request->value}%");
         }
         else{
-            $records = InventoryTransfer::with(['warehouse','warehouse_destination', 'inventory'])->latest();
+            $records = InventoryTransfer::with(['warehouse','warehouse_destination', 'inventory']);
 
         }
+
+        // Aplicar ordenamiento
+        if ($request->has('sort_column') && $request->sort_column) {
+            $sortColumn = $request->sort_column;
+            $sortDirection = $request->sort_direction ?? 'asc';
+            $sortDirection = in_array($sortDirection, ['asc', 'desc']) ? $sortDirection : 'asc';
+
+            $records = $records->orderBy($sortColumn, $sortDirection);
+        } else {
+            $records = $records->latest();
+        }
+
         //return json_encode( $records );
         /*$records = Inventory::with(['item', 'warehouse', 'warehouse_destination'])
                             ->where('type', 2)

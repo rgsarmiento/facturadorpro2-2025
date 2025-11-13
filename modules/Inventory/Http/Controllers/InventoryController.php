@@ -52,8 +52,7 @@ class InventoryController extends Controller
                             })
                             ->whereHas('warehouse', function($query) use($request) {
                                 $query->where('description', 'like', '%' . $request->value . '%');
-                            })
-                            ->orderBy('item_id');
+                            });
 
         }else{
 
@@ -62,8 +61,25 @@ class InventoryController extends Controller
                                 $query->where('unit_type_id', '!=','ZZ');
                                 $query->whereNotIsSet();
                                 $query->where($request->column, 'like', '%' . $request->value . '%');
-                            })->orderBy('item_id');
+                            });
+        }
 
+        // Aplicar ordenamiento
+        if ($request->has('sort_column') && $request->sort_column) {
+            $sortColumn = $request->sort_column;
+            $sortDirection = $request->sort_direction ?? 'asc';
+            $sortDirection = in_array($sortDirection, ['asc', 'desc']) ? $sortDirection : 'asc';
+
+            // Columnas numéricas que deben ordenarse como números
+            $numericColumns = ['stock'];
+
+            if (in_array($sortColumn, $numericColumns)) {
+                $records = $records->orderByRaw("CAST({$sortColumn} AS DECIMAL(10,2)) {$sortDirection}");
+            } else {
+                $records = $records->orderBy($sortColumn, $sortDirection);
+            }
+        } else {
+            $records = $records->orderBy('item_id');
         }
 
         return new InventoryCollection($records->paginate(config('tenant.items_per_page')));

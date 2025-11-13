@@ -57,8 +57,18 @@ class PurchaseQuotationController extends Controller
     public function records(Request $request)
     {
         $records = PurchaseQuotation::where($request->column, 'like', "%{$request->value}%")
-                            ->whereTypeUser()
-                            ->latest();
+                            ->whereTypeUser();
+
+        // Aplicar ordenamiento
+        if ($request->has('sort_column') && $request->sort_column) {
+            $sortColumn = $request->sort_column;
+            $sortDirection = $request->sort_direction ?? 'asc';
+            $sortDirection = in_array($sortDirection, ['asc', 'desc']) ? $sortDirection : 'asc';
+
+            $records = $records->orderBy($sortColumn, $sortDirection);
+        } else {
+            $records = $records->latest();
+        }
 
         return new PurchaseQuotationCollection($records->paginate(config('tenant.items_per_page')));
     }

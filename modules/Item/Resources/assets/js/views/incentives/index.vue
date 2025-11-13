@@ -5,7 +5,7 @@
             <ol class="breadcrumbs">
                 <li class="active"><span>Comisiones</span></li>
             </ol>
-            <div class="right-wrapper pull-right"> 
+            <div class="right-wrapper pull-right">
             </div>
         </div>
         <div class="card mb-0">
@@ -14,18 +14,24 @@
             </div>
             <div class="card-body">
                 <data-table :resource="resource">
-                    <tr slot="heading" width="100%">
+                    <tr slot="heading" slot-scope="{ sortBy, getSortIcon, getSortClass }" width="100%">
                         <th>#</th>
                         <!-- <th>Cód. Interno</th> -->
-                        <th>Producto</th> 
-                        <th>Tipo</th> 
-                        <th>Comisión</th>
+                        <th :class="getSortClass('full_description')" @click="sortBy('full_description')">
+                            Producto <i :class="getSortIcon('full_description')"></i>
+                        </th>
+                        <th :class="getSortClass('commission_type')" @click="sortBy('commission_type')">
+                            Tipo <i :class="getSortIcon('commission_type')"></i>
+                        </th>
+                        <th :class="getSortClass('commission_amount')" @click="sortBy('commission_amount')">
+                            Comisión <i :class="getSortIcon('commission_amount')"></i>
+                        </th>
                         <th class="text-right">Acciones</th>
                     <tr>
                     <tr slot-scope="{ index, row }">
                         <td>{{ index }}</td>
                         <!-- <td>{{ row.internal_id }}</td> -->
-                        <td>{{ row.full_description }}</td> 
+                        <td>{{ row.full_description }}</td>
                         <td>{{ row.commission_type }}</td>
                         <td>{{ row.commission_amount }}</td>
                         <td class="text-right">
@@ -40,7 +46,7 @@
 
             <items-form :showDialog.sync="showDialog"
                         :recordId="recordId"></items-form>
- 
+
 
         </div>
     </div>
@@ -64,11 +70,11 @@
         },
         created() {
         },
-        methods: { 
+        methods: {
             clickCreate(recordId = null) {
                 this.recordId = recordId
                 this.showDialog = true
-            }, 
+            },
             clickDelete(id) {
                 this.destroy(`/${this.resource}/${id}`).then(() =>
                     this.$eventHub.$emit('reloadData')

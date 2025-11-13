@@ -20,18 +20,34 @@ class UserCommissionController extends Controller
         return view('sale::user-commissions.index');
     }
 
- 
+
     public function columns()
     {
         return [
             'id' => 'Número',
         ];
     }
- 
+
 
     public function records(Request $request)
     {
         $records = $this->getRecords($request);
+
+        // Aplicar ordenamiento
+        if ($request->has('sort_column') && $request->sort_column) {
+            $sortColumn = $request->sort_column;
+            $sortDirection = $request->sort_direction ?? 'asc';
+            $sortDirection = in_array($sortDirection, ['asc', 'desc']) ? $sortDirection : 'asc';
+
+            // Columnas numéricas que deben ordenarse como números
+            $numericColumns = ['amount'];
+
+            if (in_array($sortColumn, $numericColumns)) {
+                $records = $records->orderByRaw("CAST({$sortColumn} AS DECIMAL(10,2)) {$sortDirection}");
+            } else {
+                $records = $records->orderBy($sortColumn, $sortDirection);
+            }
+        }
 
         return new UserCommissionCollection($records->paginate(config('tenant.items_per_page')));
     }
@@ -39,7 +55,7 @@ class UserCommissionController extends Controller
     private function getRecords($request){
 
         if($request->column == 'customer'){
-            
+
             $records = UserCommission::whereHas('person', function($query) use($request){
                             $query->where('name', 'like', "%{$request->value}%");
                         });
@@ -47,11 +63,11 @@ class UserCommissionController extends Controller
         }else{
 
             $records = UserCommission::where($request->column, 'like', "%{$request->value}%");
-        
+
         }
-        
+
         return $records->whereTypeUser()->latest();
-    } 
+    }
 
 
     public function tables() {
@@ -68,7 +84,7 @@ class UserCommissionController extends Controller
 
         return $record;
     }
- 
+
 
     public function store(UserCommissionRequest $request) {
 
@@ -83,8 +99,8 @@ class UserCommissionController extends Controller
         ];
 
     }
- 
-  
+
+
 
     public function destroy($id)
     {

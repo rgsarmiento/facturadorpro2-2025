@@ -88,8 +88,25 @@ class PurchaseOrderController extends Controller
     public function records(Request $request)
     {
         $records = PurchaseOrder::where($request->column, 'like', "%{$request->value}%")
-                            ->whereTypeUser()
-                            ->latest();
+                            ->whereTypeUser();
+
+        // Aplicar ordenamiento
+        if ($request->has('sort_column') && $request->sort_column) {
+            $sortColumn = $request->sort_column;
+            $sortDirection = $request->sort_direction ?? 'asc';
+            $sortDirection = in_array($sortDirection, ['asc', 'desc']) ? $sortDirection : 'asc';
+
+            // Columnas numéricas que deben ordenarse como números
+            $numericColumns = ['total'];
+
+            if (in_array($sortColumn, $numericColumns)) {
+                $records = $records->orderByRaw("CAST({$sortColumn} AS DECIMAL(10,2)) {$sortDirection}");
+            } else {
+                $records = $records->orderBy($sortColumn, $sortDirection);
+            }
+        } else {
+            $records = $records->latest();
+        }
 
         return new PurchaseOrderCollection($records->paginate(config('tenant.items_per_page')));
     }
@@ -227,8 +244,8 @@ class PurchaseOrderController extends Controller
 
     public function table($table)
     {
-        switch ($table) {            
-            
+        switch ($table) {
+
             case 'taxes':
 
                 return Tax::all()->transform(function($row) {
@@ -260,7 +277,7 @@ class PurchaseOrderController extends Controller
                         'name' => $row->name,
                         'number' => $row->number,
                         'email' => $row->email,
-                        'identity_document_type_id' => $row->identity_document_type_id,                        
+                        'identity_document_type_id' => $row->identity_document_type_id,
                         'address' =>  $row->address,
                         'email' =>  $row->email,
                         'telephone' =>  $row->telephone,
@@ -343,7 +360,7 @@ class PurchaseOrderController extends Controller
         if (!$purchase_order) throw new Exception("El código {$external_id} es inválido, no se encontro la orden de compra relacionada");
 
         return Storage::disk('tenant')->download('purchase_order_attached'.DIRECTORY_SEPARATOR.$purchase_order->upload_filename);
-        
+
     }
 
     public function toPrint($external_id, $format) {

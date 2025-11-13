@@ -19,13 +19,21 @@
       </div>
       <div class="card-body">
         <data-table  :resource="resource">
-          <tr slot="heading" width="100%">
+          <tr slot="heading" width="100%" slot-scope="{ sortBy, getSortIcon, getSortClass }">
             <th>#</th>
-            <th>Codigo de Pedido</th>
-            <th>Cliente</th>
+            <th :class="getSortClass('order_id')" @click="sortBy('order_id')">
+              Codigo de Pedido <i :class="getSortIcon('order_id')"></i>
+            </th>
+            <th :class="getSortClass('customer_name')" @click="sortBy('customer_name')">
+              Cliente <i :class="getSortIcon('customer_name')"></i>
+            </th>
             <th class="text-center">Detalle Productos</th>
-            <th>Total</th>
-            <th>Fecha Emision</th>
+            <th :class="getSortClass('total')" @click="sortBy('total')">
+              Total <i :class="getSortIcon('total')"></i>
+            </th>
+            <th :class="getSortClass('date_of_issue')" @click="sortBy('date_of_issue')">
+              Fecha Emision <i :class="getSortIcon('date_of_issue')"></i>
+            </th>
             <th>Medio Pago</th>
             <th>Estado del Pedido</th>
             <th>Comprobante Electronico</th>

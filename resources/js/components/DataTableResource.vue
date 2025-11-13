@@ -39,7 +39,7 @@
                 <div class="table-responsive">
                     <table class="table">
                         <thead>
-                        <slot name="heading"></slot>
+                        <slot name="heading" :sortBy="sortBy" :getSortIcon="getSortIcon" :getSortClass="getSortClass"></slot>
                         </thead>
                         <tbody>
                         <slot v-for="(row, index) in records" :row="row" :index="customIndex(index)"></slot>
@@ -59,6 +59,35 @@
         </div>
     </div>
 </template>
+
+<style scoped>
+/* Sorting styles */
+th.sorting {
+    cursor: pointer;
+    user-select: none;
+    position: relative;
+    transition: background-color 0.2s;
+}
+
+th.sorting:hover {
+    background-color: #f5f5f5;
+}
+
+th.sorting-active {
+    background-color: #e8f4f8;
+    font-weight: 600;
+}
+
+th.sorting i {
+    margin-left: 4px;
+    font-size: 12px;
+    color: #999;
+}
+
+th.sorting-active i {
+    color: #409eff;
+}
+</style>
 
 <script>
     import moment from 'moment'
@@ -82,7 +111,11 @@
                 },
                 columns: [],
                 records: [],
-                pagination: {}
+                pagination: {},
+                sort: {
+                    column: null,
+                    direction: 'asc'
+                }
             }
         },
 
@@ -121,8 +154,32 @@
                 return queryString.stringify({
                     page: this.pagination.current_page,
                     limit: this.limit,
+                    sort_column: this.sort.column,
+                    sort_direction: this.sort.direction,
                     ...this.search
                 })
+            },
+
+            sortBy(column) {
+                if (this.sort.column === column) {
+                    this.sort.direction = this.sort.direction === 'asc' ? 'desc' : 'asc';
+                } else {
+                    this.sort.column = column;
+                    this.sort.direction = 'asc';
+                }
+                this.pagination.current_page = 1;
+                this.getRecords();
+            },
+
+            getSortIcon(column) {
+                if (this.sort.column !== column) {
+                    return 'el-icon-d-caret';
+                }
+                return this.sort.direction === 'asc' ? 'el-icon-caret-top' : 'el-icon-caret-bottom';
+            },
+
+            getSortClass(column) {
+                return this.sort.column === column ? 'sorting sorting-active' : 'sorting';
             },
 
             changeClearInput(){

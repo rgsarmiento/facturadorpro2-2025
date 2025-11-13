@@ -23,13 +23,21 @@
       </div>
       <div class="card-body">
         <data-table :resource="resource">
-          <tr slot="heading">
+          <tr slot="heading" slot-scope="{ sortBy, getSortIcon, getSortClass }">
             <th>#</th>
-            <th>Fecha</th>
-            <th>Almacen Inicial</th>
+            <th :class="getSortClass('created_at')" @click="sortBy('created_at')">
+              Fecha <i :class="getSortIcon('created_at')"></i>
+            </th>
+            <th :class="getSortClass('warehouse')" @click="sortBy('warehouse')">
+              Almacen Inicial <i :class="getSortIcon('warehouse')"></i>
+            </th>
 
-            <th>Almacen Destino</th>
-            <th>Detalle</th>
+            <th :class="getSortClass('warehouse_destination')" @click="sortBy('warehouse_destination')">
+              Almacen Destino <i :class="getSortIcon('warehouse_destination')"></i>
+            </th>
+            <th :class="getSortClass('description')" @click="sortBy('description')">
+              Detalle <i :class="getSortIcon('description')"></i>
+            </th>
             <th>Detalle Productos</th>
             <th>Cantidad Total Productos</th>
             <!--<th class="text-right">Acciones</th> -->

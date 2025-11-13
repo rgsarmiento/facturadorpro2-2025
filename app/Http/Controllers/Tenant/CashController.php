@@ -46,9 +46,25 @@ class CashController extends Controller
     public function records(Request $request)
     {
         $records = Cash::where($request->column, 'like', "%{$request->value}%")
-                        ->whereTypeUser()
-                        ->orderBy('id', 'desc');
+                        ->whereTypeUser();
 
+        // Aplicar ordenamiento
+        if ($request->has('sort_column') && $request->sort_column) {
+            $sortColumn = $request->sort_column;
+            $sortDirection = $request->sort_direction ?? 'asc';
+            $sortDirection = in_array($sortDirection, ['asc', 'desc']) ? $sortDirection : 'asc';
+
+            // Columnas numéricas que deben ordenarse como números
+            $numericColumns = ['beginning_balance', 'final_balance'];
+
+            if (in_array($sortColumn, $numericColumns)) {
+                $records = $records->orderByRaw("CAST({$sortColumn} AS DECIMAL(10,2)) {$sortDirection}");
+            } else {
+                $records = $records->orderBy($sortColumn, $sortDirection);
+            }
+        } else {
+            $records = $records->orderBy('id', 'desc');
+        }
 
         return new CashCollection($records->paginate(config('tenant.items_per_page')));
     }
