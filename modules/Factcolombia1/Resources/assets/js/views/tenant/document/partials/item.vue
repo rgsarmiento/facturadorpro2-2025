@@ -1,168 +1,313 @@
 <template>
-    <el-dialog :title="titleDialog" :visible="showDialog" @open="create" @close="close" top="7vh" :close-on-click-modal="false">
+    <el-dialog :title="titleDialog" :visible="showDialog" @open="create" @close="close" top="3vh" :close-on-click-modal="false" width="92%">
         <form autocomplete="off" @submit.prevent="clickAddItem">
             <div class="form-body">
-                <div class="row">
-                    <div class="col-md-7 col-lg-7 col-xl-7 col-sm-7">
-                        <div class="form-group" id="custom-select" :class="{'has-danger': errors.item_id}">
-                            <label class="control-label">
-                                Producto/Servicio
-                                <a v-if="typeUser != 'seller'" href="#" @click.prevent="showDialogNewItem = true">[+ Nuevo]</a>
-                            </label>
+                <!-- Card de Búsqueda de Producto -->
+                <el-card class="mb-3" shadow="hover">
+                    <div slot="header" class="clearfix">
+                        <i class="el-icon-search"></i> <strong>Búsqueda de Producto/Servicio</strong>
+                        <el-tag v-if="form.item_id" type="success" size="small" style="float: right;">
+                            <i class="el-icon-check"></i> Producto seleccionado
+                        </el-tag>
+                    </div>
 
-                            <!-- Checkbox para activar la búsqueda por código de barras -->
-                            <template v-if="!is_client">
-                                <el-checkbox v-model="search_item_by_barcode" :disabled="recordItem != null">Buscar por código de barras</el-checkbox><br>
-                            </template>
+                    <div class="row">
+                        <!-- COLUMNA IZQUIERDA: Buscador de Producto -->
+                        <div class="col-md-8 col-lg-8">
+                            <div class="form-group" id="custom-select" :class="{'has-danger': errors.item_id}">
+                                <label class="control-label">
+                                    <strong><i class="el-icon-goods"></i> Producto/Servicio</strong>
+                                    <a v-if="typeUser != 'seller'" href="#" @click.prevent="showDialogNewItem = true" class="ml-2">
+                                        <el-tag type="success" size="mini"><i class="el-icon-plus"></i> Nuevo</el-tag>
+                                    </a>
+                                </label>
 
-                            <!-- Input para el escáner de código de barras, visible solo si search_item_by_barcode es true -->
-                            <div v-if="search_item_by_barcode">
-                                <div class="form-group">
-                                    <label for="barcodeInput">Escáner de Código de Barras</label>
-                                    <input type="text" id="barcodeInput" v-model="barcodeInput" @keyup.enter="handleBarcodeScan" placeholder="Escanea el código de barras aquí" class="form-control">
+                                <!-- Botones de modo de búsqueda -->
+                                <template v-if="!is_client">
+                                    <el-radio-group v-model="search_item_by_barcode" size="small" style="margin-bottom: 10px;" :disabled="recordItem != null">
+                                        <el-radio-button :label="false">
+                                            <i class="el-icon-search"></i> Búsqueda Normal
+                                        </el-radio-button>
+                                        <el-radio-button :label="true">
+                                            <i class="el-icon-camera"></i> Código de Barras
+                                        </el-radio-button>
+                                    </el-radio-group>
+                                </template>
+
+                                <!-- Input para el escáner de código de barras -->
+                                <div v-if="search_item_by_barcode" style="margin-top: 10px;">
+                                    <el-input
+                                        id="barcodeInput"
+                                        v-model="barcodeInput"
+                                        @keyup.enter.native="handleBarcodeScan"
+                                        placeholder="Escanea o ingresa el código de barras y presiona Enter"
+                                        prefix-icon="el-icon-camera"
+                                        size="large"
+                                        clearable>
+                                        <el-button slot="append" icon="el-icon-search" @click="handleBarcodeScan" type="primary">Buscar</el-button>
+                                    </el-input>
+
+                                    <!-- Muestra el producto escaneado -->
+                                    <el-alert
+                                        v-if="currentProduct"
+                                        :title="`✓ Producto: ${currentProduct.full_description}`"
+                                        type="success"
+                                        :closable="false"
+                                        show-icon
+                                        class="mt-2">
+                                    </el-alert>
                                 </div>
-                                <!-- Muestra el nombre del producto escaneado -->
-                                <div v-if="currentProduct">
-                                    <label>Producto seleccionado:</label>
-                                    <p>{{ currentProduct.full_description }}</p>
-                                </div>
-                            </div>
 
-                            <template v-if="!search_item_by_barcode" id="select-append">
-                                <el-input id="custom-input">
-                                    <el-select :disabled="recordItem != null"
-                                            v-model="form.item_id"
-                                            @change="changeItem"
-                                            filterable
-                                            remote
-                                            placeholder="Buscar"
-                                            popper-class="el-select-items"
-                                            @visible-change="focusTotalItem"
-                                            slot="prepend"
-                                            id="select-width"
-                                            :remote-method="searchRemoteItems"
-                                            :loading="loading_search">
-                                        <el-tooltip v-for="option in items"  :key="option.id" placement="top">
-                                            <div slot="content">
-                                                Marca: {{option.brand}} <br>
-                                                Categoria: {{option.category}} <br>
-                                                Stock: {{option.stock}} <br>
-                                                Precio: {{option.currency_type_symbol}} {{option.sale_unit_price}} <br>
-                                            </div>
-                                            <el-option  :value="option.id" :label="option.full_description"></el-option>
+                                <!-- Búsqueda normal con filtros rápidos -->
+                                <template v-if="!search_item_by_barcode" id="select-append">
+                                    <!-- Filtros rápidos -->
+                                    <div class="mb-2">
+                                        <el-button-group size="mini">
+                                            <el-button :type="quickFilter === 'all' ? 'primary' : ''" @click="quickFilter = 'all'; applyQuickFilter()">
+                                                <i class="el-icon-s-grid"></i> Todos
+                                            </el-button>
+                                            <el-button :type="quickFilter === 'stock' ? 'primary' : ''" @click="quickFilter = 'stock'; applyQuickFilter()">
+                                                <i class="el-icon-goods"></i> Con Stock
+                                            </el-button>
+                                            <el-button :type="quickFilter === 'recent' ? 'primary' : ''" @click="quickFilter = 'recent'; applyQuickFilter()">
+                                                <i class="el-icon-time"></i> Recientes
+                                                <el-badge v-if="getRecentItemsFromStorage().length > 0" :value="getRecentItemsFromStorage().length" class="ml-1" type="success"></el-badge>
+                                            </el-button>
+                                        </el-button-group>
+                                        <el-tooltip v-if="quickFilter === 'recent'" content="Los productos recientes se guardan por 90 días y persisten entre sesiones" placement="right">
+                                            <i class="el-icon-info ml-2" style="color: #909399; cursor: help;"></i>
                                         </el-tooltip>
-                                    </el-select>
-                                    <el-tooltip slot="append" class="item" effect="dark" content="Ver Stock del Producto" placement="bottom" :disabled="recordItem != null">
-                                        <el-button :disabled="isEditItemNote"  @click.prevent="clickWarehouseDetail()"><i class="fa fa-search"></i></el-button>
-                                    </el-tooltip>
-                                </el-input>
-                            </template>
+                                    </div>
 
-                            <!-- Selector de productos, visible solo si search_item_by_barcode es false
-                            <el-input id="custom-input" v-else>
-                                <el-select :disabled="recordItem != null"
-                                        v-model="form.item_id"
-                                        @change="changeItem"
-                                        filterable
-                                        remote
-                                        placeholder="Buscar producto por nombre"
-                                        popper-class="el-select-items"
-                                        @visible-change="focusTotalItem"
-                                        slot="prepend"
-                                        id="select-width"
-                                        :remote-method="searchRemoteItems"
-                                        :loading="loading_search">
-                                    <el-tooltip v-for="option in currentSearchItems" :key="option.id" placement="top">
-                                        <div slot="content">
-                                            Marca: {{option.brand}} <br>
-                                            Categoria: {{option.category}} <br>
-                                            Stock: {{option.stock}} <br>
-                                            Precio: {{option.currency_type_symbol}} {{option.sale_unit_price}} <br>
-                                        </div>
-                                        <el-option :value="option.id" :label="option.full_description"></el-option>
-                                    </el-tooltip>
+                                    <el-input id="custom-input" size="large">
+                                        <el-select :disabled="recordItem != null"
+                                                v-model="form.item_id"
+                                                @change="changeItem"
+                                                filterable
+                                                remote
+                                                placeholder="🔍 Buscar por nombre, código o descripción..."
+                                                popper-class="el-select-items"
+                                                @visible-change="focusTotalItem"
+                                                slot="prepend"
+                                                id="select-width"
+                                                :remote-method="searchRemoteItems"
+                                                :loading="loading_search">
+                                            <el-option
+                                                v-for="option in items"
+                                                :key="option.id"
+                                                :value="option.id"
+                                                :label="option.full_description">
+                                                <div style="display: flex; align-items: center; justify-content: space-between;">
+                                                    <div style="flex: 1; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">
+                                                        <strong>{{ option.internal_id }}</strong> - {{ option.name }}
+                                                    </div>
+                                                    <div style="margin-left: 10px; white-space: nowrap;">
+                                                        <el-tag size="mini" :type="option.stock > 0 ? 'success' : 'danger'" style="margin-right: 3px;">
+                                                            <i class="el-icon-goods"></i> {{ option.stock }}
+                                                        </el-tag>
+                                                        <el-tag size="mini" type="warning">
+                                                            {{ option.currency_type_symbol }} {{ option.sale_unit_price }}
+                                                        </el-tag>
+                                                    </div>
+                                                </div>
+                                            </el-option>
+                                        </el-select>
+                                        <el-tooltip slot="append" class="item" effect="dark" content="Ver Stock del Producto en Almacenes" placement="bottom" :disabled="recordItem != null">
+                                            <el-button :disabled="isEditItemNote" @click.prevent="clickWarehouseDetail()" icon="el-icon-search" type="info">Stock</el-button>
+                                        </el-tooltip>
+                                    </el-input>
+                                </template>
+
+                                <small class="form-control-feedback" v-if="errors.item_id" v-text="errors.item_id[0]"></small>
+                            </div>
+                        </div>
+
+                        <!-- COLUMNA DERECHA: Impuesto -->
+                        <div class="col-md-4 col-lg-4">
+                            <div class="form-group" :class="{'has-danger': errors.tax_id}">
+                                <label class="control-label">
+                                    <strong><i class="el-icon-s-finance"></i> Impuesto</strong>
+                                </label>
+                                <el-select v-model="form.tax_id" filterable placeholder="Seleccionar impuesto" style="width: 100%;">
+                                    <el-option
+                                        v-for="option in itemTaxes"
+                                        :key="option.id"
+                                        :value="option.id"
+                                        :label="option.name">
+                                        <span style="float: left">{{ option.name }}</span>
+                                        <span style="float: right; color: #8492a6; font-size: 13px">{{ option.rate }}%</span>
+                                    </el-option>
                                 </el-select>
-                                <el-tooltip slot="append" class="item" effect="dark" content="Ver Stock del Producto" placement="bottom" :disabled="recordItem != null">
-                                    <el-button :disabled="isEditItemNote" @click.prevent="clickWarehouseDetail()"><i class="fa fa-search"></i></el-button>
-                                </el-tooltip>
-                            </el-input> -->
-                            <small class="form-control-feedback" v-if="errors.item_id" v-text="errors.item_id[0]"></small>
+
+                                <div class="mt-2">
+                                    <el-button @click="form.tax_id = null" size="mini" type="text" icon="el-icon-circle-close">
+                                        Excluir impuesto
+                                    </el-button>
+                                </div>
+
+                                <!-- Checkbox de precio con impuesto incluido -->
+                                <template v-if="!is_client">
+                                    <el-checkbox
+                                        v-model="tax_included_in_price"
+                                        :disabled="false"
+                                        @change="change_price_tax_included"
+                                        class="mt-2">
+                                        {{ taxCheckboxLabel }}
+                                    </el-checkbox>
+                                </template>
+
+                                <small class="form-control-feedback" v-if="errors.tax_id" v-text="errors.tax_id[0]"></small>
+                            </div>
+                        </div>
+                    </div>
+                </el-card>
+
+                <!-- Card de Detalles y Cantidades -->
+                <el-card class="mb-3" shadow="hover">
+                    <div slot="header" class="clearfix">
+                        <i class="el-icon-shopping-cart-2"></i> <strong>Detalles del Producto</strong>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <div class="form-group" :class="{'has-danger': errors.notes}">
+                                <label class="control-label"><i class="el-icon-edit"></i> Notas / Observaciones</label>
+                                <el-input
+                                    v-model="form.notes"
+                                    type="textarea"
+                                    :rows="2"
+                                    placeholder="Ingrese notas adicionales sobre el producto...">
+                                </el-input>
+                                <small class="form-control-feedback" v-if="errors.notes" v-text="errors.notes[0]"></small>
+                            </div>
                         </div>
                     </div>
 
-                    <div class="col-md-5">
-                        <div class="form-group" :class="{'has-danger': errors.tax_id}">
-                            <label class="control-label">Impuesto</label>
-                            <a href="#" class="control-label" @click="form.tax_id = null"> [ * Excluido]</a>
-                            <el-select v-model="form.tax_id"  filterable>
-                                <el-option v-for="option in itemTaxes" :key="option.id" :value="option.id" :label="option.name"></el-option>
-                            </el-select>
-                            <!-- <el-checkbox :disabled="recordItem != null" v-model="change_tax_id">Editar</el-checkbox> -->
-                            <template v-if="!is_client">
-                            <el-checkbox
-                                v-model="tax_included_in_price"
-                                :disabled="false"
-                                @change="change_price_tax_included">
-                                {{ taxCheckboxLabel }}
-                            </el-checkbox><br>
-                            </template>
-                            <small class="form-control-feedback" v-if="errors.tax_id" v-text="errors.tax_id[0]"></small>
+                    <div class="row">
+                        <div class="col-md-3 col-sm-6">
+                            <div class="form-group" :class="{'has-danger': errors.quantity}">
+                                <label class="control-label">
+                                    <i class="el-icon-s-goods"></i> Cantidad
+                                    <el-tooltip content="Cantidad de unidades del producto" placement="top">
+                                        <i class="el-icon-question" style="cursor: help; color: #909399;"></i>
+                                    </el-tooltip>
+                                </label>
+                                <el-input-number
+                                    v-model="form.quantity"
+                                    :min="0.01"
+                                    :disabled="form.item.calculate_quantity"
+                                    controls-position="right"
+                                    style="width: 100%;">
+                                </el-input-number>
+                                <small class="form-control-feedback" v-if="errors.quantity" v-text="errors.quantity[0]"></small>
+                            </div>
+                        </div>
+
+                        <div class="col-md-3 col-sm-6">
+                            <div class="form-group" :class="{'has-danger': errors.price}">
+                                <label class="control-label">
+                                    <i class="el-icon-sell"></i> Precio Unitario
+                                    <el-tooltip content="Precio por unidad del producto" placement="top">
+                                        <i class="el-icon-question" style="cursor: help; color: #909399;"></i>
+                                    </el-tooltip>
+                                </label>
+                                <el-input
+                                    v-model="form.price"
+                                    @input="calculateQuantity"
+                                    :readonly="typeUser === ''"
+                                    type="number"
+                                    step="0.01">
+                                    <template slot="prepend" v-if="currencyTypeSymbolActive">{{ currencyTypeSymbolActive }}</template>
+                                </el-input>
+                                <small class="form-control-feedback" v-if="errors.price" v-text="errors.unit_price[0]"></small>
+                            </div>
+                        </div>
+
+                        <div class="col-md-2 col-sm-4" v-if="form.item_id && form.item.lots_enabled && form.lots_group.length > 0">
+                            <div class="form-group">
+                                <label class="control-label"><i class="el-icon-box"></i> Lotes</label>
+                                <el-button
+                                    type="primary"
+                                    size="small"
+                                    @click.prevent="clickLotGroup"
+                                    style="width: 100%;"
+                                    plain>
+                                    <i class="el-icon-check"></i> Seleccionar
+                                </el-button>
+                            </div>
+                        </div>
+
+                        <div class="col-md-2 col-sm-4" v-if="form.item_id && form.item.series_enabled">
+                            <div class="form-group">
+                                <label class="control-label"><i class="el-icon-tickets"></i> Series</label>
+                                <el-button
+                                    type="warning"
+                                    size="small"
+                                    @click.prevent="clickSelectLots"
+                                    style="width: 100%;"
+                                    plain>
+                                    <i class="el-icon-check"></i> Seleccionar
+                                </el-button>
+                            </div>
+                        </div>
+
+                        <div class="col-md-3 col-sm-6" v-show="form.item.calculate_quantity">
+                            <div class="form-group"  :class="{'has-danger': errors.total_item}">
+                                <label class="control-label">
+                                    <i class="el-icon-coin"></i> Total venta producto
+                                </label>
+                                <el-input
+                                    v-model="total_item"
+                                    @input="calculateQuantity"
+                                    :min="0.01"
+                                    ref="total_item"
+                                    type="number"
+                                    step="0.01">
+                                    <template slot="prepend" v-if="currencyTypeSymbolActive">{{ currencyTypeSymbolActive }}</template>
+                                </el-input>
+                                <small class="form-control-feedback" v-if="errors.total_item" v-text="errors.total_item[0]"></small>
+                            </div>
+                        </div>
+
+                        <div class="col-md-3 col-sm-6">
+                            <div class="form-group"  :class="{'has-danger': errors.discount}">
+                                <label class="control-label">
+                                    <i class="el-icon-price-tag"></i> Descuento
+                                    <el-tooltip content="Descuento en valor monetario" placement="top">
+                                        <i class="el-icon-question" style="cursor: help; color: #909399;"></i>
+                                    </el-tooltip>
+                                </label>
+                                <el-input
+                                    v-model="form.discount"
+                                    :min="0"
+                                    type="number"
+                                    step="0.01"
+                                    placeholder="0.00">
+                                    <template slot="prepend" v-if="currencyTypeSymbolActive">{{ currencyTypeSymbolActive }}</template>
+                                </el-input>
+                                <small class="form-control-feedback" v-if="errors.discount" v-text="errors.discount[0]"></small>
+                            </div>
+                        </div>
+
+                        <!-- Resumen visual del total -->
+                        <div class="col-md-3 col-sm-6" v-if="form.item_id && form.quantity && form.price">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    <i class="el-icon-wallet"></i> Subtotal
+                                </label>
+                                <el-alert
+                                    :title="`${currencyTypeSymbolActive || ''} ${(form.quantity * form.price - (form.discount || 0)).toFixed(2)}`"
+                                    type="success"
+                                    :closable="false"
+                                    style="padding: 10px; font-size: 18px; font-weight: bold;">
+                                </el-alert>
+                            </div>
                         </div>
                     </div>
+                </el-card>
 
-                    <div class="col-md-12">
-                        <div class="form-group" :class="{'has-danger': errors.notes}">
-                            <label class="control-label">Notas</label>
-                            <el-input v-model="form.notes"></el-input>
-                            <small class="form-control-feedback" v-if="errors.notes" v-text="errors.notes[0]"></small>
-                        </div>
-                    </div>
-
-                    <div class="col-md-3 col-sm-3">
-                        <div class="form-group" :class="{'has-danger': errors.quantity}">
-                            <label class="control-label">Cantidad</label>
-                            <el-input-number v-model="form.quantity" :min="0.01" :disabled="form.item.calculate_quantity"></el-input-number>
-                            <small class="form-control-feedback" v-if="errors.quantity" v-text="errors.quantity[0]"></small>
-                        </div>
-                    </div>
-                    <div class="col-md-3 col-sm-3">
-                        <div class="form-group" :class="{'has-danger': errors.price}">
-                            <label class="control-label">Precio Unitario</label>
-                            <el-input v-model="form.price" @input="calculateQuantity" :readonly="typeUser === ''">
-                                <template slot="prepend" v-if="currencyTypeSymbolActive">{{ currencyTypeSymbolActive }}</template>
-                            </el-input>
-                            <small class="form-control-feedback" v-if="errors.price" v-text="errors.unit_price[0]"></small>
-                        </div>
-                    </div>
-
-                    <div style="padding-top: 1%;" class="col-md-2 col-sm-2" v-if="form.item_id && form.item.lots_enabled && form.lots_group.length > 0">
-                        <a href="#"  class="text-center font-weight-bold text-info" @click.prevent="clickLotGroup">[&#10004; Seleccionar lote]</a>
-                    </div>
-
-                    <div style="padding-top: 1%;" class="col-md-3 col-sm-3" v-if="form.item_id && form.item.series_enabled">
-                        <!-- <el-button type="primary" native-type="submit" icon="el-icon-check">Elegir serie</el-button> -->
-                        <a href="#"  class="text-center font-weight-bold text-info" @click.prevent="clickSelectLots">[&#10004; Seleccionar series]</a>
-                    </div>
-
-                    <div class="col-md-3 col-sm-6" v-show="form.item.calculate_quantity">
-                        <div class="form-group"  :class="{'has-danger': errors.total_item}">
-                            <label class="control-label">Total venta producto</label>
-                            <el-input v-model="total_item" @input="calculateQuantity" :min="0.01" ref="total_item">
-                                <template slot="prepend" v-if="currencyTypeSymbolActive">{{ currencyTypeSymbolActive }}</template>
-                            </el-input>
-                            <small class="form-control-feedback" v-if="errors.total_item" v-text="errors.total_item[0]"></small>
-                        </div>
-                    </div>
-
-                    <div class="col-md-3 col-sm-6">
-                        <div class="form-group"  :class="{'has-danger': errors.discount}">
-                            <label class="control-label">Descuento</label>
-                            <el-input v-model="form.discount" :min="0" >
-                                <template slot="prepend" v-if="currencyTypeSymbolActive">{{ currencyTypeSymbolActive }}</template>
-                            </el-input>
-                            <small class="form-control-feedback" v-if="errors.discount" v-text="errors.discount[0]"></small>
-                        </div>
-                    </div>
+                <!-- Lotes y Series -->
+                <div class="row" v-if="form.item_id && (form.item.lots_enabled || form.item.series_enabled)">
 
                     <template v-if="!is_client">
                         <div class="col-md-12"  v-if="form.item_unit_types.length > 0">
@@ -240,10 +385,145 @@
     </el-dialog>
 </template>
 
-<style>
+<style scoped>
 .el-select-dropdown {
     max-width: 80% !important;
     margin-right: 5% !important;
+}
+
+/* Estilos para cards con hover effect */
+.el-card {
+    transition: all 0.3s ease;
+}
+
+.el-card:hover {
+    box-shadow: 0 2px 12px 0 rgba(0,0,0,.15);
+}
+
+/* Mejora visual para los botones de grupo */
+.el-button-group {
+    display: flex;
+    width: 100%;
+}
+
+.el-button-group .el-button {
+    flex: 1;
+}
+
+/* Estilo para el resumen de subtotal */
+.el-alert {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Mejora de los iconos de ayuda */
+.el-icon-question {
+    font-size: 14px;
+    margin-left: 5px;
+}
+
+/* Mejora visual de las etiquetas */
+.control-label {
+    font-weight: 600;
+    color: #606266;
+    margin-bottom: 8px;
+}
+
+.control-label i {
+    margin-right: 5px;
+    color: #409EFF;
+}
+
+/* Animación para el producto seleccionado */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.el-tag {
+    animation: fadeIn 0.3s ease;
+}
+
+/* Mejora del input number */
+.el-input-number {
+    width: 100%;
+}
+
+/* Card headers más destacados */
+.el-card__header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    border-bottom: none;
+}
+
+.el-card__header strong {
+    color: white;
+}
+
+.el-card__header i {
+    color: white;
+}
+
+/* Botones con mejor espaciado */
+.form-actions {
+    border-top: 1px solid #EBEEF5;
+    margin-top: 20px;
+    padding-top: 20px;
+}
+
+/* Separador de título en lista de precios */
+.separator-title {
+    font-weight: 600;
+    color: #409EFF;
+    border-bottom: 2px solid #409EFF;
+    padding-bottom: 10px;
+    margin-bottom: 15px;
+}
+
+/* Mejora de la tabla de precios */
+.table {
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.table thead th {
+    background-color: #409EFF;
+    color: white;
+    font-weight: 600;
+}
+
+/* Responsive improvements */
+@media (max-width: 768px) {
+    .el-button-group {
+        flex-direction: column;
+    }
+
+    .el-button-group .el-button {
+        margin-bottom: 5px;
+    }
+}
+
+/* Badge en botón de recientes */
+.el-button .el-badge {
+    vertical-align: middle;
+    margin-left: 5px;
+}
+
+/* Mejora del icono de información */
+.ml-1 {
+    margin-left: 4px;
+}
+
+.ml-2 {
+    margin-left: 8px;
 }
 </style>
 
@@ -290,6 +570,7 @@
                 isUpdateWarehouseId:null,
                 showDialogLots: false,
                 showDialogSelectLots: false,
+                quickFilter: 'all', // Filtro rápido: all, stock, recent
                 lots:[],
                 all_taxes:[],
                 taxes:[],
@@ -405,30 +686,105 @@
 
                     await this.$http.get(`/${this.resource}/search-items/?${parameters}`)
                         .then(response => {
-                            // Actualiza currentSearchItems con los resultados de la búsqueda
+                            // CORRECCIÓN: Solo mostrar los resultados de la búsqueda, no mezclar con items anteriores
+                            this.items = response.data.items;
                             this.currentSearchItems = response.data.items;
-
-                            // Además, actualiza la lista principal de ítems si es necesario
-                            let itemMap = new Map();
-
-                            // Añade los ítems encontrados al mapa para evitar duplicados
-                            this.currentSearchItems.forEach(item => itemMap.set(item.id, item));
-
-                            // Añade los ítems existentes al mapa, si no están ya presentes
-                            this.items.forEach(item => {
-                                if (!itemMap.has(item.id)) {
-                                    itemMap.set(item.id, item);
-                                }
-                            });
-
-                            // Actualiza this.items con todos los ítems, incluyendo los buscados
-                            this.items = Array.from(itemMap.values());
-
                             this.loading_search = false;
                         });
+                } else if (input.length === 0) {
+                    // Si el campo está vacío, restaurar según el filtro activo
+                    this.applyQuickFilter();
                 } else {
-                    // Si no hay suficiente entrada para una búsqueda, se podrían mostrar todos los ítems o manejar de otra manera
+                    // Si hay menos de 3 caracteres, mantener items actuales
                     this.currentSearchItems = [...this.items];
+                }
+            },
+
+            applyQuickFilter() {
+                // Aplica filtro rápido a los items
+                if (this.quickFilter === 'stock') {
+                    // Mostrar solo productos con stock
+                    this.items = this.all_items.filter(item => item.stock > 0);
+                } else if (this.quickFilter === 'recent') {
+                    // Mostrar productos recientes desde localStorage (persistente entre sesiones)
+                    const recentItems = this.getRecentItemsFromStorage();
+                    if (recentItems.length > 0) {
+                        // Filtrar los items que están en la lista de recientes
+                        const recentIds = recentItems.map(item => item.id);
+                        this.items = this.all_items.filter(item => recentIds.includes(item.id));
+
+                        // Ordenar según el orden en localStorage (más reciente primero)
+                        this.items.sort((a, b) => {
+                            return recentIds.indexOf(a.id) - recentIds.indexOf(b.id);
+                        });
+                    } else {
+                        // Si no hay recientes guardados, mostrar los últimos 20 del sistema
+                        this.items = [...this.all_items].slice(0, 20);
+                    }
+                } else {
+                    // Mostrar todos
+                    this.items = [...this.all_items];
+                }
+            },
+
+            // Método para guardar un producto como reciente en localStorage
+            saveRecentItem(item) {
+                try {
+                    // Obtener productos recientes actuales
+                    let recentItems = this.getRecentItemsFromStorage();
+
+                    // Crear objeto simplificado del item (solo datos necesarios)
+                    const itemToSave = {
+                        id: item.id,
+                        internal_id: item.internal_id,
+                        name: item.name,
+                        full_description: item.full_description,
+                        stock: item.stock,
+                        sale_unit_price: item.sale_unit_price,
+                        currency_type_symbol: item.currency_type_symbol,
+                        timestamp: new Date().getTime() // Agregar timestamp
+                    };
+
+                    // Eliminar el item si ya existe (para moverlo al inicio)
+                    recentItems = recentItems.filter(i => i.id !== item.id);
+
+                    // Agregar el item al inicio
+                    recentItems.unshift(itemToSave);
+
+                    // Limitar a los últimos 50 productos
+                    recentItems = recentItems.slice(0, 50);
+
+                    // Guardar en localStorage
+                    localStorage.setItem('recent_products', JSON.stringify(recentItems));
+                } catch (error) {
+                    console.error('Error guardando producto reciente:', error);
+                }
+            },
+
+            // Método para obtener productos recientes desde localStorage
+            getRecentItemsFromStorage() {
+                try {
+                    const stored = localStorage.getItem('recent_products');
+                    if (stored) {
+                        const recentItems = JSON.parse(stored);
+
+                        // Filtrar items que tengan más de 90 días (limpieza automática)
+                        const ninetyDaysAgo = new Date().getTime() - (90 * 24 * 60 * 60 * 1000);
+                        const filteredItems = recentItems.filter(item => {
+                            return !item.timestamp || item.timestamp > ninetyDaysAgo;
+                        });
+
+                        // Si se filtraron algunos, actualizar el localStorage
+                        if (filteredItems.length !== recentItems.length) {
+                            localStorage.setItem('recent_products', JSON.stringify(filteredItems));
+                        }
+
+                        return filteredItems;
+                    }
+                    return [];
+                } catch (error) {
+                    console.error('Error obteniendo productos recientes:', error);
+                    return [];
                 }
             },
 
@@ -543,18 +899,25 @@
 
             async changeItem() {
                 // Busca el ítem en la lista de ítems disponibles por su ID
-//                console.log(JSON.stringify(this.items))
-//                console.log(this.form.item_id)
                 this.form.item = this.items.find(item => item.id === this.form.item_id);
-                    // Añade el ítem a editar a currentSearchItems si no está presente
-                    if (!this.currentSearchItems.some(item => item.id === this.form.item_id)) {
-                    const itemToEdit = this.items.find(item => item.id === this.form.item_id);
+
+                // Si no está en items actuales, buscar en all_items
+                if (!this.form.item) {
+                    this.form.item = this.all_items.find(item => item.id === this.form.item_id);
+                }
+
+                // Añade el ítem a editar a currentSearchItems si no está presente
+                if (!this.currentSearchItems.some(item => item.id === this.form.item_id)) {
+                    const itemToEdit = this.form.item || this.items.find(item => item.id === this.form.item_id);
                     if (itemToEdit) {
                         this.currentSearchItems.push(itemToEdit);
                     }
                 }
 
                 if (this.form.item) {
+                    // NUEVO: Guardar producto como reciente en localStorage
+                    this.saveRecentItem(this.form.item);
+
                     // Si se encuentra el ítem, actualiza los detalles en el formulario
                     this.form.item_unit_types = this.form.item.item_unit_types;
                     this.form.id = this.form.item_id;
