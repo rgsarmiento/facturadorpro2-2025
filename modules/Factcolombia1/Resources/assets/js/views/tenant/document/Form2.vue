@@ -927,7 +927,7 @@ export default {
         clickEditItem(row, index) {
             // sumarle el iva al producto para editarlo modificado por Cristian
             // Declara las variables con 'let' para un alcance local
-            if (row.tax !== undefined) {
+            if (row.tax !== undefined && row.tax !== null) {
                 let ivaRate = parseFloat(row.tax.rate) / row.tax.conversion; // Obtiene la tasa de IVA
                 let precioConIVA = row.price * (1 + ivaRate); // Calcula el precio con IVA
                 // Redondea el precio con IVA a dos decimales
