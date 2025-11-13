@@ -33,8 +33,21 @@ class AccountingPeriodController extends Controller
                 $query->where('status', $request->status);
             }
 
-            $records = $query->orderBy('year', 'desc')
-                           ->orderBy('month', 'desc')
+            // Ordenamiento
+            $sortColumn = $request->input('sort_column', 'year');
+            $sortDirection = $request->input('sort_direction', 'desc');
+
+            // Validar que el sort_column sea válido
+            $validColumns = ['id', 'year', 'month', 'status', 'start_date', 'end_date', 'closed_at', 'created_at'];
+            if (!in_array($sortColumn, $validColumns)) {
+                $sortColumn = 'year';
+            }
+
+            if (!in_array($sortDirection, ['asc', 'desc'])) {
+                $sortDirection = 'desc';
+            }
+
+            $records = $query->orderBy($sortColumn, $sortDirection)
                            ->get();
 
             return response()->json([

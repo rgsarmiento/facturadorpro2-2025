@@ -1,7 +1,7 @@
 <template>
     <div class="card mb-0 pt-2 pt-md-0">
         <div class="card-header bg-info">
-            <h3 class="my-0">Comisiones vendedores - utilidades 
+            <h3 class="my-0">Comisiones vendedores - utilidades
                 <el-tooltip class="item" effect="dark" content="Total ventas (CPE - NV) - Total compras" placement="top-end">
                     <i class="fa fa-info-circle"></i>
                 </el-tooltip>
@@ -10,50 +10,65 @@
         <div class="card mb-0">
                 <div class="card-body">
                     <data-table :resource="resource">
-                        <tr slot="heading">
+                        <tr slot="heading" slot-scope="{ sortBy, getSortIcon, getSortClass }">
                             <th>#</th>
-                            <th>Vendedor</th>
-                            <th class="text-center">Tipo comisión</th>
-                            <th class="text-center">Monto comisión</th>
-                            <th class="text-center">Total utilidad</th>
-                            <th class="text-center">Total comisiones</th>
+                            <th class="sorting" :class="getSortClass('user_id')" @click="sortBy('user_id')">
+                                Vendedor
+                                <i :class="getSortIcon('user_id')"></i>
+                            </th>
+                            <th class="text-center sorting" :class="getSortClass('type')" @click="sortBy('type')">
+                                Tipo comisión
+                                <i :class="getSortIcon('type')"></i>
+                            </th>
+                            <th class="text-center sorting" :class="getSortClass('amount')" @click="sortBy('amount')">
+                                Monto comisión
+                                <i :class="getSortIcon('amount')"></i>
+                            </th>
+                            <th class="text-center sorting" :class="getSortClass('total_utility')" @click="sortBy('total_utility')">
+                                Total utilidad
+                                <i :class="getSortIcon('total_utility')"></i>
+                            </th>
+                            <th class="text-center sorting" :class="getSortClass('commission')" @click="sortBy('commission')">
+                                Total comisiones
+                                <i :class="getSortIcon('commission')"></i>
+                            </th>
                         <tr>
                         <tr slot-scope="{ index, row }">
-                            <td>{{ index }}</td>  
+                            <td>{{ index }}</td>
                             <td>{{row.user_name}}</td>
                             <td class="text-center">{{row.type}}</td>
-                            <td class="text-center">{{row.amount}}</td> 
-                            <td class="text-center">{{row.total_utility}}</td> 
-                            <td class="text-center">{{row.commission}}</td> 
+                            <td class="text-center">{{row.amount}}</td>
+                            <td class="text-center">{{row.total_utility}}</td>
+                            <td class="text-center">{{row.commission}}</td>
                         </tr>
-                        
+
                     </data-table>
-                     
-                    
-                </div> 
+
+
+                </div>
         </div>
- 
+
     </div>
 </template>
 
 <script>
- 
+
     import DataTable from '../../components/DataTableReports.vue'
 
-    export default { 
+    export default {
         components: {DataTable},
         data() {
             return {
-                resource: 'reports/user-commissions',                 
-                form: {}, 
+                resource: 'reports/user-commissions',
+                form: {},
 
             }
         },
-        async created() { 
+        async created() {
         },
-        methods: { 
-             
-            
+        methods: {
+
+
         }
     }
 </script>

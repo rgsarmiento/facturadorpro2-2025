@@ -57,12 +57,12 @@
                   <table class="table">
                     <thead>
                       <tr>
-                        <th class>#</th>
-                        <th class="text-left">Fecha emisión</th>
-                        <th class="text-center">Cliente</th>
-                        <th class>Documento</th>
-                        <th class="text-right">Base</th>
-                        <th class="text-right">Descuento</th>
+                        <th class="#">#</th>
+                        <th class="text-left sorting" :class="getSortClass('created_at')" @click="sortBy('created_at')">Fecha emisión <i :class="'el-icon-' + getSortIcon('created_at')"></i></th>
+                        <th class="text-center sorting" :class="getSortClass('customer_id')" @click="sortBy('customer_id')">Cliente <i :class="'el-icon-' + getSortIcon('customer_id')"></i></th>
+                        <th class="sorting" :class="getSortClass('type_document_id')" @click="sortBy('type_document_id')">Documento <i :class="'el-icon-' + getSortIcon('type_document_id')"></i></th>
+                        <th class="text-right sorting" :class="getSortClass('total')" @click="sortBy('total')">Base <i :class="'el-icon-' + getSortIcon('total')"></i></th>
+                        <th class="text-right sorting" :class="getSortClass('total_discount')" @click="sortBy('total_discount')">Descuento <i :class="'el-icon-' + getSortIcon('total_discount')"></i></th>
                         <th class="text-right" v-for="(col, index) in columnsTitles" :key="index + 'T'">
                             {{ col.text }}
                         </th>
@@ -105,12 +105,12 @@
                   <table class="table">
                     <thead>
                       <tr>
-                        <th class>#</th>
-                        <th class="text-left">Fecha emisión</th>
-                        <th class="text-center">Cliente</th>
-                        <th class>Documento</th>
-                        <th class="text-right">Base</th>
-                        <th class="text-right">Descuento</th>
+                        <th class="#">#</th>
+                        <th class="text-left sorting" :class="getSortClass('created_at')" @click="sortBy('created_at')">Fecha emisión <i :class="'el-icon-' + getSortIcon('created_at')"></i></th>
+                        <th class="text-center sorting" :class="getSortClass('supplier_id')" @click="sortBy('supplier_id')">Cliente <i :class="'el-icon-' + getSortIcon('supplier_id')"></i></th>
+                        <th class="sorting" :class="getSortClass('type_document_id')" @click="sortBy('type_document_id')">Documento <i :class="'el-icon-' + getSortIcon('type_document_id')"></i></th>
+                        <th class="text-right sorting" :class="getSortClass('total')" @click="sortBy('total')">Base <i :class="'el-icon-' + getSortIcon('total')"></i></th>
+                        <th class="text-right sorting" :class="getSortClass('total_discount')" @click="sortBy('total_discount')">Descuento <i :class="'el-icon-' + getSortIcon('total_discount')"></i></th>
                         <th class="text-right" v-for="(col, index) in columnsTitles" :key="index + 'H'">
                             {{ col.text }}
                         </th>
@@ -188,6 +188,7 @@
                 dataPurchases: [],
                 taxesPurchases: [],
                 activeTab: 'sales',
+                sort: { column: null, direction: 'asc' },
             }
         },
         filters: {
@@ -326,10 +327,28 @@
                   this.loading_submit = false
                 });
             },
+            sortBy(column) {
+                if (this.sort.column === column) {
+                    this.sort.direction = this.sort.direction === 'asc' ? 'desc' : 'asc'
+                } else {
+                    this.sort.column = column
+                    this.sort.direction = 'asc'
+                }
+                this.getRecords()
+            },
+            getSortIcon(column) {
+                if (this.sort.column !== column) return 'd-caret'
+                return this.sort.direction === 'asc' ? 'caret-top' : 'caret-bottom'
+            },
+            getSortClass(column) {
+                return this.sort.column === column ? 'sorting-active' : ''
+            },
             getQueryParameters() {
                 return queryString.stringify({
                     page: this.pagination.current_page,
                     limit: this.limit,
+                    sort_column: this.sort.column,
+                    sort_direction: this.sort.direction,
                     ...this.form
                 })
             },

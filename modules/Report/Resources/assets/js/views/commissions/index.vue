@@ -5,51 +5,43 @@
         </div>
         <div class="card mb-0">
                 <div class="card-body">
-                    <data-table :resource="resource">
-                        <tr slot="heading">
-                            <th>#</th>
-                            <!-- <th class="text-center">Código vendedor</th> -->
-                            <th>Vendedor</th>
-                            <th class="text-center">Cantidad transacciones</th>
-                            <th class="text-center">Ventas acumuladas</th>
-                            <th class="text-center">Total comisiones</th>
+<th class="text-center sorting" :class="getSortClass('total_transactions')" @click="sortBy('total_transactions')">
+                                Cantidad transacciones
+                                <i :class="getSortIcon('total_transactions')"></i>
+                            </th>
+                            <th class="text-center sorting" :class="getSortClass('acum_sales')" @click="sortBy('acum_sales')">
+                                Ventas acumuladas
+                                <i :class="getSortIcon('acum_sales')"></i>
+                            </th>
+                            <th class="text-center sorting" :class="getSortClass('total_commision')" @click="sortBy('total_commision')">
+                                Total comisiones
+                                <i :class="getSortIcon('total_commision')"></i>
+                            </th>
                         <tr>
                         <tr slot-scope="{ index, row }">
-                            <td>{{ index }}</td>  
+                            <td>{{ index }}</td>
                             <!-- <td>{{row.user_name}}</td> -->
                             <td>{{row.user_name}}</td>
                             <td class="text-center">{{row.total_transactions}}</td>
-                            <td class="text-center">{{row.acum_sales}}</td> 
-                            <td class="text-center">{{row.total_commision}}</td> 
+                            <td class="text-center">{{row.acum_sales}}</td>
+                            <td class="text-center">{{row.total_commision}}</td>
                         </tr>
-                        
+
                     </data-table>
-                     
-                    
-                </div> 
+
+
+                </div>
         </div>
- 
+
     </div>
 </template>
 
 <script>
- 
+
     import DataTable from '../../components/DataTableReports.vue'
 
-    export default { 
+    export default {
         components: {DataTable},
         data() {
             return {
-                resource: 'reports/commissions',                 
-                form: {}, 
-
-            }
-        },
-        async created() { 
-        },
-        methods: { 
-             
-            
-        }
-    }
-</script>
+         

@@ -22,12 +22,12 @@
                         <thead>
                         <tr>
                             <th>#</th>
-                            <th>Email</th>
-                            <th>Nombre</th>
-                            <th>Perfil</th>
-                            <th>Prefijo</th>
+                            <th class="sorting" @click="sortBy('email')" style="cursor: pointer;">Email <i :class="getSortIcon('email')"></i></th>
+                            <th class="sorting" @click="sortBy('name')" style="cursor: pointer;">Nombre <i :class="getSortIcon('name')"></i></th>
+                            <th class="sorting" @click="sortBy('type')" style="cursor: pointer;">Perfil <i :class="getSortIcon('type')"></i></th>
+                            <th class="sorting" @click="sortBy('prefix')" style="cursor: pointer;">Prefijo <i :class="getSortIcon('prefix')"></i></th>
                             <th>Api Token</th>
-                            <th>Establecimiento</th>
+                            <th class="sorting" @click="sortBy('establishment_description')" style="cursor: pointer;">Establecimiento <i :class="getSortIcon('establishment_description')"></i></th>
                         </tr>
                         </thead>
                         <tbody>
@@ -70,6 +70,10 @@
                 resource: 'users',
                 recordId: null,
                 records: [],
+                sort: {
+                    column: null,
+                    direction: 'asc'
+                }
             }
         },
         created() {
@@ -80,10 +84,28 @@
         },
         methods: {
             getData() {
-                this.$http.get(`/${this.resource}/records`)
+                const params = new URLSearchParams();
+                if (this.sort.column) {
+                    params.append('sort_column', this.sort.column);
+                    params.append('sort_direction', this.sort.direction);
+                }
+                this.$http.get(`/${this.resource}/records?${params.toString()}`)
                     .then(response => {
                         this.records = response.data.data
                     })
+            },
+            sortBy(column) {
+                if (this.sort.column === column) {
+                    this.sort.direction = this.sort.direction === 'asc' ? 'desc' : 'asc';
+                } else {
+                    this.sort.column = column;
+                    this.sort.direction = 'asc';
+                }
+                this.getData();
+            },
+            getSortIcon(column) {
+                if (this.sort.column !== column) return 'el-icon-d-caret';
+                return this.sort.direction === 'asc' ? 'el-icon-caret-top' : 'el-icon-caret-bottom';
             },
             clickCreate(recordId = null) {
                 this.recordId = recordId
@@ -97,3 +119,13 @@
         }
     }
 </script>
+
+<style>
+th.sorting {
+    cursor: pointer;
+}
+
+th.sorting:hover {
+    background-color: #f5f5f5;
+}
+</style>

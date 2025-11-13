@@ -11,6 +11,7 @@ use App\Models\Tenant\ConfigurationPos;
 use App\Http\Resources\Tenant\UserCollection;
 use Modules\LevelAccess\Models\ModuleLevel;
 use Modules\Factcolombia1\Models\Tenant\TypeDocument;
+use Illuminate\Http\Request;
 
 class UserController extends Controller
 {
@@ -111,9 +112,21 @@ class UserController extends Controller
         ];
     }
 
-    public function records()
+    public function records(Request $request)
     {
-        $records = User::all();
+        $query = User::query();
+
+        // Aplicar ordenamiento si se proporciona
+        if ($request->has('sort_column') && $request->sort_column) {
+            $sortColumn = $request->sort_column;
+            $sortDirection = in_array($request->sort_direction, ['asc', 'desc']) ? $request->sort_direction : 'asc';
+
+            $query->orderBy($sortColumn, $sortDirection);
+        } else {
+            $query->orderBy('name', 'asc');
+        }
+
+        $records = $query->get();
         return new UserCollection($records);
     }
 

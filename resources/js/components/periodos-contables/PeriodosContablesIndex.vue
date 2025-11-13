@@ -51,12 +51,12 @@
             <table class="table table-striped table-hover">
                 <thead class="thead-light">
                     <tr>
-                        <th>Período</th>
-                        <th>Rango de Fechas</th>
-                        <th>Estado</th>
+                        <th class="sorting" :class="getSortClass('year')" @click="sortBy('year')">Período <i :class="'el-icon-' + getSortIcon('year')"></i></th>
+                        <th class="sorting" :class="getSortClass('start_date')" @click="sortBy('start_date')">Rango de Fechas <i :class="'el-icon-' + getSortIcon('start_date')"></i></th>
+                        <th class="sorting" :class="getSortClass('status')" @click="sortBy('status')">Estado <i :class="'el-icon-' + getSortIcon('status')"></i></th>
                         <th>Saldos de Cierre</th>
                         <th>Cerrado Por</th>
-                        <th>Fecha Cierre</th>
+                        <th class="sorting" :class="getSortClass('closed_at')" @click="sortBy('closed_at')">Fecha Cierre <i :class="'el-icon-' + getSortIcon('closed_at')"></i></th>
                         <th width="200">Acciones</th>
                     </tr>
                 </thead>
@@ -264,6 +264,7 @@ export default {
             },
             formErrors: [],
             selectedRecord: null,
+            sort: { column: null, direction: 'asc' },
             monthNames: [
                 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio',
                 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'
@@ -289,6 +290,8 @@ export default {
             const params = new URLSearchParams();
             if (this.filters.year) params.append('year', this.filters.year);
             if (this.filters.status) params.append('status', this.filters.status);
+            if (this.sort.column) params.append('sort_column', this.sort.column);
+            if (this.sort.column) params.append('sort_direction', this.sort.direction);
 
             axios.get(`/contabilidad/periodos-contables/records?${params.toString()}`)
                 .then(response => {
@@ -391,6 +394,22 @@ export default {
         },
         getMonthName(month) {
             return this.monthNames[month - 1];
+        },
+        sortBy(column) {
+            if (this.sort.column === column) {
+                this.sort.direction = this.sort.direction === 'asc' ? 'desc' : 'asc'
+            } else {
+                this.sort.column = column
+                this.sort.direction = 'asc'
+            }
+            this.loadRecords()
+        },
+        getSortIcon(column) {
+            if (this.sort.column !== column) return 'd-caret'
+            return this.sort.direction === 'asc' ? 'caret-top' : 'caret-bottom'
+        },
+        getSortClass(column) {
+            return this.sort.column === column ? 'sorting-active' : ''
         },
         formatDate(date) {
             if (!date) return '—';

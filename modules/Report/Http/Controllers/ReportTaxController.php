@@ -85,7 +85,21 @@ class ReportTaxController extends Controller
         // $union = $documents->union( $documents_pos );
         // dd( $enhancedPurchases->toArray() );
         $data = array_merge($documents->toArray(), $documents_pos->toArray());
-        // dd($data);
+
+        // Apply sorting
+        $sortColumn = $request->input('sort_column');
+        $sortDirection = $request->input('sort_direction', 'asc');
+
+        if ($sortColumn) {
+            $data = collect($data)->sortBy(function($item) use ($sortColumn) {
+                return $item[$sortColumn] ?? null;
+            });
+
+            if ($sortDirection === 'desc') {
+                $data = $data->reverse();
+            }
+            $data = $data->values()->toArray();
+        }
 
         return [
             'success' => true,

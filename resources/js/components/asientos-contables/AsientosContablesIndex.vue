@@ -99,13 +99,13 @@
                         <table class="table table-striped">
                             <thead class="thead-light">
                         <tr>
-                            <th>Número</th>
-                            <th>Fecha</th>
-                            <th>Tipo</th>
-                            <th>Concepto</th>
-                            <th>Total</th>
-                            <th>Estado</th>
-                            <th>Eliminado</th>
+                            <th class="sorting" :class="getSortClass('numero_comprobante')" @click="sortBy('numero_comprobante')">Número <i :class="'el-icon-' + getSortIcon('numero_comprobante')"></i></th>
+                            <th class="sorting" :class="getSortClass('fecha_asiento')" @click="sortBy('fecha_asiento')">Fecha <i :class="'el-icon-' + getSortIcon('fecha_asiento')"></i></th>
+                            <th class="sorting" :class="getSortClass('tipo_comprobante_id')" @click="sortBy('tipo_comprobante_id')">Tipo <i :class="'el-icon-' + getSortIcon('tipo_comprobante_id')"></i></th>
+                            <th class="sorting" :class="getSortClass('concepto')" @click="sortBy('concepto')">Concepto <i :class="'el-icon-' + getSortIcon('concepto')"></i></th>
+                            <th class="sorting" :class="getSortClass('total_debito')" @click="sortBy('total_debito')">Total <i :class="'el-icon-' + getSortIcon('total_debito')"></i></th>
+                            <th class="sorting" :class="getSortClass('estado')" @click="sortBy('estado')">Estado <i :class="'el-icon-' + getSortIcon('estado')"></i></th>
+                            <th class="sorting" :class="getSortClass('deleted_at')" @click="sortBy('deleted_at')">Eliminado <i :class="'el-icon-' + getSortIcon('deleted_at')"></i></th>
                             <th>Creado por</th>
                             <th width="120">Acciones</th>
                         </tr>
@@ -194,6 +194,7 @@ export default {
                 last_page: 1
             },
             loading: false,
+            sort: { column: null, direction: 'asc' },
             filters: {
                 search: '',
                 fecha_inicio: '',
@@ -269,6 +270,11 @@ export default {
                     ...this.filters
                 });
 
+                if (this.sort.column) {
+                    params.append('sort_column', this.sort.column);
+                    params.append('sort_direction', this.sort.direction);
+                }
+
                 const response = await axios.get('/contabilidad/asientos-contables/records?' + params);
 
                 if (response.data.success) {
@@ -298,6 +304,22 @@ export default {
             } finally {
                 this.loading = false;
             }
+        },
+        sortBy(column) {
+            if (this.sort.column === column) {
+                this.sort.direction = this.sort.direction === 'asc' ? 'desc' : 'asc'
+            } else {
+                this.sort.column = column
+                this.sort.direction = 'asc'
+            }
+            this.loadRecords()
+        },
+        getSortIcon(column) {
+            if (this.sort.column !== column) return 'd-caret'
+            return this.sort.direction === 'asc' ? 'caret-top' : 'caret-bottom'
+        },
+        getSortClass(column) {
+            return this.sort.column === column ? 'sorting-active' : ''
         },
         searchRecords() {
             clearTimeout(this.searchTimeout);

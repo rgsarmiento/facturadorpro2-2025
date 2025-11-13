@@ -22,8 +22,8 @@
                         <thead>
                         <tr>
                             <th>#</th>
-                            <th>Descripción</th>
-                            <th class="text-right">Código</th>
+                            <th class="sorting" @click="sortBy('description')" style="cursor: pointer;">Descripción <i :class="getSortIcon('description')"></i></th>
+                            <th class="text-right sorting" @click="sortBy('code')" style="cursor: pointer;">Código <i :class="getSortIcon('code')"></i></th>
                             <th class="text-right">Acciones</th>
                         </tr>
                         </thead>
@@ -72,6 +72,10 @@
                 recordId: null,
                 records: [],
                 showDialogSeries: false,
+                sort: {
+                    column: null,
+                    direction: 'asc'
+                }
             }
         },
         created() {
@@ -82,10 +86,28 @@
         },
         methods: {
             getData() {
-                this.$http.get(`/${this.resource}/records`)
+                const params = new URLSearchParams();
+                if (this.sort.column) {
+                    params.append('sort_column', this.sort.column);
+                    params.append('sort_direction', this.sort.direction);
+                }
+                this.$http.get(`/${this.resource}/records?${params.toString()}`)
                     .then(response => {
                         this.records = response.data.data
                     })
+            },
+            sortBy(column) {
+                if (this.sort.column === column) {
+                    this.sort.direction = this.sort.direction === 'asc' ? 'desc' : 'asc';
+                } else {
+                    this.sort.column = column;
+                    this.sort.direction = 'asc';
+                }
+                this.getData();
+            },
+            getSortIcon(column) {
+                if (this.sort.column !== column) return 'el-icon-d-caret';
+                return this.sort.direction === 'asc' ? 'el-icon-caret-top' : 'el-icon-caret-bottom';
             },
             clickCreate(recordId = null) {
                 this.recordId = recordId
@@ -103,3 +125,13 @@
         }
     }
 </script>
+
+<style>
+th.sorting {
+    cursor: pointer;
+}
+
+th.sorting:hover {
+    background-color: #f5f5f5;
+}
+</style>

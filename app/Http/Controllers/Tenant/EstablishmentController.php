@@ -12,6 +12,7 @@ use App\Http\Resources\Tenant\EstablishmentResource;
 use App\Http\Resources\Tenant\EstablishmentCollection;
 use App\Models\Tenant\Warehouse;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Http\Request;
 use Stancl\Tenancy\Facades\Tenancy;
 
 use Modules\Factcolombia1\Models\Tenant\{
@@ -126,10 +127,21 @@ class EstablishmentController extends Controller
         ];
     }
 
-    public function records()
+    public function records(Request $request)
     {
-        $records = Establishment::all();
+        $query = Establishment::query();
 
+        // Aplicar ordenamiento si se proporciona
+        if ($request->has('sort_column') && $request->sort_column) {
+            $sortColumn = $request->sort_column;
+            $sortDirection = in_array($request->sort_direction, ['asc', 'desc']) ? $request->sort_direction : 'asc';
+
+            $query->orderBy($sortColumn, $sortDirection);
+        } else {
+            $query->orderBy('description', 'asc');
+        }
+
+        $records = $query->get();
         return new EstablishmentCollection($records);
     }
 

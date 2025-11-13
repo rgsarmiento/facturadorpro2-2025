@@ -44,22 +44,154 @@
                                 <thead class="">
                                     <tr>
                                         <th class="">#</th>
-                                        <th class="">Tipo Documento</th>
-                                        <th class="">Número</th>
-                                        <th class="">F. Emisión</th>
-                                        <th class="">F. Vencimiento</th>
+                                        <th class="sorting" onclick="sortTable('document_type_id')" style="cursor: pointer;">
+                                            Tipo Documento
+                                            @if(request()->sort_column === 'document_type_id')
+                                                @if(request()->sort_direction === 'asc')
+                                                    <i class="fa fa-caret-up"></i>
+                                                @else
+                                                    <i class="fa fa-caret-down"></i>
+                                                @endif
+                                            @else
+                                                <i class="fa fa-arrows-v text-muted"></i>
+                                            @endif
+                                        </th>
+                                        <th class="sorting" onclick="sortTable('series')" style="cursor: pointer;">
+                                            Número
+                                            @if(request()->sort_column === 'series')
+                                                @if(request()->sort_direction === 'asc')
+                                                    <i class="fa fa-caret-up"></i>
+                                                @else
+                                                    <i class="fa fa-caret-down"></i>
+                                                @endif
+                                            @else
+                                                <i class="fa fa-arrows-v text-muted"></i>
+                                            @endif
+                                        </th>
+                                        <th class="sorting" onclick="sortTable('date_of_issue')" style="cursor: pointer;">
+                                            F. Emisión
+                                            @if(request()->sort_column === 'date_of_issue')
+                                                @if(request()->sort_direction === 'asc')
+                                                    <i class="fa fa-caret-up"></i>
+                                                @else
+                                                    <i class="fa fa-caret-down"></i>
+                                                @endif
+                                            @else
+                                                <i class="fa fa-arrows-v text-muted"></i>
+                                            @endif
+                                        </th>
+                                        <th class="sorting" onclick="sortTable('date_of_due')" style="cursor: pointer;">
+                                            F. Vencimiento
+                                            @if(request()->sort_column === 'date_of_due')
+                                                @if(request()->sort_direction === 'asc')
+                                                    <i class="fa fa-caret-up"></i>
+                                                @else
+                                                    <i class="fa fa-caret-down"></i>
+                                                @endif
+                                            @else
+                                                <i class="fa fa-arrows-v text-muted"></i>
+                                            @endif
+                                        </th>
 
-                                        <th class="">Cliente</th>
+                                        <th class="sorting" onclick="sortTable('supplier_id')" style="cursor: pointer;">
+                                            Cliente
+                                            @if(request()->sort_column === 'supplier_id')
+                                                @if(request()->sort_direction === 'asc')
+                                                    <i class="fa fa-caret-up"></i>
+                                                @else
+                                                    <i class="fa fa-caret-down"></i>
+                                                @endif
+                                            @else
+                                                <i class="fa fa-arrows-v text-muted"></i>
+                                            @endif
+                                        </th>
                                         <th class="">RUC</th>
                                         <th class="">F. Pago</th>
-                                        <th class="">Estado</th>
-                                        <th class="" >T.Exonerado</th>
+                                        <th class="sorting" onclick="sortTable('state_type_id')" style="cursor: pointer;">
+                                            Estado
+                                            @if(request()->sort_column === 'state_type_id')
+                                                @if(request()->sort_direction === 'asc')
+                                                    <i class="fa fa-caret-up"></i>
+                                                @else
+                                                    <i class="fa fa-caret-down"></i>
+                                                @endif
+                                            @else
+                                                <i class="fa fa-arrows-v text-muted"></i>
+                                            @endif
+                                        </th>
+                                        <th class="sorting" onclick="sortTable('total_exonerated')" style="cursor: pointer;">
+                                            T.Exonerado
+                                            @if(request()->sort_column === 'total_exonerated')
+                                                @if(request()->sort_direction === 'asc')
+                                                    <i class="fa fa-caret-up"></i>
+                                                @else
+                                                    <i class="fa fa-caret-down"></i>
+                                                @endif
+                                            @else
+                                                <i class="fa fa-arrows-v text-muted"></i>
+                                            @endif
+                                        </th>
 
-                                        <th class="" >T.Inafecta</th>
-                                        <th class="" >T.Gratuito</th>
-                                        <th class="">Total Gravado</th>
-                                        <th class="">Total IGV</th>
-                                        <th class="">Total</th>
+                                        <th class="sorting" onclick="sortTable('total_unaffected')" style="cursor: pointer;">
+                                            T.Inafecta
+                                            @if(request()->sort_column === 'total_unaffected')
+                                                @if(request()->sort_direction === 'asc')
+                                                    <i class="fa fa-caret-up"></i>
+                                                @else
+                                                    <i class="fa fa-caret-down"></i>
+                                                @endif
+                                            @else
+                                                <i class="fa fa-arrows-v text-muted"></i>
+                                            @endif
+                                        </th>
+                                        <th class="sorting" onclick="sortTable('total_free')" style="cursor: pointer;">
+                                            T.Gratuito
+                                            @if(request()->sort_column === 'total_free')
+                                                @if(request()->sort_direction === 'asc')
+                                                    <i class="fa fa-caret-up"></i>
+                                                @else
+                                                    <i class="fa fa-caret-down"></i>
+                                                @endif
+                                            @else
+                                                <i class="fa fa-arrows-v text-muted"></i>
+                                            @endif
+                                        </th>
+                                        <th class="sorting" onclick="sortTable('total_taxed')" style="cursor: pointer;">
+                                            Total Gravado
+                                            @if(request()->sort_column === 'total_taxed')
+                                                @if(request()->sort_direction === 'asc')
+                                                    <i class="fa fa-caret-up"></i>
+                                                @else
+                                                    <i class="fa fa-caret-down"></i>
+                                                @endif
+                                            @else
+                                                <i class="fa fa-arrows-v text-muted"></i>
+                                            @endif
+                                        </th>
+                                        <th class="sorting" onclick="sortTable('total_igv')" style="cursor: pointer;">
+                                            Total IGV
+                                            @if(request()->sort_column === 'total_igv')
+                                                @if(request()->sort_direction === 'asc')
+                                                    <i class="fa fa-caret-up"></i>
+                                                @else
+                                                    <i class="fa fa-caret-down"></i>
+                                                @endif
+                                            @else
+                                                <i class="fa fa-arrows-v text-muted"></i>
+                                            @endif
+                                        </th>
+                                        <th class="sorting" onclick="sortTable('total')" style="cursor: pointer;">
+                                            Total
+                                            @if(request()->sort_column === 'total')
+                                                @if(request()->sort_direction === 'asc')
+                                                    <i class="fa fa-caret-up"></i>
+                                                @else
+                                                    <i class="fa fa-caret-down"></i>
+                                                @endif
+                                            @else
+                                                <i class="fa fa-arrows-v text-muted"></i>
+                                            @endif
+                                        </th>
                                     </tr>
                                 </thead>
                                 <tbody>
@@ -89,7 +221,7 @@
                             Total {{$reports->total()}}
                             <label class="pagination-wrapper ml-2">
                                 {{-- {{ $reports->appends(['search' => Session::get('form_document_list')])->render()  }} --}}
-                                {{$reports->appends($_GET)->render()}} 
+                                {{$reports->appends($_GET)->render()}}
                             </label>
                         </div>
                     </div>
@@ -105,5 +237,32 @@
 @endsection
 
 @push('scripts')
-    <script></script>
+    <script>
+        function sortTable(column) {
+            const currentSort = '{{ request()->sort_column }}';
+            const currentDirection = '{{ request()->sort_direction }}';
+
+            let newDirection = 'asc';
+            if (currentSort === column && currentDirection === 'asc') {
+                newDirection = 'desc';
+            }
+
+            // Get current form values
+            const d = document.querySelector('input[name="d"]')?.value || '';
+            const a = document.querySelector('input[name="a"]')?.value || '';
+            const establishment = document.querySelector('select[name="establishment"]')?.value || '';
+            const td = document.querySelector('select[name="td"]')?.value || '';
+
+            // Build URL with sorting parameters
+            const params = new URLSearchParams();
+            if (d) params.append('d', d);
+            if (a) params.append('a', a);
+            if (establishment) params.append('establishment', establishment);
+            if (td) params.append('td', td);
+            params.append('sort_column', column);
+            params.append('sort_direction', newDirection);
+
+            window.location.href = '{{ route("tenant.reports.purchases.search") }}?' + params.toString();
+        }
+    </script>
 @endpush

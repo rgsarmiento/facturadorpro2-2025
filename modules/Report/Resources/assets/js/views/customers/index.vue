@@ -6,13 +6,28 @@
         <div class="card mb-0">
             <div class="card-body">
                 <data-table :resource="resource">
-                    <tr slot="heading">
+                    <tr slot="heading" slot-scope="{ sortBy, getSortIcon, getSortClass }">
                         <th class="">#</th>
-                        <th class="">Fecha</th>
-                        <th class="">Tipo Documento</th>
-                        <th class="">Prefijo</th>
-                        <th class="">Número</th>
-                        <th class="">Monto</th>
+                        <th class="sorting" :class="getSortClass('date_of_issue')" @click="sortBy('date_of_issue')">
+                            Fecha
+                            <i :class="getSortIcon('date_of_issue')"></i>
+                        </th>
+                        <th class="sorting" :class="getSortClass('document_type_id')" @click="sortBy('document_type_id')">
+                            Tipo Documento
+                            <i :class="getSortIcon('document_type_id')"></i>
+                        </th>
+                        <th class="sorting" :class="getSortClass('series')" @click="sortBy('series')">
+                            Prefijo
+                            <i :class="getSortIcon('series')"></i>
+                        </th>
+                        <th class="sorting" :class="getSortClass('number')" @click="sortBy('number')">
+                            Número
+                            <i :class="getSortIcon('number')"></i>
+                        </th>
+                        <th class="sorting" :class="getSortClass('total')" @click="sortBy('total')">
+                            Monto
+                            <i :class="getSortIcon('total')"></i>
+                        </th>
                     </tr>
                     <tr slot-scope="{ index, row }">
                         <td>{{ index }}</td>

@@ -90,10 +90,7 @@
 
             <div class="col-md-12">
                 <div class="table-responsive">
-                    <table class="table">
-                        <thead>
-                        <slot name="heading"></slot>
-                        </thead>
+
                         <tbody>
                             <slot v-for="(row, index) in records" :row="row" :index="customIndex(index)"></slot>
                         </tbody>
@@ -128,23 +125,11 @@
             resource: String,
         },
 
-        data () {
-            return {
-                loading_submit:false,
-                items: [],
-                all_items: [],
-                loading_search:false,
-                columns: [],
-                records: [],
-                headers: headers_token,
-                document_types: [],
-                pagination: {},
-                search: {},
-                totals: {},
-                establishment: null,
-                establishments: [],
-                types: [{id:'sale', description: 'Venta'},{id:'purchase', description: 'Compra'}],
-                form: {},
+
+                sort: {
+                    column: null,
+                    direction: 'asc'
+                },
                 pickerOptionsDates: {
                     disabledDate: (time) => {
                         time = moment(time).format('YYYY-MM-DD')
@@ -213,16 +198,31 @@
                     this.records = response.data.data
                     this.pagination = response.data.meta
                     this.pagination.per_page = parseInt(response.data.meta.per_page)
-                    this.loading_submit = false
-                });
-            },
-
-            getQueryParameters() {
-                return queryString.stringify({
-                    page: this.pagination.current_page,
+      page: this.pagination.current_page,
                     limit: this.limit,
+                    sort_column: this.sort.column,
+                    sort_direction: this.sort.direction,
                     ...this.form
                 })
+            },
+            sortBy(column) {
+                if (this.sort.column === column) {
+                    this.sort.direction = this.sort.direction === 'asc' ? 'desc' : 'asc';
+                } else {
+                    this.sort.column = column;
+                    this.sort.direction = 'asc';
+                }
+                this.pagination.current_page = 1;
+                this.getRecords();
+            },
+            getSortIcon(column) {
+                if (this.sort.column !== column) {
+                    return 'el-icon-d-caret';
+                }
+                return this.sort.direction === 'asc' ? 'el-icon-caret-top' : 'el-icon-caret-bottom';
+            },
+            getSortClass(column) {
+                return this.sort.column === column ? 'sorting sorting-active' : 'sorting';
             },
 
             changeDisabledDates() {
@@ -236,28 +236,3 @@
                 if (this.form.month_end < this.form.month_start) {
                     this.form.month_end = this.form.month_start
                 }
-                // this.loadAll();
-            },
-
-            changePeriod() {
-                if(this.form.period === 'month') {
-                    this.form.month_start = moment().format('YYYY-MM');
-                    this.form.month_end = moment().format('YYYY-MM');
-                }
-                if(this.form.period === 'between_months') {
-                    this.form.month_start = moment().startOf('year').format('YYYY-MM'); //'2019-01';
-                    this.form.month_end = moment().endOf('year').format('YYYY-MM');;
-                }
-                if(this.form.period === 'date') {
-                    this.form.date_start = moment().format('YYYY-MM-DD');
-                    this.form.date_end = moment().format('YYYY-MM-DD');
-                }
-                if(this.form.period === 'between_dates') {
-                    this.form.date_start = moment().startOf('month').format('YYYY-MM-DD');
-                    this.form.date_end = moment().endOf('month').format('YYYY-MM-DD');
-                }
-                // this.loadAll();
-            },
-        }
-    }
-</script>

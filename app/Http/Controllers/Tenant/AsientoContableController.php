@@ -66,7 +66,19 @@ class AsientoContableController extends Controller
             // Verificar que la conexión tenant esté configurada
             $this->ensureTenantConnection();
 
+            // Ordenamiento
+            $sortColumn = $request->input('sort_column', 'fecha_asiento');
+            $sortDirection = $request->input('sort_direction', 'desc');
 
+            // Validar que el sort_column sea válido
+            $validColumns = ['id', 'numero_comprobante', 'fecha_asiento', 'concepto', 'total_debito', 'estado', 'deleted_at', 'created_at', 'tipo_comprobante_id'];
+            if (!in_array($sortColumn, $validColumns)) {
+                $sortColumn = 'fecha_asiento';
+            }
+
+            if (!in_array($sortDirection, ['asc', 'desc'])) {
+                $sortDirection = 'desc';
+            }
 
             // Incluir eliminados lógicamente para que aparezcan en el listado
             $records = AsientoContable::on('tenant')
@@ -97,8 +109,7 @@ class AsientoContableController extends Controller
                           ->orWhere('concepto', 'like', "%{$search}%");
                     });
                 })
-                ->orderBy('fecha_asiento', 'desc')
-                ->orderBy('id', 'desc')
+                ->orderBy($sortColumn, $sortDirection)
                 ->paginate(15);
 
 

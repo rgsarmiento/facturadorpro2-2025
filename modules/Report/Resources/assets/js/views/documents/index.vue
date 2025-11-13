@@ -10,19 +10,46 @@
                     :resource="resource"
                     :colspan="11"
                 >
-                    <tr slot="heading">
+                    <tr slot="heading" slot-scope="{ sortBy, getSortIcon, getSortClass }">
                         <th class="">#</th>
-                        <th class="">Usuario/Vendedor</th>
-                        <th class="">Tipo Documento</th>
-                        <th class="">Comprobante</th>
-                        <th class="">Fecha emisión</th>
-                        <th>Doc. Afectado</th>
-                        <th>Cotización</th>
-                        <th>Caso</th>
-                        <th class="">Cliente</th>
-                        <th class="">Estado</th>
-                        <th class="">Moneda</th>
-                        <th class="text-right">Total</th>
+                        <th class="sorting" :class="getSortClass('user_id')" @click="sortBy('user_id')">
+                            Usuario/Vendedor
+                            <i :class="getSortIcon('user_id')"></i>
+                        </th>
+                        <th class="sorting" :class="getSortClass('document_type_id')" @click="sortBy('document_type_id')">
+                            Tipo Documento
+                            <i :class="getSortIcon('document_type_id')"></i>
+                        </th>
+                        <th class="sorting" :class="getSortClass('number')" @click="sortBy('number')">
+                            Comprobante
+                            <i :class="getSortIcon('number')"></i>
+                        </th>
+                        <th class="sorting" :class="getSortClass('date_of_issue')" @click="sortBy('date_of_issue')">
+                            Fecha emisión
+                            <i :class="getSortIcon('date_of_issue')"></i>
+                        </th>
+                        <th class="sorting" :class="getSortClass('affected_document')" @click="sortBy('affected_document')">
+                            Doc. Afectado
+                            <i :class="getSortIcon('affected_document')"></i>
+                        </th>
+                        <th class="">Cotización</th>
+                        <th class="">Caso</th>
+                        <th class="sorting" :class="getSortClass('customer_id')" @click="sortBy('customer_id')">
+                            Cliente
+                            <i :class="getSortIcon('customer_id')"></i>
+                        </th>
+                        <th class="sorting" :class="getSortClass('state_type_id')" @click="sortBy('state_type_id')">
+                            Estado
+                            <i :class="getSortIcon('state_type_id')"></i>
+                        </th>
+                        <th class="sorting" :class="getSortClass('currency_type_id')" @click="sortBy('currency_type_id')">
+                            Moneda
+                            <i :class="getSortIcon('currency_type_id')"></i>
+                        </th>
+                        <th class="text-right sorting" :class="getSortClass('total')" @click="sortBy('total')">
+                            Total
+                            <i :class="getSortIcon('total')"></i>
+                        </th>
                     </tr>
                     <tr slot-scope="{ index, row }">
                         <td>{{ index }}</td>

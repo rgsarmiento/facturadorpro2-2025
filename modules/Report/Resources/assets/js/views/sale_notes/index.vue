@@ -6,21 +6,42 @@
         <div class="card mb-0">
                 <div class="card-body">
                     <data-table :resource="resource" :applyCustomer="true">
-                        <tr slot="heading">
+                        <tr slot="heading" slot-scope="{ sortBy, getSortIcon, getSortClass }">
                             <th>#</th>
-                            <th class="text-center">Fecha Emisión</th>
-                            <th class="">Usuario/Vendedor</th>
-                            <th>Cliente</th>
-                            <th>Nota de Venta</th>
-                            <th>Estado</th>
-                            <th class="text-center">Moneda</th>
+                            <th class="text-center sorting" :class="getSortClass('date_of_issue')" @click="sortBy('date_of_issue')">
+                                Fecha Emisión
+                                <i :class="getSortIcon('date_of_issue')"></i>
+                            </th>
+                            <th class="sorting" :class="getSortClass('user_id')" @click="sortBy('user_id')">
+                                Usuario/Vendedor
+                                <i :class="getSortIcon('user_id')"></i>
+                            </th>
+                            <th class="sorting" :class="getSortClass('customer_id')" @click="sortBy('customer_id')">
+                                Cliente
+                                <i :class="getSortIcon('customer_id')"></i>
+                            </th>
+                            <th class="sorting" :class="getSortClass('number')" @click="sortBy('number')">
+                                Nota de Venta
+                                <i :class="getSortIcon('number')"></i>
+                            </th>
+                            <th class="sorting" :class="getSortClass('state_type_id')" @click="sortBy('state_type_id')">
+                                Estado
+                                <i :class="getSortIcon('state_type_id')"></i>
+                            </th>
+                            <th class="text-center sorting" :class="getSortClass('currency_type_id')" @click="sortBy('currency_type_id')">
+                                Moneda
+                                <i :class="getSortIcon('currency_type_id')"></i>
+                            </th>
                             <th class="text-center">Comprobantes</th>
                             <!-- <th>Cotización</th>
                             <th>Caso</th> -->
-                            <th class="text-center">Total</th>
+                            <th class="text-center sorting" :class="getSortClass('total')" @click="sortBy('total')">
+                                Total
+                                <i :class="getSortIcon('total')"></i>
+                            </th>
                         <tr>
                         <tr slot-scope="{ index, row }">
-                            <td>{{ index }}</td>  
+                            <td>{{ index }}</td>
                             <td>{{row.date_of_issue}}</td>
                             <td>{{row.user_name}}</td>
                             <td>{{row.customer_name}}</td>
@@ -28,43 +49,43 @@
                             <td>{{row.state_type_description}}</td>
                             <td class="text-center">{{row.currency_type_id}}</td>
                             <td class="text-center">
-                                <template v-for="(doc,i) in row.documents">                                
+                                <template v-for="(doc,i) in row.documents">
                                     <label class="d-block"  :key="i">{{doc.number_full}}</label>
                                 </template>
                             </td>
                             <!-- <td>{{row.quotation_number_full}}</td>
                             <td>{{row.sale_opportunity_number_full}}</td> -->
                             <td class="text-center">{{ (row.state_type_id == '11') ? "0.00" : row.total}}</td>
-                            
+
                         </tr>
-                        
+
                     </data-table>
-                     
-                    
-                </div> 
+
+
+                </div>
         </div>
- 
+
     </div>
 </template>
 
 <script>
- 
+
     import DataTable from '../../components/DataTableReports.vue'
 
-    export default { 
+    export default {
         components: {DataTable},
         data() {
             return {
-                resource: 'reports/sale-notes',                 
-                form: {}, 
+                resource: 'reports/sale-notes',
+                form: {},
 
             }
         },
-        async created() { 
+        async created() {
         },
-        methods: { 
-             
-            
+        methods: {
+
+
         }
     }
 </script>

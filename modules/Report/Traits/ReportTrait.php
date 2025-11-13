@@ -20,17 +20,19 @@ trait ReportTrait
     public function getRecords($request, $model){
 
         // dd($request['period']);
-        $document_type_id = $request['document_type_id'];
-        $establishment_id = $request['establishment_id'];
-        $period = $request['period'];
-        $date_start = $request['date_start'];
-        $date_end = $request['date_end'];
-        $month_start = $request['month_start'];
-        $month_end = $request['month_end'];
-        $person_id = $request['person_id'];
-        $type_person = $request['type_person'];
-        $seller_id = $request['seller_id'];
-        $state_type_id = $request['state_type_id'];
+        $document_type_id = $request['document_type_id'] ?? null;
+        $establishment_id = $request['establishment_id'] ?? null;
+        $period = $request['period'] ?? null;
+        $date_start = $request['date_start'] ?? null;
+        $date_end = $request['date_end'] ?? null;
+        $month_start = $request['month_start'] ?? null;
+        $month_end = $request['month_end'] ?? null;
+        $person_id = $request['person_id'] ?? null;
+        $type_person = $request['type_person'] ?? null;
+        $seller_id = $request['seller_id'] ?? null;
+        $state_type_id = $request['state_type_id'] ?? null;
+        $sort_column = $request['sort_column'] ?? null;
+        $sort_direction = $request['sort_direction'] ?? 'asc';
 
 
         $d_start = null;
@@ -57,33 +59,33 @@ trait ReportTrait
                 break;
         }
 
-        $records = $this->data($document_type_id, $establishment_id, $d_start, $d_end, $person_id, $type_person, $model, $seller_id, $state_type_id);
+        $records = $this->data($document_type_id, $establishment_id, $d_start, $d_end, $person_id, $type_person, $model, $seller_id, $state_type_id, $sort_column, $sort_direction);
 
         return $records;
 
     }
 
 
-    private function data($document_type_id, $establishment_id, $date_start, $date_end, $person_id, $type_person, $model, $seller_id, $state_type_id)
+    private function data($document_type_id, $establishment_id, $date_start, $date_end, $person_id, $type_person, $model, $seller_id, $state_type_id, $sort_column = null, $sort_direction = 'asc')
     {
 
         if($document_type_id && $establishment_id){
 
             $data = $model::where([['establishment_id', $establishment_id],['document_type_id', $document_type_id]])
-                                ->whereBetween('date_of_issue', [$date_start, $date_end])->latest()->whereTypeUser();
+                                ->whereBetween('date_of_issue', [$date_start, $date_end])->whereTypeUser();
 
         }elseif($document_type_id){
 
-            $data = $model::whereBetween('date_of_issue', [$date_start, $date_end])->latest()
+            $data = $model::whereBetween('date_of_issue', [$date_start, $date_end])
                                 ->where('document_type_id', 'like', '%' . $document_type_id . '%')->whereTypeUser();
 
         }elseif($establishment_id){
 
-            $data = $model::whereBetween('date_of_issue', [$date_start, $date_end])->latest()
+            $data = $model::whereBetween('date_of_issue', [$date_start, $date_end])
                                 ->where('establishment_id', 'like', '%' . $establishment_id . '%')->whereTypeUser();
 
         }else{
-            $data = $model::whereBetween('date_of_issue', [$date_start, $date_end])->latest()->whereTypeUser();
+            $data = $model::whereBetween('date_of_issue', [$date_start, $date_end])->whereTypeUser();
         }
 
         if($person_id && $type_person){
@@ -100,6 +102,19 @@ trait ReportTrait
 
         if($state_type_id){
             $data =  $data->where('state_type_id', $state_type_id);
+        }
+
+        // Apply sorting
+        if($sort_column){
+            // For numeric columns, use CAST to ensure proper sorting
+            $numericColumns = ['total_exonerated', 'total_unaffected', 'total_free', 'total_taxed', 'total_igv', 'total'];
+            if(in_array($sort_column, $numericColumns)){
+                $data = $data->orderByRaw('CAST('.$sort_column.' AS DECIMAL) '.$sort_direction);
+            } else {
+                $data = $data->orderBy($sort_column, $sort_direction);
+            }
+        } else {
+            $data = $data->latest();
         }
 
         return $data;
@@ -239,7 +254,7 @@ trait ReportTrait
         $date_end = $request['date_end'];
         $month_start = $request['month_start'];
         $month_end = $request['month_end'];
-        
+
         $d_start = null;
         $d_end = null;
 
@@ -269,34 +284,34 @@ trait ReportTrait
     }
 
     public function getDateRangeTypes($is_sale = false){
- 
+
         if($is_sale){
 
             return [
                 ['id' => 'date_of_issue', 'description' => 'Fecha emisión'],
-            ]; 
+            ];
 
         }
 
         return [
             ['id' => 'date_of_issue', 'description' => 'Fecha emisión'],
             ['id' => 'delivery_date', 'description' => 'Fecha entrega']
-        ]; 
+        ];
 
     }
 
     public function getOrderStateTypes(){
- 
+
         return [
             ['id' => 'all_states', 'description' => 'Todos'],
             ['id' => 'pending', 'description' => 'Pendiente'],
             ['id' => 'processed', 'description' => 'Procesado'],
-        ]; 
+        ];
 
     }
 
     public function getCIDocumentTypes(){
- 
+
         return DocumentType::whereIn('id', ['01', '03', '80'])->get()->transform(function($row) {
             return [
                 'id' => $row->id,
@@ -307,7 +322,7 @@ trait ReportTrait
     }
 
     public function getStateTypesById($params){
- 
+
         return StateType::whereIn('id', $params)->get()->transform(function($row) {
             return [
                 'id' => $row->id,

@@ -5,20 +5,27 @@
         </div>
         <div class="card mb-0">
             <div class="card-body">
-                <data-table :resource="resource">
-                    <tr slot="heading">
-                        <th class="">#</th>
-                        <th class="">F. Emisión</th>
-                        <th class="">Tipo Documento</th>
-                        <th class="">Serie</th>
-                        <th class="">Número</th>
+/th>
+                        <th class="sorting" :class="getSortClass('number')" @click="sortBy('number')">
+                            Número
+                            <i :class="getSortIcon('number')"></i>
+                        </th>
                         <th class="">N° Documento</th>
                         <th class="">Cliente</th>
                         <!-- <th class="">Cod. Interno</th> -->
-                        <th class="">Nombre</th>
+                        <th class="sorting" :class="getSortClass('description')" @click="sortBy('description')">
+                            Nombre
+                            <i :class="getSortIcon('description')"></i>
+                        </th>
                         <!-- <th class="">U. Medida</th> -->
-                        <th class="">Cantidad</th>
-                        <th class="">Total</th>
+                        <th class="sorting" :class="getSortClass('quantity')" @click="sortBy('quantity')">
+                            Cantidad
+                            <i :class="getSortIcon('quantity')"></i>
+                        </th>
+                        <th class="sorting" :class="getSortClass('total')" @click="sortBy('total')">
+                            Total
+                            <i :class="getSortIcon('total')"></i>
+                        </th>
                     </tr>
                     <tr slot-scope="{ index, row }">
                         <td>{{ index }}</td>
@@ -43,24 +50,3 @@
 <script>
 
     import DataTable from '../../components/DataTableGeneralItems.vue'
-
-    export default {
-        components: {DataTable},
-
-        data() {
-            return {
-                resource: 'reports/general-items',
-                form: {},
-
-            }
-        },
-
-        async created() {
-        },
-
-        methods: {
-
-
-        }
-    }
-</script>
