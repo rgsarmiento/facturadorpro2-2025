@@ -119,8 +119,17 @@ class ReportItemSoldController extends Controller
             })
             ->map(function ($items) {
                 $first = $items->first();
-                // Acceso seguro a la relación item (puede no existir en algunos casos)
-                $itemData = isset($first->item) ? $first->item : null;
+
+                // Obtener type_name del primer item
+                $typeName = '';
+                if (method_exists($first, 'getDataReportSoldItems')) {
+                    $data = $first->getDataReportSoldItems();
+                    $typeName = $data['type_name'] ?? '';
+                }
+
+                // Acceso seguro a relation_item (relación con items) y fallback a item (campo JSON)
+                $relationItem = $first->relation_item ?? null;
+                $itemData = $first->item ?? null;
 
                 // Cantidad total vendida del ítem
                 $quantitySum = $items->sum(function ($it) { return (float) ($it->quantity ?? 0); });
@@ -148,10 +157,29 @@ class ReportItemSoldController extends Controller
                     return is_array($it->discount) ? 0 : (float) ($it->discount ?? 0);
                 });
 
+                // Prioridad: relation_item (relación) > item (JSON)
+                $internal_id = '';
+                if ($relationItem && isset($relationItem->internal_id)) {
+                    $internal_id = $relationItem->internal_id;
+                } elseif (is_object($itemData) && isset($itemData->internal_id)) {
+                    $internal_id = $itemData->internal_id;
+                }
+
+                $name = '';
+                if ($relationItem && isset($relationItem->name)) {
+                    $name = $relationItem->name;
+                } elseif (is_object($itemData) && isset($itemData->name)) {
+                    $name = $itemData->name;
+                } elseif (isset($first->item_name)) {
+                    $name = $first->item_name;
+                } elseif (isset($first->description)) {
+                    $name = $first->description;
+                }
+
                 return [
-                    'type_name'   => $itemData->type_name ?? '',
-                    'internal_id' => $itemData->internal_id ?? ($first->internal_id ?? ''),
-                    'name'        => $itemData->name ?? ($first->item_name ?? $first->description ?? ''),
+                    'type_name'   => $typeName,
+                    'internal_id' => $internal_id,
+                    'name'        => $name,
                     'quantity'    => $quantitySum,
                     'cost'        => $costSum,
                     'net_value'   => $netValueSum,

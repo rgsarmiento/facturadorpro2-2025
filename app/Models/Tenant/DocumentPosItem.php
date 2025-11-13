@@ -118,9 +118,29 @@ class DocumentPosItem extends ModelTenant
      */
     public function getDataReportSoldItems()
     {
-        $cost = $this->generalApplyNumberFormat($this->relation_item->purchase_unit_price * $this->quantity);
-        $internal_id = $this->relation_item->internal_id ?? ($this->item->internal_id ?? '');
-        $name = $this->relation_item->name ?? ($this->item->name ?? '');
+        // Obtener purchase_unit_price con fallback seguro
+        $purchase_unit_price = 0;
+        if ($this->relation_item) {
+            $purchase_unit_price = $this->relation_item->purchase_unit_price ?? 0;
+        }
+
+        $cost = $this->generalApplyNumberFormat($purchase_unit_price * $this->quantity);
+
+        // Obtener internal_id con fallbacks
+        $internal_id = '';
+        if ($this->relation_item && $this->relation_item->internal_id) {
+            $internal_id = $this->relation_item->internal_id;
+        } elseif ($this->item && isset($this->item->internal_id)) {
+            $internal_id = $this->item->internal_id;
+        }
+
+        // Obtener name con fallbacks
+        $name = '';
+        if ($this->relation_item && $this->relation_item->name) {
+            $name = $this->relation_item->name;
+        } elseif ($this->item && isset($this->item->name)) {
+            $name = $this->item->name;
+        }
 
         return [
             'type_name' => 'POS',
