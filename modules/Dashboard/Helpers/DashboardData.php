@@ -71,34 +71,43 @@ class DashboardData
      */
     private function sale_note_totals($establishment_id, $date_start, $date_end, $currency_id)
     {
+        // Construir query base
+        $query = Document::query()
+            ->where('establishment_id', $establishment_id)
+            ->whereCurrency($currency_id);
 
+        // Aplicar filtro de fechas si se proporciona
         if($date_start && $date_end){
-            $sale_notes = Document::query()->where('establishment_id', $establishment_id)
-                                           ->whereCurrency($currency_id)
-                                           ->whereBetween('date_of_issue', [$date_start, $date_end])
-                                           ->get();
-        }else{
-            $sale_notes = Document::query()->where('establishment_id', $establishment_id)
-                                           ->whereCurrency($currency_id)
-                                           ->get();
+            $query->whereBetween('date_of_issue', [$date_start, $date_end]);
         }
 
-        //PEN
-        $sale_note_total_pen = 0;
+        // Usar agregaciones SQL para mejorar rendimiento
+        $totals = $query->selectRaw('SUM(total) as total_sum')->first();
+        $sale_note_total_pen = (float)($totals->total_sum ?? 0);
+
+        // Para los pagos, solo cargar si hay totales
         $sale_note_total_payment_pen = 0;
 
-        $sale_note_total_pen = $sale_notes->sum("total"); //collect($sale_notes->where('currency_type_id', 'PEN'))->sum('total');
+        if ($sale_note_total_pen > 0) {
+            $sale_notes = Document::query()
+                ->where('establishment_id', $establishment_id)
+                ->whereCurrency($currency_id);
 
-        //TWO CURRENCY
-        foreach ($sale_notes as $sale_note)
-        {
-            $sale_note_total_payment_pen += collect($sale_note->payments)->sum('payment');
+            if($date_start && $date_end){
+                $sale_notes->whereBetween('date_of_issue', [$date_start, $date_end]);
+            }
+
+            // Solo traer ID y pagos
+            $sale_notes = $sale_notes->select('id')->with('payments')->get();
+
+            foreach ($sale_notes as $sale_note) {
+                $sale_note_total_payment_pen += collect($sale_note->payments)->sum('payment');
+            }
         }
 
         //TOTALS
-        $sale_note_total = $sale_note_total_pen ;
+        $sale_note_total = $sale_note_total_pen;
         $sale_note_total_payment = $sale_note_total_payment_pen;
-
         $sale_note_total_to_pay = $sale_note_total - $sale_note_total_payment;
 
         return [
@@ -190,38 +199,47 @@ class DashboardData
 
     private function document_pos_totals($establishment_id, $date_start, $date_end, $currency_id)
     {
+        // Construir query base
+        $query = DocumentPos::query()
+            ->where('establishment_id', $establishment_id)
+            ->whereCurrency($currency_id);
 
+        // Aplicar filtro de fechas si se proporciona
         if($date_start && $date_end){
-            $documents = DocumentPos::query()->where('establishment_id', $establishment_id)
-                                            ->whereCurrency($currency_id)
-                                            ->whereBetween('date_of_issue', [$date_start, $date_end])->get();
-        }else{
-            $documents = DocumentPos::query()->where('establishment_id', $establishment_id)
-                                            ->whereCurrency($currency_id)
-                                            ->get();
+            $query->whereBetween('date_of_issue', [$date_start, $date_end]);
         }
 
-        //PEN
-        $document_total_pen = 0;
+        // Usar agregaciones SQL para mejorar rendimiento
+        // Solo traer totales y información necesaria
+        $totals = $query->selectRaw('SUM(total) as total_sum')->first();
+        $document_total_pen = (float)($totals->total_sum ?? 0);
+
+        // Para los pagos, necesitamos cargar documentos pero optimizado
         $document_total_payment_pen = 0;
-        $document_total_note_credit_pen = 0;
 
-        $document_total_pen = collect($documents)->sum('total');
+        if ($document_total_pen > 0) {
+            // Solo traer los documentos necesarios sin el selectRaw
+            $documents = DocumentPos::query()
+                ->where('establishment_id', $establishment_id)
+                ->whereCurrency($currency_id);
 
+            if($date_start && $date_end){
+                $documents->whereBetween('date_of_issue', [$date_start, $date_end]);
+            }
 
-        foreach ($documents as $document)
-        {
-            $document_total_payment_pen += collect($document->payments)->sum('payment');
+            // Cargar solo IDs y relación de pagos
+            $documents = $documents->select('id')->with('payments')->get();
 
-            $document_total_note_credit_pen += ($document->type_document_id == 3) ? $document->total:0; //nota de credito
+            foreach ($documents as $document) {
+                $document_total_payment_pen += collect($document->payments)->sum('payment');
+            }
         }
 
         //TOTALS
         $document_total = $document_total_pen;
-        $document_total_note_credit = $document_total_note_credit_pen;
+        $document_total_note_credit = 0; // Sin notas de crédito en documents_pos
         $document_total_payment = $document_total_payment_pen;
 
-        $document_total = round(($document_total - $document_total_note_credit),2);
         $document_total_to_pay = $document_total - $document_total_payment;
 
 
