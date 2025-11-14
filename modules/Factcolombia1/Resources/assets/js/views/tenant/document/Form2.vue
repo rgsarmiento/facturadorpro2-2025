@@ -1,10 +1,13 @@
 <template>
-    <div class="card mb-0 pt-2 pt-md-0">
+    <div class="card mb-0 pt-2 pt-md-0 invoice-form">
         <div class="card-body" v-if="loading_form">
             <div class="invoice">
                 <form autocomplete="off" @submit.prevent="submit">
                     <div class="form-body">
-                        <div class="row">
+                        <!-- Cliente y Documento -->
+                        <div class="form-section">
+                            <h5 class="section-header"><i class="fa fa-user"></i> Cliente y Documento</h5>
+                            <div class="row">
                             <div class="col-lg-6 pb-2">
                                 <div class="form-group" :class="{ 'has-danger': errors.customer_id }">
                                     <label class="control-label">
@@ -67,6 +70,13 @@
                                         v-text="errors.type_invoice_id[0]"></small>
                                 </div>
                             </div>
+                        </div>
+                        </div>
+
+                        <!-- Fechas y Pagos -->
+                        <div class="form-section">
+                            <h5 class="section-header"><i class="fa fa-calendar"></i> Fechas y Configuración de Pago</h5>
+                            <div class="row">
                             <div class="col-lg-2">
                                 <div class="form-group" :class="{ 'has-danger': errors.date_issue }">
                                     <label class="control-label">Fec. Emisión</label>
@@ -175,8 +185,13 @@
                                         errors.format_print }}</small>
                                 </div>
                             </div>
+                            </div>
                         </div>
-                        <div class="row mt-2">
+
+                        <!-- Observaciones -->
+                        <div class="form-section">
+                            <h5 class="section-header"><i class="fa fa-comment"></i> Observaciones</h5>
+                            <div class="row">
                             <div class="col-md-12">
                                 <div class="form-group">
                                     <label class="control-label">Observaciones</label>
@@ -184,8 +199,13 @@
                                     </el-input>
                                 </div>
                             </div>
+                            </div>
                         </div>
-                        <div class="row mt-4">
+
+                        <!-- Productos y Servicios -->
+                        <div class="form-section">
+                            <h5 class="section-header"><i class="fa fa-shopping-cart"></i> Productos y Servicios</h5>
+                            <div class="row">
                             <div class="col-md-12">
                                 <template v-if="health_sector">
                                     <div>
@@ -406,6 +426,7 @@
                                         getFormatDecimal(form.total) }}</h3>
                                 </template>
                             </div>
+                            </div>
                         </div>
                     </div>
                     <div class="form-actions text-right mt-4">
@@ -438,62 +459,58 @@
         </div>
     </div>
 </template>
-<style>
-.c-m-top {
-    margin-top: 4.5px !important;
+<style scoped>
+.c-m-top { margin-top: 4.5px !important; }
+.pointer { cursor: pointer; }
+.input-custom { width: 50% !important; }
+.el-textarea__inner { height: 65px !important; min-height: 65px !important; }
+@media screen and (max-width: 600px) { .btn .text { display: none; } .btn .icon { display: inline-block; } }
+.btn .icon { display: none; }
+.input-discount .el-input__inner { text-align: right; max-width: 100px; }
+.input-discount .el-input__prefix { left: 10px; top: 5px; color: #66789C; }
+
+/* Diseño simple y limpio */
+.invoice-form {
+    background: #f8f9fa;
 }
-.pointer {
-    cursor: pointer;
+
+.form-section {
+    background: white;
+    padding: 20px;
+    margin-bottom: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    border-left: 4px solid #409EFF;
 }
-.input-custom {
-    width: 50% !important;
+
+.section-header {
+    font-size: 18px;
+    font-weight: 600;
+    color: #2c3e50;
+    margin: 0 0 20px 0;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #e9ecef;
 }
-.el-textarea__inner {
-    height: 65px !important;
-    min-height: 65px !important;
+
+.section-header i {
+    color: #409EFF;
+    margin-right: 10px;
 }
-@media screen and (max-width: 600px) {
-    .btn .text {
-        display: none;
-        /* Oculta el texto en pantallas pequeñas */
-    }
-    .btn .icon {
-        display: inline-block;
-        /* Muestra el ícono en pantallas pequeñas */
-    }
-}
-/* Estilo por defecto para pantallas más grandes */
-.btn .icon {
-    display: none;
-    /* Oculta los íconos en pantallas grandes */
-}
-.input-discount .el-input__inner {
-    text-align: right;
-    max-width: 100px;
-}
-.input-discount .el-input__prefix {
-    left: 10px;
-    top: 5px;
-    color: #66789C;
-}
-/*busqueda de cliente*/
+
+.form-section:nth-child(2) { border-left-color: #67C23A; }
+.form-section:nth-child(3) { border-left-color: #E6A23C; }
+.form-section:nth-child(4) { border-left-color: #F56C6C; }
+
 .cliente-link {
-  color: #409EFF;             /* Color principal (azul) */
-  font-weight: bold;          /* Texto en negrita */
-  font-size: 12px;            /* Tamaño de fuente */
-  text-decoration: none;      /* Sin subrayado */
-  transition: color 0.2s;
+    color: #409EFF;
+    font-weight: bold;
+    font-size: 12px;
+    text-decoration: none;
+    transition: color 0.2s;
 }
 
-.cliente-link:hover {
-  color: #66b1ff;
-}
-
-.search-icon {
-  font-size: 20px;    /* Icono más grande para mejor visibilidad */
-  margin-right: 5px;  /* Espacio entre el icono y el texto */
-}
-
+.cliente-link:hover { color: #66b1ff; }
+.search-icon { font-size: 20px; margin-right: 5px; }
 </style>
 
 <script>
