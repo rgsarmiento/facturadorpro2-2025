@@ -21,13 +21,13 @@ use Modules\RadianEvent\Http\Resources\{
 
 class RadianEventController extends Controller
 {
-    
+
     public function reception()
     {
         return view('radianevent::reception.index');
     }
 
-       
+
     public function manage()
     {
         return view('radianevent::manage.index');
@@ -37,10 +37,10 @@ class RadianEventController extends Controller
     {
         return view('radianevent::reception.radiancufe');
     }
-    
 
-    
-    
+
+
+
     public function columns()
     {
         return [
@@ -51,41 +51,54 @@ class RadianEventController extends Controller
         ];
     }
 
-    
+
     public function records(Request $request)
     {
-        $records = ReceivedDocument::where($request->column, 'like', "%{$request->value}%");
+        $sortColumn = $request->input('sort_column');
+        $sortDirection = $request->input('sort_direction', 'desc');
 
-        return new ReceivedDocumentCollection($records->latest()->paginate(config('tenant.items_per_page')));
+        $validColumns = ['aceptacion', 'type_document_name', 'date_issue', 'identification_number', 'name_seller', 'prefix', 'number', 'total_tax', 'total'];
+        if (!in_array($sortColumn, $validColumns)) {
+            $sortColumn = 'id';
+        }
+
+        if (!in_array($sortDirection, ['asc', 'desc'])) {
+            $sortDirection = 'desc';
+        }
+
+        $records = ReceivedDocument::where($request->column, 'like', "%{$request->value}%")
+            ->orderBy($sortColumn, $sortDirection);
+
+        return new ReceivedDocumentCollection($records->paginate(config('tenant.items_per_page')));
     }
 
     public function sendRadianEvent(Request $request)
     {
         $company = ServiceCompany::select('identification_number', 'api_token')->firstOrFail();
         $connection_api = new HttpConnectionApi($company->api_token);
-    
+
         $params = [
             'event_id' => $request->event_id,
             'document_reference' => [
                 'cufe' => $request->cufe
             ]
         ];
-    
+
         // Incluir type_rejection_id si event_id es igual a 2
         if ($request->event_id == 2) {
             $params['type_rejection_id'] = $request->type_rejection_id;
         }
-    
+
         $url = "ubl2.1/send-event-data";
         $send_request_to_api = $connection_api->sendRequestToApi($url, $params, 'POST');
-    
+
         if (isset($send_request_to_api['errors'])) {
             return $this->getGeneralResponse(false, $connection_api->parseErrorsToString($send_request_to_api['errors']));
         }
-    
+
         if ($send_request_to_api['success']) {
             $received_document = ReceivedDocument::where('cufe', $request->cufe)->first();
-    
+
             if ($received_document) {
                 switch ($request->event_id) {
                     case 1:
@@ -138,7 +151,7 @@ class RadianEventController extends Controller
                             'rechazo' => 0,
                             'pdf' => $send_request_to_api['invoice_number'] . '.pdf',
                             'response_api' => $send_request_to_api['ResponseDian']
-                        ];        
+                        ];
                         ReceivedDocument::create($data);
                         Storage::disk('tenant')->put($folder . DIRECTORY_SEPARATOR . $filename, $file_content);
                         return $this->getGeneralResponse(true, 'Evento enviado con éxito y Archivo XML cargado correctamente.');
@@ -146,14 +159,14 @@ class RadianEventController extends Controller
                     return $this->getGeneralResponse(false, 'El documento no existe y no se puede crear para el evento especificado.');
                 }
             }
-    
+
             return $this->getGeneralResponse(true, 'Evento enviado con éxito');
         }
-    
+
         return $send_request_to_api;
     }
-    
-    
+
+
 
 
 
@@ -169,7 +182,7 @@ class RadianEventController extends Controller
         $filename = $received_document->xml;
 
         $xml = Storage::disk('tenant')->get($folder.DIRECTORY_SEPARATOR.$filename);
-        
+
         $params = [
             'event_id' => $request->event_code,
             'base64_attacheddocument_name' => $filename,
@@ -205,7 +218,7 @@ class RadianEventController extends Controller
         {
             // actualizar datos
             $this->updateStateByEventCode($received_document, $event_code, $send_request_to_api);
-            
+
             return $this->getGeneralResponse(true, 'Resultado del Evento: '.$send_event_update_status_result['StatusMessage']);
         }
 
@@ -216,10 +229,10 @@ class RadianEventController extends Controller
         return $this->getGeneralResponse(false, "Resultado del Evento: {$error_message_response}");
     }
 
-    
+
     /**
-     * 
-     * Actualizar estados/datos 
+     *
+     * Actualizar estados/datos
      *
      * @param  ReceivedDocument $received_document
      * @param  string $event_code
@@ -230,7 +243,7 @@ class RadianEventController extends Controller
     {
         $data_update = [];
 
-        switch ($event_code) 
+        switch ($event_code)
         {
             case '1':
                 $data_update = [
@@ -238,7 +251,7 @@ class RadianEventController extends Controller
                     // 'response_api' => $send_request_to_api, //@todo cada evento genera un response, debe haber un campo para cada uno
                 ];
                 break;
-            
+
             case '2':
                 $data_update = [
                     'rechazo' => 1,
@@ -260,16 +273,16 @@ class RadianEventController extends Controller
                 ];
                 break;
         }
-        
+
         $received_document->update($data_update);
     }
 
-    
+
     // public function throwException($message)
     // {
     //     throw new Exception($message);
     // }
-    
+
     public function download($filename)
     {
         return Storage::disk('tenant')->download("radian_reception_documents".DIRECTORY_SEPARATOR.$filename);
@@ -277,7 +290,7 @@ class RadianEventController extends Controller
 
 
     /**
-     * 
+     *
      * Cargar xml
      *
      * @param  Request $request
@@ -292,10 +305,10 @@ class RadianEventController extends Controller
                  $folder = "radian_reception_documents";
                  $file = $request->file('file');
                  $file_content = file_get_contents($file);
-     
+
                  $filename = $file->getClientOriginalName();
                  $extension = $file->getClientOriginalExtension();
-     
+
                  if ($extension === 'zip') {
                      // Extraer el archivo XML del archivo ZIP
                      $zip = new \ZipArchive();
@@ -319,7 +332,7 @@ class RadianEventController extends Controller
                          throw new Exception('No se pudo abrir el archivo ZIP.');
                      }
                  }
-     
+
                  if ($extension === 'pdf') {
                      // Procesar archivo PDF
                      $exist_record = ReceivedDocument::where('xml', str_replace('.pdf', '.xml', $filename))->first();
@@ -354,7 +367,7 @@ class RadianEventController extends Controller
                  ];
              }
          }
-     
+
          return [
              'success' => false,
              'message' => __('app.actions.upload.error'),
@@ -399,7 +412,7 @@ class RadianEventController extends Controller
                 // enviar api para parsear xml y obtener data
                 $company = ServiceCompany::select('identification_number', 'api_token')->firstOrFail();
                 $connection_api = new HttpConnectionApi($company->api_token);
-                
+
                 $params = [
                     'xml_document' => base64_encode($file_content),
                     'company_idnumber' => $company->identification_number,
@@ -412,14 +425,14 @@ class RadianEventController extends Controller
                 // enviar api
 
 
-                //subir archivo 
+                //subir archivo
                 Storage::disk('tenant')->put($folder.DIRECTORY_SEPARATOR.$filename, $file_content);
 
                 // registrar en bd
                 $data = $send_request_to_api['data'];
                 $data['xml'] = $filename;
                 $data['pdf'] = $filename_pdf;
-                
+
                 ReceivedDocument::create($data);
 
                 return [
@@ -427,9 +440,9 @@ class RadianEventController extends Controller
                     'message' =>  'Archivo cargado',
                     'send_request_to_api' => $send_request_to_api
                 ];
-                
-            } 
-            catch (Exception $e) 
+
+            }
+            catch (Exception $e)
             {
                 return [
                     'success' => false,
@@ -437,7 +450,7 @@ class RadianEventController extends Controller
                 ];
             }
         }
-        
+
         return [
             'success' => false,
             'message' =>  __('app.actions.upload.error'),

@@ -53,6 +53,20 @@ class GlobalPaymentController extends Controller
         $payment_type = $request['payment_type'];
         $destination_type = $request['destination_type'];
 
+        // Ordenamiento
+        $sortColumn = $request['sort_column'] ?? 'created_at';
+        $sortDirection = $request['sort_direction'] ?? 'desc';
+
+        // Validar que el sort_column sea válido
+        $validColumns = ['id', 'person_name', 'currency_type_id', 'instance_type_description', 'destination_description', 'date_of_payment', 'total', 'created_at'];
+        if (!in_array($sortColumn, $validColumns)) {
+            $sortColumn = 'created_at';
+        }
+
+        if (!in_array($sortDirection, ['asc', 'desc'])) {
+            $sortDirection = 'desc';
+        }
+
         $params = (object)[
             'date_start' => $data_of_period['d_start'],
             'date_end' => $data_of_period['d_end'],
@@ -69,7 +83,7 @@ class GlobalPaymentController extends Controller
             $records = $records->whereDestinationType($destination_type);
         }
 
-        return $records->latest();
+        return $records->orderBy($sortColumn, $sortDirection);
     }
 
 

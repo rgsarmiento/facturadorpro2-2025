@@ -1,5 +1,5 @@
 <template>
-    <div>       
+    <div>
         <div class="page-header pr-0 d-flex align-items-center">
             <h2 class="mr-auto"><a href="/dashboard"><i class="fas fa-tachometer-alt"></i></a></h2>
             <ol class="breadcrumbs mr-auto">
@@ -20,17 +20,17 @@
             </div>
           <!-- Tabla de documentos -->
           <data-table ref="dataTable" :resource="resource">
-            <template v-slot:heading>
+            <template v-slot:heading="{ sortBy, getSortIcon, getSortClass }">
               <th>#</th>
-              <th>Estado Actual</th>
-              <th>Tipo Documento</th>
-              <th>Fecha</th>
-              <th>Nit Empresa</th>
-              <th>Nombre</th>
-              <th>Prefijo</th>
-              <th>Numero</th>
-              <th>Impuestos</th>
-              <th>Vr. Documento</th>
+              <th class="sorting" :class="getSortClass('aceptacion')" @click="sortBy('aceptacion')">Estado Actual <i :class="getSortIcon('aceptacion')"></i></th>
+              <th class="sorting" :class="getSortClass('type_document_name')" @click="sortBy('type_document_name')">Tipo Documento <i :class="getSortIcon('type_document_name')"></i></th>
+              <th class="sorting" :class="getSortClass('date_issue')" @click="sortBy('date_issue')">Fecha <i :class="getSortIcon('date_issue')"></i></th>
+              <th class="sorting" :class="getSortClass('identification_number')" @click="sortBy('identification_number')">Nit Empresa <i :class="getSortIcon('identification_number')"></i></th>
+              <th class="sorting" :class="getSortClass('name_seller')" @click="sortBy('name_seller')">Nombre <i :class="getSortIcon('name_seller')"></i></th>
+              <th class="sorting" :class="getSortClass('prefix')" @click="sortBy('prefix')">Prefijo <i :class="getSortIcon('prefix')"></i></th>
+              <th class="sorting" :class="getSortClass('number')" @click="sortBy('number')">Numero <i :class="getSortIcon('number')"></i></th>
+              <th class="sorting" :class="getSortClass('total_tax')" @click="sortBy('total_tax')">Impuestos <i :class="getSortIcon('total_tax')"></i></th>
+              <th class="sorting" :class="getSortClass('total')" @click="sortBy('total')">Vr. Documento <i :class="getSortIcon('total')"></i></th>
               <th>Attached Document</th>
               <th>Acuse Recibo</th>
               <th>Recepcion Bienes</th>
@@ -50,7 +50,7 @@
                                     <i class="fa fa-circle" style="color: red"></i>
                                 </template>
                                 <template v-else>
-                                    
+
                                     <template v-if="row.rec_bienes == 1">
                                         <i class="fa fa-circle" style="color: yellow"></i>
                                     </template>
@@ -79,15 +79,15 @@
                   </button>
                 </td>
                 <td>
-                  <button v-if="row.acu_recibo" type="button" class="btn btn-success btn-xs"> <i class="fas fa-check-circle"></i>  Validado</button>                  
-                  <button v-else type="button" class="btn btn-primary btn-xs" 
+                  <button v-if="row.acu_recibo" type="button" class="btn btn-success btn-xs"> <i class="fas fa-check-circle"></i>  Validado</button>
+                  <button v-else type="button" class="btn btn-primary btn-xs"
                     @click="sendEvent(row.id, 1, row.cufe)">
                     Enviar
                   </button>
                 </td>
                 <td>
-                  <button v-if="row.rec_bienes" type="button" class="btn btn-success btn-xs"> <i class="fas fa-check-circle"></i>  Validado</button>                       
-                  <button v-else type="button" class="btn btn-primary btn-xs" 
+                  <button v-if="row.rec_bienes" type="button" class="btn btn-success btn-xs"> <i class="fas fa-check-circle"></i>  Validado</button>
+                  <button v-else type="button" class="btn btn-primary btn-xs"
                     @click="sendEvent(row.id, 3, row.cufe)">
                     Enviar
                   </button>
@@ -122,14 +122,14 @@
 
           <el-dialog title="Rechazo de Factura" :visible.sync="showRejectionModal">
             <form class="form-horizontal" style="text-align: center;">
-                <div class="form-group">        
+                <div class="form-group">
                     <div class="col-md-12">
                         <p>
                             Documento electrónico mediante el cual el Adquiriente manifiesta que no acepta el documento de conformidad con el artículo 773 del Código de Comercio y en concordancia con el artículo 2.2.2.53.4. del Decreto 1074 de 2015, Único Reglamentario del Sector Comercio, Industria y Turismo. Este documento es para desaveniencias de tipo comercial, dado que el documento sobre el cual manifiesta el desacuerdo fue efectivamente Validado por la DIAN, en el sistema de Validación Previa.
                         </p>
                     </div>
                     <br>
-                    <p><b>Motivo de Rechazo</b></p>        
+                    <p><b>Motivo de Rechazo</b></p>
                 <div class="col-md-6">
                     <select id="type_rejection_id" v-model="selectedRejectionType" class="form-control" required>
                     <option value="" disabled selected>Selecciona un tipo de rechazo</option>
@@ -171,7 +171,7 @@
       </div>
       <rejected-form :show-dialog.sync="showDialogRejected" :record="record"></rejected-form>
     </div>
-  </template> 
+  </template>
 
 <style>
 .global-loading-overlay {
@@ -190,12 +190,12 @@
 }
 </style>
 
-  
-  
+
+
   <script>
   import DataTable from "@components/DataTable.vue";
   import RejectedForm from "./partials/rejected.vue";
-  
+
   export default {
     components: { DataTable, RejectedForm },
     data() {
@@ -206,7 +206,7 @@
         record: null,
         cufe: "",
         event_id: "1",
-        showRejectionModal: false,    
+        showRejectionModal: false,
         showNewEventModal: false,
         isGlobalLoading: false, // Estado de carga global
         selectedRejectionType: ''
@@ -261,7 +261,7 @@
     handleResponse(response, documentId) {
     this.isGlobalLoading = false;
     if (response.data.success) {
-        this.$message.success(response.data.message);        
+        this.$message.success(response.data.message);
     } else {
         this.$message.error(response.data.message);
     }
@@ -301,4 +301,3 @@
     },
   };
   </script>
-  

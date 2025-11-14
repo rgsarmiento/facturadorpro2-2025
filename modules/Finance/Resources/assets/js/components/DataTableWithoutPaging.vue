@@ -49,8 +49,8 @@
                                                 :picker-options="pickerOptionsDates"
                                                 value-format="yyyy-MM-dd" format="dd/MM/yyyy" :clearable="false"></el-date-picker>
                             </div>
-                        </template> 
-                     
+                        </template>
+
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label class="control-label">Moneda
@@ -62,7 +62,7 @@
                                     <el-option v-for="option in currencies" :key="option.id" :value="option.id" :label="option.name"></el-option>
                                 </el-select>
                             </div>
-                        </div> 
+                        </div>
 
                         <div class="col-lg-7 col-md-7 col-md-7 col-sm-12" style="margin-top:29px">
                             <el-button class="submit" type="primary" @click.prevent="getRecordsByFilter" :loading="loading_submit" icon="el-icon-search" >Buscar</el-button>
@@ -88,11 +88,11 @@
                 <div class="table-responsive">
                     <table class="table">
                         <thead>
-                        <slot name="heading"></slot>
+                        <slot name="heading" :sortBy="sortBy" :getSortIcon="getSortIcon" :getSortClass="getSortClass"></slot>
                         </thead>
                         <tbody>
                             <slot v-for="(row, index) in records" :row="row" :index="customIndex(index)"></slot>
-                        </tbody> 
+                        </tbody>
                         <tfoot v-if="resource == 'finances/payment-method-types'">
                             <tr>
                                 <td class="text-center" colspan="2">Totales</td>
@@ -107,7 +107,7 @@
                                 <td class="text-center"> {{totals.t_expenses}}</td>
                             </tr>
                         </tfoot>
-                    </table> 
+                    </table>
                 </div>
             </div>
         </div>
@@ -142,6 +142,7 @@
                 destination_types: [],
                 currencies: [],
                 form: {},
+                sort: { column: null, direction: 'asc' },
                 pickerOptionsDates: {
                     disabledDate: (time) => {
                         time = moment(time).format('YYYY-MM-DD')
@@ -165,11 +166,11 @@
                 this.getRecords()
             })
         },
-        async mounted () { 
+        async mounted () {
 
             await this.$http.get(`/${this.resource}/filter`)
                 .then(response => {
-                    this.currencies = response.data.currencies; 
+                    this.currencies = response.data.currencies;
                 });
 
             await this.getRecords()
@@ -187,7 +188,7 @@
             },
             initForm(){
 
-                this.form = { 
+                this.form = {
                     period: 'month',
                     currency_id: 170,
                     date_start: moment().format('YYYY-MM-DD'),
@@ -196,7 +197,7 @@
                     month_end: moment().format('YYYY-MM'),
                 }
 
-            },  
+            },
             async getRecordsByFilter(){
 
                 this.loading_submit = await true
@@ -220,7 +221,9 @@
             },
             getQueryParameters() {
                 return queryString.stringify({
-                    ...this.form
+                    ...this.form,
+                    sort_column: this.sort.column,
+                    sort_direction: this.sort.direction
                 })
             },
 
@@ -235,6 +238,24 @@
                     this.form.month_end = this.form.month_start
                 }
                 // this.loadAll();
+            },
+            sortBy(column) {
+                if (this.sort.column === column) {
+                    this.sort.direction = this.sort.direction === 'asc' ? 'desc' : 'asc'
+                } else {
+                    this.sort.column = column
+                    this.sort.direction = 'asc'
+                }
+                this.getRecordsByFilter()
+            },
+            getSortIcon(column) {
+                if (this.sort.column === column) {
+                    return this.sort.direction === 'asc' ? 'caret-top' : 'caret-bottom'
+                }
+                return 'd-caret'
+            },
+            getSortClass(column) {
+                return this.sort.column === column ? 'sorting-active' : ''
             },
             changePeriod() {
                 if(this.form.period === 'month') {

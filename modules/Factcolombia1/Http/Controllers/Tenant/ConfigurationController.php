@@ -74,11 +74,28 @@ class ConfigurationController extends Controller
      * All
      * @return \Illuminate\Http\Response
      */
-    public function all() {
+    public function all(Request $request) {
+        $sortColumn = $request->input('sort_column');
+        $sortDirection = $request->input('sort_direction', 'asc');
+
+        $validColumns = ['name', 'prefix', 'from', 'to', 'generated', 'resolution_number', 'resolution_date', 'resolution_date_end', 'technical_key', 'description'];
+        if (!in_array($sortColumn, $validColumns)) {
+            $sortColumn = null;
+        }
+
+        if (!in_array($sortDirection, ['asc', 'desc'])) {
+            $sortDirection = 'asc';
+        }
+
+        $typeDocumentsQuery = TypeDocument::where('name', '!=', 'Factura Electronica de venta');
+        if ($sortColumn) {
+            $typeDocumentsQuery = $typeDocumentsQuery->orderBy($sortColumn, $sortDirection);
+        }
+
         return [
             'typeIdentityDocuments' => TypeIdentityDocument::all(),
             'typeObligations' => TypeObligation::all(),
-            'typeDocuments' => TypeDocument::where('name', '!=', 'Factura Electronica de venta')->get(),
+            'typeDocuments' => $typeDocumentsQuery->get(),
             'typeRegimes' => TypeRegime::all(),
             'versionUbls' => VersionUbl::all(),
             'currencies' => Currency::all(),

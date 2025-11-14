@@ -21,15 +21,15 @@
             </div>
             <div class="card-body">
                 <data-table :resource="resource">
-                    <tr slot="heading" width="100%">
+                    <tr slot="heading" slot-scope="{ sortBy, getSortIcon, getSortClass }" width="100%">
                         <th>#</th>
-                        <th>Fecha Emision</th>
-                        <th>Estado</th>
-                        <th>Cantidad Empleados</th>
-                        <th>Periodo</th>
-                        <th class="text-center">T. Devengados</th>
-                        <th class="text-center">T. Deducciones</th>
-                        <th class="text-center">Vr. Bloque</th>
+                        <th class="sorting" :class="getSortClass('date_of_issue')" @click="sortBy('date_of_issue')">Fecha Emision <i :class="getSortIcon('date_of_issue')"></i></th>
+                        <th class="sorting" :class="getSortClass('state_block_id')" @click="sortBy('state_block_id')">Estado <i :class="getSortIcon('state_block_id')"></i></th>
+                        <th class="sorting" :class="getSortClass('workers_quantity')" @click="sortBy('workers_quantity')">Cantidad Empleados <i :class="getSortIcon('workers_quantity')"></i></th>
+                        <th class="sorting" :class="getSortClass('payroll_period_id')" @click="sortBy('payroll_period_id')">Periodo <i :class="getSortIcon('payroll_period_id')"></i></th>
+                        <th class="text-center sorting" :class="getSortClass('accrued_total')" @click="sortBy('accrued_total')">T. Devengados <i :class="getSortIcon('accrued_total')"></i></th>
+                        <th class="text-center sorting" :class="getSortClass('deductions_total')" @click="sortBy('deductions_total')">T. Deducciones <i :class="getSortIcon('deductions_total')"></i></th>
+                        <th class="text-center sorting" :class="getSortClass('net_total')" @click="sortBy('net_total')">Vr. Bloque <i :class="getSortIcon('net_total')"></i></th>
                         <th class="text-center">Opciones</th>
                     </tr>
                     <tr slot-scope="{ index, row }">

@@ -22,7 +22,7 @@ use App\CoreFacturalo\Requests\Inputs\Common\PersonInput;
 use App\Models\Tenant\Establishment;
 use Illuminate\Support\Facades\DB;
 use App\Models\Tenant\Company;
-use Modules\Finance\Traits\FinanceTrait; 
+use Modules\Finance\Traits\FinanceTrait;
 use Modules\Factcolombia1\Models\Tenant\{
     Currency,
 };
@@ -55,11 +55,27 @@ class IncomeController extends Controller
 
     public function records(Request $request)
     {
-        $records = Income::where($request->column, 'like', "%{$request->value}%")
-                            ->whereTypeUser()
-                            ->latest();
+        $query = Income::where($request->column, 'like', "%{$request->value}%")
+                            ->whereTypeUser();
 
-        return new IncomeCollection($records->paginate(config('tenant.items_per_page')));
+        // Aplicar ordenamiento
+        $sortColumn = $request->input('sort_column');
+        $sortDirection = $request->input('sort_direction', 'desc');
+
+        $validColumns = ['date_of_issue', 'customer_name', 'number', 'income_reason_description', 'total'];
+
+        if (!in_array($sortColumn, $validColumns)) {
+            $sortColumn = 'id';
+            $sortDirection = 'desc';
+        }
+
+        if (!in_array($sortDirection, ['asc', 'desc'])) {
+            $sortDirection = 'desc';
+        }
+
+        $query = $query->orderBy($sortColumn, $sortDirection);
+
+        return new IncomeCollection($query->paginate(config('tenant.items_per_page')));
     }
 
     public function tables()
@@ -176,7 +192,7 @@ class IncomeController extends Controller
         $income->save();
 
         return [
-            'success' => true, 
+            'success' => true,
             'message' => 'Ingreso anulado exitosamente',
         ];
     }

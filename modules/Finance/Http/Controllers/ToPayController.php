@@ -10,7 +10,7 @@ use App\Models\Tenant\Cash;
 use App\Models\Tenant\BankAccount;
 use Maatwebsite\Excel\Facades\Excel;
 use App\Models\Tenant\Company;
-use Modules\Finance\Traits\FinanceTrait; 
+use Modules\Finance\Traits\FinanceTrait;
 use Modules\Finance\Http\Resources\GlobalPaymentCollection;
 use Modules\Finance\Exports\ToPayAllExport;
 use Modules\Finance\Exports\ToPayExport;
@@ -22,7 +22,7 @@ use Modules\Dashboard\Helpers\DashboardView;
 use Modules\Finance\Helpers\ToPay;
 
 class ToPayController extends Controller
-{ 
+{
 
     use FinanceTrait;
 
@@ -52,13 +52,40 @@ class ToPayController extends Controller
 
     public function records(Request $request)
     {
+        $records = (new ToPay())->getToPay($request->all());
+
+        // Aplicar ordenamiento
+        $sortColumn = $request->input('sort_column');
+        $sortDirection = $request->input('sort_direction', 'asc');
+
+        $validColumns = ['date_of_issue', 'date_of_due', 'number_full', 'supplier_name', 'delay_payment', 'total_to_pay', 'total'];
+
+        if (!in_array($sortColumn, $validColumns)) {
+            $sortColumn = null;
+        }
+
+        if (!in_array($sortDirection, ['asc', 'desc'])) {
+            $sortDirection = 'asc';
+        }
+
+        if ($sortColumn) {
+            $records = collect($records)->sortBy(function($item) use ($sortColumn) {
+                $value = $item[$sortColumn] ?? 0;
+                // Convertir a número si es necesario
+                return is_numeric($value) ? (float)$value : $value;
+            });
+
+            if ($sortDirection === 'desc') {
+                $records = $records->reverse();
+            }
+        }
 
         return [
-            'records' => (new ToPay())->getToPay($request->all())
-       ];
-        
+            'records' => $records
+        ];
+
     }
- 
+
     public function toPayAll()
     {
 

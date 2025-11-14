@@ -139,17 +139,17 @@
                                 <thead>
                                 <tr>
                                     <th>#</th>
-                                    <th>F.Emisión</th>
-                                    <th>F.Vencimiento</th>
-                                    <th>Número</th>
-                                    <th>Cliente</th>
-                                    <th>Días de retraso</th>
+                                    <th class="sorting" :class="getSortClass('date_of_issue')" @click="sortBy('date_of_issue')">F.Emisión <i :class="'el-icon-' + getSortIcon('date_of_issue')"></i></th>
+                                    <th class="sorting" :class="getSortClass('date_of_due')" @click="sortBy('date_of_due')">F.Vencimiento <i :class="'el-icon-' + getSortIcon('date_of_due')"></i></th>
+                                    <th class="sorting" :class="getSortClass('number_full')" @click="sortBy('number_full')">Número <i :class="'el-icon-' + getSortIcon('number_full')"></i></th>
+                                    <th class="sorting" :class="getSortClass('customer_name')" @click="sortBy('customer_name')">Cliente <i :class="'el-icon-' + getSortIcon('customer_name')"></i></th>
+                                    <th class="sorting" :class="getSortClass('delay_payment')" @click="sortBy('delay_payment')">Días de retraso <i :class="'el-icon-' + getSortIcon('delay_payment')"></i></th>
 
 
                                     <th>Ver Cartera</th>
                                     <th>Moneda</th>
-                                    <th class="text-right">Por cobrar</th>
-                                    <th class="text-right">Total</th>
+                                    <th class="text-right sorting" :class="getSortClass('total_to_pay')" @click="sortBy('total_to_pay')">Por cobrar <i :class="'el-icon-' + getSortIcon('total_to_pay')"></i></th>
+                                    <th class="text-right sorting" :class="getSortClass('total')" @click="sortBy('total')">Total <i :class="'el-icon-' + getSortIcon('total')"></i></th>
                                     <th></th>
                                 </tr>
                                 </thead>
@@ -269,6 +269,7 @@
                 recordId: null,
                 records:[],
                 establishments: [],
+                sort: { column: null, direction: 'asc' },
                 pickerOptionsDates: {
                     disabledDate: (time) => {
                         time = moment(time).format('YYYY-MM-DD')
@@ -418,7 +419,12 @@
 
             loadUnpaid() {
 //                if(this.form.customer_id){
-                    this.$http.post(`/${this.resource}/records`, this.form).then(response => {
+                    let form = {
+                        ...this.form,
+                        sort_column: this.sort.column,
+                        sort_direction: this.sort.direction
+                    };
+                    this.$http.post(`/${this.resource}/records`, form).then(response => {
                         this.records = response.data.records;
                         //this.records_base = response.data.records;
                     });
@@ -495,6 +501,24 @@
                     this.form.date_end = moment().endOf('month').format('YYYY-MM-DD');
                 }
                 this.loadUnpaid();
+            },
+            sortBy(column) {
+                if (this.sort.column === column) {
+                    this.sort.direction = this.sort.direction === 'asc' ? 'desc' : 'asc'
+                } else {
+                    this.sort.column = column
+                    this.sort.direction = 'asc'
+                }
+                this.loadUnpaid()
+            },
+            getSortIcon(column) {
+                if (this.sort.column === column) {
+                    return this.sort.direction === 'asc' ? 'caret-top' : 'caret-bottom'
+                }
+                return 'd-caret'
+            },
+            getSortClass(column) {
+                return this.sort.column === column ? 'sorting-active' : ''
             },
 
         }

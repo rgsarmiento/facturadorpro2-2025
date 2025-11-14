@@ -15,16 +15,16 @@
                 <h3 class="my-0">Correos procesados</h3>
             </div>
             <div class="card-body">
-                
+
                 <data-table :resource="resource">
-                    <tr slot="heading">
+                    <tr slot="heading" slot-scope="{ sortBy, getSortIcon, getSortClass }">
                         <th>#</th>
-                        <th>Usuario</th>
-                        <th>Fecha y hora inicio</th>
-                        <th>Fecha y hora término</th>
-                        <th>Fechas de búsqueda</th>
-                        <th class="text-center">Procesado</th>
-                        <th>Error</th>
+                        <th class="sorting" :class="getSortClass('email_user')" @click="sortBy('email_user')">Usuario <i :class="getSortIcon('email_user')"></i></th>
+                        <th class="sorting" :class="getSortClass('start_date')" @click="sortBy('start_date')">Fecha y hora inicio <i :class="getSortIcon('start_date')"></i></th>
+                        <th class="sorting" :class="getSortClass('end_date')" @click="sortBy('end_date')">Fecha y hora término <i :class="getSortIcon('end_date')"></i></th>
+                        <th class="sorting" :class="getSortClass('search_start_date')" @click="sortBy('search_start_date')">Fechas de búsqueda <i :class="getSortIcon('search_start_date')"></i></th>
+                        <th class="text-center sorting" :class="getSortClass('success')" @click="sortBy('success')">Procesado <i :class="getSortIcon('success')"></i></th>
+                        <th class="sorting" :class="getSortClass('errors')" @click="sortBy('errors')">Error <i :class="getSortIcon('errors')"></i></th>
                         <th class="text-right">Acciones</th>
                     <tr>
                     <tr slot-scope="{ index, row }">
@@ -49,10 +49,10 @@
                     </tr>
                 </data-table>
             </div>
-            
+
             <detail-form :showDialog.sync="showDialog"
                             :recordId="recordId"></detail-form>
-                            
+
             <search-form :showDialog.sync="showDialogSearch"></search-form>
         </div>
     </div>
@@ -82,7 +82,7 @@
                 this.showDialogSearch = true
 
                 // this.loading = true
-                
+
                 // await this.$http.get(`/co-radian-events/search-imap-emails`)
                 //     .then(response => {
 

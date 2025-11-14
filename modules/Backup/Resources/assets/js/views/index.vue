@@ -58,9 +58,9 @@
                 <table class="table table-striped">
                   <thead>
                     <tr>
-                      <th><i class="fa fa-file-o mr-2"></i>Archivo</th>
-                      <th class="text-center"><i class="fa fa-hdd-o mr-2"></i>Tamaño</th>
-                      <th class="text-center"><i class="fa fa-calendar mr-2"></i>Fecha</th>
+                      <th class="sorting" :class="getSortClass('filename')" @click="sortBy('filename')"><i class="fa fa-file-o mr-2"></i>Archivo <i :class="getSortIcon('filename')"></i></th>
+                      <th class="text-center sorting" :class="getSortClass('size')" @click="sortBy('size')"><i class="fa fa-hdd-o mr-2"></i>Tamaño <i :class="getSortIcon('size')"></i></th>
+                      <th class="text-center sorting" :class="getSortClass('date')" @click="sortBy('date')"><i class="fa fa-calendar mr-2"></i>Fecha <i :class="getSortIcon('date')"></i></th>
                       <th class="text-center"><i class="fa fa-cogs mr-2"></i>Acciones</th>
                     </tr>
                   </thead>
@@ -187,7 +187,8 @@ export default {
       showDeleteDialog: false,
       showRestoreDialog: false,
       selectedBackup: null,
-      selectedFile: null
+      selectedFile: null,
+      sort: { column: null, direction: 'desc' }
     };
   },
 
@@ -199,7 +200,12 @@ export default {
     async loadBackups() {
       this.loading = true;
       try {
-        const response = await axios.get('/backup/list');
+        let params = {};
+        if (this.sort.column) {
+          params.sort_column = this.sort.column;
+          params.sort_direction = this.sort.direction;
+        }
+        const response = await axios.get('/backup/list', { params });
         this.backups = response.data.backups || [];
       } catch (error) {
         console.error('Error loading backups:', error);
@@ -324,6 +330,25 @@ export default {
       const sizes = ['B', 'KB', 'MB', 'GB'];
       const i = Math.floor(Math.log(bytes) / Math.log(k));
       return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    },
+
+    sortBy(column) {
+      if (this.sort.column === column) {
+        this.sort.direction = this.sort.direction === 'asc' ? 'desc' : 'asc';
+      } else {
+        this.sort.column = column;
+        this.sort.direction = 'desc';
+      }
+      this.loadBackups();
+    },
+
+    getSortIcon(column) {
+      if (this.sort.column !== column) return 'el-icon-d-caret';
+      return this.sort.direction === 'asc' ? 'el-icon-caret-top' : 'el-icon-caret-bottom';
+    },
+
+    getSortClass(column) {
+      return this.sort.column === column ? 'sorting sorting-active' : 'sorting';
     }
   }
 };

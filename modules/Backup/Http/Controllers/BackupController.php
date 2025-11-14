@@ -165,9 +165,21 @@ class BackupController extends Controller
     /**
      * Listar todas las copias de seguridad disponibles
      */
-    public function list()
+    public function list(Request $request)
     {
         try {
+            $sortColumn = $request->input('sort_column');
+            $sortDirection = $request->input('sort_direction', 'desc');
+
+            $validColumns = ['filename', 'size', 'date', 'created_at'];
+            if (!in_array($sortColumn, $validColumns)) {
+                $sortColumn = 'created_at';
+            }
+
+            if (!in_array($sortDirection, ['asc', 'desc'])) {
+                $sortDirection = 'desc';
+            }
+
             $backupsPath = storage_path('app/backups');
             $backups = [];
 
@@ -191,15 +203,25 @@ class BackupController extends Controller
                             'filename' => $file,
                             'size' => $this->formatBytes(filesize($filePath)),
                             'date' => date('Y-m-d H:i:s', filemtime($filePath)),
-                            'created_at' => date('Y-m-d H:i:s', filemtime($filePath))
+                            'created_at' => filemtime($filePath)
                         ];
                     }
                 }
             }
 
-            // Ordenar por fecha de creación (más reciente primero)
-            usort($backups, function($a, $b) {
-                return strtotime($b['created_at']) - strtotime($a['created_at']);
+            // Ordenar según los parámetros
+            usort($backups, function($a, $b) use ($sortColumn, $sortDirection) {
+                if ($sortColumn === 'filename') {
+                    $comparison = strcmp($a['filename'], $b['filename']);
+                } else if ($sortColumn === 'size') {
+                    // Extraer número de tamaño para comparación correcta
+                    $sizeA = $this->extractSizeBytes($a['size']);
+                    $sizeB = $this->extractSizeBytes($b['size']);
+                    $comparison = $sizeA <=> $sizeB;
+                } else { // date o created_at
+                    $comparison = $a['created_at'] <=> $b['created_at'];
+                }
+                return $sortDirection === 'asc' ? $comparison : -$comparison;
             });
 
             return response()->json([
@@ -471,5 +493,23 @@ class BackupController extends Controller
         }
 
         return round($bytes, $precision) . ' ' . $units[$i];
+    }
+
+    /**
+     * Extraer bytes de una cadena de tamaño formateado
+     */
+    private function extractSizeBytes($sizeString)
+    {
+        $units = ['B' => 1, 'KB' => 1024, 'MB' => 1024**2, 'GB' => 1024**3, 'TB' => 1024**4];
+        $sizeString = trim($sizeString);
+
+        foreach ($units as $unit => $multiplier) {
+            if (stripos($sizeString, $unit) !== false) {
+                $number = (float)str_replace($unit, '', $sizeString);
+                return $number * $multiplier;
+            }
+        }
+
+        return (float)$sizeString;
     }
 }

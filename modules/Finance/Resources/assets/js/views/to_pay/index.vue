@@ -4,10 +4,10 @@
             <h3 class="my-0">Cuentas por pagar</h3>
         </div>
         <div class="card mb-0">
-            <div class="card-body"> 
+            <div class="card-body">
 
                 <div class="row">
-                
+
                     <div class="col-xl-12">
                         <section >
                         <div>
@@ -138,15 +138,15 @@
                                 <thead>
                                 <tr>
                                     <th>#</th>
-                                    <th>F.Emisión</th>
-                                    <th>F.Vencimiento</th>
-                                    <th>Número</th>
-                                    <th>Proveedor</th>
-                                    <th>Días de retraso</th>
+                                    <th class="sorting" :class="getSortClass('date_of_issue')" @click="sortBy('date_of_issue')">F.Emisión <i :class="'el-icon-' + getSortIcon('date_of_issue')"></i></th>
+                                    <th class="sorting" :class="getSortClass('date_of_due')" @click="sortBy('date_of_due')">F.Vencimiento <i :class="'el-icon-' + getSortIcon('date_of_due')"></i></th>
+                                    <th class="sorting" :class="getSortClass('number_full')" @click="sortBy('number_full')">Número <i :class="'el-icon-' + getSortIcon('number_full')"></i></th>
+                                    <th class="sorting" :class="getSortClass('supplier_name')" @click="sortBy('supplier_name')">Proveedor <i :class="'el-icon-' + getSortIcon('supplier_name')"></i></th>
+                                    <th class="sorting" :class="getSortClass('delay_payment')" @click="sortBy('delay_payment')">Días de retraso <i :class="'el-icon-' + getSortIcon('delay_payment')"></i></th>
                                     <th>Ver Cartera</th>
                                     <th>Moneda</th>
-                                    <th class="text-right">Por pagar</th>
-                                    <th class="text-right">Total</th>
+                                    <th class="text-right sorting" :class="getSortClass('total_to_pay')" @click="sortBy('total_to_pay')">Por pagar <i :class="'el-icon-' + getSortIcon('total_to_pay')"></i></th>
+                                    <th class="text-right sorting" :class="getSortClass('total')" @click="sortBy('total')">Total <i :class="'el-icon-' + getSortIcon('total')"></i></th>
                                     <th></th>
                                 </tr>
                                 </thead>
@@ -159,7 +159,7 @@
                                             <td>{{ row.number_full }}</td>
                                             <td>{{ row.supplier_name }}</td>
                                             <td>{{ row.delay_payment ? row.delay_payment : 'No tiene días atrasados.' }}</td>
- 
+
                                             <td>
                                                 <el-popover placement="right" width="300" trigger="click">
                                                 <p>
@@ -209,7 +209,7 @@
                                                     @click.prevent="clickExpensePayment(row.id)"
                                                 >Pagos</button>
                                                 </template>
- 
+
                                             </td>
                                         </tr>
                                     </template>
@@ -255,6 +255,7 @@
                 recordId: null,
                 records:[],
                 establishments: [],
+                sort: { column: null, direction: 'asc' },
                 pickerOptionsDates: {
                     disabledDate: (time) => {
                         time = moment(time).format('YYYY-MM-DD')
@@ -272,7 +273,7 @@
             }
         },
         async created() {
-            
+
             this.$eventHub.$on("reloadDataToPay", () => {
                 this.loadToPay();
             });
@@ -380,9 +381,9 @@
         },
 
         methods: {
-            
+
             initForm() {
-                this.form = { 
+                this.form = {
                     establishment_id: null,
                     period: 'between_dates',
                     date_start: moment().format('YYYY-MM-DD'),
@@ -401,14 +402,33 @@
             },
             loadToPay() {
 
-                if(this.form.supplier_id){
-
-                    this.$http.post(`/${this.resource}/records`, this.form).then(response => {
-                        this.records = response.data.records;
-                        //this.records_base = response.data.records;
-                    });
-
+                let form = {
+                    ...this.form,
+                    sort_column: this.sort.column,
+                    sort_direction: this.sort.direction
+                };
+                this.$http.post(`/${this.resource}/records`, form).then(response => {
+                    this.records = response.data.records;
+                    //this.records_base = response.data.records;
+                });
+            },
+            sortBy(column) {
+                if (this.sort.column === column) {
+                    this.sort.direction = this.sort.direction === 'asc' ? 'desc' : 'asc'
+                } else {
+                    this.sort.column = column
+                    this.sort.direction = 'asc'
                 }
+                this.loadToPay()
+            },
+            getSortIcon(column) {
+                if (this.sort.column === column) {
+                    return this.sort.direction === 'asc' ? 'caret-top' : 'caret-bottom'
+                }
+                return 'd-caret'
+            },
+            getSortClass(column) {
+                return this.sort.column === column ? 'sorting-active' : ''
             },
             clickPurchasePayment(recordId) {
                 this.recordId = recordId;

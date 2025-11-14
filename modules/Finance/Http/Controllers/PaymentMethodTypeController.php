@@ -9,7 +9,7 @@ use Modules\Finance\Models\GlobalPayment;
 use App\Models\Tenant\Cash;
 use App\Models\Tenant\BankAccount;
 use App\Models\Tenant\Company;
-use Modules\Finance\Traits\FinanceTrait; 
+use Modules\Finance\Traits\FinanceTrait;
 use Modules\Finance\Http\Resources\GlobalPaymentCollection;
 use Modules\Finance\Exports\PaymentMethodTypeExport;
 use Barryvdh\DomPDF\Facade as PDF;
@@ -21,7 +21,7 @@ use App\Models\Tenant\Configuration;
 
 
 class PaymentMethodTypeController extends Controller
-{ 
+{
 
     use FinanceTrait;
 
@@ -46,43 +46,71 @@ class PaymentMethodTypeController extends Controller
 
         // dd($request->all());
         $records = $this->getRecords($request->all());
-        
+
         return $records;
 
     }
 
     public function getRecords($request){
 
-        $data_of_period = $this->getDatesOfPeriod($request); 
+        $data_of_period = $this->getDatesOfPeriod($request);
 
         $params = (object)[
             'date_start' => $data_of_period['d_start'],
             'date_end' => $data_of_period['d_end'],
             'currency_id' => $request['currency_id'],
         ];
-        
+
         $payment_method_types = PaymentMethodType::whereFilterPayments($params)->get();
         $expense_method_types = ExpenseMethodType::whereFilterPayments($params)->get();
 
         $records_by_pmt = $this->getRecordsByPaymentMethodTypes($payment_method_types);
         $records_by_emt = $this->getRecordsByExpenseMethodTypes($expense_method_types);
+        $merged_records = $records_by_pmt->merge($records_by_emt);
+
+        // Aplicar ordenamiento
+        $sortColumn = $request['sort_column'] ?? null;
+        $sortDirection = $request['sort_direction'] ?? 'asc';
+
+        $validColumns = ['description', 'document_payment', 'remission_payment', 'document_pos_payment', 'quotation_payment', 'income_payment', 'purchase_payment', 'expense_payment'];
+
+        if (!in_array($sortColumn, $validColumns)) {
+            $sortColumn = null;
+        }
+
+        if (!in_array($sortDirection, ['asc', 'desc'])) {
+            $sortDirection = 'asc';
+        }
+
+        if ($sortColumn) {
+            $merged_records = collect($merged_records)->sortBy(function($item) use ($sortColumn) {
+                $value = $item[$sortColumn] ?? 0;
+                // Convertir a número si es necesario
+                return is_numeric($value) ? (float)$value : $value;
+            });
+
+            if ($sortDirection === 'desc') {
+                $merged_records = $merged_records->reverse();
+            }
+        }
+
         $totals = $this->getTotalsPaymentMethodType($records_by_pmt, $records_by_emt);
 
         return [
-            'records' => $records_by_pmt->merge($records_by_emt),
+            'records' => $merged_records,
             'totals' => $totals
         ];
-        
+
     }
 
-    
+
     public function pdf(Request $request) {
 
         $company = Company::first();
         $establishment = ($request->establishment_id) ? Establishment::findOrFail($request->establishment_id) : auth()->user()->establishment;
         $records = $this->getRecords($request->all());
 
-        
+
         $pdf = PDF::loadView('finance::payment_method_types.report_pdf', compact("records", "company", "establishment"));
 
         $filename = 'Metodos_de_pago_'.date('YmdHis');

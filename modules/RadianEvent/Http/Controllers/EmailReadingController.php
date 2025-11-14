@@ -22,12 +22,12 @@ use Modules\RadianEvent\Http\Resources\{
 
 class EmailReadingController extends Controller
 {
-    
+
     public function index()
     {
         return view('radianevent::process-emails.index');
     }
-    
+
     public function columns()
     {
         return [
@@ -37,7 +37,7 @@ class EmailReadingController extends Controller
         ];
     }
 
-    
+
     public function details($id)
     {
         $record = EmailReading::with('details')->findOrFail($id);
@@ -50,9 +50,22 @@ class EmailReadingController extends Controller
 
     public function records(Request $request)
     {
-        $records = EmailReading::where($request->column, 'like', "%{$request->value}%");
+        $sortColumn = $request->input('sort_column');
+        $sortDirection = $request->input('sort_direction', 'desc');
 
-        return new EmailReadingCollection($records->latest()->paginate(config('tenant.items_per_page')));
+        $validColumns = ['email_user', 'start_date', 'end_date', 'search_start_date', 'success', 'errors'];
+        if (!in_array($sortColumn, $validColumns)) {
+            $sortColumn = 'id';
+        }
+
+        if (!in_array($sortDirection, ['asc', 'desc'])) {
+            $sortDirection = 'desc';
+        }
+
+        $records = EmailReading::where($request->column, 'like', "%{$request->value}%")
+            ->orderBy($sortColumn, $sortDirection);
+
+        return new EmailReadingCollection($records->paginate(config('tenant.items_per_page')));
     }
 
 

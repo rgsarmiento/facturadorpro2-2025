@@ -219,7 +219,19 @@ class BlockPayrollController extends Controller
 
     public function records(Request $request)
     {
-        $records = BlockPayroll::whereFilterRecords($request)->latest();
+        $sortColumn = $request->input('sort_column');
+        $sortDirection = $request->input('sort_direction', 'desc');
+
+        $validColumns = ['date_of_issue', 'state_block_id', 'workers_quantity', 'payroll_period_id', 'accrued_total', 'deductions_total', 'net_total'];
+        if (!in_array($sortColumn, $validColumns)) {
+            $sortColumn = 'id';
+        }
+
+        if (!in_array($sortDirection, ['asc', 'desc'])) {
+            $sortDirection = 'desc';
+        }
+
+        $records = BlockPayroll::whereFilterRecords($request)->orderBy($sortColumn, $sortDirection);
         return new BlockPayrollCollection($records->paginate(config('tenant.items_per_page')));
     }
 

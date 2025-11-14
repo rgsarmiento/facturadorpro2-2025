@@ -16,12 +16,12 @@
             </div>
             <div class="card-body">
                 <data-table :resource="resource">
-                    <tr slot="heading" width="100%">
+                    <tr slot="heading" slot-scope="{ sortBy, getSortIcon, getSortClass }" width="100%">
                         <th>#</th>
-                        <th>Código</th>
-                        <th>Empleado</th>
+                        <th class="sorting" :class="getSortClass('code')" @click="sortBy('code')">Código <i :class="getSortIcon('code')"></i></th>
+                        <th class="sorting" :class="getSortClass('fullname')" @click="sortBy('fullname')">Empleado <i :class="getSortIcon('fullname')"></i></th>
                         <!-- <th>Nombre</th> -->
-                        <th>Número</th>
+                        <th class="sorting" :class="getSortClass('identification_number')" @click="sortBy('identification_number')">Número <i :class="getSortIcon('identification_number')"></i></th>
                         <th class="text-right">Acciones</th>
                     </tr>
                     <tr slot-scope="{ index, row }">

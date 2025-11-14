@@ -9,7 +9,7 @@ use Modules\Finance\Models\GlobalPayment;
 use App\Models\Tenant\Cash;
 use App\Models\Tenant\BankAccount;
 use App\Models\Tenant\Company;
-use Modules\Finance\Traits\FinanceTrait; 
+use Modules\Finance\Traits\FinanceTrait;
 use Modules\Finance\Http\Resources\GlobalPaymentCollection;
 use Modules\Finance\Exports\BalanceExport;
 use Barryvdh\DomPDF\Facade as PDF;
@@ -17,7 +17,7 @@ use App\Models\Tenant\Establishment;
 use Carbon\Carbon;
 
 class BalanceController extends Controller
-{ 
+{
 
     use FinanceTrait;
 
@@ -42,26 +42,26 @@ class BalanceController extends Controller
 
         // dd($request->all());
         $records = $this->getRecords($request->all());
-        
+
         return $records;
 
     }
 
     public function getRecords($request){
 
-        $data_of_period = $this->getDatesOfPeriod($request); 
-        
+        $data_of_period = $this->getDatesOfPeriod($request);
+
         $params = (object)[
             'date_start' => $data_of_period['d_start'],
             'date_end' => $data_of_period['d_end'],
             'currency_id' => $request['currency_id'],
         ];
-        
+
         $bank_accounts = BankAccount::with(['global_destination' => function($query) use($params){
                                         $query->whereFilterPaymentType($params);
                                     }])
                                     ->get();
-                                    
+
         $all_cash = GlobalPayment::whereFilterPaymentType($params)
                                     ->with(['payment'])
                                     ->whereDestinationType(Cash::class)
@@ -71,11 +71,39 @@ class BalanceController extends Controller
         $balance_by_bank_acounts = $this->getBalanceByBankAcounts($bank_accounts);
         $balance_by_cash = $this->getBalanceByCash($all_cash);
 
-        return $balance_by_bank_acounts->push($balance_by_cash);
-        
+        $records = $balance_by_bank_acounts->push($balance_by_cash);
+
+        // Aplicar ordenamiento
+        $sortColumn = $request['sort_column'] ?? null;
+        $sortDirection = $request['sort_direction'] ?? 'asc';
+
+        $validColumns = ['description', 'document_payment', 'remission_payment', 'document_pos_payment', 'quotation_payment', 'income_payment', 'purchase_payment', 'expense_payment', 'balance'];
+
+        if (!in_array($sortColumn, $validColumns)) {
+            $sortColumn = null;
+        }
+
+        if (!in_array($sortDirection, ['asc', 'desc'])) {
+            $sortDirection = 'asc';
+        }
+
+        if ($sortColumn) {
+            $records = collect($records)->sortBy(function($item) use ($sortColumn) {
+                $value = $item[$sortColumn] ?? 0;
+                // Convertir a número si es necesario
+                return is_numeric($value) ? (float)$value : $value;
+            });
+
+            if ($sortDirection === 'desc') {
+                $records = $records->reverse();
+            }
+        }
+
+        return $records;
+
     }
 
-    
+
     public function pdf(Request $request) {
 
         $company = Company::first();

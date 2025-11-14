@@ -49,8 +49,8 @@
                                                 :picker-options="pickerOptionsDates"
                                                 value-format="yyyy-MM-dd" format="dd/MM/yyyy" :clearable="false"></el-date-picker>
                             </div>
-                        </template> 
-                    
+                        </template>
+
                         <div class="col-md-3">
                             <div class="form-group">
                                 <label class="control-label">Tipo</label>
@@ -80,7 +80,7 @@
                                     <el-option v-for="option in currencies" :key="option.id" :value="option.id" :label="option.name"></el-option>
                                 </el-select>
                             </div>
-                        </div> 
+                        </div>
 
                         <div class="col-lg-7 col-md-7 col-md-7 col-sm-12" style="margin-top:29px">
                             <el-button class="submit" type="primary" @click.prevent="getRecordsByFilter" :loading="loading_submit" icon="el-icon-search" >Buscar</el-button>
@@ -106,11 +106,11 @@
                 <div class="table-responsive">
                     <table class="table">
                         <thead>
-                        <slot name="heading"></slot>
+                        <slot name="heading" :sortBy="sortBy" :getSortIcon="getSortIcon" :getSortClass="getSortClass"></slot>
                         </thead>
                         <tbody>
                             <slot v-for="(row, index) in records" :row="row" :index="customIndex(index)"></slot>
-                        </tbody> 
+                        </tbody>
                     </table>
                     <div>
                         <el-pagination
@@ -151,6 +151,7 @@
                 headers: headers_token,
                 pagination: {},
                 search: {},
+                sort: { column: null, direction: 'asc' },
                 payment_types: [],
                 currencies: [],
                 destination_types: [],
@@ -182,9 +183,9 @@
 
             await this.$http.get(`/${this.resource}/filter`)
                 .then(response => {
-                    this.payment_types = response.data.payment_types; 
-                    this.currencies = response.data.currencies; 
-                    this.destination_types = response.data.destination_types; 
+                    this.payment_types = response.data.payment_types;
+                    this.currencies = response.data.currencies;
+                    this.destination_types = response.data.destination_types;
                 });
 
 
@@ -211,9 +212,25 @@
                     month_end: moment().format('YYYY-MM'),
                 }
 
-            }, 
+            },
             customIndex(index) {
                 return (this.pagination.per_page * (this.pagination.current_page - 1)) + index + 1
+            },
+            sortBy(column) {
+                if (this.sort.column === column) {
+                    this.sort.direction = this.sort.direction === 'asc' ? 'desc' : 'asc'
+                } else {
+                    this.sort.column = column
+                    this.sort.direction = 'asc'
+                }
+                this.getRecords()
+            },
+            getSortIcon(column) {
+                if (this.sort.column !== column) return 'd-caret'
+                return this.sort.direction === 'asc' ? 'caret-top' : 'caret-bottom'
+            },
+            getSortClass(column) {
+                return this.sort.column === column ? 'sorting-active' : ''
             },
             async getRecordsByFilter(){
 
@@ -236,6 +253,8 @@
                 return queryString.stringify({
                     page: this.pagination.current_page,
                     limit: this.limit,
+                    sort_column: this.sort.column,
+                    sort_direction: this.sort.direction,
                     ...this.form
                 })
             },

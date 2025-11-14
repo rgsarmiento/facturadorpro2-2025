@@ -18,16 +18,16 @@
                     <thead>
                         <tr>
                                 <th>#</th>
-                                <th>Nombre</th>
-                                <th>Prefijo</th>
-                                <th>Desde</th>
-                                <th>Hasta</th>
-                                <th>Generadas</th>
-                                <th>Número de resolución</th>
-                                <th>Fecha resolución</th>
-                                <th>Fecha resolución hasta</th>
-                                <th>Clave técnica</th>
-                                <th>Estado</th>
+                                <th class="sorting" :class="getSortClass('name')" @click="sortBy('name')">Nombre <i :class="getSortIcon('name')"></i></th>
+                                <th class="sorting" :class="getSortClass('prefix')" @click="sortBy('prefix')">Prefijo <i :class="getSortIcon('prefix')"></i></th>
+                                <th class="sorting" :class="getSortClass('from')" @click="sortBy('from')">Desde <i :class="getSortIcon('from')"></i></th>
+                                <th class="sorting" :class="getSortClass('to')" @click="sortBy('to')">Hasta <i :class="getSortIcon('to')"></i></th>
+                                <th class="sorting" :class="getSortClass('generated')" @click="sortBy('generated')">Generadas <i :class="getSortIcon('generated')"></i></th>
+                                <th class="sorting" :class="getSortClass('resolution_number')" @click="sortBy('resolution_number')">Número de resolución <i :class="getSortIcon('resolution_number')"></i></th>
+                                <th class="sorting" :class="getSortClass('resolution_date')" @click="sortBy('resolution_date')">Fecha resolución <i :class="getSortIcon('resolution_date')"></i></th>
+                                <th class="sorting" :class="getSortClass('resolution_date_end')" @click="sortBy('resolution_date_end')">Fecha resolución hasta <i :class="getSortIcon('resolution_date_end')"></i></th>
+                                <th class="sorting" :class="getSortClass('technical_key')" @click="sortBy('technical_key')">Clave técnica <i :class="getSortIcon('technical_key')"></i></th>
+                                <th class="sorting" :class="getSortClass('description')" @click="sortBy('description')">Estado <i :class="getSortIcon('description')"></i></th>
                                 <th>Acciones</th>
                         </tr>
                     </thead>
@@ -80,7 +80,8 @@
             item: {},
             loadDataTable: false,
             items: [],
-            item:null
+            item:null,
+            sort: { column: null, direction: 'asc' }
         }),
 
         computed: {
@@ -93,7 +94,12 @@
 
         methods: {
             refresh() {
-                axios.get(`/co-configuration-all`).then(response => {
+                let params = {};
+                if (this.sort.column) {
+                    params.sort_column = this.sort.column;
+                    params.sort_direction = this.sort.direction;
+                }
+                axios.get(`/co-configuration-all`, { params }).then(response => {
                     this.typeDocuments = response.data.typeDocuments;
                 }).catch(error => {
                    // this.$setLaravelValidationErrorsFromResponse(error.response.data);
@@ -126,6 +132,25 @@
                         });
                     }
                 });
+            },
+
+            sortBy(column) {
+                if (this.sort.column === column) {
+                    this.sort.direction = this.sort.direction === 'asc' ? 'desc' : 'asc';
+                } else {
+                    this.sort.column = column;
+                    this.sort.direction = 'asc';
+                }
+                this.refresh();
+            },
+
+            getSortIcon(column) {
+                if (this.sort.column !== column) return 'el-icon-d-caret';
+                return this.sort.direction === 'asc' ? 'el-icon-caret-top' : 'el-icon-caret-bottom';
+            },
+
+            getSortClass(column) {
+                return this.sort.column === column ? 'sorting sorting-active' : 'sorting';
             }
         }
     }

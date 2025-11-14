@@ -15,27 +15,23 @@
             <div class="card-body">
 
                 <data-table :resource="resource">
-                    <tr slot="heading">
+                    <tr slot="heading" slot-scope="{ sortBy, getSortIcon, getSortClass }">
                         <th>#</th>
-                        <th>Estado Actual</th>
-
-
-                        <th>Tipo Documento</th>
-                        <th>Fecha</th>
-                        <th>Nit Empresa</th>
-                        <th>Nombre</th>
-                        <th>Prefijo</th>
-                        <th>Numero</th>
-                        <th>Impuestos</th>
-                        <th>Vr. Documento</th>
+                        <th class="sorting" :class="getSortClass('aceptacion')" @click="sortBy('aceptacion')">Estado Actual <i :class="getSortIcon('aceptacion')"></i></th>
+                        <th class="sorting" :class="getSortClass('type_document_name')" @click="sortBy('type_document_name')">Tipo Documento <i :class="getSortIcon('type_document_name')"></i></th>
+                        <th class="sorting" :class="getSortClass('date_issue')" @click="sortBy('date_issue')">Fecha <i :class="getSortIcon('date_issue')"></i></th>
+                        <th class="sorting" :class="getSortClass('identification_number')" @click="sortBy('identification_number')">Nit Empresa <i :class="getSortIcon('identification_number')"></i></th>
+                        <th class="sorting" :class="getSortClass('name_seller')" @click="sortBy('name_seller')">Nombre <i :class="getSortIcon('name_seller')"></i></th>
+                        <th class="sorting" :class="getSortClass('prefix')" @click="sortBy('prefix')">Prefijo <i :class="getSortIcon('prefix')"></i></th>
+                        <th class="sorting" :class="getSortClass('number')" @click="sortBy('number')">Numero <i :class="getSortIcon('number')"></i></th>
+                        <th class="sorting" :class="getSortClass('total_tax')" @click="sortBy('total_tax')">Impuestos <i :class="getSortIcon('total_tax')"></i></th>
+                        <th class="sorting" :class="getSortClass('total')" @click="sortBy('total')">Vr. Documento <i :class="getSortIcon('total')"></i></th>
                         <th>Attached Document</th>
                         <th>PDF</th>
-
                         <th>Acuse Recibo</th>
                         <th>Recepcion Bienes</th>
                         <th>Aceptacion Expresa</th>
                         <th>Rechazo</th>
-
                     <tr>
                         <!-- Filtro para cargar facturas solo de eventos cufe se utiliza la columna sale-->
                     <tr v-if="row.sale !== '88888888.00'" slot-scope="{ index, row }">
