@@ -1,34 +1,16 @@
 <template>
-    <div class="card mb-0 pt-2 pt-md-0">
-        <!-- <div class="card-header bg-info">
-            <h3 class="my-0">Cotización</h3>
-        </div> -->
+    <div class="card mb-0 pt-2 pt-md-0 invoice-form">
+        <div class="card-header bg-info">
+            <h4 class="mb-0 text-white"><i class="fas fa-file-invoice"></i> Crear Cotización</h4>
+        </div>
         <div class="card-body" v-if="loading_form">
             <div class="invoice">
-                <!-- <header class="clearfix">
-                    <div class="row">
-                        <div class="col-sm-2 text-center mt-3 mb-0">
-                            <logo url="/" :path_logo="(company.logo != null) ? `/storage/uploads/logos/${company.logo}` : ''" ></logo>
-                        </div>
-                        <div class="col-sm-6 text-left mt-3 mb-0">
-                            <address class="ib mr-2" >
-                                <span class="font-weight-bold d-block">COTIZACIÓN</span>
-                                <span class="font-weight-bold d-block">COT-XXX</span>
-                                <span class="font-weight-bold">{{company.name}}</span>
-                                <br>
-                                <div v-if="establishment.address != '-'">{{ establishment.address }}, </div> {{ establishment.city.name }}, {{ establishment.department.name }} - {{ establishment.country.name }}
-                                <br>
-                                {{establishment.email}} - <span v-if="establishment.telephone != '-'">{{establishment.telephone}}</span>
-                            </address>
-                        </div>
-                        <div class="col-sm-4">
-                            <el-checkbox class="mt-3" v-model="form.active_terms_condition" @change="changeTermsCondition">Términos y condiciones del contrato</el-checkbox>
-                        </div>
-                    </div>
-                </header> -->
                 <form autocomplete="off" @submit.prevent="submit">
                     <div class="form-body">
-                        <div class="row mt-1">
+                        <!-- Cliente y Fechas -->
+                        <div class="form-section">
+                            <h5 class="section-header"><i class="fa fa-user"></i> Cliente y Fechas</h5>
+                            <div class="row">
                             <div class="col-lg-6 pb-2">
                                 <div class="form-group" :class="{ 'has-danger': errors.customer_id }">
                                     <label class="control-label">
@@ -79,6 +61,13 @@
                                         v-text="errors.delivery_date[0]"></small>
                                 </div>
                             </div>
+                            </div>
+                        </div>
+
+                        <!-- Condiciones Comerciales -->
+                        <div class="form-section">
+                            <h5 class="section-header"><i class="fa fa-coins"></i> Condiciones Comerciales</h5>
+                            <div class="row">
                             <div class="col-lg-4">
                                 <div class="form-group">
                                     <label class="control-label">Dirección de envío
@@ -185,8 +174,13 @@
                                         v-text="errors.description[0]"></small>
                                 </div>
                             </div>
+                            </div>
                         </div>
-                        <div class="row mt-3">
+
+                        <!-- Productos y Servicios -->
+                        <div class="form-section">
+                            <h5 class="section-header"><i class="fa fa-shopping-cart"></i> Productos y Servicios</h5>
+                            <div class="row">
                             <div class="col-md-12">
                                 <div class="table-responsive">
                                     <table class="table">
@@ -240,9 +234,12 @@
                                 </div>
                             </div>
                             <div class="col-lg-12 col-md-6 d-flex align-items-end">
-                                <div class="form-group">
+                                <div style="margin-top: 10px;" class="form-group">
                                     <button type="button" class="btn waves-effect waves-light btn-primary"
-                                        @click.prevent="clickAddItem">+ Agregar Producto</button>
+                                        @click.prevent="clickAddItem">
+                                        <i class="fas fa-shopping-cart"></i>
+                                        <span class="text">+ Agregar Producto</span>
+                                    </button>
                                 </div>
                             </div>
                             <div class="col-md-12" style="display: flex; flex-direction: column; align-items: flex-end;"
@@ -297,6 +294,7 @@
                             <div class="col-md-4">
                                 <h3 class="text-right" v-if="form.total > 0"><b>TOTAL A PAGAR: </b>{{ ratePrefix() }} {{ getFormatDecimal(form.total) }}</h3>
                             </div>
+                            </div>
                         </div>
                     </div>
                     <div class="form-actions text-right mt-4">
@@ -323,13 +321,44 @@
     </div>
 </template>
 
-<style>
+<style scoped>
+/* Diseño simple y limpio */
+.invoice-form {
+    background: #f8f9fa;
+}
+
+.form-section {
+    background: white;
+    padding: 20px;
+    margin-bottom: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    border-left: 4px solid #409EFF;
+}
+
+.section-header {
+    font-size: 18px;
+    font-weight: 600;
+    color: #2c3e50;
+    margin: 0 0 20px 0;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #e9ecef;
+}
+
+.section-header i {
+    color: #409EFF;
+    margin-right: 10px;
+}
+
+.form-section:nth-child(2) { border-left-color: #67C23A; }
+.form-section:nth-child(3) { border-left-color: #F56C6C; }
+
 /*busqueda de cliente*/
 .cliente-link {
-  color: #409EFF;             /* Color principal (azul) */
-  font-weight: bold;          /* Texto en negrita */
-  font-size: 12px;            /* Tamaño de fuente */
-  text-decoration: none;      /* Sin subrayado */
+  color: #409EFF;
+  font-weight: bold;
+  font-size: 12px;
+  text-decoration: none;
   transition: color 0.2s;
 }
 
@@ -338,9 +367,12 @@
 }
 
 .search-icon {
-  font-size: 20px;    /* Icono más grande para mejor visibilidad */
-  margin-right: 5px;  /* Espacio entre el icono y el texto */
+  font-size: 20px;
+  margin-right: 5px;
 }
+
+@media screen and (max-width: 600px) { .btn .text { display: none; } .btn .icon { display: inline-block; } }
+.btn .icon { display: none; }
 </style>
 
 <script>

@@ -1,5 +1,8 @@
 <template>
     <div class="card mb-0 pt-2 pt-md-0 invoice-form">
+        <div class="card-header bg-info">
+            <h4 class="mb-0 text-white"><i class="fas fa-file-invoice"></i> Crear Factura Electrónica de Venta</h4>
+        </div>
         <div class="card-body" v-if="loading_form">
             <div class="invoice">
                 <form autocomplete="off" @submit.prevent="submit">

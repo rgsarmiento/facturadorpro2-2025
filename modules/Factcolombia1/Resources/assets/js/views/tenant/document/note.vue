@@ -1,15 +1,19 @@
 <template>
-    <div class="card mb-0 pt-2 pt-md-0">
+    <div class="card mb-0 pt-2 pt-md-0 invoice-form">
         <div class="card-header bg-info">
-            {{ note ? `Nueva Nota (${note.prefix}-${note.number})` : 'Nota Contable Sin Referencia a Factura' }}
+            <h4 class="mb-0 text-white">
+                <i class="fas fa-sticky-note"></i>
+                {{ note ? `Nueva Nota (${note.prefix}-${note.number})` : 'Nota Contable Sin Referencia a Factura' }}
+            </h4>
         </div>
         <div class="card-body" v-if="loading_form">
             <div class="invoice">
                 <form autocomplete="off" @submit.prevent="submit">
                     <div class="form-body">
-                        <div class="row">
-                        </div>
-                        <div class="row mt-4">
+                        <!-- Tipo de Nota y Concepto -->
+                        <div class="form-section">
+                            <h5 class="section-header"><i class="fa fa-file-alt"></i> Tipo de Nota y Concepto</h5>
+                            <div class="row">
                             <div class="col-md-4 col-lg-4 pb-2">
                                 <div class="form-group" :class="{'has-danger': errors.type_document_id}">
                                     <label class="control-label">Tipo de nota/Resolucion</label>
@@ -47,9 +51,13 @@
                                     <small class="form-control-feedback" v-if="errors.currency_id" v-text="errors.currency_id[0]"></small>
                                 </div>
                             </div>
+                            </div>
                         </div>
 
-                        <div class="row mt-4">
+                        <!-- Cliente y Periodo de Facturación -->
+                        <div class="form-section">
+                            <h5 class="section-header"><i class="fa fa-user"></i> Cliente y Periodo de Facturación</h5>
+                            <div class="row">
                             <div class="col-md-6 col-lg-6 pb-2">
                                 <div class="form-group" :class="{'has-danger': errors.customer_id}">
                                     <label class="control-label">Cliente</label>
@@ -75,9 +83,13 @@
                                     <small class="form-control-feedback" v-if="errors.end_invoice_period" v-text="errors.end_invoice_period[0]"></small>
                                 </div>
                             </div>
+                            </div>
                         </div>
 
-                        <div class="row mt-2">
+                        <!-- Observaciones -->
+                        <div class="form-section">
+                            <h5 class="section-header"><i class="fa fa-comment"></i> Observaciones</h5>
+                            <div class="row">
                             <div class="col-md-12">
                                 <div class="form-group">
                                     <label class="control-label">Observaciones</label>
@@ -89,9 +101,13 @@
                                     </el-input>
                                 </div>
                             </div>
+                            </div>
                         </div>
 
-                        <div class="row mt-4">
+                        <!-- Productos y Servicios -->
+                        <div class="form-section">
+                            <h5 class="section-header"><i class="fa fa-shopping-cart"></i> Productos y Servicios</h5>
+                            <div class="row">
                             <div class="col-md-12">
                                 <div class="table-responsive">
                                     <table class="table">
@@ -142,8 +158,11 @@
                                 </div>
                             </div>
                             <div class="col-lg-12 col-md-6 d-flex align-items-end">
-                                <div class="form-group">
-                                    <button type="button" class="btn waves-effect waves-light btn-primary" @click.prevent="clickAddItemInvoice">+ Agregar Producto</button>
+                                <div style="margin-top: 10px;" class="form-group">
+                                    <button type="button" class="btn waves-effect waves-light btn-primary" @click.prevent="clickAddItemInvoice">
+                                        <i class="fas fa-shopping-cart"></i>
+                                        <span class="text">+ Agregar Producto</span>
+                                    </button>
 <!--                                    <button type="button" class="ml-3 btn waves-effect waves-light btn-primary" @click.prevent="clickAddRetention">+ Agregar Retención</button> -->
                                 </div>
                             </div>
@@ -200,7 +219,7 @@
                                     <h3 class="text-right"><b>TOTAL: </b>{{ratePrefix()}} {{ getFormatDecimal(form.total) }}</h3>
                                 </template>
                             </div>
-
+                            </div>
                         </div>
 
                     </div>
@@ -243,22 +262,57 @@
     </div>
 </template>
 
-<style>
+<style scoped>
+.c-m-top { margin-top: 4.5px !important; }
+.pointer { cursor: pointer; }
+.input-custom { width: 50% !important; }
+.el-textarea__inner { height: 65px !important; min-height: 65px !important; }
+@media screen and (max-width: 600px) { .btn .text { display: none; } .btn .icon { display: inline-block; } }
+.btn .icon { display: none; }
 
-.c-m-top{
-    margin-top: 4.5px !important;
+/* Diseño simple y limpio */
+.invoice-form {
+    background: #f8f9fa;
 }
 
-.pointer{
-    cursor: pointer;
+.form-section {
+    background: white;
+    padding: 20px;
+    margin-bottom: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    border-left: 4px solid #409EFF;
 }
 
-.input-custom{
-    width: 50% !important;
+.section-header {
+    font-size: 18px;
+    font-weight: 600;
+    color: #2c3e50;
+    margin: 0 0 20px 0;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #e9ecef;
 }
 
-.el-textarea__inner {
-    height: 65px !important;
+.section-header i {
+    color: #409EFF;
+    margin-right: 10px;
+}
+
+.form-section:nth-child(2) { border-left-color: #67C23A; }
+.form-section:nth-child(3) { border-left-color: #E6A23C; }
+.form-section:nth-child(4) { border-left-color: #F56C6C; }
+
+.cliente-link {
+    color: #409EFF;
+    font-weight: bold;
+    font-size: 12px;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.cliente-link:hover { color: #66b1ff; }
+.search-icon { font-size: 20px; margin-right: 5px; }
+</style>
     min-height: 65px !important;
 }
 
