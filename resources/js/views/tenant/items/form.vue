@@ -1,240 +1,293 @@
 <template>
-    <el-dialog width="65%" :title="titleDialog" :visible="showDialog" :close-on-click-modal="false" @close="close" @open="create" append-to-body top="7vh">
+    <el-dialog
+        width="70%"
+        :title="titleDialog"
+        :visible="showDialog"
+        :close-on-click-modal="false"
+        @close="close"
+        @open="create"
+        append-to-body
+        top="5vh"
+        custom-class="items-modal-modern">
         <form autocomplete="off" @submit.prevent="submit">
             <div class="form-body">
+                <!-- Información Básica -->
+                <div class="section-card">
+                    <h4 class="section-title"><i class="fa fa-tag"></i> Información Básica del Producto</h4>
+                    <div class="row">
+                        <div class="col-md-8">
+                            <div class="form-group" :class="{'has-danger': errors.name}">
+                                <label class="control-label"><i class="fa fa-cube text-primary"></i> Nombre del Producto <span class="text-danger">*</span></label>
+                                <el-input v-model="form.name" dusk="name" placeholder="Ingrese el nombre del producto"></el-input>
+                                <small class="form-control-feedback" v-if="errors.name" v-text="errors.name[0]"></small>
+                            </div>
+                        </div>
+
+                        <div class="col-md-4">
+                            <div class="form-group" :class="{'has-danger': errors.internal_id}">
+                                <label class="control-label"><i class="fa fa-barcode text-info"></i> Código Interno <span class="text-danger">*</span>
+                                    <el-tooltip class="item" effect="dark" content="Código interno de la empresa para el control de sus productos" placement="top-start">
+                                        <i class="fa fa-info-circle tooltip-icon"></i>
+                                    </el-tooltip>
+                                </label>
+                                <el-input v-model="form.internal_id" dusk="internal_id" placeholder="Ej: PRD-001"></el-input>
+                                <small class="form-control-feedback" v-if="errors.internal_id" v-text="errors.internal_id[0]"></small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Precios e Impuestos -->
+                <div class="section-card">
+                    <h4 class="section-title"><i class="fa fa-dollar"></i> Precios e Impuestos</h4>
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="form-group" :class="{'has-danger': errors.unit_type_id}">
+                                <label class="control-label"><i class="fa fa-balance-scale text-warning"></i> Unidad de Medida <span class="text-danger">*</span></label>
+                                <el-select v-model="form.unit_type_id" dusk="unit_type_id" placeholder="Seleccione">
+                                    <el-option v-for="option in unit_types" :key="option.id" :value="option.id" :label="option.name"></el-option>
+                                </el-select>
+                                <small class="form-control-feedback" v-if="errors.unit_type_id" v-text="errors.unit_type_id[0]"></small>
+                            </div>
+                        </div>
+
+                        <div class="col-md-3">
+                            <div class="form-group" :class="{'has-danger': errors.sale_unit_price}">
+                                <label class="control-label"><i class="fa fa-money text-success"></i> Precio Unitario (Venta) <span class="text-danger">*</span></label>
+                                <el-input class="input-amount" v-model="form.sale_unit_price" dusk="sale_unit_price" @input="calculatePercentageOfProfitBySale" placeholder="0.00">
+                                    <template slot="prepend">$</template>
+                                </el-input>
+                                <small class="form-control-feedback" v-if="errors.sale_unit_price" v-text="errors.sale_unit_price[0]"></small>
+                            </div>
+                        </div>
+
+                        <div class="col-md-6">
+                            <div class="form-group" :class="{'has-danger': errors.tax_id}">
+                                <label class="control-label"><i class="fa fa-percent text-danger"></i> Impuesto (Venta) <span class="text-danger">*</span>
+                                    <a href="#" class="link-excluded" @click.prevent="form.tax_id = null"> [ * Excluido]</a>
+                                </label>
+                                <el-select v-model="form.tax_id" filterable placeholder="Seleccione el impuesto">
+                                    <el-option v-for="option in taxes" :key="option.id" :value="option.id" :label="option.name"></el-option>
+                                </el-select>
+                                <small class="form-control-feedback" v-if="errors.tax_id" v-text="errors.tax_id[0]"></small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
                 <div class="row">
 
-                    <!-- Campos visibles siempre -->
-                    <div class="col-md-6">
-                        <div class="form-group" :class="{'has-danger': errors.name}">
-                            <label class="control-label">Nombre<span class="text-danger">*</span></label>
-                            <el-input v-model="form.name" dusk="name"></el-input>
-                            <small class="form-control-feedback" v-if="errors.name" v-text="errors.name[0]"></small>
-                        </div>
-                    </div>
-
-                    <div class="col-md-3">
-                        <div class="form-group" :class="{'has-danger': errors.unit_type_id}">
-                            <label class="control-label">Unidad <span class="text-danger">*</span></label>
-                            <el-select v-model="form.unit_type_id" dusk="unit_type_id">
-                                <el-option v-for="option in unit_types" :key="option.id" :value="option.id" :label="option.name"></el-option>
-                            </el-select>
-                            <small class="form-control-feedback" v-if="errors.unit_type_id" v-text="errors.unit_type_id[0]"></small>
-                        </div>
-                    </div>
-
-                    <div class="col-md-3">
-                        <div class="form-group" :class="{'has-danger': errors.sale_unit_price}">
-                            <label class="control-label">Precio Unitario (Venta) <span class="text-danger">*</span></label>
-                            <el-input class="input-amount" v-model="form.sale_unit_price" dusk="sale_unit_price" @input="calculatePercentageOfProfitBySale"></el-input>
-                            <small class="form-control-feedback" v-if="errors.sale_unit_price" v-text="errors.sale_unit_price[0]"></small>
-                        </div>
-                    </div>
-
-                    <div class="col-md-6">
-                        <div class="form-group" :class="{'has-danger': errors.tax_id}">
-                            <label class="control-label">Impuesto (Venta) <span class="text-danger">*</span></label>
-                            <a href="#" class="control-label" @click="form.tax_id = null"> [ * Excluido]</a>
-                            <el-select v-model="form.tax_id" filterable>
-                                <el-option v-for="option in taxes" :key="option.id" :value="option.id" :label="option.name"></el-option>
-                            </el-select>
-                            <small class="form-control-feedback" v-if="errors.tax_id" v-text="errors.tax_id[0]"></small>
-                        </div>
-                    </div>
-
-                    <div class="col-md-3">
-                        <div class="form-group" :class="{'has-danger': errors.internal_id}">
-                            <label class="control-label">Código Interno <span class="text-danger">*</span>
-                                <el-tooltip class="item" effect="dark" content="Código interno de la empresa para el control de sus productos" placement="top-start">
-                                    <i class="fa fa-info-circle"></i>
-                                </el-tooltip>
-                            </label>
-                            <el-input v-model="form.internal_id" dusk="internal_id"></el-input>
-                            <small class="form-control-feedback" v-if="errors.internal_id" v-text="errors.internal_id[0]"></small>
-                        </div>
-                    </div>
-
-                    <!-- Checkbox para mostrar/ocultar campos adicionales -->
+                    <!-- Toggle de campos adicionales -->
                     <div class="col-md-12">
-                        <el-checkbox v-model="showAdditionalFields">Mostrar/Ocultar campos adicionales</el-checkbox>
+                        <div class="toggle-section">
+                            <el-checkbox v-model="showAdditionalFields" size="large">
+                                <span class="toggle-label">
+                                    <i :class="showAdditionalFields ? 'fa fa-chevron-down' : 'fa fa-chevron-right'"></i>
+                                    Campos Adicionales
+                                </span>
+                            </el-checkbox>
+                            <small class="toggle-hint">Click para {{ showAdditionalFields ? 'ocultar' : 'mostrar' }} más opciones</small>
+                        </div>
                     </div>
 
                     <!-- Campos adicionales -->
-                    <div v-show="showAdditionalFields" class="row field-margin">
-                        <div class="col-md-6">
-                            <div class="form-group" :class="{'has-danger': errors.second_name}">
-                                <label class="control-label">Nombre secundario </label>
-                                <el-input v-model="form.second_name" dusk="second_name"></el-input>
-                                <small class="form-control-feedback" v-if="errors.second_name" v-text="errors.second_name[0]"></small>
+                    <div v-show="showAdditionalFields" class="col-md-12">
+                        <!-- Descripción y Moneda -->
+                        <div class="section-card additional-section">
+                            <h4 class="section-title"><i class="fa fa-file-text-o"></i> Descripción y Detalles</h4>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group" :class="{'has-danger': errors.second_name}">
+                                        <label class="control-label"><i class="fa fa-tags"></i> Nombre Secundario</label>
+                                        <el-input v-model="form.second_name" dusk="second_name" placeholder="Nombre alternativo del producto"></el-input>
+                                        <small class="form-control-feedback" v-if="errors.second_name" v-text="errors.second_name[0]"></small>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-3">
+                                    <div class="form-group" :class="{'has-danger': errors.currency_type_id}">
+                                        <label class="control-label"><i class="fa fa-usd"></i> Moneda</label>
+                                        <el-select v-model="form.currency_type_id" dusk="currency_type_id" filterable placeholder="Seleccione">
+                                            <el-option v-for="option in currency_types" :key="option.id" :value="option.id" :label="option.name"></el-option>
+                                        </el-select>
+                                        <small class="form-control-feedback" v-if="errors.currency_type_id" v-text="errors.currency_type_id[0]"></small>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-12">
+                                    <div class="form-group" :class="{'has-danger': errors.description}">
+                                        <label class="control-label"><i class="fa fa-align-left"></i> Descripción Detallada</label>
+                                        <el-input type="textarea" :rows="3" v-model="form.description" dusk="description" placeholder="Descripción completa del producto"></el-input>
+                                        <small class="form-control-feedback" v-if="errors.description" v-text="errors.description[0]"></small>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
-                        <div class="col-md-9">
-                            <div class="form-group" :class="{'has-danger': errors.description}">
-                                <label class="control-label">Descripción</label>
-                                <el-input v-model="form.description" dusk="description"></el-input>
-                                <small class="form-control-feedback" v-if="errors.description" v-text="errors.description[0]"></small>
-                            </div>
-                        </div>
+                        <!-- Categorización del Producto -->
+                        <div class="section-card additional-section">
+                            <h4 class="section-title"><i class="fa fa-sitemap"></i> Categorización</h4>
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <div class="form-group" :class="{'has-danger': errors.category_id}">
+                                        <label class="control-label"><i class="fa fa-folder-open"></i> Categoría</label>
+                                        <div class="quick-add-actions">
+                                            <a href="#" v-if="form_category.add == false" class="link-add" @click.prevent="form_category.add = true"> <i class="fa fa-plus-circle"></i> Nuevo</a>
+                                            <a href="#" v-if="form_category.add == true" class="link-save" @click.prevent="saveCategory()"> <i class="fa fa-check-circle"></i> Guardar</a>
+                                            <a href="#" v-if="form_category.add == true" class="link-cancel" @click.prevent="form_category.add = false"> <i class="fa fa-times-circle"></i> Cancelar</a>
+                                        </div>
+                                        <el-input v-if="form_category.add == true" v-model="form_category.name" dusk="item_code" placeholder="Nueva categoría" class="mb-2"></el-input>
+                                        <el-select v-if="form_category.add == false" v-model="form.category_id" filterable clearable placeholder="Seleccione">
+                                            <el-option v-for="option in categories" :key="option.id" :value="option.id" :label="option.name"></el-option>
+                                        </el-select>
+                                        <small class="form-control-feedback" v-if="errors.category_id" v-text="errors.category_id[0]"></small>
+                                    </div>
+                                </div>
 
-                        <div class="col-md-3">
-                            <div class="form-group" :class="{'has-danger': errors.currency_type_id}">
-                                <label class="control-label">Moneda</label>
-                                <el-select v-model="form.currency_type_id" dusk="currency_type_id" filterable>
-                                    <el-option v-for="option in currency_types" :key="option.id" :value="option.id" :label="option.name"></el-option>
-                                </el-select>
-                                <small class="form-control-feedback" v-if="errors.currency_type_id" v-text="errors.currency_type_id[0]"></small>
-                            </div>
-                        </div>
+                                <div class="col-md-6">
+                                    <div class="form-group" :class="{'has-danger': errors.brand_id}">
+                                        <label class="control-label"><i class="fa fa-certificate"></i> Marca</label>
+                                        <div class="quick-add-actions">
+                                            <a href="#" v-if="form_brand.add == false" class="link-add" @click.prevent="form_brand.add = true"> <i class="fa fa-plus-circle"></i> Nuevo</a>
+                                            <a href="#" v-if="form_brand.add == true" class="link-save" @click.prevent="saveBrand()"> <i class="fa fa-check-circle"></i> Guardar</a>
+                                            <a href="#" v-if="form_brand.add == true" class="link-cancel" @click.prevent="form_brand.add = false"> <i class="fa fa-times-circle"></i> Cancelar</a>
+                                        </div>
+                                        <el-input v-if="form_brand.add == true" v-model="form_brand.name" dusk="item_code" placeholder="Nueva marca" class="mb-2"></el-input>
+                                        <el-select v-if="form_brand.add == false" v-model="form.brand_id" filterable clearable placeholder="Seleccione">
+                                            <el-option v-for="option in brands" :key="option.id" :value="option.id" :label="option.name"></el-option>
+                                        </el-select>
+                                        <small class="form-control-feedback" v-if="errors.brand_id" v-text="errors.brand_id[0]"></small>
+                                    </div>
+                                </div>
 
-                        <div class="col-md-3">
-                            <div class="form-group" :class="{'has-danger': errors.category_id}">
-                                <label class="control-label">Categoría</label>
-                                <a href="#" v-if="form_category.add == false" class="control-label" @click="form_category.add = true"> [ + Nuevo]</a>
-                                <a href="#" v-if="form_category.add == true" class="control-label" @click="saveCategory()"> [ + Guardar]</a>
-                                <a href="#" v-if="form_category.add == true" class="control-label text-danger" @click="form_category.add = false"> [ Cancelar]</a>
-                                <el-input v-if="form_category.add == true" v-model="form_category.name" dusk="item_code" style="margin-bottom:1.5%;"></el-input>
-                                <el-select v-if="form_category.add == false" v-model="form.category_id" filterable clearable>
-                                    <el-option v-for="option in categories" :key="option.id" :value="option.id" :label="option.name"></el-option>
-                                </el-select>
-                                <small class="form-control-feedback" v-if="errors.category_id" v-text="errors.category_id[0]"></small>
-                            </div>
-                        </div>
+                                <div class="col-md-4">
+                                    <div class="form-group" :class="{'has-danger': errors.color_id}">
+                                        <label class="control-label"><i class="fa fa-paint-brush"></i> Color</label>
+                                        <div class="quick-add-actions">
+                                            <a href="#" v-if="form_color.add == false" class="link-add" @click.prevent="form_color.add = true"> <i class="fa fa-plus-circle"></i> Nuevo</a>
+                                            <a href="#" v-if="form_color.add == true" class="link-save" @click.prevent="saveEntity('colors', form_color)"> <i class="fa fa-check-circle"></i> Guardar</a>
+                                            <a href="#" v-if="form_color.add == true" class="link-cancel" @click.prevent="form_color.add = false"> <i class="fa fa-times-circle"></i> Cancelar</a>
+                                        </div>
+                                        <el-input v-if="form_color.add == true" v-model="form_color.name" dusk="item_code" placeholder="Nuevo color" class="mb-2"></el-input>
+                                        <el-select v-if="form_color.add == false" v-model="form.color_id" filterable clearable placeholder="Seleccione">
+                                            <el-option v-for="option in colors" :key="option.id" :value="option.id" :label="option.name"></el-option>
+                                        </el-select>
+                                        <small class="form-control-feedback" v-if="errors.color_id" v-text="errors.color_id[0]"></small>
+                                    </div>
+                                </div>
 
-                        <div class="col-md-3">
-                            <div class="form-group" :class="{'has-danger': errors.color_id}">
-                                <label class="control-label">Color</label>
-                                <a href="#" v-if="form_color.add == false" class="control-label" @click="form_color.add = true"> [ + Nuevo]</a>
-                                <a href="#" v-if="form_color.add == true" class="control-label" @click="saveEntity('colors', form_color)"> [ + Guardar]</a>
-                                <a href="#" v-if="form_color.add == true" class="control-label text-danger" @click="form_color.add = false"> [ Cancelar]</a>
-                                <el-input v-if="form_color.add == true" v-model="form_color.name" dusk="item_code" style="margin-bottom:1.5%;"></el-input>
-                                <el-select v-if="form_color.add == false" v-model="form.color_id" filterable clearable>
-                                    <el-option v-for="option in colors" :key="option.id" :value="option.id" :label="option.name"></el-option>
-                                </el-select>
-                                <small class="form-control-feedback" v-if="errors.color_id" v-text="errors.color_id[0]"></small>
-                            </div>
-                        </div>
-
-                        <div class="col-md-3">
-                            <div class="form-group" :class="{'has-danger': errors.size_id}">
-                                <label class="control-label">Talla</label>
-                                <a href="#" v-if="form_size.add == false" class="control-label" @click="form_size.add = true"> [ + Nuevo]</a>
-                                <a href="#" v-if="form_size.add == true" class="control-label" @click="saveEntity('sizes', form_size)"> [ + Guardar]</a>
-                                <a href="#" v-if="form_size.add == true" class="control-label text-danger" @click="form_size.add = false"> [ Cancelar]</a>
-                                <el-input v-if="form_size.add == true" v-model="form_size.name" dusk="item_code" style="margin-bottom:1.5%;"></el-input>
-                                <el-select v-if="form_size.add == false" v-model="form.size_id" filterable clearable>
-                                    <el-option v-for="option in sizes" :key="option.id" :value="option.id" :label="option.name"></el-option>
-                                </el-select>
-                                <small class="form-control-feedback" v-if="errors.size_id" v-text="errors.size_id[0]"></small>
-                            </div>
-                        </div>
-
-                        <div class="col-md-3">
-                            <div class="form-group" :class="{'has-danger': errors.brand_id}">
-                                <label class="control-label">Marca</label>
-                                <a href="#" v-if="form_brand.add == false" class="control-label" @click="form_brand.add = true"> [ + Nuevo]</a>
-                                <a href="#" v-if="form_brand.add == true" class="control-label" @click="saveBrand()"> [ + Guardar]</a>
-                                <a href="#" v-if="form_brand.add == true" class="control-label text-danger" @click="form_brand.add = false"> [ Cancelar]</a>
-                                <el-input v-if="form_brand.add == true" v-model="form_brand.name" dusk="item_code" style="margin-bottom:1.5%;"></el-input>
-                                <el-select v-if="form_brand.add == false" v-model="form.brand_id" filterable clearable>
-                                    <el-option v-for="option in brands" :key="option.id" :value="option.id" :label="option.name"></el-option>
-                                </el-select>
+                                <div class="col-md-4">
+                                    <div class="form-group" :class="{'has-danger': errors.size_id}">
+                                        <label class="control-label"><i class="fa fa-arrows-v"></i> Talla</label>
+                                        <div class="quick-add-actions">
+                                            <a href="#" v-if="form_size.add == false" class="link-add" @click.prevent="form_size.add = true"> <i class="fa fa-plus-circle"></i> Nuevo</a>
+                                            <a href="#" v-if="form_size.add == true" class="link-save" @click.prevent="saveEntity('sizes', form_size)"> <i class="fa fa-check-circle"></i> Guardar</a>
+                                            <a href="#" v-if="form_size.add == true" class="link-cancel" @click.prevent="form_size.add = false"> <i class="fa fa-times-circle"></i> Cancelar</a>
+                                        </div>
+                                        <el-input v-if="form_size.add == true" v-model="form_size.name" dusk="item_code" placeholder="Nueva talla" class="mb-2"></el-input>
+                                        <el-select v-if="form_size.add == false" v-model="form.size_id" filterable clearable placeholder="Seleccione">
+                                            <el-option v-for="option in sizes" :key="option.id" :value="option.id" :label="option.name"></el-option>
+                                        </el-select>
+                                        <small class="form-control-feedback" v-if="errors.size_id" v-text="errors.size_id[0]"></small>
+                                    </div>
+                                </div>
                                 <small class="form-control-feedback" v-if="errors.brand_id" v-text="errors.brand_id[0]"></small>
                             </div>
                         </div>
 
-                        <div class="col-md-3">
-                            <div class="form-group" :class="{'has-danger': errors.model}">
-                                <label class="control-label">Modelo</label>
-                                <el-input v-model="form.model"></el-input>
-                                <small class="form-control-feedback" v-if="errors.model" v-text="errors.model[0]"></small>
-                            </div>
-                        </div>
+                        <!-- Configuración de Inventario y Stock -->
+                        <div class="section-card additional-section">
+                            <h4 class="section-title"><i class="fa fa-cubes"></i> Configuración de Inventario</h4>
+                            <div class="row">
+                                <div class="col-md-3">
+                                    <div class="form-group" :class="{'has-danger': errors.model}">
+                                        <label class="control-label"><i class="fa fa-tag"></i> Modelo</label>
+                                        <el-input v-model="form.model" placeholder="Modelo del producto"></el-input>
+                                        <small class="form-control-feedback" v-if="errors.model" v-text="errors.model[0]"></small>
+                                    </div>
+                                </div>
 
-                        <div v-show="form.unit_type_id != 1" class="col-md-3 center-el-checkbox">
-                            <div class="form-group" :class="{'has-danger': errors.calculate_quantity}">
-                                <el-checkbox v-model="form.calculate_quantity">Calcular cantidad por precio</el-checkbox><br>
-                                <small class="form-control-feedback" v-if="errors.calculate_quantity" v-text="errors.calculate_quantity[0]"></small>
-                            </div>
-                        </div>
+                                <div class="col-md-3" v-show="recordId == null && form.unit_type_id != 1">
+                                    <div class="form-group" :class="{'has-danger': errors.stock}">
+                                        <label class="control-label"><i class="fa fa-archive"></i> Stock Inicial</label>
+                                        <el-input v-model="form.stock" placeholder="0"></el-input>
+                                        <small class="form-control-feedback" v-if="errors.stock" v-text="errors.stock[0]"></small>
+                                    </div>
+                                </div>
 
-                        <div class="col-md-3" v-show="recordId == null && form.unit_type_id != 1">
-                            <div class="form-group" :class="{'has-danger': errors.stock}">
-                                <label class="control-label">Stock Inicial</label>
-                                <el-input v-model="form.stock"></el-input>
-                                <small class="form-control-feedback" v-if="errors.stock" v-text="errors.stock[0]"></small>
-                            </div>
-                        </div>
+                                <div class="col-md-3" v-show="form.unit_type_id != 1">
+                                    <div class="form-group" :class="{'has-danger': errors.stock_min}">
+                                        <label class="control-label"><i class="fa fa-exclamation-triangle"></i> Stock Mínimo</label>
+                                        <el-input v-model="form.stock_min" placeholder="0"></el-input>
+                                        <small class="form-control-feedback" v-if="errors.stock_min" v-text="errors.stock_min[0]"></small>
+                                    </div>
+                                </div>
 
-                        <div class="col-md-3" v-show="form.unit_type_id != 1">
-                            <div class="form-group" :class="{'has-danger': errors.stock_min}">
-                                <label class="control-label">Stock Mínimo</label>
-                                <el-input v-model="form.stock_min"></el-input>
-                                <small class="form-control-feedback" v-if="errors.stock_min" v-text="errors.stock_min[0]"></small>
-                            </div>
-                        </div>
+                                <div class="col-md-3" v-show="form.unit_type_id != 1">
+                                    <div class="form-group" :class="{'has-danger': errors.date_of_due}">
+                                        <label class="control-label"><i class="fa fa-calendar"></i> Fec. Vencimiento</label>
+                                        <el-date-picker v-model="form.date_of_due" type="date" value-format="yyyy-MM-dd" :clearable="true" placeholder="Seleccione fecha"></el-date-picker>
+                                        <small class="form-control-feedback" v-if="errors.date_of_due" v-text="errors.date_of_due[0]"></small>
+                                    </div>
+                                </div>
 
-                        <div v-show="form.unit_type_id != 1" class="col-md-3 center-el-checkbox">
-                            <div class="form-group">
-                                <el-checkbox v-model="form.lots_enabled" @change="changeLotsEnabled">¿Maneja lotes?</el-checkbox><br>
-                            </div>
-                        </div>
+                                <div class="col-md-4" v-show="recordId == null" v-if="form.unit_type_id != 1">
+                                    <div class="form-group" :class="{'has-danger': errors.warehouse_id}">
+                                        <label class="control-label">
+                                            <i class="fa fa-warehouse"></i> Almacén
+                                            <el-tooltip class="item" effect="dark" content="Si no selecciona almacén, se asignará por defecto el relacionado al establecimiento" placement="top">
+                                                <i class="fa fa-info-circle tooltip-icon"></i>
+                                            </el-tooltip>
+                                        </label>
+                                        <el-select v-model="form.warehouse_id" filterable placeholder="Seleccione almacén">
+                                            <el-option v-for="option in warehouses" :key="option.id" :value="option.id" :label="option.description"></el-option>
+                                        </el-select>
+                                        <small class="form-control-feedback" v-if="errors.warehouse_id" v-text="errors.warehouse_id[0]"></small>
+                                    </div>
+                                </div>
 
-                        <div class="col-md-3" v-show="form.unit_type_id != 1 && form.lots_enabled">
-                            <div class="form-group" :class="{'has-danger': errors.lot_code}">
-                                <label class="control-label">Código lote</label>
-                                <el-input v-model="form.lot_code"></el-input>
-                                <small class="form-control-feedback" v-if="errors.lot_code" v-text="errors.lot_code[0]"></small>
-                            </div>
-                        </div>
+                                <!-- Checkboxes en una fila -->
+                                <div class="col-md-12"><div class="checkbox-row">
+                                    <div class="checkbox-item" v-show="form.unit_type_id != 1">
+                                        <el-checkbox v-model="form.calculate_quantity">Calcular cantidad por precio</el-checkbox>
+                                        <small class="form-control-feedback" v-if="errors.calculate_quantity" v-text="errors.calculate_quantity[0]"></small>
+                                    </div>
+                                    <div class="checkbox-item" v-show="form.unit_type_id != 1">
+                                        <el-checkbox v-model="form.lots_enabled" @change="changeLotsEnabled">¿Maneja lotes?</el-checkbox>
+                                    </div>
+                                    <div class="checkbox-item" v-show="form.unit_type_id != 1">
+                                        <el-checkbox v-model="form.series_enabled" @change="changeLotsEnabled">¿Maneja series?</el-checkbox>
+                                    </div>
+                                    <div class="checkbox-item">
+                                        <el-checkbox v-model="form.has_perception" @change="changeHasPerception">Incluye percepción</el-checkbox>
+                                    </div>
+                                </div></div>
 
-                        <div v-show="form.unit_type_id != 1" class="col-md-3 center-el-checkbox">
-                            <div class="form-group">
-                                <el-checkbox v-model="form.series_enabled" @change="changeLotsEnabled">¿Maneja series?</el-checkbox><br>
-                            </div>
-                        </div>
+                                <!-- Campos condicionales de lotes, series y percepción -->
+                                <div class="col-md-3" v-show="form.unit_type_id != 1 && form.lots_enabled">
+                                    <div class="form-group" :class="{'has-danger': errors.lot_code}">
+                                        <label class="control-label"><i class="fa fa-qrcode"></i> Código Lote</label>
+                                        <el-input v-model="form.lot_code" placeholder="Ingrese código"></el-input>
+                                        <small class="form-control-feedback" v-if="errors.lot_code" v-text="errors.lot_code[0]"></small>
+                                    </div>
+                                </div>
 
-                        <div class="col-md-3" v-show="form.unit_type_id != 1 && form.series_enabled">
-                            <div class="form-group" :class="{'has-danger': errors.lot_code}">
-                                <label class="control-label">Ingrese series</label>
-                                <el-button style="margin-top:2%;" type="primary" icon="el-icon-edit-outline" @click.prevent="clickLotcode"></el-button>
-                                <small class="form-control-feedback" v-if="errors.lot_code" v-text="errors.lot_code[0]"></small>
-                            </div>
-                        </div>
+                                <div class="col-md-3" v-show="form.unit_type_id != 1 && form.series_enabled">
+                                    <div class="form-group" :class="{'has-danger': errors.lot_code}">
+                                        <label class="control-label"><i class="fa fa-list-ol"></i> Series</label>
+                                        <el-button type="primary" icon="el-icon-edit-outline" @click.prevent="clickLotcode">Ingresar Series</el-button>
+                                        <small class="form-control-feedback" v-if="errors.lot_code" v-text="errors.lot_code[0]"></small>
+                                    </div>
+                                </div>
 
-                        <div class="col-md-3 center-el-checkbox">
-                            <div class="form-group">
-                                <el-checkbox v-model="form.has_perception" @change="changeHasPerception">Incluye percepción</el-checkbox><br>
-                            </div>
-                        </div>
-
-                        <div class="col-md-3 center-el-checkbox" v-show="form.has_perception">
-                            <div class="form-group">
-                                <label class="control-label">Porcentaje de percepción</label>
-                                <el-input v-model="form.percentage_perception"></el-input>
-                            </div>
-                        </div>
-
-                        <div class="col-md-3" v-show="recordId == null" v-if="form.unit_type_id != 1">
-                            <div class="form-group" :class="{'has-danger': errors.warehouse_id}">
-                                <label class="control-label">
-                                    Almacén
-                                    <el-tooltip class="item" effect="dark" content="Si no selecciona almacén, se asignará por defecto el relacionado al establecimiento" placement="top">
-                                        <i class="fa fa-info-circle"></i>
-                                    </el-tooltip>
-                                </label>
-                                <el-select v-model="form.warehouse_id" filterable>
-                                    <el-option v-for="option in warehouses" :key="option.id" :value="option.id" :label="option.description"></el-option>
-                                </el-select>
-                                <small class="form-control-feedback" v-if="errors.warehouse_id" v-text="errors.warehouse_id[0]"></small>
-                            </div>
-                        </div>
-
-                        <div class="col-md-3" v-show="form.unit_type_id != 1">
-                            <div class="form-group" :class="{'has-danger': errors.date_of_due}">
-                                <label class="control-label">Fec. Vencimiento</label>
-                                <el-date-picker v-model="form.date_of_due" type="date" value-format="yyyy-MM-dd" :clearable="true"></el-date-picker>
-                                <small class="form-control-feedback" v-if="errors.date_of_due" v-text="errors.date_of_due[0]"></small>
+                                <div class="col-md-3" v-show="form.has_perception">
+                                    <div class="form-group">
+                                        <label class="control-label"><i class="fa fa-percent"></i> % Percepción</label>
+                                        <el-input v-model="form.percentage_perception" placeholder="0.00">
+                                            <template slot="append">%</template>
+                                        </el-input>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
@@ -404,7 +457,9 @@
                                 <div class="row">
                                     <div class="short-div col-md-8">
                                         <div class="form-group" :class="{'has-danger': errors.purchase_tax_id}">
-                                            <label class="control-label">Impuesto (Compra)</label>
+                                            <label class="control-label">Impuesto (Compra)
+                                                <a href="#" @click.prevent="form.purchase_tax_id = null"> [ * Excluido]</a>
+                                            </label>
                                             <el-select v-model="form.purchase_tax_id" filterable>
                                                 <el-option v-for="option in taxes" :key="option.id" :value="option.id" :label="option.name"></el-option>
                                             </el-select>
@@ -961,3 +1016,514 @@
         }
     }
 </script>
+
+<style scoped>
+    /* ====================================
+       ESTILOS PROFESIONALES PARA EL MODAL
+       ==================================== */
+
+    /* HEADER DEL MODAL */
+    .items-modal-modern .el-dialog {
+        border-radius: 12px;
+        box-shadow: 0 12px 48px rgba(0, 0, 0, 0.15);
+        overflow: hidden;
+    }
+
+    .items-modal-modern .el-dialog__header {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border-radius: 12px 12px 0 0;
+        padding: 24px 30px;
+        border-bottom: 3px solid rgba(255, 255, 255, 0.2);
+    }
+
+    .items-modal-modern .el-dialog__title {
+        color: white;
+        font-weight: 700;
+        font-size: 20px;
+        letter-spacing: 0.5px;
+        text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+    }
+
+    .items-modal-modern .el-dialog__headerbtn .el-dialog__close {
+        color: white;
+        font-size: 24px;
+        font-weight: bold;
+    }
+
+    .items-modal-modern .el-dialog__headerbtn .el-dialog__close:hover {
+        color: #fff;
+        transform: rotate(90deg);
+        transition: transform 0.3s ease;
+    }
+
+    .items-modal-modern .el-dialog__body {
+        padding: 30px;
+        background: linear-gradient(to bottom, #f8f9fa 0%, #e9ecef 100%);
+        max-height: 75vh;
+        overflow-y: auto;
+    }
+
+    /* SCROLLBAR PERSONALIZADO */
+    .items-modal-modern .el-dialog__body::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    .items-modal-modern .el-dialog__body::-webkit-scrollbar-track {
+        background: #f1f1f1;
+        border-radius: 10px;
+    }
+
+    .items-modal-modern .el-dialog__body::-webkit-scrollbar-thumb {
+        background: #667eea;
+        border-radius: 10px;
+    }
+
+    .items-modal-modern .el-dialog__body::-webkit-scrollbar-thumb:hover {
+        background: #5568d3;
+    }
+
+    /* TARJETAS DE SECCIÓN */
+    .section-card {
+        background: white;
+        border-radius: 10px;
+        padding: 24px;
+        margin-bottom: 20px;
+        box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+        border: 1px solid rgba(102, 126, 234, 0.1);
+        transition: all 0.3s ease;
+    }
+
+    .section-card:hover {
+        box-shadow: 0 8px 20px rgba(102, 126, 234, 0.15);
+        transform: translateY(-2px);
+        border-color: rgba(102, 126, 234, 0.3);
+    }
+
+    .additional-section {
+        animation: slideIn 0.4s ease-out;
+    }
+
+    @keyframes slideIn {
+        from {
+            opacity: 0;
+            transform: translateY(-10px);
+        }
+        to {
+            opacity: 1;
+            transform: translateY(0);
+        }
+    }
+
+    /* TÍTULOS DE SECCIÓN */
+    .section-title {
+        color: #2c3e50;
+        font-size: 17px;
+        font-weight: 700;
+        margin: 0 0 20px 0;
+        padding-bottom: 12px;
+        border-bottom: 3px solid #667eea;
+        display: flex;
+        align-items: center;
+        letter-spacing: 0.3px;
+    }
+
+    .section-title i {
+        color: #667eea;
+        margin-right: 10px;
+        font-size: 20px;
+        background: rgba(102, 126, 234, 0.1);
+        padding: 8px;
+        border-radius: 6px;
+    }
+
+    /* TOGGLE DE CAMPOS ADICIONALES */
+    .toggle-section {
+        background: white;
+        padding: 16px 20px;
+        border-radius: 8px;
+        margin: 20px 0;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+        border-left: 4px solid #667eea;
+    }
+
+    .toggle-label {
+        font-size: 16px;
+        font-weight: 600;
+        color: #2c3e50;
+        margin-left: 8px;
+    }
+
+    .toggle-label i {
+        color: #667eea;
+        transition: transform 0.3s ease;
+    }
+
+    .toggle-hint {
+        display: block;
+        margin-top: 4px;
+        margin-left: 30px;
+        color: #6c757d;
+        font-size: 12px;
+        font-style: italic;
+    }
+
+    /* LABELS DE FORMULARIO CON ICONOS */
+    .form-group label {
+        font-weight: 600;
+        color: #495057;
+        margin-bottom: 10px;
+        display: flex;
+        align-items: center;
+        font-size: 14px;
+    }
+
+    .form-group label i {
+        margin-right: 6px;
+        font-size: 14px;
+    }
+
+    .tooltip-icon {
+        cursor: help;
+        opacity: 0.7;
+        transition: opacity 0.2s;
+    }
+
+    .tooltip-icon:hover {
+        opacity: 1;
+    }
+
+    /* INPUTS Y SELECTS */
+    .el-input__inner,
+    .el-textarea__inner {
+        border-radius: 6px;
+        border: 2px solid #e9ecef;
+        transition: all 0.3s ease;
+    }
+
+    .el-input__inner:hover,
+    .el-textarea__inner:hover {
+        border-color: #c5cfe3;
+    }
+
+    .el-input__inner:focus,
+    .el-textarea__inner:focus {
+        border-color: #667eea;
+        box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.15);
+    }
+
+    /* INPUT CON PREPEND */
+    .el-input-group__prepend {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        border: none;
+        font-weight: 600;
+    }
+
+    /* INPUTS CON CANTIDAD */
+    .input-amount .el-input__inner {
+        text-align: right;
+        font-weight: 600;
+        font-size: 16px;
+        color: #28a745;
+    }
+
+    /* ENLACES DE ACCIÓN */
+    .link-excluded {
+        color: #dc3545;
+        font-size: 13px;
+        margin-left: 8px;
+        text-decoration: none;
+        font-weight: 600;
+        transition: all 0.2s ease;
+        padding: 2px 8px;
+        border-radius: 4px;
+        background: rgba(220, 53, 69, 0.1);
+    }
+
+    .link-excluded:hover {
+        background: #dc3545;
+        color: white;
+        text-decoration: none;
+    }
+
+    /* ACCIONES RÁPIDAS DE AÑADIR */
+    .quick-add-actions {
+        float: right;
+        margin-left: 10px;
+    }
+
+    .link-add, .link-save, .link-cancel {
+        font-size: 12px;
+        text-decoration: none;
+        margin-left: 8px;
+        padding: 4px 10px;
+        border-radius: 4px;
+        font-weight: 600;
+        transition: all 0.2s ease;
+        display: inline-block;
+    }
+
+    .link-add {
+        color: #28a745;
+        background: rgba(40, 167, 69, 0.1);
+    }
+
+    .link-add:hover {
+        background: #28a745;
+        color: white;
+    }
+
+    .link-save {
+        color: #007bff;
+        background: rgba(0, 123, 255, 0.1);
+    }
+
+    .link-save:hover {
+        background: #007bff;
+        color: white;
+    }
+
+    .link-cancel {
+        color: #dc3545;
+        background: rgba(220, 53, 69, 0.1);
+    }
+
+    .link-cancel:hover {
+        background: #dc3545;
+        color: white;
+    }
+
+    .link-add i, .link-save i, .link-cancel i {
+        margin-right: 4px;
+    }
+
+    .mb-2 {
+        margin-bottom: 8px !important;
+    }
+
+    /* CHECKBOX */
+    .el-checkbox {
+        margin: 0;
+        font-weight: 600;
+    }
+
+    .el-checkbox__label {
+        color: #495057;
+        font-size: 15px;
+    }
+
+    .el-checkbox__inner {
+        width: 18px;
+        height: 18px;
+        border: 2px solid #667eea;
+    }
+
+    .el-checkbox__input.is-checked .el-checkbox__inner {
+        background-color: #667eea;
+        border-color: #667eea;
+    }
+
+    /* SEPARADORES DE TÍTULO */
+    .separator-title {
+        color: #2c3e50;
+        font-size: 16px;
+        font-weight: 700;
+        margin: 30px 0 20px 0;
+        padding: 12px 16px;
+        border-left: 4px solid #667eea;
+        background: rgba(102, 126, 234, 0.05);
+        border-radius: 4px;
+    }
+
+    /* UPLOAD DE IMÁGENES */
+    .avatar-uploader {
+        border: 3px dashed #d9d9d9;
+        border-radius: 10px;
+        cursor: pointer;
+        transition: all 0.3s ease;
+        background: #fafafa;
+    }
+
+    .avatar-uploader:hover {
+        border-color: #667eea;
+        background: rgba(102, 126, 234, 0.05);
+        box-shadow: 0 4px 12px rgba(102, 126, 234, 0.2);
+    }
+
+    .avatar-uploader-icon {
+        font-size: 32px;
+        color: #8c939d;
+        width: 140px;
+        height: 140px;
+        line-height: 140px;
+        text-align: center;
+        transition: all 0.3s ease;
+    }
+
+    .avatar-uploader:hover .avatar-uploader-icon {
+        color: #667eea;
+        transform: scale(1.1);
+    }
+
+    .avatar {
+        width: 140px;
+        height: 140px;
+        display: block;
+        border-radius: 10px;
+        object-fit: cover;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+    }
+
+    /* TABLAS DENTRO DEL FORMULARIO */
+    .table {
+        background: white;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.06);
+    }
+
+    .table thead th {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        font-weight: 700;
+        border: none;
+        padding: 14px 10px;
+        text-transform: uppercase;
+        font-size: 12px;
+        letter-spacing: 0.5px;
+    }
+
+    .table tbody tr {
+        transition: background-color 0.2s ease;
+    }
+
+    .table tbody tr:hover {
+        background-color: rgba(102, 126, 234, 0.05);
+    }
+
+    .table tbody td {
+        padding: 12px 10px;
+        border-bottom: 1px solid #e9ecef;
+    }
+
+    /* BOTONES */
+    .btn-search {
+        height: 38px;
+        padding: 0 20px;
+        border-radius: 6px;
+        font-weight: 600;
+        transition: all 0.3s ease;
+    }
+
+    .btn-search:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    /* TOOLTIPS */
+    .el-tooltip__popper {
+        max-width: 350px;
+        font-size: 13px;
+        padding: 10px 14px;
+        border-radius: 6px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    }
+
+    /* MENSAJES DE ERROR */
+    .form-control-feedback {
+        display: block;
+        margin-top: 6px;
+        font-size: 12px;
+        font-weight: 600;
+        color: #dc3545;
+    }
+
+    .has-danger .el-input__inner,
+    .has-danger .el-textarea__inner {
+        border-color: #dc3545;
+        background-color: rgba(220, 53, 69, 0.05);
+    }
+
+    .has-danger label {
+        color: #dc3545;
+    }
+
+    /* ESPACIADO */
+    .field-margin {
+        margin-top: 20px;
+    }
+
+    /* FILA DE CHECKBOXES */
+    .checkbox-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 20px;
+        padding: 16px 20px;
+        background: rgba(102, 126, 234, 0.05);
+        border-radius: 8px;
+        border-left: 4px solid #667eea;
+        margin: 10px 0;
+    }
+
+    .checkbox-item {
+        flex: 0 1 auto;
+        display: flex;
+        flex-direction: column;
+    }
+
+    .checkbox-item .el-checkbox {
+        font-size: 14px;
+        font-weight: 600;
+    }
+
+    .checkbox-item .form-control-feedback {
+        margin-top: 4px;
+        margin-left: 24px;
+    }
+
+    /* RESPONSIVE */
+    @media (max-width: 768px) {
+        .section-card {
+            padding: 16px;
+        }
+
+        .section-title {
+            font-size: 15px;
+        }
+
+        .items-modal-modern .el-dialog {
+            width: 95% !important;
+            margin-top: 20px !important;
+        }
+
+        .items-modal-modern .el-dialog__body {
+            padding: 20px 15px;
+        }
+
+        .quick-add-actions {
+            float: none;
+            display: block;
+            margin: 8px 0;
+        }
+
+        .checkbox-row {
+            flex-direction: column;
+            gap: 12px;
+        }
+    }
+
+    /* ANIMACIONES */
+    @keyframes fadeIn {
+        from {
+            opacity: 0;
+        }
+        to {
+            opacity: 1;
+        }
+    }
+
+    .form-body {
+        animation: fadeIn 0.3s ease-in;
+    }
+</style>

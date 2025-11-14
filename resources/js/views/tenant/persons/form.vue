@@ -1,205 +1,246 @@
 <template>
-    <el-dialog width="60%" :title="titleDialog" :visible="showDialog" @close="close" @open="create" @opened="opened" :close-on-click-modal="false" append-to-body>
+    <el-dialog 
+        width="75%" 
+        :title="titleDialog" 
+        :visible="showDialog" 
+        @close="close" 
+        @open="create" 
+        @opened="opened" 
+        :close-on-click-modal="false" 
+        append-to-body
+        top="5vh"
+        custom-class="persons-modal-modern">
       <form autocomplete="off" @submit.prevent="submit">
         <div class="form-body">
-          <!-- FILA: Tipo de Documento,  Número de Identificación, DV y Nombre -->
-          <div class="row">
-            <div class="col-md-3">
-              <div class="form-group" :class="{'has-danger': errors.identity_document_type_id}">
-                <label class="control-label">Tipo de documento</label>
-                <el-select v-model="form.identity_document_type_id" filterable>
-                  <el-option
-                    v-for="option in identity_document_types"
-                    :key="option.id"
-                    :value="option.id"
-                    :label="option.name">
-                  </el-option>
-                </el-select>
-                <small class="form-control-feedback" v-if="errors.identity_document_type_id" v-text="errors.identity_document_type_id[0]"></small>
-              </div>
-            </div>
-            <div class="col-md-3">
-              <div class="form-group" :class="{'has-danger': errors.number}">
-                <label class="control-label">N° Identificación</label>
-                <el-input
-                v-model="form.number"
-                :maxlength="maxLength"
-                dusk="number"
-                @keydown.enter.native.stop.prevent="changeNumberIdentification">
-                <el-button type="primary" slot="append" :loading="loading_search" icon="el-icon-search" @click.prevent="changeNumberIdentification">
-                </el-button>
-                </el-input>
-                <small class="form-control-feedback" v-if="errors.number" v-text="errors.number[0]"></small>
-              </div>
-            </div>
-            <div class="col-md-2">
-              <div class="form-group" :class="{'has-danger': errors.dv}">
-                <label class="control-label">Dv</label>
-                <el-input v-model="form.dv"></el-input>
-                <small class="form-control-feedback" v-if="errors.dv" v-text="errors.dv[0]"></small>
-              </div>
-            </div>
-            <div class="col-md-4">
-              <div class="form-group" :class="{'has-danger': errors.name}">
-                <label class="control-label">Nombre</label>
-                <el-input v-model="form.name"></el-input>
-                <small class="form-control-feedback" v-if="errors.name" v-text="errors.name[0]"></small>
-              </div>
-            </div>
-          </div>
-          <!-- FIN FILA Número, DV y Nombre -->
-
-          <!-- FILA: Correo electrónico y Checkbox para campos adicionales -->
-          <div class="row align-items-center">
-            <div class="col-md-8">
-              <div class="form-group" :class="{'has-danger': errors.email}">
-                <label class="control-label">Correo electrónico</label>
-                <el-input v-model="form.email" dusk="email"></el-input>
-                <small class="form-control-feedback" v-if="errors.email" v-text="errors.email[0]"></small>
-              </div>
-            </div>
-            <div class="col-md-4 d-flex justify-content-center align-items-center aling-div">
-              <div class="form-group text-center">
-                <el-checkbox v-model="showAdditionalFields" size="large">
-                  <span class="custom-checkbox-label">Llenar información adicional</span>
-                </el-checkbox>
-              </div>
-            </div>
-          </div>
-          <!-- FIN FILA -->
-
-          <!-- Campos adicionales (se muestran si showAdditionalFields es verdadero) -->
-          <div v-if="showAdditionalFields">
+          <!-- Información de Identificación -->
+          <div class="section-card">
+            <h4 class="section-title"><i class="fa fa-id-card"></i> Información de Identificación</h4>
             <div class="row">
-              <!-- Tipo de persona -->
               <div class="col-md-3">
-                <div class="form-group" :class="{'has-danger': errors.type_person_id}">
-                  <label class="control-label">Tipo de persona</label>
-                  <el-select v-model="form.type_person_id" filterable>
+                <div class="form-group" :class="{'has-danger': errors.identity_document_type_id}">
+                  <label class="control-label"><i class="fa fa-file-text text-primary"></i> Tipo de Documento</label>
+                  <el-select v-model="form.identity_document_type_id" filterable placeholder="Seleccione tipo">
                     <el-option
-                      v-for="option in type_persons"
+                      v-for="option in identity_document_types"
                       :key="option.id"
                       :value="option.id"
                       :label="option.name">
                     </el-option>
                   </el-select>
-                  <small class="form-control-feedback" v-if="errors.type_person_id" v-text="errors.type_person_id[0]"></small>
-                </div>
-              </div>
-              <!-- Otros campos adicionales -->
-              <div class="col-md-3">
-                <div class="form-group" :class="{'has-danger': errors.type_regime_id}">
-                  <label class="control-label">Tipo de régimen</label>
-                  <el-select v-model="form.type_regime_id" filterable>
-                    <el-option
-                      v-for="option in type_regimes"
-                      :key="option.id"
-                      :value="option.id"
-                      :label="option.name">
-                    </el-option>
-                  </el-select>
-                  <small class="form-control-feedback" v-if="errors.type_regime_id" v-text="errors.type_regime_id[0]"></small>
-                </div>
-              </div>
-              <div class="col-md-3">
-                <div class="form-group" :class="{'has-danger': errors.type_obligation_id}">
-                  <label class="control-label">Tipo de obligación</label>
-                  <el-select v-model="form.type_obligation_id" filterable>
-                    <el-option
-                      v-for="option in type_obligations"
-                      :key="option.id"
-                      :value="option.id"
-                      :label="option.name">
-                    </el-option>
-                  </el-select>
-                  <small class="form-control-feedback" v-if="errors.type_obligation_id" v-text="errors.type_obligation_id[0]"></small>
-                </div>
-              </div>
-              <!-- Bloque para País, Departamento y Ciudad -->
-              <div class="col-md-4">
-                <div class="form-group" :class="{'has-danger': errors.country_id}">
-                  <label class="control-label">País</label>
-                  <el-select v-model="form.country_id" filterable @change="departmentss()">
-                    <el-option
-                      v-for="option in countries"
-                      :key="option.id"
-                      :value="option.id"
-                      :label="option.name">
-                    </el-option>
-                  </el-select>
-                  <small class="form-control-feedback" v-if="errors.country_id" v-text="errors.country_id[0]"></small>
+                  <small class="form-control-feedback" v-if="errors.identity_document_type_id" v-text="errors.identity_document_type_id[0]"></small>
                 </div>
               </div>
               <div class="col-md-4">
-                <div class="form-group" :class="{'has-danger': errors.department_id}">
-                  <label class="control-label">Departamento</label>
-                  <el-select v-model="form.department_id" filterable @change="citiess()">
-                    <el-option
-                      v-for="option in departments"
-                      :key="option.id"
-                      :value="option.id"
-                      :label="option.name">
-                    </el-option>
-                  </el-select>
-                  <small class="form-control-feedback" v-if="errors.department_id" v-text="errors.department_id[0]"></small>
-                </div>
-              </div>
-              <div class="col-md-4">
-                <div class="form-group" :class="{'has-danger': errors.city_id}">
-                  <label class="control-label">Ciudad</label>
-                  <el-select v-model="form.city_id" filterable>
-                    <el-option
-                      v-for="option in cities"
-                      :key="option.id"
-                      :value="option.id"
-                      :label="option.name">
-                    </el-option>
-                  </el-select>
-                  <small class="form-control-feedback" v-if="errors.city_id" v-text="errors.city_id[0]"></small>
-                </div>
-              </div>
-            </div>
-            <!-- Fila adicional: Teléfono, Dirección y Código interno -->
-            <div class="row">
-              <div class="col-md-6">
-                <div class="form-group" :class="{'has-danger': errors.telephone}">
-                  <label class="control-label">Teléfono</label>
-                  <el-input type="tel" maxlength="10" v-model="form.telephone"
-                            onkeydown="return ( event.ctrlKey || event.altKey || (47<event.keyCode && event.keyCode<58 && event.shiftKey==false) || (95<event.keyCode && event.keyCode<106) || (event.keyCode==8) || (event.keyCode==9) || (event.keyCode>34 && event.keyCode<40) || (event.keyCode==46) )">
+                <div class="form-group" :class="{'has-danger': errors.number}">
+                  <label class="control-label"><i class="fa fa-hashtag text-info"></i> N° Identificación</label>
+                  <el-input
+                  v-model="form.number"
+                  :maxlength="maxLength"
+                  dusk="number"
+                  placeholder="Ingrese número de identificación"
+                  @keydown.enter.native.stop.prevent="changeNumberIdentification">
+                  <el-button type="primary" slot="append" :loading="loading_search" icon="el-icon-search" @click.prevent="changeNumberIdentification">
+                  </el-button>
                   </el-input>
-                  <small class="form-control-feedback" v-if="errors.telephone" v-text="errors.telephone[0]"></small>
+                  <small class="form-control-feedback" v-if="errors.number" v-text="errors.number[0]"></small>
                 </div>
               </div>
-              <div class="col-md-6">
-                <div class="form-group" :class="{'has-danger': errors.address}">
-                  <label class="control-label">Dirección</label>
-                  <el-input v-model="form.address" dusk="address"></el-input>
-                  <small class="form-control-feedback" v-if="errors.address" v-text="errors.address[0]"></small>
+              <div class="col-md-2">
+                <div class="form-group" :class="{'has-danger': errors.dv}">
+                  <label class="control-label"><i class="fa fa-check-circle text-success"></i> DV</label>
+                  <el-input v-model="form.dv" placeholder="Auto" readonly></el-input>
+                  <small class="form-control-feedback" v-if="errors.dv" v-text="errors.dv[0]"></small>
                 </div>
               </div>
-              <div class="col-md-6">
-                <div class="form-group" :class="{'has-danger': errors.code}">
-                  <label class="control-label">Código interno</label>
-                  <el-input v-model="form.code"></el-input>
-                  <small class="form-control-feedback" v-if="errors.code" v-text="errors.code[0]"></small>
+              <div class="col-md-3"></div>
+            </div>
+          </div>
+
+          <!-- Información General -->
+          <div class="section-card">
+            <h4 class="section-title"><i class="fa fa-user"></i> Información General</h4>
+            <div class="row">
+              <div class="col-md-8">
+                <div class="form-group" :class="{'has-danger': errors.name}">
+                  <label class="control-label"><i class="fa fa-user-circle text-success"></i> Nombre / Razón Social</label>
+                  <el-input v-model="form.name" placeholder="Nombre completo o razón social"></el-input>
+                  <small class="form-control-feedback" v-if="errors.name" v-text="errors.name[0]"></small>
+                </div>
+              </div>
+              <div class="col-md-4"></div>
+            </div>
+          </div>
+
+          <!-- Información de Contacto -->
+          <div class="section-card">
+            <h4 class="section-title"><i class="fa fa-envelope"></i> Información de Contacto</h4>
+            <div class="row">
+              <div class="col-md-8">
+                <div class="form-group" :class="{'has-danger': errors.email}">
+                  <label class="control-label"><i class="fa fa-at text-primary"></i> Correo Electrónico</label>
+                  <el-input v-model="form.email" dusk="email" type="email" placeholder="correo@ejemplo.com">
+                    <template slot="prepend">@</template>
+                  </el-input>
+                  <small class="form-control-feedback" v-if="errors.email" v-text="errors.email[0]"></small>
+                </div>
+              </div>
+              <div class="col-md-4 toggle-wrapper">
+                <div class="form-group">
+                  <div class="toggle-section">
+                    <el-checkbox v-model="showAdditionalFields" size="large">
+                      <span class="toggle-label">
+                        <i :class="showAdditionalFields ? 'fa fa-chevron-down' : 'fa fa-chevron-right'"></i>
+                        Información Adicional
+                      </span>
+                    </el-checkbox>
+                    <small class="toggle-hint">Click para {{ showAdditionalFields ? 'ocultar' : 'mostrar' }} más campos</small>
+                  </div>
                 </div>
               </div>
             </div>
-            <!-- Bloque de Contacto -->
-            <div class="row border-top mt-2">
-              <div class="col-12">
-                <h4>Contacto</h4>
-              </div>
-              <div class="col-md-6">
-                <div class="form-group">
-                  <label class="control-label">Nombre y Apellido</label>
-                  <el-input v-model="form.contact_name"></el-input>
+          </div>
+
+          <!-- Campos adicionales -->
+          <div v-if="showAdditionalFields">
+            <!-- Información Tributaria -->
+            <div class="section-card additional-section">
+              <h4 class="section-title"><i class="fa fa-file-text-o"></i> Información Tributaria</h4>
+              <div class="row">
+                <div class="col-md-4">
+                  <div class="form-group" :class="{'has-danger': errors.type_person_id}">
+                    <label class="control-label"><i class="fa fa-user-o"></i> Tipo de Persona</label>
+                    <el-select v-model="form.type_person_id" filterable placeholder="Seleccione">
+                      <el-option
+                        v-for="option in type_persons"
+                        :key="option.id"
+                        :value="option.id"
+                        :label="option.name">
+                      </el-option>
+                    </el-select>
+                    <small class="form-control-feedback" v-if="errors.type_person_id" v-text="errors.type_person_id[0]"></small>
+                  </div>
+                </div>
+                <div class="col-md-4">
+                  <div class="form-group" :class="{'has-danger': errors.type_regime_id}">
+                    <label class="control-label"><i class="fa fa-book"></i> Tipo de Régimen</label>
+                    <el-select v-model="form.type_regime_id" filterable placeholder="Seleccione">
+                      <el-option
+                        v-for="option in type_regimes"
+                        :key="option.id"
+                        :value="option.id"
+                        :label="option.name">
+                      </el-option>
+                    </el-select>
+                    <small class="form-control-feedback" v-if="errors.type_regime_id" v-text="errors.type_regime_id[0]"></small>
+                  </div>
+                </div>
+                <div class="col-md-4">
+                  <div class="form-group" :class="{'has-danger': errors.type_obligation_id}">
+                    <label class="control-label"><i class="fa fa-balance-scale"></i> Tipo de Obligación</label>
+                    <el-select v-model="form.type_obligation_id" filterable placeholder="Seleccione">
+                      <el-option
+                        v-for="option in type_obligations"
+                        :key="option.id"
+                        :value="option.id"
+                        :label="option.name">
+                      </el-option>
+                    </el-select>
+                    <small class="form-control-feedback" v-if="errors.type_obligation_id" v-text="errors.type_obligation_id[0]"></small>
+                  </div>
                 </div>
               </div>
-              <div class="col-md-6">
-                <div class="form-group">
-                  <label class="control-label">Teléfono</label>
-                  <el-input v-model="form.contact_phone"></el-input>
+            </div>
+
+            <!-- Ubicación -->
+            <div class="section-card additional-section">
+              <h4 class="section-title"><i class="fa fa-map-marker"></i> Ubicación</h4>
+              <div class="row">
+                <div class="col-md-4">
+                  <div class="form-group" :class="{'has-danger': errors.country_id}">
+                    <label class="control-label"><i class="fa fa-globe text-primary"></i> País</label>
+                    <el-select v-model="form.country_id" filterable @change="departmentss()" placeholder="Seleccione">
+                      <el-option
+                        v-for="option in countries"
+                        :key="option.id"
+                        :value="option.id"
+                        :label="option.name">
+                      </el-option>
+                    </el-select>
+                    <small class="form-control-feedback" v-if="errors.country_id" v-text="errors.country_id[0]"></small>
+                  </div>
+                </div>
+                <div class="col-md-4">
+                  <div class="form-group" :class="{'has-danger': errors.department_id}">
+                    <label class="control-label"><i class="fa fa-map text-info"></i> Departamento</label>
+                    <el-select v-model="form.department_id" filterable @change="citiess()" placeholder="Seleccione">
+                      <el-option
+                        v-for="option in departments"
+                        :key="option.id"
+                        :value="option.id"
+                        :label="option.name">
+                      </el-option>
+                    </el-select>
+                    <small class="form-control-feedback" v-if="errors.department_id" v-text="errors.department_id[0]"></small>
+                  </div>
+                </div>
+                <div class="col-md-4">
+                  <div class="form-group" :class="{'has-danger': errors.city_id}">
+                    <label class="control-label"><i class="fa fa-building text-warning"></i> Ciudad</label>
+                    <el-select v-model="form.city_id" filterable placeholder="Seleccione">
+                      <el-option
+                        v-for="option in cities"
+                        :key="option.id"
+                        :value="option.id"
+                        :label="option.name">
+                      </el-option>
+                    </el-select>
+                    <small class="form-control-feedback" v-if="errors.city_id" v-text="errors.city_id[0]"></small>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="form-group" :class="{'has-danger': errors.address}">
+                    <label class="control-label"><i class="fa fa-home text-success"></i> Dirección</label>
+                    <el-input v-model="form.address" dusk="address" placeholder="Av/Calle, número, barrio"></el-input>
+                    <small class="form-control-feedback" v-if="errors.address" v-text="errors.address[0]"></small>
+                  </div>
+                </div>
+                <div class="col-md-3">
+                  <div class="form-group" :class="{'has-danger': errors.telephone}">
+                    <label class="control-label"><i class="fa fa-phone text-success"></i> Teléfono</label>
+                    <el-input type="tel" maxlength="10" v-model="form.telephone" placeholder="Teléfono de contacto"
+                              onkeydown="return ( event.ctrlKey || event.altKey || (47<event.keyCode && event.keyCode<58 && event.shiftKey==false) || (95<event.keyCode && event.keyCode<106) || (event.keyCode==8) || (event.keyCode==9) || (event.keyCode>34 && event.keyCode<40) || (event.keyCode==46) )">
+                      <template slot="prepend"><i class="fa fa-mobile"></i></template>
+                    </el-input>
+                    <small class="form-control-feedback" v-if="errors.telephone" v-text="errors.telephone[0]"></small>
+                  </div>
+                </div>
+                <div class="col-md-3">
+                  <div class="form-group" :class="{'has-danger': errors.code}">
+                    <label class="control-label"><i class="fa fa-barcode text-info"></i> Código Interno</label>
+                    <el-input v-model="form.code" placeholder="Código opcional"></el-input>
+                    <small class="form-control-feedback" v-if="errors.code" v-text="errors.code[0]"></small>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Contacto -->
+            <div class="section-card additional-section">
+              <h4 class="section-title"><i class="fa fa-address-book"></i> Persona de Contacto</h4>
+              <div class="row">
+                <div class="col-md-6">
+                  <div class="form-group">
+                    <label class="control-label"><i class="fa fa-user text-primary"></i> Nombre y Apellido</label>
+                    <el-input v-model="form.contact_name" placeholder="Nombre del contacto"></el-input>
+                  </div>
+                </div>
+                <div class="col-md-6">
+                  <div class="form-group">
+                    <label class="control-label"><i class="fa fa-mobile text-success"></i> Teléfono</label>
+                    <el-input v-model="form.contact_phone" placeholder="Teléfono del contacto">
+                      <template slot="prepend"><i class="fa fa-phone"></i></template>
+                    </el-input>
+                  </div>
                 </div>
               </div>
             </div>
@@ -617,4 +658,336 @@
       }
     }
   }
-  </script>
+</script>
+
+<style scoped>
+/* ==============================================
+   MODAL MODERNO DE PERSONAS/CLIENTES
+   Diseño profesional con cards y animaciones
+   ============================================== */
+
+/* Dialog personalizado */
+::v-deep .persons-modal-modern {
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+}
+
+::v-deep .persons-modal-modern .el-dialog__header {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  padding: 20px 30px;
+  margin: 0;
+  border-bottom: none;
+}
+
+::v-deep .persons-modal-modern .el-dialog__title {
+  color: white;
+  font-weight: 600;
+  font-size: 20px;
+  text-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+::v-deep .persons-modal-modern .el-dialog__close {
+  color: white !important;
+  font-size: 20px;
+  font-weight: bold;
+  transition: transform 0.3s ease;
+}
+
+::v-deep .persons-modal-modern .el-dialog__close:hover {
+  transform: rotate(90deg);
+}
+
+::v-deep .persons-modal-modern .el-dialog__body {
+  padding: 30px;
+  background: linear-gradient(to bottom, #f8f9fa 0%, #ffffff 100%);
+  max-height: 75vh;
+  overflow-y: auto;
+}
+
+/* Scrollbar personalizado */
+::v-deep .persons-modal-modern .el-dialog__body::-webkit-scrollbar {
+  width: 8px;
+}
+
+::v-deep .persons-modal-modern .el-dialog__body::-webkit-scrollbar-track {
+  background: #f1f1f1;
+  border-radius: 10px;
+}
+
+::v-deep .persons-modal-modern .el-dialog__body::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border-radius: 10px;
+}
+
+::v-deep .persons-modal-modern .el-dialog__body::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, #764ba2 0%, #667eea 100%);
+}
+
+/* Cards de secciones */
+.section-card {
+  background: white;
+  border-radius: 10px;
+  padding: 25px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+  border: 1px solid #e8eaf6;
+  transition: all 0.3s ease;
+  animation: slideIn 0.5s ease;
+}
+
+.section-card:hover {
+  box-shadow: 0 5px 20px rgba(102, 126, 234, 0.15);
+  transform: translateY(-2px);
+  border-color: #667eea;
+}
+
+/* Secciones adicionales con color especial */
+.additional-section {
+  border-left: 4px solid #667eea;
+  animation: slideInLeft 0.6s ease;
+}
+
+.additional-section:hover {
+  border-left-color: #764ba2;
+}
+
+/* Títulos de secciones */
+.section-title {
+  font-size: 18px;
+  font-weight: 600;
+  color: #2c3e50;
+  margin: 0 0 20px 0;
+  padding-bottom: 12px;
+  border-bottom: 2px solid transparent;
+  background: linear-gradient(90deg, #667eea 0%, transparent 100%);
+  background-position: 0 100%;
+  background-size: 100% 2px;
+  background-repeat: no-repeat;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.section-title i {
+  font-size: 20px;
+  color: #667eea;
+  animation: pulse 2s ease-in-out infinite;
+}
+
+/* Grupo de formulario */
+.form-group {
+  margin-bottom: 20px;
+}
+
+.form-group label {
+  font-weight: 500;
+  color: #495057;
+  margin-bottom: 8px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 14px;
+}
+
+.form-group label i {
+  font-size: 14px;
+  opacity: 0.8;
+}
+
+/* Inputs y selects */
+::v-deep .el-input__inner,
+::v-deep .el-select {
+  border-radius: 6px;
+  transition: all 0.3s ease;
+}
+
+::v-deep .el-input__inner:focus,
+::v-deep .el-select:hover .el-input__inner {
+  border-color: #667eea;
+  box-shadow: 0 0 0 2px rgba(102, 126, 234, 0.1);
+}
+
+::v-deep .el-input-group__prepend {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  color: white;
+  border: none;
+  border-radius: 6px 0 0 6px;
+}
+
+/* Iconos de texto */
+.text-primary { color: #667eea !important; }
+.text-info { color: #17a2b8 !important; }
+.text-success { color: #28a745 !important; }
+.text-warning { color: #ffc107 !important; }
+.text-danger { color: #dc3545 !important; }
+
+/* Toggle de campos adicionales */
+.toggle-wrapper {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.toggle-section {
+  text-align: center;
+  padding: 15px;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border-radius: 8px;
+  border: 2px dashed #667eea;
+  transition: all 0.3s ease;
+  cursor: pointer;
+}
+
+.toggle-section:hover {
+  background: linear-gradient(135deg, #e9ecef 0%, #dee2e6 100%);
+  border-color: #764ba2;
+  transform: scale(1.05);
+}
+
+.toggle-label {
+  font-size: 15px;
+  font-weight: 500;
+  color: #495057;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.toggle-label i {
+  transition: transform 0.3s ease;
+  color: #667eea;
+}
+
+.toggle-hint {
+  display: block;
+  font-size: 11px;
+  color: #6c757d;
+  margin-top: 5px;
+  font-style: italic;
+}
+
+::v-deep .toggle-section .el-checkbox {
+  transform: scale(1.3);
+}
+
+::v-deep .toggle-section .el-checkbox__label {
+  font-size: 15px;
+}
+
+/* Botón de búsqueda en número de identificación */
+::v-deep .el-input-group__append {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  border-radius: 0 6px 6px 0;
+}
+
+::v-deep .el-input-group__append .el-button {
+  background: transparent;
+  color: white;
+  border: none;
+  margin: 0;
+  padding: 0 15px;
+}
+
+::v-deep .el-input-group__append .el-button:hover {
+  background: rgba(255, 255, 255, 0.2);
+}
+
+/* Mensajes de validación */
+.form-control-feedback {
+  color: #dc3545;
+  font-size: 12px;
+  margin-top: 5px;
+  display: block;
+  animation: shake 0.3s ease;
+}
+
+.has-danger .el-input__inner,
+.has-danger .el-select .el-input__inner {
+  border-color: #dc3545 !important;
+}
+
+/* Footer del formulario */
+::v-deep .el-dialog__footer {
+  padding: 20px 30px;
+  background: #f8f9fa;
+  border-top: 1px solid #e9ecef;
+}
+
+::v-deep .el-dialog__footer .el-button {
+  padding: 12px 30px;
+  font-weight: 500;
+  border-radius: 6px;
+  transition: all 0.3s ease;
+}
+
+::v-deep .el-dialog__footer .el-button--primary {
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+  border: none;
+}
+
+::v-deep .el-dialog__footer .el-button--primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(102, 126, 234, 0.4);
+}
+
+/* Animaciones */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes slideInLeft {
+  from {
+    opacity: 0;
+    transform: translateX(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes pulse {
+  0%, 100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.1);
+  }
+}
+
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-5px); }
+  75% { transform: translateX(5px); }
+}
+
+/* Responsivo */
+@media (max-width: 768px) {
+  ::v-deep .persons-modal-modern .el-dialog {
+    width: 95% !important;
+  }
+  
+  .section-card {
+    padding: 15px;
+  }
+  
+  .section-title {
+    font-size: 16px;
+  }
+  
+  .toggle-wrapper {
+    margin-top: 15px;
+    align-items: center;
+  }
+}
+</style>
