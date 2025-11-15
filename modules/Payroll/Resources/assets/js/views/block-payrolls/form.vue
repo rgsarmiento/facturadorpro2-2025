@@ -1,20 +1,23 @@
 <template>
-    <div class="card mb-0 pt-2 pt-md-0">
+    <div class="card mb-0 pt-2 pt-md-0 block-payroll-form">
         <div class="card-header bg-info">
-            <h3 class="my-0 text-white">
+            <h4 class="mb-0 text-white">
+                <i class="fas fa-layer-group"></i>
                 {{
                     editMode
-                        ? "Editar Bloque de Nominas"
-                        : "Generar Bloque de Nominas"
+                        ? "Editar Bloque de Nóminas"
+                        : "Generar Bloque de Nóminas"
                 }}
-            </h3>
+            </h4>
         </div>
         <div class="card-body">
             <div class="invoice">
                 <form autocomplete="off" @submit.prevent="submit">
                     <div class="form-body">
-                        <!-- Formulario para datos de period y campos automáticos -->
-                        <div class="row mb-3">
+                        <!-- Sección 1: Información General del Bloque -->
+                        <div class="form-section">
+                            <h5 class="section-header"><i class="fas fa-info-circle"></i> Información General del Bloque</h5>
+                            <div class="row">
                             <div class="col-md-3">
                                 <div class="form-group">
                                     <label>Fecha de emisión</label>
@@ -197,10 +200,16 @@
                                 </div>
                             </div>
                         </div>
-                        <el-tabs
-                            v-model="activeName"
-                            @tab-click="handleTabChange"
-                        >
+                        </div>
+                        <!-- Fin Sección 1 -->
+
+                        <!-- Sección 2: Gestión de Trabajadores y Nóminas -->
+                        <div class="form-section">
+                            <h5 class="section-header"><i class="fas fa-users"></i> Gestión de Trabajadores y Nóminas</h5>
+                            <el-tabs
+                                v-model="activeName"
+                                @tab-click="handleTabChange"
+                            >
                             <el-tab-pane
                                 label="Trabajadores Seleccionados"
                                 name="active-workers"
@@ -3872,6 +3881,8 @@
                                 </template>
                             </el-tab-pane>
                         </el-tabs>
+                        </div>
+                        <!-- Fin Sección 2 -->
                     </div>
                     <div class="row mt-4">
                         <div class="col-md-12 text-right">
@@ -8262,5 +8273,58 @@ input[type="radio"] {
 
 .text-success strong {
     color: #28a745 !important;
+}
+
+/* Estilos profesionales para el formulario de bloques de nómina */
+.block-payroll-form {
+    background: #f8f9fa;
+}
+
+.form-section {
+    background: white;
+    padding: 25px;
+    margin-bottom: 25px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    border-left: 4px solid #409EFF;
+}
+
+.section-header {
+    font-size: 18px;
+    font-weight: 600;
+    color: #2c3e50;
+    margin: 0 0 20px 0;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #e9ecef;
+    display: flex;
+    align-items: center;
+}
+
+.section-header i {
+    margin-right: 10px;
+    font-size: 20px;
+    color: #409EFF;
+}
+
+/* Colores por sección */
+.form-section:nth-child(1) {
+    border-left-color: #409EFF; /* Azul - Información General */
+}
+
+.form-section:nth-child(1) .section-header i {
+    color: #409EFF;
+}
+
+.form-section:nth-child(2) {
+    border-left-color: #67C23A; /* Verde - Gestión de Trabajadores */
+}
+
+.form-section:nth-child(2) .section-header i {
+    color: #67C23A;
+}
+
+/* Mejorar apariencia de tabs */
+.el-tabs {
+    margin-top: 10px;
 }
 </style>

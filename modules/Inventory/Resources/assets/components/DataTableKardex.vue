@@ -1,69 +1,93 @@
 <template>
-    <div>
-        <div class="row">
-            <div class="col-md-12 col-lg-12 col-xl-12 ">
-                <div class="row mt-2">
-                        <div class="col-md-6">
-                            <label class="control-label">Producto</label>
-                            <el-select ref="itemSelect"
-                                       v-model="form.item_id"
-                                       filterable
-                                       clearable
-                                       remote
-                                       :remote-method="remoteSearchItems"
-                                       :loading="loadingItems"
-                                       @visible-change="handleDropdownVisible"
-                                       placeholder="Escribe código o nombre...">
-                                <el-option v-for="option in items"
-                                           :key="option.id"
-                                           :value="option.id"
-                                           :label="option.full_description" />
-                            </el-select>
-                        </div>
-                        <div class="col-md-3">
-                            <label class="control-label">Fecha inicio</label>
-                            <el-date-picker v-model="form.date_start" type="date"
-                                            @change="changeDisabledDates"
-                                            value-format="yyyy-MM-dd" format="dd/MM/yyyy" :clearable="true"></el-date-picker>
-                        </div>
-                        <div class="col-md-3">
-                            <label class="control-label">Fecha término</label>
-                            <el-date-picker v-model="form.date_end" type="date"
-                                            :picker-options="pickerOptionsDates"
-                                            value-format="yyyy-MM-dd" format="dd/MM/yyyy" :clearable="true"></el-date-picker>
-                        </div>
-                        <div class="col-md-6" style="margin-top:29px">
-                            <el-button class="submit" type="primary" @click.prevent="getRecordsByFilter" :loading="loading_submit" icon="el-icon-search" >Buscar</el-button>
-                            <template v-if="records.length>0">
-
-                                <el-button class="submit" type="danger"  icon="el-icon-tickets" @click.prevent="clickDownload('pdf')" >Exportar PDF</el-button>
-
-                                <el-button class="submit" type="success" @click.prevent="clickDownload('excel')"><i class="fa fa-file-excel" ></i>  Exportal Excel</el-button>
-
-                            </template>
-                        </div>
+    <div class="kardex-form">
+        <!-- Sección 1: Filtros de Búsqueda -->
+        <div class="form-section">
+            <div class="section-header">
+                <i class="fas fa-filter"></i>
+                <span>Filtros de Búsqueda</span>
+            </div>
+            <div class="row">
+                <div class="col-md-6">
+                    <div class="form-group">
+                        <label class="control-label">Producto</label>
+                        <el-select ref="itemSelect"
+                                   v-model="form.item_id"
+                                   filterable
+                                   clearable
+                                   remote
+                                   :remote-method="remoteSearchItems"
+                                   :loading="loadingItems"
+                                   @visible-change="handleDropdownVisible"
+                                   placeholder="Escribe código o nombre...">
+                            <el-option v-for="option in items"
+                                       :key="option.id"
+                                       :value="option.id"
+                                       :label="option.full_description" />
+                        </el-select>
+                    </div>
                 </div>
-                <div class="row mt-1 mb-4">
+                <div class="col-md-3">
+                    <div class="form-group">
+                        <label class="control-label">Fecha Inicio</label>
+                        <el-date-picker v-model="form.date_start" type="date"
+                                        @change="changeDisabledDates"
+                                        value-format="yyyy-MM-dd" format="dd/MM/yyyy" :clearable="true"></el-date-picker>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="form-group">
+                        <label class="control-label">Fecha Término</label>
+                        <el-date-picker v-model="form.date_end" type="date"
+                                        :picker-options="pickerOptionsDates"
+                                        value-format="yyyy-MM-dd" format="dd/MM/yyyy" :clearable="true"></el-date-picker>
+                    </div>
                 </div>
             </div>
-            <div class="col-md-12">
-                <div class="table-responsive">
-                    <table class="table">
-                        <thead>
-                        <slot name="heading" :sortBy="sortBy" :getSortIcon="getSortIcon" :getSortClass="getSortClass"></slot>
-                        </thead>
-                        <tbody>
-                            <slot v-for="(row, index) in records" :row="row" :index="customIndex(index)"></slot>
-                        </tbody>
-                    </table>
-                    <div>
-                        <el-pagination
-                                @current-change="getRecords"
-                                layout="total, prev, pager, next"
-                                :total="pagination.total"
-                                :current-page.sync="pagination.current_page"
-                                :page-size="pagination.per_page">
-                        </el-pagination>
+        </div>
+
+        <!-- Sección 2: Acciones -->
+        <div class="form-section">
+            <div class="section-header">
+                <i class="fas fa-tasks"></i>
+                <span>Acciones y Reportes</span>
+            </div>
+            <div class="row">
+                <div class="col-md-12">
+                    <el-button class="submit" type="primary" @click.prevent="getRecordsByFilter" :loading="loading_submit" icon="el-icon-search">Buscar</el-button>
+                    <template v-if="records.length>0">
+                        <el-button class="submit" type="danger" icon="el-icon-tickets" @click.prevent="clickDownload('pdf')">Exportar PDF</el-button>
+                        <el-button class="submit" type="success" @click.prevent="clickDownload('excel')"><i class="fa fa-file-excel"></i> Exportar Excel</el-button>
+                    </template>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sección 3: Resultados -->
+        <div class="form-section">
+            <div class="section-header">
+                <i class="fas fa-table"></i>
+                <span>Resultados del Kardex</span>
+            </div>
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                            <slot name="heading" :sortBy="sortBy" :getSortIcon="getSortIcon" :getSortClass="getSortClass"></slot>
+                            </thead>
+                            <tbody>
+                                <slot v-for="(row, index) in records" :row="row" :index="customIndex(index)"></slot>
+                            </tbody>
+                        </table>
+                        <div>
+                            <el-pagination
+                                    @current-change="getRecords"
+                                    layout="total, prev, pager, next"
+                                    :total="pagination.total"
+                                    :current-page.sync="pagination.current_page"
+                                    :page-size="pagination.per_page">
+                            </el-pagination>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -71,7 +95,61 @@
     </div>
 </template>
 
-<style>
+<style scoped>
+/* Diseño profesional para Kardex */
+.kardex-form {
+    background: #f8f9fa;
+}
+
+.form-section {
+    background: white;
+    padding: 20px;
+    margin-bottom: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    border-left: 4px solid #409EFF;
+}
+
+.section-header {
+    font-size: 18px;
+    font-weight: 600;
+    color: #2c3e50;
+    margin: 0 0 20px 0;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #e9ecef;
+    display: flex;
+    align-items: center;
+}
+
+.section-header i {
+    color: #409EFF;
+    margin-right: 10px;
+    font-size: 20px;
+}
+
+.form-section:nth-child(1) { border-left-color: #409EFF; }
+.form-section:nth-child(2) { border-left-color: #67C23A; }
+.form-section:nth-child(3) { border-left-color: #E6A23C; }
+
+.form-section:nth-child(2) .section-header i {
+    color: #67C23A;
+}
+
+.form-section:nth-child(3) .section-header i {
+    color: #E6A23C;
+}
+
+.form-group {
+    margin-bottom: 15px;
+}
+
+.control-label {
+    display: block;
+    font-weight: 500;
+    color: #606266;
+    margin-bottom: 8px;
+}
+
 .font-custom{
     font-size:15px !important
 }

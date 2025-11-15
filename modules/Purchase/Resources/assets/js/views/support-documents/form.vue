@@ -1,105 +1,126 @@
 <template>
-    <div class="card mb-0 pt-2 pt-md-0">
+    <div class="card mb-0 pt-2 pt-md-0 invoice-form">
+        <div class="card-header bg-info">
+            <h4 class="mb-0 text-white"><i class="fas fa-file-invoice"></i> Documento Soporte de Compra</h4>
+        </div>
         <div class="card-body" v-if="loading_form">
             <div class="invoice">
                 <form autocomplete="off" @submit.prevent="submit">
                     <div class="form-body">
-                        <div class="row">
-                        </div>
-                        <div class="row mt-4">
 
-                            <div class="col-lg-6 pb-2">
-                                <div class="form-group" :class="{'has-danger': errors.supplier_id}">
-                                    <label class="control-label">
-                                        Proveedor
-                                        <a href="#" @click.prevent="showDialogNewPerson = true">[+ Nuevo]</a>
-                                    </label>
-                                    <el-select v-model="form.supplier_id" filterable remote class="border-left rounded-left border-info" popper-class="el-select-customers"
-                                        placeholder="Escriba el nombre o número de documento del proveedor"
-                                        :remote-method="searchRemoteSuppliers"
-                                        :loading="loading_search"
-                                        @change="changeSupplier">
+                        <!-- Proveedor y Documento -->
+                        <div class="form-section">
+                            <h5 class="section-header"><i class="fas fa-user-tie"></i> Proveedor y Documento</h5>
+                            <div class="row">
+                                <div class="col-lg-6 pb-2">
+                                    <div class="form-group" :class="{'has-danger': errors.supplier_id}">
+                                        <label class="control-label">
+                                            Proveedor
+                                            <el-tooltip class="item" effect="dark" content="Crear nuevo proveedor" placement="top">
+                                                <a href="#" @click.prevent="showDialogNewPerson = true" class="cliente-link">
+                                                    <i class="fas fa-user-plus"></i> [+ Nuevo]
+                                                </a>
+                                            </el-tooltip>
+                                        </label>
+                                        <el-select v-model="form.supplier_id" filterable remote class="border-left rounded-left border-info" popper-class="el-select-customers"
+                                            placeholder="Escriba el nombre o número de documento del proveedor"
+                                            :remote-method="searchRemoteSuppliers"
+                                            :loading="loading_search"
+                                            @change="changeSupplier">
 
-                                        <el-option v-for="option in suppliers" :key="option.id" :value="option.id" :label="option.description"></el-option>
+                                            <el-option v-for="option in suppliers" :key="option.id" :value="option.id" :label="option.description"></el-option>
 
-                                    </el-select>
-                                    <small class="form-control-feedback" v-if="errors.supplier_id" v-text="errors.supplier_id[0]"></small>
+                                        </el-select>
+                                        <small class="form-control-feedback" v-if="errors.supplier_id" v-text="errors.supplier_id[0]"></small>
+                                    </div>
                                 </div>
-                            </div>
 
-
-                            <div class="col-lg-3 pb-2">
-                                <div class="form-group" :class="{'has-danger': errors.type_document_id}">
-                                    <label class="control-label">Resolución</label>
-                                    <el-select @change="changeResolution" v-model="form.type_document_id"  popper-class="el-select-document_type" class="border-left rounded-left border-info">
-                                        <el-option v-for="option in resolutions" :key="option.id" :value="option.id" :label="`${option.prefix} / ${option.resolution_number}`"></el-option>
-                                    </el-select>
-                                    <small class="form-control-feedback" v-if="errors.type_document_id" v-text="errors.type_document_id[0]"></small>
+                                <div class="col-lg-3 pb-2">
+                                    <div class="form-group" :class="{'has-danger': errors.type_document_id}">
+                                        <label class="control-label">Resolución</label>
+                                        <el-select @change="changeResolution" v-model="form.type_document_id"  popper-class="el-select-document_type" class="border-left rounded-left border-info">
+                                            <el-option v-for="option in resolutions" :key="option.id" :value="option.id" :label="`${option.prefix} / ${option.resolution_number}`"></el-option>
+                                        </el-select>
+                                        <small class="form-control-feedback" v-if="errors.type_document_id" v-text="errors.type_document_id[0]"></small>
+                                    </div>
                                 </div>
-                            </div>
 
-                            <div class="col-lg-3">
-                                <div class="form-group" :class="{'has-danger': errors.date_of_issue}">
-                                    <label class="control-label">Fec. Emisión</label>
-                                    <el-date-picker v-model="form.date_of_issue" type="date" value-format="yyyy-MM-dd" :clearable="false" @change="changeDateOfIssue" :picker-options="datEmision"></el-date-picker>
-                                    <small class="form-control-feedback" v-if="errors.date_of_issue" v-text="errors.date_of_issue[0]"></small>
-                                </div>
-                            </div>
-
-                            <div class="col-lg-2">
-                                <div class="form-group" :class="{'has-danger': errors.currency_id}">
-                                    <label class="control-label">Moneda</label>
-                                    <el-select v-model="form.currency_id" @change="changeCurrencyType" filterable>
-                                        <el-option v-for="option in currencies" :key="option.id" :value="option.id" :label="option.name"></el-option>
-                                    </el-select>
-                                    <small class="form-control-feedback" v-if="errors.currency_id" v-text="errors.currency_id[0]"></small>
-                                </div>
-                            </div>
-
-                            <div class="col-lg-2">
-                                <div class="form-group" :class="{'has-danger': errors.payment_form_id}">
-                                    <label class="control-label">Forma de pago</label>
-                                    <el-select v-model="form.payment_form_id" filterable>
-                                        <el-option v-for="option in payment_forms" :key="option.id" :value="option.id" :label="option.name"></el-option>
-                                    </el-select>
-                                    <small class="form-control-feedback" v-if="errors.payment_form_id" v-text="errors.payment_form_id[0]"></small>
-                                </div>
-                            </div>
-
-                            <div class="col-lg-2" v-show="form.payment_form_id == 2">
-                                <div class="form-group" :class="{'has-danger': errors.time_days_credit}">
-                                    <label class="control-label">Plazo Credito</label>
-                                    <el-input v-model="form.time_days_credit"></el-input>
-                                    <small class="form-control-feedback" v-if="errors.time_days_credit" v-text="errors.time_days_credit[0]"></small>
-                                </div>
-                            </div>
-
-                            <div class="col-lg-2">
-                                <div class="form-group" :class="{'has-danger': errors.payment_method_id}">
-                                    <label class="control-label">Medio de pago</label>
-                                    <el-select v-model="form.payment_method_id" filterable>
-                                        <el-option v-for="option in payment_methods" :key="option.id" :value="option.id" :label="option.name"></el-option>
-                                    </el-select>
-                                    <small class="form-control-feedback" v-if="errors.payment_method_id" v-text="errors.payment_method_id[0]"></small>
+                                <div class="col-lg-3">
+                                    <div class="form-group" :class="{'has-danger': errors.date_of_issue}">
+                                        <label class="control-label">Fec. Emisión</label>
+                                        <el-date-picker v-model="form.date_of_issue" type="date" value-format="yyyy-MM-dd" :clearable="false" @change="changeDateOfIssue" :picker-options="datEmision"></el-date-picker>
+                                        <small class="form-control-feedback" v-if="errors.date_of_issue" v-text="errors.date_of_issue[0]"></small>
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="row mt-2">
-                            <div class="col-md-12">
-                                <div class="form-group">
-                                    <label class="control-label">Observaciones</label>
-                                    <el-input
-                                            type="textarea"
-                                            autosize
-                                            :rows="1"
-                                            v-model="form.observation">
-                                    </el-input>
+                        <!-- Configuración de Pago -->
+                        <div class="form-section">
+                            <h5 class="section-header"><i class="fas fa-credit-card"></i> Configuración de Pago</h5>
+                            <div class="row">
+                                <div class="col-lg-2">
+                                    <div class="form-group" :class="{'has-danger': errors.currency_id}">
+                                        <label class="control-label">Moneda</label>
+                                        <el-select v-model="form.currency_id" @change="changeCurrencyType" filterable>
+                                            <el-option v-for="option in currencies" :key="option.id" :value="option.id" :label="option.name"></el-option>
+                                        </el-select>
+                                        <small class="form-control-feedback" v-if="errors.currency_id" v-text="errors.currency_id[0]"></small>
+                                    </div>
+                                </div>
+
+                                <div class="col-lg-2">
+                                    <div class="form-group" :class="{'has-danger': errors.payment_form_id}">
+                                        <label class="control-label">Forma de pago</label>
+                                        <el-select v-model="form.payment_form_id" filterable>
+                                            <el-option v-for="option in payment_forms" :key="option.id" :value="option.id" :label="option.name"></el-option>
+                                        </el-select>
+                                        <small class="form-control-feedback" v-if="errors.payment_form_id" v-text="errors.payment_form_id[0]"></small>
+                                    </div>
+                                </div>
+
+                                <div class="col-lg-2" v-show="form.payment_form_id == 2">
+                                    <div class="form-group" :class="{'has-danger': errors.time_days_credit}">
+                                        <label class="control-label">Plazo Credito</label>
+                                        <el-input v-model="form.time_days_credit"></el-input>
+                                        <small class="form-control-feedback" v-if="errors.time_days_credit" v-text="errors.time_days_credit[0]"></small>
+                                    </div>
+                                </div>
+
+                                <div class="col-lg-2">
+                                    <div class="form-group" :class="{'has-danger': errors.payment_method_id}">
+                                        <label class="control-label">Medio de pago</label>
+                                        <el-select v-model="form.payment_method_id" filterable>
+                                            <el-option v-for="option in payment_methods" :key="option.id" :value="option.id" :label="option.name"></el-option>
+                                        </el-select>
+                                        <small class="form-control-feedback" v-if="errors.payment_method_id" v-text="errors.payment_method_id[0]"></small>
+                                    </div>
                                 </div>
                             </div>
                         </div>
 
-                        <div class="row mt-4">
+                        <!-- Observaciones -->
+                        <div class="form-section">
+                            <h5 class="section-header"><i class="fas fa-comment"></i> Observaciones</h5>
+                            <div class="row">
+                                <div class="col-md-12">
+                                    <div class="form-group">
+                                        <label class="control-label">Observaciones</label>
+                                        <el-input
+                                                type="textarea"
+                                                autosize
+                                                :rows="1"
+                                                v-model="form.observation">
+                                        </el-input>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Productos y Servicios -->
+                        <div class="form-section">
+                            <h5 class="section-header"><i class="fas fa-list-ul"></i> Productos y Servicios</h5>
+                            <div class="row">
                             <div class="col-md-12">
                                 <div class="table-responsive">
                                     <table class="table">
@@ -144,8 +165,12 @@
                             </div>
                             <div class="col-lg-12 col-md-6 d-flex align-items-end">
                                 <div class="form-group">
-                                    <button type="button" class="btn waves-effect waves-light btn-primary" @click.prevent="clickAddItemInvoice">+ Agregar Producto</button>
-                                    <button type="button" class="ml-3 btn waves-effect waves-light btn-primary" @click.prevent="clickAddRetention">+ Agregar Retención</button>
+                                    <button type="button" class="btn waves-effect waves-light btn-primary" @click.prevent="clickAddItemInvoice">
+                                        <i class="fas fa-plus-circle"></i> Agregar Producto
+                                    </button>
+                                    <button type="button" class="ml-3 btn waves-effect waves-light btn-primary" @click.prevent="clickAddRetention">
+                                        <i class="fas fa-hand-holding-usd"></i> Agregar Retención
+                                    </button>
                                 </div>
                             </div>
 
@@ -197,7 +222,7 @@
                                     <h3 class="text-right"><b>TOTAL: </b>{{ratePrefix()}} {{ form.total }}</h3>
                                 </template>
                             </div>
-
+                            </div>
                         </div>
 
                     </div>
@@ -205,7 +230,9 @@
 
                     <div class="form-actions text-right mt-4">
                         <el-button @click.prevent="close()">Cancelar</el-button>
-                        <el-button class="submit" type="primary" native-type="submit" :loading="loading_submit" v-if="form.items.length > 0">Generar</el-button>
+                        <el-button class="submit" type="primary" native-type="submit" :loading="loading_submit" v-if="form.items.length > 0">
+                            <i class="fas fa-save"></i> Generar
+                        </el-button>
                     </div>
                 </form>
             </div>
@@ -628,7 +655,7 @@
     }
 </script>
 
-<style>
+<style scoped>
 
 .c-m-top{
     margin-top: 4.5px !important;
@@ -646,5 +673,48 @@
     height: 65px !important;
     min-height: 65px !important;
 }
+
+/* Diseño simple y limpio */
+.invoice-form {
+    background: #f8f9fa;
+}
+
+.form-section {
+    background: white;
+    padding: 20px;
+    margin-bottom: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    border-left: 4px solid #409EFF;
+}
+
+.section-header {
+    font-size: 18px;
+    font-weight: 600;
+    color: #2c3e50;
+    margin: 0 0 20px 0;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #e9ecef;
+}
+
+.section-header i {
+    color: #409EFF;
+    margin-right: 10px;
+}
+
+.form-section:nth-child(2) { border-left-color: #67C23A; }
+.form-section:nth-child(3) { border-left-color: #E6A23C; }
+.form-section:nth-child(4) { border-left-color: #F56C6C; }
+
+.cliente-link {
+    color: #409EFF;
+    font-weight: bold;
+    font-size: 12px;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.cliente-link:hover { color: #66b1ff; }
+.cliente-link i { margin-right: 5px; }
 
 </style>

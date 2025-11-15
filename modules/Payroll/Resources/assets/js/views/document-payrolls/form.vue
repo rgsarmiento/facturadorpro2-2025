@@ -1,79 +1,88 @@
 <template>
-    <div class="card mb-0 pt-2 pt-md-0" v-loading="loading">
-
+    <div class="card mb-0 pt-2 pt-md-0 payroll-form" v-loading="loading">
+        <div class="card-header bg-info">
+            <h4 class="mb-0 text-white"><i class="fas fa-file-invoice-dollar"></i> Crear Documento de Nómina</h4>
+        </div>
         <div class="card-body" v-if="loading_form">
             <div class="invoice">
                 <form autocomplete="off" @submit.prevent="submit">
                     <div class="form-body">
-                        <div class="row">
-                        </div>
+                        <!-- Título para Nómina de reemplazo -->
                         <div class="row" v-if="isAdjustNote">
                             <div class="col-md-12">
                                 <h4><b>Nómina de reemplazo ({{ form.number_full }})</b></h4>
                             </div>
                         </div>
-                        <div class="row mt-4">
-                            <div class="col-md-6 pb-2">
-                                <div class="form-group" :class="{'has-danger': errors.worker_id}">
-                                    <label class="control-label">
-                                        Empleados<span class="text-danger"> *</span>
-                                        <el-tooltip class="item" effect="dark" content="Escribir al menos 3 caracteres para buscar" placement="top-start">
-                                            <i class="fa fa-info-circle"></i>
-                                        </el-tooltip>
 
-                                        <template v-if="!isAdjustNote">
-                                            <a href="#" @click.prevent="showDialogNewWorker = true">[+ Nuevo]</a>
-                                        </template>
-                                    </label>
-                                    <el-select
-                                        v-model="form.worker_id"
-                                        filterable
-                                        remote
-                                        class="border-left rounded-left border-info"
-                                        popper-class="el-select-workers"
-                                        placeholder="Escriba el nombre o número de documento del empleado"
-                                        :remote-method="searchRemoteWorkers"
-                                        :loading="loading_search"
-                                        :disabled="isAdjustNote"
-                                        @change="changeWorker"
-                                        multiple
-                                        collapse-tags>
-                                        <el-option v-for="option in workers" :key="option.id" :value="option.id" :label="option.search_fullname"></el-option>
-                                    </el-select>
-                                    <small class="form-control-feedback" v-if="errors.worker_id" v-text="errors.worker_id[0]"></small>
+                        <!-- Sección 1: Información General -->
+                        <div class="form-section">
+                            <h5 class="section-header"><i class="fas fa-user-tie"></i> Información General del Empleado</h5>
+                            <div class="row">
+                                <div class="col-md-6 pb-2">
+                                    <div class="form-group" :class="{'has-danger': errors.worker_id}">
+                                        <label class="control-label">
+                                            Empleados<span class="text-danger"> *</span>
+                                            <el-tooltip class="item" effect="dark" content="Escribir al menos 3 caracteres para buscar" placement="top-start">
+                                                <i class="fa fa-info-circle"></i>
+                                            </el-tooltip>
+
+                                            <template v-if="!isAdjustNote">
+                                                <a href="#" @click.prevent="showDialogNewWorker = true">[+ Nuevo]</a>
+                                            </template>
+                                        </label>
+                                        <el-select
+                                            v-model="form.worker_id"
+                                            filterable
+                                            remote
+                                            class="border-left rounded-left border-info"
+                                            popper-class="el-select-workers"
+                                            placeholder="Escriba el nombre o número de documento del empleado"
+                                            :remote-method="searchRemoteWorkers"
+                                            :loading="loading_search"
+                                            :disabled="isAdjustNote"
+                                            @change="changeWorker"
+                                            multiple
+                                            collapse-tags>
+                                            <el-option v-for="option in workers" :key="option.id" :value="option.id" :label="option.search_fullname"></el-option>
+                                        </el-select>
+                                        <small class="form-control-feedback" v-if="errors.worker_id" v-text="errors.worker_id[0]"></small>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-3 pb-2">
+                                    <div class="form-group" :class="{'has-danger': errors.type_document_id}">
+                                        <label class="control-label">Resolución
+                                            <span class="text-danger"> *</span>
+                                        </label>
+                                        <el-select @change="changeResolution" v-model="form.type_document_id" class="border-left rounded-left border-info" :disabled="false">
+                                            <el-option v-for="option in resolutions" :key="option.id" :value="option.id" :label="`${option.prefix}`"></el-option>
+                                        </el-select>
+                                        <small class="form-control-feedback" v-if="errors.type_document_id" v-text="errors.type_document_id[0]"></small>
+                                    </div>
+                                </div>
+
+                                <div class="col-md-3">
+                                    <div class="form-group" :class="{'has-danger': errors.payroll_period_id}">
+                                        <label class="control-label">Periodo de nómina<span class="text-danger"> *</span>
+                                            <el-tooltip class="item" effect="dark" content="Frecuencia de pago" placement="top-start">
+                                                <i class="fa fa-info-circle"></i>
+                                            </el-tooltip>
+                                        </label>
+                                        <el-select v-model="form.payroll_period_id"   filterable class="border-left rounded-left border-info" :disabled="form_disabled.payroll_period_id">
+                                            <el-option v-for="option in payroll_periods" :key="option.id" :value="option.id" :label="option.name"></el-option>
+                                        </el-select>
+                                        <small class="form-control-feedback" v-if="errors.payroll_period_id" v-text="errors.payroll_period_id[0]"></small>
+                                    </div>
                                 </div>
                             </div>
-
-                            <div class="col-md-3 pb-2">
-                                <div class="form-group" :class="{'has-danger': errors.type_document_id}">
-                                    <label class="control-label">Resolución
-                                        <span class="text-danger"> *</span>
-                                    </label>
-                                    <el-select @change="changeResolution" v-model="form.type_document_id" class="border-left rounded-left border-info" :disabled="false">
-                                        <el-option v-for="option in resolutions" :key="option.id" :value="option.id" :label="`${option.prefix}`"></el-option>
-                                    </el-select>
-                                    <small class="form-control-feedback" v-if="errors.type_document_id" v-text="errors.type_document_id[0]"></small>
-                                </div>
-                            </div>
-
-                            <div class="col-md-3">
-                                <div class="form-group" :class="{'has-danger': errors.payroll_period_id}">
-                                    <label class="control-label">Periodo de nómina<span class="text-danger"> *</span>
-                                        <el-tooltip class="item" effect="dark" content="Frecuencia de pago" placement="top-start">
-                                            <i class="fa fa-info-circle"></i>
-                                        </el-tooltip>
-                                    </label>
-                                    <el-select v-model="form.payroll_period_id"   filterable class="border-left rounded-left border-info" :disabled="form_disabled.payroll_period_id">
-                                        <el-option v-for="option in payroll_periods" :key="option.id" :value="option.id" :label="option.name"></el-option>
-                                    </el-select>
-                                    <small class="form-control-feedback" v-if="errors.payroll_period_id" v-text="errors.payroll_period_id[0]"></small>
-                                </div>
-                            </div>
-
                         </div>
 
+                        <!-- Sección 2: Detalles de la Nómina -->
 
-                        <el-tabs v-model="activeName">
+                        <!-- Sección 2: Detalles de la Nómina -->
+                        <div class="form-section">
+                            <h5 class="section-header"><i class="fas fa-file-alt"></i> Detalles de la Nómina</h5>
+                            <el-tabs v-model="activeName">
                             <el-tab-pane label="Periodo" name="period">
 
                                 <div class="row">
@@ -1500,6 +1509,8 @@
 
                             </el-tab-pane>
                         </el-tabs>
+                        </div>
+                        <!-- Fin Sección 2 -->
 
                     </div>
 
@@ -2565,3 +2576,66 @@
         }
     }
 </script>
+
+<style scoped>
+/* Contenedor principal */
+.payroll-form {
+    background: #f8f9fa;
+}
+
+/* Secciones del formulario */
+.form-section {
+    background: white;
+    padding: 25px;
+    margin-bottom: 25px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    border-left: 4px solid #409EFF;
+}
+
+/* Encabezados de sección */
+.section-header {
+    font-size: 18px;
+    font-weight: 600;
+    color: #2c3e50;
+    margin: 0 0 20px 0;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #e9ecef;
+    display: flex;
+    align-items: center;
+}
+
+.section-header i {
+    margin-right: 10px;
+    font-size: 20px;
+    color: #409EFF;
+}
+
+/* Colores por sección */
+.form-section:nth-child(1) {
+    border-left-color: #409EFF; /* Azul - Información General */
+}
+
+.form-section:nth-child(1) .section-header i {
+    color: #409EFF;
+}
+
+.form-section:nth-child(2) {
+    border-left-color: #67C23A; /* Verde - Detalles de la Nómina */
+}
+
+.form-section:nth-child(2) .section-header i {
+    color: #67C23A;
+}
+
+/* Mejorar apariencia de tabs */
+.el-tabs {
+    margin-top: 10px;
+}
+
+/* Botones de acción */
+.form-actions {
+    padding-top: 20px;
+    border-top: 2px solid #e9ecef;
+}
+</style>

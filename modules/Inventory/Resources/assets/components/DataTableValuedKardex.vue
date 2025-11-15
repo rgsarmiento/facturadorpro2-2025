@@ -1,108 +1,169 @@
 <template>
-    <div>
-        <div class="row">
-
-            <div class="col-md-12 col-lg-12 col-xl-12 ">
-
-                <div class="row mt-2">
-
-                        <div class="col-md-3">
-                            <label class="control-label">Periodo</label>
-                            <el-select v-model="form.period" @change="changePeriod">
-                                <el-option key="month" value="month" label="Por mes"></el-option>
-                                <el-option key="between_months" value="between_months" label="Entre meses"></el-option>
-                                <el-option key="date" value="date" label="Por fecha"></el-option>
-                                <el-option key="between_dates" value="between_dates" label="Entre fechas"></el-option>
-                            </el-select>
-                        </div>
-                        <template v-if="form.period === 'month' || form.period === 'between_months'">
-                            <div class="col-md-3">
-                                <label class="control-label">Mes de</label>
-                                <el-date-picker v-model="form.month_start" type="month"
-                                                @change="changeDisabledMonths"
-                                                value-format="yyyy-MM" format="MM/yyyy" :clearable="false"></el-date-picker>
-                            </div>
-                        </template>
-                        <template v-if="form.period === 'between_months'">
-                            <div class="col-md-3">
-                                <label class="control-label">Mes al</label>
-                                <el-date-picker v-model="form.month_end" type="month"
-                                                :picker-options="pickerOptionsMonths"
-                                                value-format="yyyy-MM" format="MM/yyyy" :clearable="false"></el-date-picker>
-                            </div>
-                        </template>
-                        <template v-if="form.period === 'date' || form.period === 'between_dates'">
-                            <div class="col-md-3">
-                                <label class="control-label">Fecha del</label>
-                                <el-date-picker v-model="form.date_start" type="date"
-                                                @change="changeDisabledDates"
-                                                value-format="yyyy-MM-dd" format="dd/MM/yyyy" :clearable="false"></el-date-picker>
-                            </div>
-                        </template>
-                        <template v-if="form.period === 'between_dates'">
-                            <div class="col-md-3">
-                                <label class="control-label">Fecha al</label>
-                                <el-date-picker v-model="form.date_end" type="date"
-                                                :picker-options="pickerOptionsDates"
-                                                value-format="yyyy-MM-dd" format="dd/MM/yyyy" :clearable="false"></el-date-picker>
-                            </div>
-                        </template>
-
-                        <div class="col-md-3">
-                            <div class="form-group">
-                                <label class="control-label">Establecimiento</label>
-                                <el-select v-model="form.establishment_id" clearable filterable>
-                                    <el-option v-for="option in establishments" :key="option.id" :value="option.id" :label="option.name"></el-option>
-                                </el-select>
-                            </div>
-                        </div>
-
-                        <div class="col-lg-7 col-md-7 col-md-7 col-sm-12" style="margin-top:29px">
-                            <el-button class="submit" type="primary" @click.prevent="getRecordsByFilter" :loading="loading_submit" icon="el-icon-search" >Buscar</el-button>
-
-                            <template v-if="records.length>0">
-
-                                <el-button class="submit" type="success" @click.prevent="clickDownload('excel')"><i class="fa fa-file-excel" ></i>  Exportal Excel</el-button>
-
-                            </template>
-
-                        </div>
-
+    <div class="valued-kardex-report">
+        <!-- Sección 1: Filtros de Búsqueda -->
+        <div class="form-section">
+            <h5 class="section-header"><i class="fas fa-filter"></i> Filtros de Búsqueda</h5>
+            <div class="row">
+                <div class="col-md-3">
+                    <label class="control-label">Periodo</label>
+                    <el-select v-model="form.period" @change="changePeriod">
+                        <el-option key="month" value="month" label="Por mes"></el-option>
+                        <el-option key="between_months" value="between_months" label="Entre meses"></el-option>
+                        <el-option key="date" value="date" label="Por fecha"></el-option>
+                        <el-option key="between_dates" value="between_dates" label="Entre fechas"></el-option>
+                    </el-select>
                 </div>
-                <div class="row mt-1 mb-4">
-
-                </div>
-            </div>
-
-
-            <div class="col-md-12">
-                <div class="table-responsive">
-                    <table class="table">
-                        <thead>
-                        <slot name="heading" :sortBy="sortBy" :getSortIcon="getSortIcon" :getSortClass="getSortClass"></slot>
-                        </thead>
-                        <tbody>
-                            <slot v-for="(row, index) in records" :row="row" :index="customIndex(index)"></slot>
-                        </tbody>
-                    </table>
-                    <div>
-                        <el-pagination
-                                @current-change="getRecords"
-                                layout="total, prev, pager, next"
-                                :total="pagination.total"
-                                :current-page.sync="pagination.current_page"
-                                :page-size="pagination.per_page">
-                        </el-pagination>
+                <template v-if="form.period === 'month' || form.period === 'between_months'">
+                    <div class="col-md-3">
+                        <label class="control-label">Mes de</label>
+                        <el-date-picker v-model="form.month_start" type="month"
+                                        @change="changeDisabledMonths"
+                                        value-format="yyyy-MM" format="MM/yyyy" :clearable="false"></el-date-picker>
+                    </div>
+                </template>
+                <template v-if="form.period === 'between_months'">
+                    <div class="col-md-3">
+                        <label class="control-label">Mes al</label>
+                        <el-date-picker v-model="form.month_end" type="month"
+                                        :picker-options="pickerOptionsMonths"
+                                        value-format="yyyy-MM" format="MM/yyyy" :clearable="false"></el-date-picker>
+                    </div>
+                </template>
+                <template v-if="form.period === 'date' || form.period === 'between_dates'">
+                    <div class="col-md-3">
+                        <label class="control-label">Fecha del</label>
+                        <el-date-picker v-model="form.date_start" type="date"
+                                        @change="changeDisabledDates"
+                                        value-format="yyyy-MM-dd" format="dd/MM/yyyy" :clearable="false"></el-date-picker>
+                    </div>
+                </template>
+                <template v-if="form.period === 'between_dates'">
+                    <div class="col-md-3">
+                        <label class="control-label">Fecha al</label>
+                        <el-date-picker v-model="form.date_end" type="date"
+                                        :picker-options="pickerOptionsDates"
+                                        value-format="yyyy-MM-dd" format="dd/MM/yyyy" :clearable="false"></el-date-picker>
+                    </div>
+                </template>
+                <div class="col-md-3">
+                    <div class="form-group">
+                        <label class="control-label">Establecimiento</label>
+                        <el-select v-model="form.establishment_id" clearable filterable>
+                            <el-option v-for="option in establishments" :key="option.id" :value="option.id" :label="option.name"></el-option>
+                        </el-select>
                     </div>
                 </div>
             </div>
         </div>
 
+        <!-- Sección 2: Acciones y Reportes -->
+        <div class="form-section">
+            <h5 class="section-header"><i class="fas fa-file-export"></i> Acciones y Reportes</h5>
+            <div class="row">
+                <div class="col-md-12">
+                    <el-button class="submit" type="primary" @click.prevent="getRecordsByFilter" :loading="loading_submit" icon="el-icon-search">
+                        <i class="fas fa-search"></i> Buscar
+                    </el-button>
+                    <template v-if="records.length>0">
+                        <el-button class="submit" type="success" @click.prevent="clickDownload('excel')">
+                            <i class="fas fa-file-excel"></i> Exportar Excel
+                        </el-button>
+                    </template>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sección 3: Resultados del Kardex Valorizado -->
+        <div class="form-section">
+            <h5 class="section-header"><i class="fas fa-table"></i> Resultados del Kardex Valorizado</h5>
+            <div class="row">
+                <div class="col-md-12">
+                    <div class="table-responsive">
+                        <table class="table">
+                            <thead>
+                            <slot name="heading" :sortBy="sortBy" :getSortIcon="getSortIcon" :getSortClass="getSortClass"></slot>
+                            </thead>
+                            <tbody>
+                                <slot v-for="(row, index) in records" :row="row" :index="customIndex(index)"></slot>
+                            </tbody>
+                        </table>
+                        <div>
+                            <el-pagination
+                                    @current-change="getRecords"
+                                    layout="total, prev, pager, next"
+                                    :total="pagination.total"
+                                    :current-page.sync="pagination.current_page"
+                                    :page-size="pagination.per_page">
+                            </el-pagination>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
     </div>
 </template>
-<style>
-.font-custom{
-    font-size:15px !important
+<style scoped>
+/* Contenedor principal */
+.valued-kardex-report {
+    background: #f8f9fa;
+}
+
+/* Secciones del formulario */
+.form-section {
+    background: white;
+    padding: 25px;
+    margin-bottom: 25px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    border-left: 4px solid #409EFF;
+}
+
+/* Encabezados de sección */
+.section-header {
+    font-size: 18px;
+    font-weight: 600;
+    color: #2c3e50;
+    margin: 0 0 20px 0;
+    padding-bottom: 12px;
+    border-bottom: 2px solid #e9ecef;
+    display: flex;
+    align-items: center;
+}
+
+.section-header i {
+    margin-right: 10px;
+    font-size: 20px;
+    color: #409EFF;
+}
+
+/* Colores por sección */
+.form-section:nth-child(1) {
+    border-left-color: #409EFF; /* Azul - Filtros */
+}
+
+.form-section:nth-child(1) .section-header i {
+    color: #409EFF;
+}
+
+.form-section:nth-child(2) {
+    border-left-color: #67C23A; /* Verde - Acciones y Reportes */
+}
+
+.form-section:nth-child(2) .section-header i {
+    color: #67C23A;
+}
+
+.form-section:nth-child(3) {
+    border-left-color: #E6A23C; /* Naranja - Resultados */
+}
+
+.form-section:nth-child(3) .section-header i {
+    color: #E6A23C;
+}
+
+/* Estilos de tabla */
+.font-custom {
+    font-size: 15px !important;
 }
 
 th.sorting {
@@ -116,6 +177,24 @@ th.sorting:hover {
 th.sorting-active {
     background-color: #e8f4f8;
     font-weight: bold;
+}
+
+.table-responsive {
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.table thead th {
+    background-color: #f8f9fa;
+    border-bottom: 2px solid #dee2e6;
+    font-weight: 600;
+    color: #495057;
+    padding: 12px;
+}
+
+.table tbody td {
+    padding: 12px;
+    vertical-align: middle;
 }
 </style>
 <script>
