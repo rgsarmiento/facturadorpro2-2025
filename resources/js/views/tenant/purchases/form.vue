@@ -1,7 +1,7 @@
 <template>
-    <div class="card mb-0 pt-2 pt-md-0">
+    <div class="card mb-0 pt-2 pt-md-0 invoice-form">
         <div class="card-header bg-info d-flex justify-content-between align-items-center">
-            <h3 class="my-0">Nueva Compra</h3>
+            <h4 class="mb-0 text-white"><i class="fas fa-shopping-bag"></i> Nueva Compra</h4>
             <el-button type="primary" size="medium" @click="showDialogXMLDian = true" class="bg-white text-info border-white">
                 <i class="fas fa-file-import mr-2"></i>
                 Causar Compra Desde XML DIAN
@@ -11,7 +11,10 @@
             <form autocomplete="off" @submit.prevent="submit">
                 <div class="form-body">
 
-                    <div class="row">
+                    <!-- Sección 1: Datos del Comprobante -->
+                    <div class="form-section">
+                        <h5 class="section-header"><i class="fa fa-file-invoice"></i> Datos del Comprobante</h5>
+                        <div class="row">
                          <div class="col-lg-4">
                             <div class="form-group" :class="{'has-danger': errors.document_type_id}">
                                 <label class="control-label">Tipo comprobante</label>
@@ -55,13 +58,22 @@
                                 <small class="form-control-feedback" v-if="errors.date_of_due" v-text="errors.date_of_due[0]"></small>
                             </div>
                         </div>
+                        </div>
                     </div>
-                    <div class="row">
+
+                    <!-- Sección 2: Proveedor y Configuración -->
+                    <div class="form-section">
+                        <h5 class="section-header"><i class="fa fa-truck"></i> Proveedor y Configuración</h5>
+                        <div class="row">
                         <div class="col-lg-6">
                             <div class="form-group" :class="{'has-danger': errors.supplier_id}">
                                 <label class="control-label">
                                     Proveedor
-                                    <a href="#" @click.prevent="showDialogNewPerson = true">[+ Nuevo]</a>
+                                    <el-tooltip class="item" effect="dark" content="Buscar proveedor existente o crear uno nuevo" placement="top">
+                                        <a href="#" @click.prevent="showDialogNewPerson = true" class="cliente-link">
+                                            <i class="fas fa-search-plus search-icon"></i> [+ Buscar o Crear Proveedor]
+                                        </a>
+                                    </el-tooltip>
                                 </label>
                                 <el-select v-model="form.supplier_id" filterable @change="changeSupplier" ref="select_person" @keyup.native="keyupSupplier" @keyup.enter.native="keyupEnterSupplier">
                                     <el-option v-for="option in suppliers" :key="option.id" :value="option.id" :label="option.description"></el-option>
@@ -116,8 +128,14 @@
 
                             </div>
                         </div>
+                        </div>
+                    </div>
 
-                        <div class="col-md-8 col-lg-8 mt-2" v-if="form.has_payment">
+                    <!-- Sección 3: Pagos -->
+                    <div class="form-section" v-if="form.has_payment">
+                        <h5 class="section-header"><i class="fa fa-credit-card"></i> Información de Pagos</h5>
+                        <div class="row">
+                        <div class="col-md-12 col-lg-12">
 
                             <table>
                                 <thead>
@@ -167,15 +185,25 @@
 
 
                         </div>
-
-                        <div class="col-lg-12 col-md-6 d-flex align-items-end mt-4">
-                            <div class="form-group">
-                                <button type="button" class="btn waves-effect waves-light btn-primary" @click.prevent="clickAddNewItem">+ Agregar Producto</button>
-                                <button type="button" class="btn waves-effect waves-light btn-primary" @click.prevent="dialogRetention = !dialogRetention">+ Agregar Retención</button>
-                            </div>
                         </div>
                     </div>
-                    <div class="row" v-if="form.items.length > 0">
+
+                    <!-- Sección 4: Productos y Servicios -->
+                    <div class="form-section">
+                        <h5 class="section-header"><i class="fa fa-shopping-cart"></i> Productos y Servicios</h5>
+                        <div class="row">
+                        <div class="col-lg-12 col-md-6 d-flex align-items-end">
+                            <div class="form-group">
+                                <button type="button" class="btn waves-effect waves-light btn-primary" @click.prevent="clickAddNewItem">
+                                    <i class="fas fa-shopping-cart"></i> Agregar Producto
+                                </button>
+                                <button type="button" class="ml-3 btn waves-effect waves-light btn-primary" @click.prevent="dialogRetention = !dialogRetention">
+                                    <i class="fas fa-hand-holding-usd"></i> Agregar Retención
+                                </button>
+                            </div>
+                        </div>
+                        </div>
+                        <div class="row" v-if="form.items.length > 0">
                         <div class="col-md-12">
                             <div class="table-responsive">
                                 <table class="table">
@@ -306,6 +334,7 @@
 
 
                             </template>
+                        </div>
                         </div>
                     </div>
                 </div>
@@ -1865,6 +1894,49 @@
 </script>
 
 <style scoped>
+/* Diseño simple y limpio */
+.invoice-form {
+    background: #f8f9fa;
+}
+
+.form-section {
+    background: white;
+    padding: 20px;
+    margin-bottom: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    border-left: 4px solid #409EFF;
+}
+
+.section-header {
+    font-size: 18px;
+    font-weight: 600;
+    color: #2c3e50;
+    margin: 0 0 20px 0;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #e9ecef;
+}
+
+.section-header i {
+    color: #409EFF;
+    margin-right: 10px;
+}
+
+.form-section:nth-child(2) { border-left-color: #67C23A; }
+.form-section:nth-child(3) { border-left-color: #E6A23C; }
+.form-section:nth-child(4) { border-left-color: #F56C6C; }
+
+.cliente-link {
+    color: #409EFF;
+    font-weight: bold;
+    font-size: 12px;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.cliente-link:hover { color: #66b1ff; }
+.search-icon { font-size: 20px; margin-right: 5px; }
+
 /* Estilos para el modal XML DIAN */
 .el-dialog__body .form-group {
     margin-bottom: 20px;

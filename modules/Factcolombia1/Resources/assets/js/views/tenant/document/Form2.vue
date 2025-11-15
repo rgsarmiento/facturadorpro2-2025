@@ -527,6 +527,7 @@ import DocumentOptions from './partials/options.vue'
 import DocumentOrderReference from './partials/order_reference.vue'
 import DocumentHealthData from './partials/health_fields.vue'
 import DocumentHealthUser from './partials/health_users.vue'
+
 export default {
     props: ['typeUser', 'configuration', 'invoice', 'is_health', 'is_edit', 'is_contingency'],
     components: { PersonForm, DocumentFormItem, DocumentFormRetention, DocumentOptions, DocumentOrderReference, DocumentHealthData, DocumentHealthUser },
@@ -539,55 +540,55 @@ export default {
             datEmision: {
                 disabledDate(time) {
                     return time.getTime() > moment();
-                  }
-                },
-                input_person:{},
-                company:{},
-                health_sector: false,
-                is_client: false,
-                recordItem: null,
-                recordItemHealthUser: null,
-                resource: 'co-documents',
-                showDialogAddItem: false,
-                showDialogAddHealthUser: false,
-                showDialogAddRetention: false,
-                showDialogNewPerson: false,
-                showDialogOptions: false,
-                loading_submit: false,
-                loading_preeliminar_view: false,
-                loading_form: false,
-                errors: {format_print: null},
-                form: {},
-                fe_resolution_id: null,
-                type_invoices: [],
-                currencies: [],
-                all_customers: [],
-                payment_methods: [],
-                payment_forms: [],
-                form_payment: {},
-                customers: [],
-                all_series: [],
-                series: [],
-                currency_type: {},
-                documentNewId: null,
-                total_global_discount:0,
-                loading_search:false,
-                taxes:  [],
-                resolutions:[],
-                typeDocuments: [],
-                duplicated_health_fields: {},
-                duplicated_health_users: [],
-                companies: null,
-                is_contingency_4: false,
-                correlative_api: null, // Aquí almacenarás el siguiente número consecutivo
-                currentPrefix: null,
-                localConfiguration: null,
-                global_discount_is_amount: true,
-                lastResolutionId: null, // Para almacenar el último ID de resolución seleccionado
-                expirationAlertShown: false, // Para evitar mostrar la alerta de vencimiento más de una vez
-                remainingInvoicesAlertShown: false // Para evitar mostrar la alerta de facturas restantes más de una vez
-            }
-        },
+                }
+            },
+            input_person:{},
+            company:{},
+            health_sector: false,
+            is_client: false,
+            recordItem: null,
+            recordItemHealthUser: null,
+            resource: 'co-documents',
+            showDialogAddItem: false,
+            showDialogAddHealthUser: false,
+            showDialogAddRetention: false,
+            showDialogNewPerson: false,
+            showDialogOptions: false,
+            loading_submit: false,
+            loading_preeliminar_view: false,
+            loading_form: false,
+            errors: {format_print: null},
+            form: {},
+            fe_resolution_id: null,
+            type_invoices: [],
+            currencies: [],
+            all_customers: [],
+            payment_methods: [],
+            payment_forms: [],
+            form_payment: {},
+            customers: [],
+            all_series: [],
+            series: [],
+            currency_type: {},
+            documentNewId: null,
+            total_global_discount:0,
+            loading_search:false,
+            taxes:  [],
+            resolutions:[],
+            typeDocuments: [],
+            duplicated_health_fields: {},
+            duplicated_health_users: [],
+            companies: null,
+            is_contingency_4: false,
+            correlative_api: null, // Aquí almacenarás el siguiente número consecutivo
+            currentPrefix: null,
+            localConfiguration: null,
+            global_discount_is_amount: true,
+            lastResolutionId: null, // Para almacenar el último ID de resolución seleccionado
+            expirationAlertShown: false, // Para evitar mostrar la alerta de vencimiento más de una vez
+            remainingInvoicesAlertShown: false // Para evitar mostrar la alerta de facturas restantes más de una vez
+        }
+    },
         //filtro de separadores de mil
         filters: {
             numberFormat(value) {
@@ -1852,5 +1853,5 @@ export default {
                     return amount.toString()+".00";
                 },
             }
-    }
+        }
 </script>

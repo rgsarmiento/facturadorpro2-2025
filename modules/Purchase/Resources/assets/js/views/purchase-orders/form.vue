@@ -1,8 +1,8 @@
 <template>
-    <div class="card mb-0 pt-2 pt-md-0">
-        <!-- <div class="card-header bg-info">
-            <h3 class="my-0">Nueva Compra</h3>
-        </div> -->
+    <div class="card mb-0 pt-2 pt-md-0 invoice-form">
+        <div class="card-header bg-info">
+            <h4 class="mb-0 text-white"><i class="fas fa-file-invoice"></i> Orden de Compra</h4>
+        </div>
         <div class="card-body" v-if="loading_form">
             <div class="invoice">
                 <header class="clearfix">
@@ -26,13 +26,20 @@
                 <form autocomplete="off" @submit.prevent="submit">
                     <div class="form-body">
 
-                        <div class="row">
+                        <!-- Sección 1: Proveedor y Fechas -->
+                        <div class="form-section">
+                            <h5 class="section-header"><i class="fa fa-truck"></i> Proveedor y Fechas</h5>
+                            <div class="row">
 
                             <div class="col-lg-6">
                                 <div class="form-group" :class="{'has-danger': errors.supplier_id}">
                                     <label class="control-label">
                                         Proveedor
-                                        <a href="#" @click.prevent="showDialogNewPerson = true">[+ Nuevo]</a>
+                                        <el-tooltip class="item" effect="dark" content="Buscar proveedor existente o crear uno nuevo" placement="top">
+                                            <a href="#" @click.prevent="showDialogNewPerson = true" class="cliente-link">
+                                                <i class="fas fa-search-plus search-icon"></i> [+ Buscar o Crear Proveedor]
+                                            </a>
+                                        </el-tooltip>
                                     </label>
                                     <el-select v-model="form.supplier_id" filterable @change="changeSupplier" ref="select_person" @keyup.native="keyupSupplier" @keyup.enter.native="keyupEnterSupplier">
                                         <el-option v-for="option in suppliers" :key="option.id" :value="option.id" :label="option.description"></el-option>
@@ -66,8 +73,13 @@
                                     <small class="form-control-feedback" v-if="errors.currency_id" v-text="errors.currency_id[0]"></small>
                                 </div>
                             </div>
+                            </div>
                         </div>
-                        <div class="row">
+
+                        <!-- Sección 2: Configuración de Pago y Archivos -->
+                        <div class="form-section">
+                            <h5 class="section-header"><i class="fa fa-credit-card"></i> Configuración de Pago y Archivos</h5>
+                            <div class="row">
                             <div class="col-lg-4">
                                 <div class="form-group" :class="{'has-danger': errors.payment_method_type_id}">
                                     <label class="control-label">
@@ -99,13 +111,22 @@
                                 </div>
                             </div>
 
-                            <div class="col-lg-12 col-md-6 d-flex align-items-end mt-4">
-                                <div class="form-group">
-                                    <button type="button" class="btn waves-effect waves-light btn-primary" @click.prevent="showDialogAddItem = true">+ Agregar Producto</button>
-                                </div>
                             </div>
                         </div>
-                        <div class="row mt-4" v-if="form.items.length > 0">
+
+                        <!-- Sección 3: Productos y Servicios -->
+                        <div class="form-section">
+                            <h5 class="section-header"><i class="fa fa-shopping-cart"></i> Productos y Servicios</h5>
+                            <div class="row">
+                            <div class="col-lg-12 col-md-6 d-flex align-items-end">
+                                <div class="form-group">
+                                    <button type="button" class="btn waves-effect waves-light btn-primary" @click.prevent="showDialogAddItem = true">
+                                        <i class="fas fa-shopping-cart"></i> Agregar Producto
+                                    </button>
+                                </div>
+                            </div>
+                            </div>
+                        <div class="row" v-if="form.items.length > 0">
                             <div class="col-md-12">
                                 <div class="table-responsive">
                                     <table class="table">
@@ -239,6 +260,7 @@
                                     <h3 class="text-right" v-if="form.total > 0 && !hide_button"><b>MONTO TOTAL : </b>{{ ratePrefix() }} {{ total_amount }}</h3>
 
                                 </template>
+                            </div>
                             </div>
                         </div>
                     </div>
@@ -824,3 +846,50 @@
         }
     }
 </script>
+
+<style scoped>
+.c-m-top { margin-top: 4.5px !important; }
+.pointer { cursor: pointer; }
+
+/* Diseño simple y limpio */
+.invoice-form {
+    background: #f8f9fa;
+}
+
+.form-section {
+    background: white;
+    padding: 20px;
+    margin-bottom: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    border-left: 4px solid #409EFF;
+}
+
+.section-header {
+    font-size: 18px;
+    font-weight: 600;
+    color: #2c3e50;
+    margin: 0 0 20px 0;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #e9ecef;
+}
+
+.section-header i {
+    color: #409EFF;
+    margin-right: 10px;
+}
+
+.form-section:nth-child(2) { border-left-color: #67C23A; }
+.form-section:nth-child(3) { border-left-color: #E6A23C; }
+
+.cliente-link {
+    color: #409EFF;
+    font-weight: bold;
+    font-size: 12px;
+    text-decoration: none;
+    transition: color 0.2s;
+}
+
+.cliente-link:hover { color: #66b1ff; }
+.search-icon { font-size: 20px; margin-right: 5px; }
+</style>
