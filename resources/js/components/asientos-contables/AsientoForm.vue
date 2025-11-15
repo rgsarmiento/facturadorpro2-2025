@@ -1,10 +1,10 @@
 <template>
-    <form @submit.prevent="saveAsiento">
-        <div class="row">
-            <!-- Información básica del asiento -->
+    <form @submit.prevent="saveAsiento" class="asientos-contables-form">
+        <!-- Sección 1: Información del Asiento -->
+        <div class="form-section">
+            <h5 class="section-header"><i class="fas fa-file-alt"></i> Información del Asiento</h5>
+            <div class="row">
             <div class="col-md-8">
-                <h5>Información del Asiento</h5>
-
                 <div class="form-group">
                     <label>Tipo de Comprobante *</label>
                     <el-select ref="tipoComprobanteSelect"
@@ -51,7 +51,6 @@
                 </div>
             </div>
 
-            <!-- Panel de balance -->
             <div class="col-md-4">
                 <div class="balance-info" :class="balanceClass">
                     <h6>Resumen del Asiento</h6>
@@ -89,12 +88,15 @@
                     </div>
                 </div>
             </div>
+            </div>
         </div>
+        <!-- Fin Sección 1 -->
 
-        <!-- Tabla de detalles -->
-        <div class="row mt-4">
+        <!-- Sección 2: Detalles del Asiento -->
+        <div class="form-section">
+            <h5 class="section-header"><i class="fas fa-list"></i> Detalles del Asiento</h5>
+            <div class="row">
             <div class="col-12">
-                <h5>Detalles del Asiento</h5>
                 <div class="table-responsive">
                     <table class="table table-bordered asientos-table">
                         <thead class="thead-light">
@@ -189,19 +191,15 @@
                     </button>
                 </div>
             </div>
+            </div>
         </div>
+        <!-- Fin Sección 2 -->
 
-        <!-- Sección de adjuntos -->
-        <div class="row mt-4">
+        <!-- Sección 3: Adjuntos -->
+        <div class="form-section">
+            <h5 class="section-header"><i class="fas fa-paperclip"></i> Adjuntos (Opcional)</h5>
+            <div class="row">
             <div class="col-12">
-                <div class="card">
-                    <div class="card-header bg-light">
-                        <h5 class="mb-0">
-                            <i class="fa fa-paperclip mr-2"></i>
-                            Adjuntos (Opcional)
-                        </h5>
-                    </div>
-                    <div class="card-body">
                         <div class="form-group">
                             <div class="custom-file">
                                 <input type="file"
@@ -280,10 +278,10 @@
                                 </div>
                             </div>
                         </div>
-                    </div>
-                </div>
+            </div>
             </div>
         </div>
+        <!-- Fin Sección 3 -->
     </form>
 </template>
 
@@ -1141,6 +1139,61 @@ export default {
 </script>
 
 <style scoped>
+/* Estilos profesionales */
+.asientos-contables-form {
+    background: #f8f9fa;
+}
+
+.form-section {
+    background: white;
+    padding: 25px;
+    margin-bottom: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    border-left: 4px solid #409EFF;
+}
+
+.section-header {
+    font-size: 18px;
+    font-weight: 600;
+    color: #2c3e50;
+    margin: 0 0 20px 0;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #e9ecef;
+    display: flex;
+    align-items: center;
+}
+
+.section-header i {
+    margin-right: 10px;
+    color: #409EFF;
+}
+
+/* Colores diferentes para cada sección */
+.form-section:nth-child(1) {
+    border-left-color: #409EFF;
+}
+
+.form-section:nth-child(1) .section-header i {
+    color: #409EFF;
+}
+
+.form-section:nth-child(2) {
+    border-left-color: #67C23A;
+}
+
+.form-section:nth-child(2) .section-header i {
+    color: #67C23A;
+}
+
+.form-section:nth-child(3) {
+    border-left-color: #E6A23C;
+}
+
+.form-section:nth-child(3) .section-header i {
+    color: #E6A23C;
+}
+
 .asientos-table tbody tr td {
     border-top: none !important;
     border-bottom: none !important;

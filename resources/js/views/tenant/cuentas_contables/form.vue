@@ -15,14 +15,16 @@
             </div>
         </div>
 
-        <div class="card mb-0">
+        <div class="card mb-0 cuentas-contables-form">
             <div class="card-header bg-info">
-                <h3 class="my-0">{{ isEdit ? 'Editar' : 'Nueva' }} Cuenta Contable</h3>
+                <h4 class="my-0"><i class="fas fa-book"></i> {{ isEdit ? 'Editar' : 'Nueva' }} Cuenta Contable</h4>
             </div>
             <div class="card-body">
                 <form @submit.prevent="submit">
-                    <div class="row">
-                        <!-- Información Básica -->
+                    <!-- Sección 1: Información Básica -->
+                    <div class="form-section">
+                        <h5 class="section-header"><i class="fas fa-info-circle"></i> Información Básica</h5>
+                        <div class="row">
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label class="required">Código:</label>
@@ -69,7 +71,14 @@
                                 </div>
                             </div>
                         </div>
+                        </div>
+                    </div>
+                    <!-- Fin Sección 1 -->
 
+                    <!-- Sección 2: Clasificación -->
+                    <div class="form-section">
+                        <h5 class="section-header"><i class="fas fa-sitemap"></i> Clasificación y Jerarquía</h5>
+                        <div class="row">
                         <div class="col-md-6">
                             <div class="form-group">
                                 <label class="required">Tipo de Cuenta:</label>
@@ -154,7 +163,14 @@
                                 </small>
                             </div>
                         </div>
+                        </div>
+                    </div>
+                    <!-- Fin Sección 2 -->
 
+                    <!-- Sección 3: Descripción y Configuraciones -->
+                    <div class="form-section">
+                        <h5 class="section-header"><i class="fas fa-cogs"></i> Descripción y Configuraciones</h5>
+                        <div class="row">
                         <div class="col-md-12">
                             <div class="form-group">
                                 <label>Descripción:</label>
@@ -216,7 +232,14 @@
                                 </small>
                             </div>
                         </div>
+                        </div>
+                    </div>
+                    <!-- Fin Sección 3 -->
 
+                    <!-- Sección 4: Información Contable Adicional -->
+                    <div class="form-section">
+                        <h5 class="section-header"><i class="fas fa-calculator"></i> Información Contable Adicional</h5>
+                        <div class="row">
                         <!-- Código NIIF -->
                         <div class="col-md-6">
                             <div class="form-group">
@@ -246,7 +269,9 @@
                                 </div>
                             </div>
                         </div>
+                        </div>
                     </div>
+                    <!-- Fin Sección 4 -->
 
                     <!-- Botones -->
                     <div class="row mt-4">
@@ -548,5 +573,68 @@ export default {
 
 .invalid-feedback {
     display: block;
+}
+
+/* Estilos profesionales */
+.cuentas-contables-form {
+    background: #f8f9fa;
+}
+
+.form-section {
+    background: white;
+    padding: 25px;
+    margin-bottom: 20px;
+    border-radius: 8px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    border-left: 4px solid #409EFF;
+}
+
+.section-header {
+    font-size: 18px;
+    font-weight: 600;
+    color: #2c3e50;
+    margin: 0 0 20px 0;
+    padding-bottom: 10px;
+    border-bottom: 2px solid #e9ecef;
+    display: flex;
+    align-items: center;
+}
+
+.section-header i {
+    margin-right: 10px;
+    color: #409EFF;
+}
+
+/* Colores diferentes para cada sección */
+.form-section:nth-child(1) {
+    border-left-color: #409EFF;
+}
+
+.form-section:nth-child(1) .section-header i {
+    color: #409EFF;
+}
+
+.form-section:nth-child(2) {
+    border-left-color: #67C23A;
+}
+
+.form-section:nth-child(2) .section-header i {
+    color: #67C23A;
+}
+
+.form-section:nth-child(3) {
+    border-left-color: #E6A23C;
+}
+
+.form-section:nth-child(3) .section-header i {
+    color: #E6A23C;
+}
+
+.form-section:nth-child(4) {
+    border-left-color: #F56C6C;
+}
+
+.form-section:nth-child(4) .section-header i {
+    color: #F56C6C;
 }
 </style>
