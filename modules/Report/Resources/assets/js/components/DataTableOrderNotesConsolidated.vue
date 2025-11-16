@@ -110,7 +110,10 @@
 
             <div class="col-md-12" v-if="records.length>0">
                 <div class="table-responsive">
-
+                    <table class="table">
+                        <thead>
+                        <slot name="heading" :sortBy="sortBy" :getSortIcon="getSortIcon" :getSortClass="getSortClass"></slot>
+                        </thead>
                         <tbody>
                             <slot v-for="(row, index) in records" :row="row" :index="customIndex(index)"></slot>
                         </tbody>
@@ -151,7 +154,23 @@
         props: {
             resource: String,
         },
-
+        data () {
+            return {
+                loading_submit:false,
+                persons: [],
+                all_persons: [],
+                loading_search:false,
+                columns: [],
+                records: [],
+                date_range_types: [],
+                document_types: [],
+                order_state_types: [],
+                sellers: [],
+                pagination: {},
+                search: {},
+                totals: {},
+                establishment: null,
+                form: {},
                 sort: {
                     column: null,
                     direction: 'asc'
@@ -278,7 +297,38 @@
                     this.pagination = response.data.meta
                     this.pagination.per_page = parseInt(response.data.meta.per_page)
                     this.loading_submit = false
-      page: this.pagination.current_page,
+                });
+
+
+            },
+            getQueryParameters() {
+                return queryString.stringify({
+                    page: this.pagination.current_page,
                     limit: this.limit,
                     sort_column: this.sort.column,
-         
+                    sort_direction: this.sort.direction,
+                    ...this.form
+                })
+            },
+            sortBy(column) {
+                if (this.sort.column === column) {
+                    this.sort.direction = this.sort.direction === 'asc' ? 'desc' : 'asc';
+                } else {
+                    this.sort.column = column;
+                    this.sort.direction = 'asc';
+                }
+                this.pagination.current_page = 1;
+                this.getRecords();
+            },
+            getSortIcon(column) {
+                if (this.sort.column !== column) {
+                    return 'el-icon-d-caret';
+                }
+                return this.sort.direction === 'asc' ? 'el-icon-caret-top' : 'el-icon-caret-bottom';
+            },
+            getSortClass(column) {
+                return this.sort.column === column ? 'sorting sorting-active' : 'sorting';
+            },
+        }
+    }
+</script>

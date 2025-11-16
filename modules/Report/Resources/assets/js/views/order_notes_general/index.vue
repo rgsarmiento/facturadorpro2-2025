@@ -6,7 +6,16 @@
         <div class="card mb-0">
                 <div class="card-body">
                     <data-table :resource="resource">
-</th>
+                        <tr slot="heading" slot-scope="{ sortBy, getSortIcon, getSortClass }">
+                            <th class="">#</th>
+                            <th class="sorting" :class="getSortClass('date_of_issue')" @click="sortBy('date_of_issue')">
+                                F. Emisión
+                                <i :class="getSortIcon('date_of_issue')"></i>
+                            </th>
+                            <th class="sorting" :class="getSortClass('delivery_date')" @click="sortBy('delivery_date')">
+                                F. Entrega
+                                <i :class="getSortIcon('delivery_date')"></i>
+                            </th>
                             <th class="sorting" :class="getSortClass('number')" @click="sortBy('number')">
                                 N° Pedido
                                 <i :class="getSortIcon('number')"></i>
@@ -76,4 +85,25 @@
                 this.changeVisibleColumn(type)
             })
 
+        },
+        methods: {
+
+            changeVisibleColumn(type){
+
+                switch (type) {
+                    case 'person':
+                        this.columns.user.visible = true
+                        this.columns.customer.visible = false
+                        break;
+
+                    case 'seller':
+                        this.columns.customer.visible = true
+                        this.columns.user.visible = false
+                        break;
+                }
+
+            }
+
         }
+    }
+</script>

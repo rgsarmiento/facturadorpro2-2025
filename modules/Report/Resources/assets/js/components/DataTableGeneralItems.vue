@@ -90,7 +90,10 @@
 
             <div class="col-md-12">
                 <div class="table-responsive">
-
+                    <table class="table">
+                        <thead>
+                        <slot name="heading" :sortBy="sortBy" :getSortIcon="getSortIcon" :getSortClass="getSortClass"></slot>
+                        </thead>
                         <tbody>
                             <slot v-for="(row, index) in records" :row="row" :index="customIndex(index)"></slot>
                         </tbody>
@@ -125,7 +128,23 @@
             resource: String,
         },
 
-
+        data () {
+            return {
+                loading_submit:false,
+                items: [],
+                all_items: [],
+                loading_search:false,
+                columns: [],
+                records: [],
+                headers: headers_token,
+                document_types: [],
+                pagination: {},
+                search: {},
+                totals: {},
+                establishment: null,
+                establishments: [],
+                types: [{id:'sale', description: 'Venta'},{id:'purchase', description: 'Compra'}],
+                form: {},
                 sort: {
                     column: null,
                     direction: 'asc'
@@ -198,7 +217,13 @@
                     this.records = response.data.data
                     this.pagination = response.data.meta
                     this.pagination.per_page = parseInt(response.data.meta.per_page)
-      page: this.pagination.current_page,
+                    this.loading_submit = false
+                });
+            },
+
+            getQueryParameters() {
+                return queryString.stringify({
+                    page: this.pagination.current_page,
                     limit: this.limit,
                     sort_column: this.sort.column,
                     sort_direction: this.sort.direction,
@@ -236,3 +261,28 @@
                 if (this.form.month_end < this.form.month_start) {
                     this.form.month_end = this.form.month_start
                 }
+                // this.loadAll();
+            },
+
+            changePeriod() {
+                if(this.form.period === 'month') {
+                    this.form.month_start = moment().format('YYYY-MM');
+                    this.form.month_end = moment().format('YYYY-MM');
+                }
+                if(this.form.period === 'between_months') {
+                    this.form.month_start = moment().startOf('year').format('YYYY-MM'); //'2019-01';
+                    this.form.month_end = moment().endOf('year').format('YYYY-MM');;
+                }
+                if(this.form.period === 'date') {
+                    this.form.date_start = moment().format('YYYY-MM-DD');
+                    this.form.date_end = moment().format('YYYY-MM-DD');
+                }
+                if(this.form.period === 'between_dates') {
+                    this.form.date_start = moment().startOf('month').format('YYYY-MM-DD');
+                    this.form.date_end = moment().endOf('month').format('YYYY-MM-DD');
+                }
+                // this.loadAll();
+            },
+        }
+    }
+</script>

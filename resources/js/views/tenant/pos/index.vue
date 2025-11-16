@@ -845,9 +845,9 @@
                             </div>
                         </div>
                     </div>
-                    <div class="h-25 bg-light" style="overflow-y: auto">
+                    <div class="pos-summary bg-light h-25 d-flex flex-column">
                         <div
-                            class="row border-top bg-light m-0 p-0 h-50 d-flex align-items-right pr-3 pt-2"
+                            class="row border-top bg-light m-0 p-0 d-flex align-items-right pr-3 pt-2 pos-summary-totals"
                         >
                             <div
                                 class="col-md-12"
@@ -928,7 +928,7 @@
                             </div>
                         </div>
                         <div
-                            class="row text-white m-0 p-0 h-50 d-flex align-items-center"
+                            class="row text-white m-0 p-0 d-flex align-items-center pos-summary-payment"
                             @click="clickPayment"
                             v-bind:class="[
                                 form.total > 0 ? 'bg-info pointer' : 'bg-dark'
@@ -5136,13 +5136,34 @@ export default {
 </script>
 
 <style>
-/* Corrección mínima para layout POS - compatible desarrollo y producción */
+/* Ajuste: conservar botones rápidos visibles sin recuperar espacio extra */
+.inner-wrapper {
+    padding-top: 60px !important;
+}
+
 .page-header {
     position: relative !important;
-    top: -3px !important;
-    left: -10px !important;
-    margin-bottom: 0px !important;
+    top: -5px !important;
+    left: 0 !important;
+    margin: 0 !important;
+    padding: 0 !important;
     z-index: 100 !important;
+}
+
+.page-header .row {
+    margin: 0 !important;
+    padding: 0 !important;
+    align-items: center !important;
+}
+
+.page-header h2 {
+    margin: 0 !important;
+    padding: 0 !important;
+    font-size: 14px !important;
+    line-height: 1.2 !important;
+    font-weight: 600 !important;
+    display: inline-flex !important;
+    align-items: center !important;
 }
 
 /* Subir también el contenido siguiente */
@@ -5199,5 +5220,20 @@ export default {
         flex-direction: column !important;
         align-items: flex-start !important;
     }
+}
+
+/* Totals summary fixed payment button */
+.pos-summary {
+    overflow: hidden;
+}
+
+.pos-summary-totals {
+    flex: 1 1 auto;
+    overflow-y: auto;
+}
+
+.pos-summary-payment {
+    flex-shrink: 0;
+    min-height: 70px;
 }
 </style>

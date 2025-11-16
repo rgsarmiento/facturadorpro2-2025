@@ -5,7 +5,15 @@
         </div>
         <div class="card mb-0">
                 <div class="card-body">
-<th class="text-center sorting" :class="getSortClass('total_transactions')" @click="sortBy('total_transactions')">
+                    <data-table :resource="resource">
+                        <tr slot="heading" slot-scope="{ sortBy, getSortIcon, getSortClass }">
+                            <th>#</th>
+                            <!-- <th class="text-center">Código vendedor</th> -->
+                            <th class="sorting" :class="getSortClass('user_id')" @click="sortBy('user_id')">
+                                Vendedor
+                                <i :class="getSortIcon('user_id')"></i>
+                            </th>
+                            <th class="text-center sorting" :class="getSortClass('total_transactions')" @click="sortBy('total_transactions')">
                                 Cantidad transacciones
                                 <i :class="getSortIcon('total_transactions')"></i>
                             </th>
@@ -44,4 +52,16 @@
         components: {DataTable},
         data() {
             return {
-         
+                resource: 'reports/commissions',
+                form: {},
+
+            }
+        },
+        async created() {
+        },
+        methods: {
+
+
+        }
+    }
+</script>

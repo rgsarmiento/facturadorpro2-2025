@@ -5,7 +5,12 @@
         </div>
         <div class="card mb-0">
                 <div class="card-body">
-    <i :class="getSortIcon('item_description')"></i>
+                    <data-table :resource="resource">
+                        <tr slot="heading" slot-scope="{ sortBy, getSortIcon, getSortClass }">
+                            <th class="">#</th>
+                            <th class="sorting" :class="getSortClass('item_description')" @click="sortBy('item_description')">
+                                Producto
+                                <i :class="getSortIcon('item_description')"></i>
                             </th>
                             <th class="text-center sorting" :class="getSortClass('item_quantity')" @click="sortBy('item_quantity')">
                                 Cantidad
@@ -41,4 +46,10 @@
             }
         },
         async created() {
+        },
+        methods: {
+
+
         }
+    }
+</script>
