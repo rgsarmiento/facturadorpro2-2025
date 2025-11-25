@@ -89,31 +89,29 @@ class CashController extends Controller
         // Obtiene todas las resoluciones que están siendo usadas por cajas abiertas (excluyendo la actual si existe)
         $resolutionsInUse = Cash::where('state', true)
             ->whereNotNull('resolution_id')
+            ->when($currentResolutionId, function($query) use ($currentResolutionId) {
+                // Si estamos editando, excluir la resolución actual de las que están en uso
+                return $query->where('resolution_id', '!=', $currentResolutionId);
+            })
             ->pluck('resolution_id')
             ->unique();
 
-        // Si hay una resolución actual, la excluimos de las "en uso" para que esté disponible
-        if ($currentResolutionId) {
-            $resolutionsInUse = $resolutionsInUse->reject(function ($id) use ($currentResolutionId) {
-                return $id == $currentResolutionId;
-            });
-        }
-
         // Obtiene las resoluciones disponibles (no en uso) más la resolución actual si existe
         $resolutions = ConfigurationPos::select('id', 'prefix', 'resolution_number', 'date_from','date_end', 'from', 'to')
-            ->where(function ($query) use ($resolutionsInUse, $currentResolutionId) {
+            ->where(function ($query) use ($resolutionsInUse) {
+                // Si hay resoluciones en uso, excluirlas
                 if ($resolutionsInUse->isNotEmpty()) {
                     $query->whereNotIn('id', $resolutionsInUse);
                 }
-                if ($currentResolutionId) {
-                    $query->orWhere('id', $currentResolutionId);
-                }
+                // Si no hay resoluciones en uso, mostrar todas
             })
-            ->get();        $maxNumbersByPrefix = DocumentPos::selectRaw('prefix, MAX(CAST(number AS SIGNED)) as max_number')
+            ->get();
+
+        $maxNumbersByPrefix = DocumentPos::selectRaw('prefix, MAX(CAST(number AS SIGNED)) as max_number')
             ->groupBy('prefix')
             ->get();
 
-                $blindCash = AdvancedConfiguration::first()->blind_cash ?? false;
+        $blindCash = AdvancedConfiguration::first()->blind_cash ?? false;
         return compact('users', 'user', 'resolutions', 'blindCash', 'maxNumbersByPrefix');
     }
 
