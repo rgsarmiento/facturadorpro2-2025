@@ -147,8 +147,8 @@
 
             clickNewSale(){
                 this.initForm()
-                this.$eventHub.$emit('cancelSale')
-                window.location.href = '/pos';
+                this.$emit('update:showDialog', false)
+                this.$eventHub.$emit('saleSuccess')
             },
 
             clickNewSaleNote() {

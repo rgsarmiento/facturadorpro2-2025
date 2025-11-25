@@ -828,24 +828,29 @@
                                 this.showDialogRemissionOptions = true;
                             }
 
-                            /*if (this.form.document_type_id === "80") {
-                                // this.form_payment.sale_note_id = response.data.data.id;
+                            // Mostrar modal con PDF para otros tipos de documentos
+                            if (this.form.document_type_id === "80") {
                                 this.form_cash_document.sale_note_id = response.data.data.id;
                                 this.saleNotesNewId = response.data.data.id;
                                 this.showDialogSaleNote = true;
-                            } else {
-                                // this.form_payment.document_id = response.data.data.id;
+                            } else if (this.form.document_type_id !== "90" && this.form.document_type_id !== "COT" && this.form.document_type_id !== "RM") {
+                                // Para facturas normales (01) y otros documentos
                                 this.form_cash_document.document_id = response.data.data.id;
-                                this.statusDocument = response.data.data.response
+                                this.statusDocument = response.data.data.response;
                                 this.documentNewId = response.data.data.id;
                                 this.showDialogOptions = true;
-                            }*/
-                            // this.savePaymentMethod();
+                            }
+
                             this.saveCashDocument();
-                            // this.initFormPayment() ;
-                            this.cleanLocalStoragePayment()
+                            this.cleanLocalStoragePayment();
                             this.$message.success(response.data.message);
-                            this.$eventHub.$emit('saleSuccess');
+
+                            // Solo emitir saleSuccess si no se va a mostrar ningún modal
+                            if (this.form.document_type_id !== "80" && this.form.document_type_id !== "90" &&
+                                this.form.document_type_id !== "COT" && this.form.document_type_id !== "RM" &&
+                                !this.showDialogOptions) {
+                                this.$eventHub.$emit('saleSuccess');
+                            }
                         }
                         else {
                             this.$message.error(response.data.message);

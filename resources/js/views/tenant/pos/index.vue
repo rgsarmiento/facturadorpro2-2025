@@ -3814,17 +3814,35 @@ export default {
             });
 
             await this.$eventHub.$on("saleSuccess", () => {
-                // this.is_payment = false
+                // Guardar el estado de navegación antes de reiniciar el formulario
+                const previousPlace = this.place;
+                const previousCategory = this.category_selected;
+
+                this.is_payment = false;
                 this.initForm();
-                this.getTables();
                 this.setFormPosLocalStorage();
                 this.items_refund = [];
+
+                // Restaurar el estado de navegación después de reiniciar el formulario
+                this.$nextTick(() => {
+                    this.place = previousPlace;
+                    this.category_selected = previousCategory;
+                    // Recargar los items si estaba en la vista de productos (place === 'prod' o 'cat2')
+                    // Esto incluye la categoría "Todos" (previousCategory === null o "")
+                    if (previousPlace === 'prod' || previousPlace === 'cat2') {
+                        this.getRecords();
+                    }
+                });
             });
         },
 
         initForm() {
+            // Buscar el cliente por defecto antes de inicializar el formulario
+            const customer_default =
+                _.find(this.all_customers, { number: "222222222222" }) ?? null;
+
             this.form = {
-                customer_id: null,
+                customer_id: customer_default ? customer_default.id : null,
                 document_type_id: "01",
                 series_id: null,
                 establishment_id: null,
@@ -3854,6 +3872,11 @@ export default {
             this.initFormItem();
             this.changeDateOfIssue();
             this.initInputPerson();
+
+            // Asegurar que el cliente esté seleccionado y actualizar los datos
+            if (customer_default) {
+                this.changeCustomer();
+            }
         },
 
         initInputPerson() {
@@ -3923,7 +3946,20 @@ export default {
         },
 
         clickDeleteCustomer() {
-            this.form.customer_id = null;
+            // En lugar de eliminar el cliente, regresar al cliente por defecto
+            const customer_default =
+                _.find(this.all_customers, { number: "222222222222" }) ?? null;
+
+            if (customer_default) {
+                this.form.customer_id = customer_default.id;
+                this.changeCustomer();
+            } else {
+                // Si no existe el cliente por defecto, al menos asignar el primero disponible
+                if (this.all_customers && this.all_customers.length > 0) {
+                    this.form.customer_id = this.all_customers[0].id;
+                    this.changeCustomer();
+                }
+            }
             this.setFormPosLocalStorage();
         },
 
