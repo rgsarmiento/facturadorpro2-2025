@@ -592,6 +592,51 @@ class PosController extends Controller
         return compact('payment_method_types', 'cards_brand', 'payment_destinations', 'series', 'type_invoices', 'type_documents', 'payment_methods', 'payment_forms', 'limit_uvt');
     }
 
+    public function tables_status(Request $request)
+    {
+        $establishment_id = $request->input('establecimiento');
+
+        if (!$establishment_id) {
+            $user = User::where('id', auth()->user()->id)->first();
+            $establishment_id = $user->establishment_id;
+        }
+
+        $tables = Establishment::select('tables')->where('id', $establishment_id)->first();
+        $cuentas = [];
+
+        if (!empty($tables)) {
+            $tables_array = Table::select('id', 'table_number')
+                ->where('establishment_id', $establishment_id)
+                ->get();
+
+            foreach ($tables_array as $line) {
+                $account = TableAccount::select('account')
+                    ->where('account', $line->id)
+                    ->whereIn('state', ['A', 'R'])
+                    ->first();
+
+                if (!empty($account)) {
+                    $cuentas[] = [
+                        'id' => $account->account,
+                        'state' => 1,
+                        'table_number' => $line->table_number
+                    ];
+                } else {
+                    $cuentas[] = [
+                        'id' => $line->id,
+                        'state' => 0,
+                        'table_number' => $line->table_number
+                    ];
+                }
+            }
+        }
+
+        return response()->json([
+            'success' => true,
+            'cuentas' => $cuentas
+        ]);
+    }
+
     public function table($table)
     {
 

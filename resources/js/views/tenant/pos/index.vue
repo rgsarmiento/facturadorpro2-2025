@@ -2408,6 +2408,42 @@ export default {
                 this.place = "cat";
             }
         },
+
+        // Método para actualizar el estado de las mesas consultando al backend
+        async actualizarEstadoMesas() {
+            if (!this.modoMesasActivo || this.botones.length === 0) {
+                return;
+            }
+
+            try {
+                const establishment = this.establishment.id;
+                const response = await this.$http.get(`/${this.resource}/tables_status`, {
+                    params: {
+                        establecimiento: establishment
+                    }
+                });
+
+                if (response.data && response.data.cuentas) {
+                    const cuentasActualizadas = response.data.cuentas;
+
+                    // Actualizar el estado de cada botón basado en las cuentas del backend
+                    this.botones = this.botones.map(boton => {
+                        const cuenta = cuentasActualizadas.find(
+                            c => c.table_number === boton.id
+                        );
+
+                        return {
+                            ...boton,
+                            db_id: cuenta ? cuenta.id : null,
+                            state: cuenta ? cuenta.state : 0
+                        };
+                    });
+                }
+            } catch (error) {
+                console.error('Error al actualizar estado de mesas:', error);
+                // No mostrar mensaje de error al usuario para no interrumpir la experiencia
+            }
+        },
         abrirModal(idBd, index) {
             try {
                 this.selected_table = index;
@@ -3088,13 +3124,9 @@ export default {
             return this.$http
                 .post(`/${this.resource}/account`, payload)
                 .then(response => {
-                    const mesaIndex = this.botones.findIndex(
-                        b => b.id === selected_table
-                    );
-                    if (mesaIndex !== -1) {
-                        this.botones[mesaIndex].state = 1;
-                    }
                     this.$message.success(response.data.message, 3);
+                    // Actualizar estado de mesas desde el backend
+                    this.actualizarEstadoMesas();
                     // Regresar al modal de productos después del éxito
                     this.regresarAModalProductos();
                 })
@@ -3125,21 +3157,9 @@ export default {
             return this.$http
                 .post(`/${this.resource}/transfer`, payload)
                 .then(response => {
-                    const mesaIndexAnterior = this.botones.findIndex(
-                        b => b.id === payload.mesa
-                    );
-                    const mesaIndexNueva = this.botones.findIndex(
-                        b => b.id === Number(payload.mesa_nueva)
-                    );
-
-                    if (mesaIndexAnterior !== -1) {
-                        this.botones[mesaIndexAnterior].state = 0;
-                    }
-
-                    if (mesaIndexNueva !== -1) {
-                        this.botones[mesaIndexNueva].state = 1;
-                    }
                     this.$message.success(response.data.message, 3);
+                    // Actualizar estado de mesas desde el backend
+                    this.actualizarEstadoMesas();
                     document.getElementById("closeModalBtnTraslado").click();
                     document.getElementById("closeModalBtn").click();
                 })
@@ -3171,22 +3191,9 @@ export default {
             return this.$http
                 .post(`/${this.resource}/delete_product`, payload)
                 .then(response => {
-                    const mesaIndexAnterior = this.botones.findIndex(
-                        b => b.id === payload.mesa
-                    );
-                    const mesaIndexNueva = this.botones.findIndex(
-                        b => b.id === Number(payload.mesa_nueva)
-                    );
-
-                    if (mesaIndexAnterior !== -1) {
-                        this.botones[mesaIndexAnterior].state = 0;
-                    }
-
-                    if (mesaIndexNueva !== -1) {
-                        this.botones[mesaIndexNueva].state = 1;
-                    }
                     this.$message.success(response.data.message, 3);
-
+                    // Actualizar estado de mesas desde el backend
+                    this.actualizarEstadoMesas();
                     // Recargar la lista de productos en la cuenta
                     this.abrirModalCuenta(this.selected_table, this.dbId);
                 })
@@ -3218,21 +3225,9 @@ export default {
             return this.$http
                 .post(`/${this.resource}/delete_product`, payload)
                 .then(response => {
-                    const mesaIndexAnterior = this.botones.findIndex(
-                        b => b.id === payload.mesa
-                    );
-                    const mesaIndexNueva = this.botones.findIndex(
-                        b => b.id === Number(payload.mesa_nueva)
-                    );
-
-                    if (mesaIndexAnterior !== -1) {
-                        this.botones[mesaIndexAnterior].state = 0;
-                    }
-
-                    if (mesaIndexNueva !== -1) {
-                        this.botones[mesaIndexNueva].state = 1;
-                    }
                     this.$message.success(response.data.message, 3);
+                    // Actualizar estado de mesas desde el backend
+                    this.actualizarEstadoMesas();
                     document
                         .getElementById("closeModalBtnCuentaCarrito")
                         .click();
@@ -3264,16 +3259,9 @@ export default {
             return this.$http
                 .post(`/${this.resource}/delete_account`, payload)
                 .then(response => {
-                    const mesaIndexAnterior = this.botones.findIndex(
-                        b => b.db_id === payload.mesa_id
-                    );
-
-                    if (mesaIndexAnterior !== -1) {
-                        this.botones[mesaIndexAnterior].state = 0;
-                    }
-
                     this.$message.success(response.data.message, 3);
-
+                    // Actualizar estado de mesas desde el backend
+                    this.actualizarEstadoMesas();
                     // Limpiar la lista de productos y cerrar modales
                     this.productosCuenta = [];
                     this.productosSeleccionados = [];
@@ -3307,15 +3295,9 @@ export default {
             return this.$http
                 .post(`/${this.resource}/delete_account`, payload)
                 .then(response => {
-                    const mesaIndexAnterior = this.botones.findIndex(
-                        b => b.db_id === payload.mesa_id
-                    );
-
-                    if (mesaIndexAnterior !== -1) {
-                        this.botones[mesaIndexAnterior].state = 0;
-                    }
-
                     this.$message.success(response.data.message, 3);
+                    // Actualizar estado de mesas desde el backend
+                    this.actualizarEstadoMesas();
                     document
                         .getElementById("closeModalBtnCuentaCarrito")
                         .click();
@@ -3822,6 +3804,9 @@ export default {
                 this.initForm();
                 this.setFormPosLocalStorage();
                 this.items_refund = [];
+
+                // Actualizar estado de mesas si el modo mesas está activo
+                this.actualizarEstadoMesas();
 
                 // Restaurar el estado de navegación después de reiniciar el formulario
                 this.$nextTick(() => {
