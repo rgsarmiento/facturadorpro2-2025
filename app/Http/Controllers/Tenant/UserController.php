@@ -84,7 +84,10 @@ class UserController extends Controller
         $user->ni_resolution_id = $request->input('ni_resolution_id');
         $user->type = $request->input('type');
         $user->prefix = $request->input('prefix');
+
+        // Establecer active como true por defecto al crear nuevo usuario
         if (!$id) {
+            $user->active = true;
             $user->api_token = str_random(50);
             $user->password = bcrypt($request->input('password'));
         }
@@ -150,6 +153,62 @@ class UserController extends Controller
     public function searchData()
     {
         return User::getDataForFilters();
+    }
+
+    /**
+     * Cambiar el estado activo/inactivo de un usuario
+     * Solo el administrador puede cambiar estados
+     * El usuario administrador (id = 1) no puede ser desactivado
+     */
+    public function toggleActive(Request $request, $id)
+    {
+        // Verificar que el usuario autenticado sea administrador
+        if (auth()->user()->type !== 'admin') {
+            return response()->json([
+                'success' => false,
+                'message' => 'Solo el administrador puede cambiar el estado de los usuarios'
+            ], 403);
+        }
+
+        // No permitir desactivar al usuario administrador (id = 1)
+        if ($id == 1) {
+            return response()->json([
+                'success' => false,
+                'message' => 'El usuario administrador no puede ser desactivado'
+            ], 403);
+        }
+
+        $user = User::findOrFail($id);
+        $user->active = !$user->active;
+        $user->save();
+
+        return response()->json([
+            'success' => true,
+            'message' => $user->active ? 'Usuario activado' : 'Usuario desactivado',
+            'active' => $user->active
+        ]);
+    }
+
+    /**
+     * Verificar el estado activo del usuario autenticado
+     */
+    public function checkStatus(Request $request)
+    {
+        $user = auth()->user();
+
+        if (!$user) {
+            return response()->json([
+                'active' => false,
+                'message' => 'Usuario no autenticado'
+            ], 401);
+        }
+
+        $active = isset($user->active) ? (bool)$user->active : true;
+
+        return response()->json([
+            'active' => $active,
+            'user_id' => $user->id
+        ]);
     }
 
 }

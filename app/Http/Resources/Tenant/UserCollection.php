@@ -39,6 +39,7 @@ class UserCollection extends ResourceCollection
                 'type' => $type,
                 'prefix' => $row->prefix,
                 'locked' => (bool) $row->locked,
+                'active' => (bool) $row->active,
                 'fe_resolution_id' => $row->fe_resolution_id,
                 'nc_resolution_id' => $row->nc_resolution_id,
                 'nd_resolution_id' => $row->nd_resolution_id,

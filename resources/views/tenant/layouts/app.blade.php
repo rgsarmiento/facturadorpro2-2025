@@ -328,6 +328,66 @@
         });
     </script>
 
+    <!-- Script para verificar estado del usuario -->
+    <script>
+        @auth
+        (function() {
+            let checkInterval;
+            let isCheckingStatus = false;
+
+            // Función para verificar el estado del usuario
+            function checkUserStatus() {
+                if (isCheckingStatus) return;
+                isCheckingStatus = true;
+
+                $.ajax({
+                    url: '{{ url("check-user-status") }}',
+                    type: 'GET',
+                    dataType: 'json',
+                    success: function(response) {
+                        if (!response.active) {
+                            // Usuario fue desactivado, mostrar mensaje y cerrar sesión
+                            clearInterval(checkInterval);
+
+                            Swal.fire({
+                                title: 'Cuenta Desactivada',
+                                text: 'Tu cuenta ha sido desactivada por el administrador. Serás desconectado del sistema.',
+                                icon: 'error',
+                                allowOutsideClick: false,
+                                allowEscapeKey: false,
+                                confirmButtonText: 'Entendido',
+                                confirmButtonColor: '#d33'
+                            }).then((result) => {
+                                // Cerrar sesión y redirigir al login
+                                window.location.href = '{{ route("logout") }}';
+                            });
+                        }
+                    },
+                    error: function(xhr, status, error) {
+                        // Si hay error 403 o 401, el usuario ya fue desconectado por el middleware
+                        if (xhr.status === 403 || xhr.status === 401) {
+                            clearInterval(checkInterval);
+                            window.location.href = '{{ route("login") }}';
+                        }
+                        // Ignorar otros errores de red para evitar desconexiones innecesarias
+                    },
+                    complete: function() {
+                        isCheckingStatus = false;
+                    }
+                });
+            }
+
+            // Verificar cada 30 segundos
+            checkInterval = setInterval(checkUserStatus, 30000);
+
+            // Verificar también cuando la ventana recupera el foco
+            $(window).on('focus', function() {
+                checkUserStatus();
+            });
+        })();
+        @endauth
+    </script>
+
     <!-- <script src="//code.tidio.co/1vliqewz9v7tfosw5wxiktpkgblrws5w.js"></script> -->
 
 

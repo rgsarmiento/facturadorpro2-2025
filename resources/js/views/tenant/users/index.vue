@@ -28,10 +28,12 @@
                             <th class="sorting" @click="sortBy('prefix')" style="cursor: pointer;">Prefijo <i :class="getSortIcon('prefix')"></i></th>
                             <th>Api Token</th>
                             <th class="sorting" @click="sortBy('establishment_description')" style="cursor: pointer;">Establecimiento <i :class="getSortIcon('establishment_description')"></i></th>
+                            <th class="text-center">Estado</th>
+                            <th class="text-right">Acciones</th>
                         </tr>
                         </thead>
                         <tbody>
-                        <tr v-for="(row, index) in records">
+                        <tr v-for="(row, index) in records" :key="row.id">
                             <td>{{ index + 1 }}</td>
                             <td>{{ row.email }}</td>
                             <td>{{ row.name }}</td>
@@ -39,6 +41,16 @@
                             <td>{{ row.prefix }}</td>
                             <td>{{ row.api_token }}</td>
                             <td>{{ row.establishment_description }}</td>
+                            <td class="text-center">
+                                <el-switch
+                                    v-model="row.active"
+                                    :disabled="!isAdmin || row.id === 1"
+                                    active-color="#13ce66"
+                                    inactive-color="#ff4949"
+                                    @change="toggleUserActive(row)"
+                                >
+                                </el-switch>
+                            </td>
                             <td class="text-right">
                                 <button type="button" class="btn waves-effect waves-light btn-xs btn-info" @click.prevent="clickCreate(row.id)">Editar</button>
                                 <button type="button" class="btn waves-effect waves-light btn-xs btn-danger"  @click.prevent="clickDelete(row.id)" v-if="row.id != 1">Eliminar</button>
@@ -74,6 +86,11 @@
                     column: null,
                     direction: 'asc'
                 }
+            }
+        },
+        computed: {
+            isAdmin() {
+                return this.typeUser === 'admin';
             }
         },
         created() {
@@ -115,6 +132,40 @@
                 this.destroy(`/${this.resource}/${id}`).then(() =>
                     this.$eventHub.$emit('reloadData')
                 )
+            },
+            toggleUserActive(user) {
+                if (!this.isAdmin) {
+                    this.$message.error('Solo el administrador puede cambiar el estado de los usuarios');
+                    // Revertir el cambio en la UI
+                    user.active = !user.active;
+                    return;
+                }
+
+                if (user.id === 1) {
+                    this.$message.error('El usuario administrador no puede ser desactivado');
+                    // Revertir el cambio en la UI
+                    user.active = true;
+                    return;
+                }
+
+                this.$http.post(`/${this.resource}/${user.id}/toggle-active`)
+                    .then(response => {
+                        if (response.data.success) {
+                            this.$message.success(response.data.message);
+                            // Actualizar el estado en la UI con el valor del servidor
+                            user.active = response.data.active;
+                        } else {
+                            this.$message.error(response.data.message);
+                            // Revertir el cambio en la UI
+                            user.active = !user.active;
+                        }
+                    })
+                    .catch(error => {
+                        const errorMsg = error.response?.data?.message || 'Error al cambiar el estado del usuario';
+                        this.$message.error(errorMsg);
+                        // Revertir el cambio en la UI
+                        user.active = !user.active;
+                    });
             }
         }
     }

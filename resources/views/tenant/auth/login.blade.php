@@ -26,6 +26,16 @@
                     <h2 class="form-title">Bienvenido</h2>
                     <p class="form-subtitle">Ingresa a tu cuenta para continuar</p>
 
+                    @if (session('error'))
+                        <div class="alert alert-danger alert-dismissible fade show" role="alert" style="margin-bottom: 20px; border-radius: 8px; background-color: #fee; border: 1px solid #fcc; color: #c00;">
+                            <i class="fas fa-exclamation-circle" style="margin-right: 8px;"></i>
+                            <strong>Error:</strong> {{ session('error') }}
+                            <button type="button" class="close" data-dismiss="alert" aria-label="Close" style="opacity: 0.8;">
+                                <span aria-hidden="true">&times;</span>
+                            </button>
+                        </div>
+                    @endif
+
                     <form method="POST" action="{{ route('login') }}" class="login-form">
                         @csrf
 
@@ -649,7 +659,7 @@
             html, body {
                 overflow-x: hidden;
             }
-            
+
             .login-container {
                 overflow-x: hidden;
                 width: 100%;
@@ -682,7 +692,7 @@
                 align-items: flex-start;
                 padding-top: 2rem;
             }
-            
+
             .login-content {
                 max-height: 90vh;
                 overflow-y: auto;
