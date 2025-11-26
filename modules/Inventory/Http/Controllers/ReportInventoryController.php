@@ -39,6 +39,7 @@ class ReportInventoryController extends Controller
             'size' => $sizes
         ];
         $date = $request->date;
+        $description = $request->description;
 
         [$relation, $id] = explode('_', $request->filter) + [null, null];
 
@@ -46,19 +47,37 @@ class ReportInventoryController extends Controller
             $reports = ItemWarehouse::with(['item', 'warehouse'])
                 ->where('warehouse_id', $request->warehouse_id)
                 ->whereFilterDate($date)
-                ->whereHas('item', function($q) use ($relation, $id) {
+                ->whereHas('item', function($q) use ($relation, $id, $description) {
                     $q->where([['item_type_id', '01'], ['unit_type_id', '!=','ZZ']]);
                     $q->whereNotIsSet();
                     $q->whereFilterByRelation($relation, $id);
+
+                    // Filtro por descripción (nombre, código interno o nombre secundario)
+                    if (!empty($description)) {
+                        $q->where(function($query) use ($description) {
+                            $query->where('name', 'like', '%' . $description . '%')
+                                  ->orWhere('internal_id', 'like', '%' . $description . '%')
+                                  ->orWhere('second_name', 'like', '%' . $description . '%');
+                        });
+                    }
                 });
         }
         else {
             $reports = ItemWarehouse::with(['item', 'warehouse'])
                 ->whereFilterDate($date)
-                ->whereHas('item',function($q) use ($relation, $id){
+                ->whereHas('item',function($q) use ($relation, $id, $description){
                     $q->where([['item_type_id', '01'], ['unit_type_id', '!=','ZZ']]);
                     $q->whereNotIsSet();
                     $q->whereFilterByRelation($relation, $id);
+
+                    // Filtro por descripción (nombre, código interno o nombre secundario)
+                    if (!empty($description)) {
+                        $q->where(function($query) use ($description) {
+                            $query->where('name', 'like', '%' . $description . '%')
+                                  ->orWhere('internal_id', 'like', '%' . $description . '%')
+                                  ->orWhere('second_name', 'like', '%' . $description . '%');
+                        });
+                    }
                 });
         }
 
@@ -94,7 +113,7 @@ class ReportInventoryController extends Controller
         $reports = $reports->paginate(config('tenant.items_per_page'));
         $warehouses = Warehouse::select('id', 'description')->get();
 
-        return view('inventory::reports.inventory.index', compact('reports', 'warehouses', 'filter'));
+        return view('inventory::reports.inventory.index', compact('reports', 'warehouses', 'filter', 'date'));
     }
 
     /**
@@ -121,16 +140,24 @@ class ReportInventoryController extends Controller
         $company = Company::first();
         $establishment = Establishment::first();
         ini_set('max_execution_time', 0);
-//        [$relation, $id] = explode('_', $request->filter) + [null, null];
+        $description = $request->description;
         [$relation, $id] = array_pad(explode('_', $request->filter ?? ''), 2, null);
         if($request->warehouse_id && $request->warehouse_id != 'all'){
             $records = ItemWarehouse::with(['item'])
                 ->where('warehouse_id', $request->warehouse_id)
                 ->whereFilterDate($request->date)
-                ->whereHas('item', function($q) use ($relation, $id) {
+                ->whereHas('item', function($q) use ($relation, $id, $description) {
                     $q->where([['item_type_id', '01'], ['unit_type_id', '!=','ZZ']]);
                     $q->whereNotIsSet();
                     $q->whereFilterByRelation($relation, $id);
+
+                    if (!empty($description)) {
+                        $q->where(function($query) use ($description) {
+                            $query->where('name', 'like', '%' . $description . '%')
+                                  ->orWhere('internal_id', 'like', '%' . $description . '%')
+                                  ->orWhere('second_name', 'like', '%' . $description . '%');
+                        });
+                    }
                 })
                 ->latest()
                 ->get();
@@ -138,15 +165,24 @@ class ReportInventoryController extends Controller
         else {
             $records = ItemWarehouse::with(['item'])
                 ->whereFilterDate($request->date)
-                ->whereHas('item', function($q) use ($relation, $id) {
+                ->whereHas('item', function($q) use ($relation, $id, $description) {
                     $q->where([['item_type_id', '01'], ['unit_type_id', '!=','ZZ']]);
                     $q->whereNotIsSet();
                     $q->whereFilterByRelation($relation, $id);
+
+                    if (!empty($description)) {
+                        $q->where(function($query) use ($description) {
+                            $query->where('name', 'like', '%' . $description . '%')
+                                  ->orWhere('internal_id', 'like', '%' . $description . '%')
+                                  ->orWhere('second_name', 'like', '%' . $description . '%');
+                        });
+                    }
                 })
                 ->latest()
                 ->get();
         }
-        $pdf = PDF::loadView('inventory::reports.inventory.report_pdf', compact("records", "company", "establishment"))->setPaper('a4', 'landscape');
+        $date = $request->date;
+        $pdf = PDF::loadView('inventory::reports.inventory.report_pdf', compact("records", "company", "establishment", "date"))->setPaper('a4', 'landscape');
         $filename = 'Reporte_Inventario'.date('YmdHis');
         return $pdf->download($filename.'.pdf');
     }
@@ -160,16 +196,24 @@ class ReportInventoryController extends Controller
         $company = Company::first();
         $establishment = Establishment::first();
         ini_set('max_execution_time', 0);
-//        [$relation, $id] = explode('_', $request->filter) + [null, null];
+        $description = $request->description;
         [$relation, $id] = array_pad(explode('_', $request->filter ?? ''), 2, null);
         if($request->warehouse_id && $request->warehouse_id != 'all'){
             $records = ItemWarehouse::with(['item'])
                 ->where('warehouse_id', $request->warehouse_id)
                 ->whereFilterDate($request->date)
-                ->whereHas('item', function($q) use ($relation, $id) {
+                ->whereHas('item', function($q) use ($relation, $id, $description) {
                     $q->where([['item_type_id', '01'], ['unit_type_id', '!=','ZZ']]);
                     $q->whereNotIsSet();
                     $q->whereFilterByRelation($relation, $id);
+
+                    if (!empty($description)) {
+                        $q->where(function($query) use ($description) {
+                            $query->where('name', 'like', '%' . $description . '%')
+                                  ->orWhere('internal_id', 'like', '%' . $description . '%')
+                                  ->orWhere('second_name', 'like', '%' . $description . '%');
+                        });
+                    }
                 })
                 ->latest()
                 ->get();
@@ -177,18 +221,28 @@ class ReportInventoryController extends Controller
         else {
             $records = ItemWarehouse::with(['item'])
                 ->whereFilterDate($request->date)
-                ->whereHas('item', function($q) use ($relation, $id) {
+                ->whereHas('item', function($q) use ($relation, $id, $description) {
                     $q->where([['item_type_id', '01'], ['unit_type_id', '!=','ZZ']]);
                     $q->whereNotIsSet();
                     $q->whereFilterByRelation($relation, $id);
+
+                    if (!empty($description)) {
+                        $q->where(function($query) use ($description) {
+                            $query->where('name', 'like', '%' . $description . '%')
+                                  ->orWhere('internal_id', 'like', '%' . $description . '%')
+                                  ->orWhere('second_name', 'like', '%' . $description . '%');
+                        });
+                    }
                 })
                 ->latest()
                 ->get();
         }
+        $date = $request->date;
         return (new InventoryExport)
             ->records($records)
             ->company($company)
             ->establishment($establishment)
+            ->date($date)
             ->download('ReporteInv'.Carbon::now().'.xlsx');
     }
 }

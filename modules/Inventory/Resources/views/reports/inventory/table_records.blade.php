@@ -30,8 +30,12 @@
                 @foreach($records as $key => $value)
 
                     @php
-                        $global_sale_unit_price = $value->getGlobalSaleUnitPrice();
-                        $global_purchase_unit_price = $value->getGlobalPurchaseUnitPrice();
+                        // Calcular stock según la fecha seleccionada (si existe)
+                        $stock = isset($date) && !empty($date) ? $value->getStockByDate($date) : $value->stock;
+
+                        // Calcular precios globales con el stock correcto
+                        $global_sale_unit_price = number_format($value->item->sale_unit_price * $stock, 6, ".", "");
+                        $global_purchase_unit_price = number_format($value->item->purchase_unit_price * $stock, 6, ".", "");
 
                         $total_global_sale_unit_price += $global_sale_unit_price;
                         $total_global_purchase_unit_price += $global_purchase_unit_price;
@@ -40,7 +44,7 @@
                         <td class="celda">{{$loop->iteration}}</td>
                         <td class="celda">{{$value->item->internal_id}}</td>
                         <td class="celda">{{$value->item->name ?? ''}}</td>
-                        <td class="celda">{{$value->stock}}</td>
+                        <td class="celda">{{$stock}}</td>
                         <td class="celda">{{$value->item->sale_unit_price}}</td>
                         <td class="celda">{{$value->item->purchase_unit_price}}</td>
                         <td class="celda">{{$value->warehouse->description}}</td>

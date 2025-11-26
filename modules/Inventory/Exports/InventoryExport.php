@@ -10,30 +10,37 @@ use Maatwebsite\Excel\Concerns\ShouldAutoSize;
 class InventoryExport implements  FromView, ShouldAutoSize
 {
     use Exportable;
-    
+
     public function records($records) {
         $this->records = $records;
         return $this;
     }
-    
+
     public function company($company) {
         $this->company = $company;
-        
+
         return $this;
     }
-    
+
     public function establishment($establishment) {
         $this->establishment = $establishment;
-        
+
         return $this;
     }
-    
+
+    public function date($date) {
+        $this->date = $date;
+
+        return $this;
+    }
+
     public function view(): View {
-        
+
         return view('inventory::reports.inventory.report_excel', [
             'records'=> $this->records,
             'company' => $this->company,
-            'establishment'=>$this->establishment
+            'establishment'=>$this->establishment,
+            'date'=>$this->date ?? null
         ]);
     }
 }

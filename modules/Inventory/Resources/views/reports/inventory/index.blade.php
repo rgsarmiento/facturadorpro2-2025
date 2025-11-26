@@ -48,13 +48,19 @@
                                     </select>
                                 </div>
                             </div>
-                            <div class="col-md-3">
+                            <div class="col-md-2">
                                 <div class="form-group">
                                     <label class="control-label">Fecha</label>
-                                    <input name="date" value="{{ request()->date ? request()->date : ''}}" type="text" data-plugin-datepicker class="form-control">
+                                    <input name="date" value="{{ request()->date ? request()->date : ''}}" type="text" data-plugin-datepicker class="form-control" placeholder="Fecha del reporte">
                                 </div>
                             </div>
                             <div class="col-md-3">
+                                <div class="form-group">
+                                    <label class="control-label">Descripción</label>
+                                    <input name="description" value="{{ request()->description ?? '' }}" type="text" class="form-control" placeholder="Buscar por nombre o código">
+                                </div>
+                            </div>
+                            <div class="col-md-1">
                                 <div class="form-group">
                                     <label class="control-label d-block">&nbsp;</label>
                                     <button class="btn btn-primary" type="submit"><i class="fa fa-search"></i> Buscar</button>
@@ -130,13 +136,17 @@
                                         @if(!empty($reports) && $reports->count())
                                             @foreach($reports as $key => $value)
                                                 @php
-                                                    $global_sale_unit_price = $value->getGlobalSaleUnitPrice();
-                                                    $global_purchase_unit_price = $value->getGlobalPurchaseUnitPrice();
+                                                    // Calcular stock según la fecha seleccionada
+                                                    $stock = isset($date) && !empty($date) ? $value->getStockByDate($date) : $value->stock;
+
+                                                    // Calcular precios globales con el stock correcto
+                                                    $global_sale_unit_price = number_format($value->item->sale_unit_price * $stock, 6, ".", "");
+                                                    $global_purchase_unit_price = number_format($value->item->purchase_unit_price * $stock, 6, ".", "");
                                                 @endphp
                                                 <tr>
                                                     <td class="celda">{{$loop->iteration}}</td>
                                                     <td class="celda">{{$value->item->internal_id ?? ''}} {{$value->item->internal_id ? '-':''}} {{$value->item->name ?? ''}}</td>
-                                                    <td class="celda text-right">{{number_format($value->stock, 2)}}</td>
+                                                    <td class="celda text-right">{{number_format($stock, 2)}}</td>
                                                     <td class="celda text-right">{{number_format($value->item->sale_unit_price, 2)}}</td>
                                                     <td class="celda text-right">{{number_format($value->item->purchase_unit_price, 2)}}</td>
                                                     <td class="celda">{{$value->warehouse->description}}</td>
