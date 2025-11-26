@@ -211,15 +211,46 @@
                                         <i class="el-icon-question" style="cursor: help; color: #909399;"></i>
                                     </el-tooltip>
                                 </label>
-                                <el-input
+                                <el-input-number
                                     v-model="form.price"
                                     @input="calculateQuantity"
                                     :readonly="typeUser === ''"
-                                    type="number"
-                                    step="0.01">
-                                    <template slot="prepend" v-if="currencyTypeSymbolActive">{{ currencyTypeSymbolActive }}</template>
-                                </el-input>
+                                    :precision="2"
+                                    :step="0.01"
+                                    controls-position="right"
+                                    style="width: 100%;">
+                                </el-input-number>
                                 <small class="form-control-feedback" v-if="errors.price" v-text="errors.unit_price[0]"></small>
+                            </div>
+                        </div>
+
+                        <!-- Selector de Lista de Precios -->
+                        <div class="col-md-3 col-sm-6" v-if="!is_client && form.item_id && form.item_unit_types.length > 0">
+                            <div class="form-group">
+                                <label class="control-label">
+                                    <i class="el-icon-price-tag"></i> Lista de Precios
+                                    <el-tooltip content="Seleccione la lista de precios a aplicar" placement="top">
+                                        <i class="el-icon-question" style="cursor: help; color: #909399;"></i>
+                                    </el-tooltip>
+                                </label>
+                                <el-select
+                                    v-model="selected_price_list_id"
+                                    @change="onPriceListChange"
+                                    placeholder="Seleccionar lista de precios"
+                                    style="width: 100%;">
+                                    <el-option
+                                        v-for="row in form.item_unit_types"
+                                        :key="row.id"
+                                        :value="row.id"
+                                        :label="getPriceListLabel(row)">
+                                        <div style="display: flex; justify-content: space-between; align-items: center;">
+                                            <span><strong>{{ row.description }}</strong> ({{ row.unit_type.name }})</span>
+                                            <span style="color: #67C23A; font-weight: bold;">
+                                                {{ currencyTypeSymbolActive }} {{ getPriceByDefault(row) }}
+                                            </span>
+                                        </div>
+                                    </el-option>
+                                </el-select>
                             </div>
                         </div>
 
@@ -568,6 +599,7 @@
                 search_item_by_barcode:false,
                 tax_included_in_price: false,
                 isUpdateWarehouseId:null,
+                selected_price_list_id: null,
                 showDialogLots: false,
                 showDialogSelectLots: false,
                 quickFilter: 'all', // Filtro rápido: all, stock, recent
@@ -863,6 +895,7 @@
                 this.item_unit_type = {};
                 this.has_list_prices = false;
                 this.tax_included_in_price = true;
+                this.selected_price_list_id = null;
             },
 
             async create() {
@@ -932,6 +965,9 @@
                     if (this.form.item.description) {
                         this.form.notes = this.form.item.description;
                     }
+
+                    // Resetear la lista de precios seleccionada cuando cambia el producto
+                    this.selected_price_list_id = null;
 
                     this.cleanTotalItem();
                     this.showListStock = true;
@@ -1149,6 +1185,41 @@
                 // this.form.quantity = row.quantity_unit
                 this.calculateQuantity()
                 // console.log(this.form)
+            },
+
+            // Método para obtener el label de la lista de precios
+            getPriceListLabel(row) {
+                const price = this.getPriceByDefault(row);
+                return `${row.description} - ${this.currencyTypeSymbolActive} ${price}`;
+            },
+
+            // Método para obtener el precio según el precio por defecto
+            getPriceByDefault(row) {
+                let precio = 0;
+                switch(row.price_default) {
+                    case 1:
+                        precio = row.price1;
+                        break;
+                    case 2:
+                        precio = row.price2;
+                        break;
+                    case 3:
+                        precio = row.price3;
+                        break;
+                    default:
+                        precio = row.price1;
+                }
+                return parseFloat(precio).toFixed(2);
+            },
+
+            // Método que se ejecuta cuando cambia la selección de lista de precios
+            onPriceListChange(priceListId) {
+                if (!priceListId) return;
+
+                const selectedRow = this.form.item_unit_types.find(row => row.id === priceListId);
+                if (selectedRow) {
+                    this.selectedPrice(selectedRow);
+                }
             },
             addRowLotGroup(id)
             {
